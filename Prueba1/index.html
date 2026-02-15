@@ -319,7 +319,7 @@ button[disabled]{
     }
   @media print{
 
-  /* Ocultar todo excepto RESULTADO */
+  /* Ocultar secciones principales */
   header,
   #blockFaseNivel,
   #blockFormularios,
@@ -330,8 +330,8 @@ button[disabled]{
   #blockAutoComentarios,
   #blockDesempenoExtra,
   #recoverModalBack,
-  #printModalBack {
-    display: none !important;
+  #printModalBack{
+    display:none !important;
   }
 
   body{
@@ -339,9 +339,7 @@ button[disabled]{
     color:#000 !important;
   }
 
-  main{
-    padding:0 !important;
-  }
+  main{ padding:0 !important; }
 
   .card{
     box-shadow:none !important;
@@ -368,6 +366,36 @@ button[disabled]{
   thead th{
     background:#f4f4f4 !important;
     color:#000 !important;
+  }
+
+  /* ✅ Modo impresión SOLO Informe Ejecutivo */
+  body.print-ie main{ display:none !important; }
+
+  body.print-ie #ieModalBack{
+    position:static !important;
+    inset:auto !important;
+    padding:0 !important;
+    background:transparent !important;
+    backdrop-filter:none !important;
+    display:block !important;
+  }
+
+  body.print-ie #ieModalBack .modal{
+    width:100% !important;
+    max-height:none !important;
+    border:none !important;
+    box-shadow:none !important;
+    background:#fff !important;
+  }
+
+  body.print-ie #ieModalBack .modal-h,
+  body.print-ie #ieModalBack .modalActions{
+    display:none !important; /* quita botones al imprimir */
+  }
+
+  body.print-ie #ieModalBack .modal-b{
+    padding:0 !important;
+    overflow:visible !important;
   }
 }
   </style>
@@ -1143,7 +1171,7 @@ Dejar de hacer:"></textarea>
 `Empezar a hacer:
 Continuar haciendo:
 Dejar de hacer:`;
-  const DEFAULT_WEBAPP_ = "https://script.google.com/macros/s/AKfycbwPWUyIKBTrZUainkx1jJhzwdrr-2I78jOcHqTCcjECx1PgN3GMPphMuqTe5abcbVu-/exec";
+  const DEFAULT_WEBAPP_ = "https://script.google.com/macros/s/AKfycbxvDWDQBiv0bOHVSsKVd4EQSEO3kc2rLSIsW-RHrADspnJmxr8GkdwnR5g200uHqc9x/exec";
   const $ = id => document.getElementById(id);
 
   function normalizeWebApp(raw){
@@ -2705,32 +2733,15 @@ function ieShowHtml_(){
 }
 
 function iePrintPdf_(){
-  const html = state.lastIEHtml || $("ieModalBody")?.innerHTML || "";
-  const title = "Reporte de evaluación del desempeño";
+  // Asegura que se vea el HTML (no el textarea)
+  ieShowHtml_();
 
-  const w = window.open("", "_blank", "noopener,noreferrer");
-  if(!w) return alert("El navegador bloqueó la ventana emergente. Permite popups para imprimir.");
+  // Modo impresión solo del informe ejecutivo
+  document.body.classList.add("print-ie");
+  window.print();
 
-  w.document.open();
-  w.document.write(`<!doctype html>
-<html lang="es">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>${title}</title>
-  <style>
-    body{font-family:Arial,sans-serif; margin:24px; color:#0f172a}
-    .sub{color:#475569}
-    table{border-collapse:collapse; width:100%}
-    td,th{border:1px solid #e5e7eb; padding:8px; vertical-align:top}
-  </style>
-</head>
-<body>${html}</body>
-</html>`);
-  w.document.close();
-  w.focus();
-  w.print();
-  w.close();
+  // Limpia el modo impresión
+  setTimeout(()=>document.body.classList.remove("print-ie"), 400);
 }
 
    // ✅ CONSOLIDADO (Informe ejecutivo): de momento solo UI.
