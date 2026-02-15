@@ -459,6 +459,34 @@ button[disabled]{
     </div>
   </div>
 </div>
+<!-- ✅ MODAL INFORME EJECUTIVO (TABLA FLOTANTE): PDF / TEXTO / CERRAR -->
+<div id="ieModalBack" class="modalBack" role="dialog" aria-modal="true" aria-labelledby="ieTitle">
+  <div class="modal" style="max-width:980px">
+    <div class="modal-h">
+      <div>
+        <h3 id="ieTitle">Reporte ejecutivo</h3>
+        <div class="modalNote">Generado con la hoja <b>EvaluacionFinal</b> + <b>OpenAI</b>.</div>
+      </div>
+      <div class="modalActions">
+        <button id="btnIEViewHtml" class="btn-ghost">Ver tabla</button>
+        <button id="btnIEText" class="btn-ghost">Texto</button>
+        <button id="btnIEPrintPDF" class="btn-blue">Imprimir: PDF</button>
+        <button id="btnIEClose" class="btn-ghost">Cerrar</button>
+      </div>
+    </div>
+
+    <div class="modal-b">
+      <div id="ieHtmlWrap">
+        <div id="ieModalBody"></div>
+      </div>
+
+      <div id="ieTextWrap" style="display:none">
+        <div class="hint" style="margin-bottom:10px">Tip: copia el texto y pégalo donde quieras. (Sí, también en Word sin pelearte con el formato 😄)</div>
+        <textarea id="ieTextArea" class="printTextArea" spellcheck="false" style="min-height:320px"></textarea>
+      </div>
+    </div>
+  </div>
+</div>
 
   <!-- ✅ MODAL TIPOS -->
 <div id="tiposModalBack" class="modalBack" role="dialog" aria-modal="true" aria-labelledby="tiposTitle">
@@ -993,7 +1021,23 @@ Dejar de hacer:"></textarea>
       </div>
     </section>
     <!-- OTRAS VISTAS -->
-<!-- ✅ CONSOLIDADO (INFORME EJECUTIVO) -->
+ <!-- ✅ CONSOLIDADO (INFORME EJECUTIVO) -->
+<section class="card" data-phase-block="CONSOLIDADO" id="blockConsolidado">
+  <div class="card-h">
+    <div>
+      <h2>Informe ejecutivo</h2>
+      <div class="sub">Genera un reporte ejecutivo (desde <b>EvaluacionFinal</b>) y lo muestra en una tabla flotante con opciones de impresión.</div>
+    </div>
+    <div class="chips">
+      <span class="chip mono">Requiere: <b>No personal</b> + <b>Periodo</b> + <b>Versión</b></span>
+    </div>
+  </div>
+
+  <div class="card-b">
+    <div class="row" style="display:flex; gap:10px; flex-wrap:wrap; align-items:center">
+      <button id="btnGenInforme" class="btn-blue">Generar reporte</button>
+      <span class="sub">Se abrirá una tabla flotante con: Puntaje total, Análisis, Conclusiones y Recomendaciones.</span>
+    </div>
 
     <!-- ✅ Mantener IDs ocultos para compatibilidad con JS -->
     <div class="sr-hidden" aria-hidden="true">
@@ -1001,10 +1045,7 @@ Dejar de hacer:"></textarea>
       <textarea id="conAnalisisIA"></textarea>
       <textarea id="conConclusionesIA"></textarea>
       <textarea id="conRecomendacionesIA"></textarea>
-    </div>
 
-    <!-- ✅ IDS OCULTOS (para que el JS actual no reviente si aún los llena) -->
-    <div class="sr-hidden" aria-hidden="true">
       <input id="conNo" value="—" />
       <input id="conNombre" value="—" />
       <input id="conPosicion" value="—" />
@@ -1028,7 +1069,7 @@ Dejar de hacer:"></textarea>
     </div>
   </div>
 </section>
-  <section class="card" data-phase-block="CAPACITACION" id="blockCapacitacion">
+ <section class="card" data-phase-block="CAPACITACION" id="blockCapacitacion">
   <div class="card-h">
     <div>
       <h2>Informe necesidades de capacitación</h2>
@@ -1123,7 +1164,7 @@ Dejar de hacer:"></textarea>
 `Empezar a hacer:
 Continuar haciendo:
 Dejar de hacer:`;
-  const DEFAULT_WEBAPP_ = "https://script.google.com/macros/s/AKfycbzeHbO8sjLxsRViNquw6y6JbEiB7r2XYEq4Mn5EcUv7OzmmD37UDQJQjzBAp01aNhp7/exec";
+  const DEFAULT_WEBAPP_ = "https://script.google.com/macros/s/AKfycbwgSsZUaLPh2-N4okZfSWHodMnU_EpE2PYYdJwbpRauyuUaNB83Q2bkeNDdBtAbvrBt/exec";
   const $ = id => document.getElementById(id);
 
   function normalizeWebApp(raw){
@@ -1436,8 +1477,8 @@ Dejar de hacer:`;
     // ✅ Recuperar se muestra en: DESEMPENO / RESULTADO / CONSOLIDADO
     btnR.style.display = (isDesempenoPhase() || isResultadoPhase() || isConsolidadoPhase()) ? "inline-block" : "none";
 
-    // ✅ Imprimir en: RESULTADO / CONSOLIDADO
-    btnP.style.display = (isResultadoPhase() || isConsolidadoPhase()) ? "inline-block" : "none";
+    // ✅ Imprimir SOLO en RESULTADO (en CONSOLIDADO se imprime desde el modal)
+    btnP.style.display = isResultadoPhase() ? "inline-block" : "none";
 
     // ✅ Guardar (HEADER) solo debe verse en CLIENTES y EVAL
     const showGuardar = isClientesPhase() || isEvalPhase();
@@ -2594,6 +2635,67 @@ function closeTiposModal_(){
     }
   });
 
+// ✅ Botón dentro del bloque CONSOLIDADO
+$("btnGenInforme")?.addEventListener("click", recoverConsolidado_);
+
+// ✅ Modal Informe Ejecutivo
+$("btnIEClose")?.addEventListener("click", closeInformeModal_);
+$("btnIEText")?.addEventListener("click", ieShowTexto_);
+$("btnIEViewHtml")?.addEventListener("click", ieShowHtml_);
+$("btnIEPrintPDF")?.addEventListener("click", iePrintPdf_);
+
+// Cierra si hacen click en el backdrop
+$("ieModalBack")?.addEventListener("click", (e)=>{
+  if(e.target && e.target.id === "ieModalBack") closeInformeModal_();
+});
+  
+  /* ================= INFORME EJECUTIVO (TABLA FLOTANTE) ================= */
+
+function openInformeModal_(html, texto){
+  $("ieModalBody").innerHTML = html || "";
+  $("ieTextArea").value = texto || "";
+  $("ieHtmlWrap").style.display = "block";
+  $("ieTextWrap").style.display = "none";
+  $("ieModalBack").classList.add("show");
+}
+
+function closeInformeModal_(){
+  $("ieModalBack").classList.remove("show");
+}
+
+function ieShowTexto_(){
+  $("ieHtmlWrap").style.display = "none";
+  $("ieTextWrap").style.display = "block";
+  $("ieTextArea").focus();
+  $("ieTextArea").select();
+}
+
+function ieShowHtml_(){
+  $("ieTextWrap").style.display = "none";
+  $("ieHtmlWrap").style.display = "block";
+}
+
+function iePrintPdf_(){
+  const html = state.lastIEHtml || $("ieModalBody").innerHTML || "";
+  const title = "Reporte ejecutivo de evaluación del desempeño";
+  const w = window.open("", "_blank", "noopener,noreferrer");
+  if(!w) return alert("El navegador bloqueó la ventana emergente. Permite popups para imprimir.");
+  w.document.open();
+  w.document.write(`<!doctype html>
+<html lang="es"><head><meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>${title}</title>
+<style>
+  body{font-family:Inter,Arial,sans-serif; margin:24px; color:#0f172a}
+  .sub{color:#475569}
+</style>
+</head><body>${html}</body></html>`);
+  w.document.close();
+  w.focus();
+  w.print();
+  w.close();
+}
+
    // ✅ CONSOLIDADO (Informe ejecutivo): de momento solo UI.
   // Si ya tienes tu endpoint, aquí conectas el action correspondiente.
   async function recoverConsolidado_(){
@@ -2602,27 +2704,27 @@ function closeTiposModal_(){
     return;
   }
 
-  // CONSOLIDADO usa los mismos 3 campos del wrap de resultado
+  // Informe ejecutivo usa los mismos 3 campos del wrap de Resultado
   const no  = $("noPersonalRes").value.trim();
   const per = $("periodoRes").value.trim();
   const ver = $("versionRes").value.trim();
 
   if(!no || !per || !ver){
-    alert("Para Recuperar el informe, llena: No. de personal + Periodo + Versión.");
+    alert("Para generar el informe, llena: No. de personal + Periodo + Versión.");
     return;
   }
 
-  // ✅ Backend: action=consolidado (ajusta si tu Apps Script usa otro nombre)
-  const res = await apiGet({ action:"consolidado", no, periodo: per, version: ver });
+  // ✅ Backend (Apps Script): action=informeEjecutivo
+  const res = await apiGet({ action:"informeEjecutivo", no, periodo: per, version: ver });
 
+  if(!res || res.ok !== true){
+    throw new Error((res && res.error) ? res.error : "No se pudo generar el informe.");
+  }
+
+  // Compatibilidad: llenar IDs ocultos
   const header = res.header || {};
-  const rows   = Array.isArray(res.rows) ? res.rows : [];
-  const pf     = res.puntajeFinal ?? "—";
-  const cual   = res.cualitativo || {};
-  const ia     = res.ia || {}; // opcional: si tu backend devuelve IA separada
-
-  // Encabezado
   const fechaDMY = formatDateDMY(header.fecha) || todayLocal();
+
   $("conNo").value       = no || "—";
   $("conNombre").value   = String(header.nombre || "—");
   $("conPosicion").value = String(header.posicion || "—");
@@ -2630,37 +2732,30 @@ function closeTiposModal_(){
   $("conPeriodo").value  = per || "—";
   $("conVersion").value  = ver || "—";
   $("conFecha").value    = fechaDMY || "—";
+  $("conPuntajeFinal").value = String(res.puntajeFinal ?? "—");
 
-  // Puntaje
-  $("conPuntajeFinal").value = String(pf);
+  const ia = res.openai || {};
+  $("conAnalisisIA").value        = String(ia.analisis || "").trim();
+  $("conConclusionesIA").value    = String(ia.conclusiones || "").trim();
+  $("conRecomendacionesIA").value = String(ia.recomendaciones || "").trim();
 
-  // Tabla detalle
-  $("conDetalleTbody").innerHTML = rows.length
-    ? rows.map(r => `
-      <tr>
-        <td>${escapeHtml(r.factor ?? "")}</td>
-        <td>${escapeHtml(r.item ?? "")}</td>
-        <td>${escapeHtml(r.respuesta ?? "—")}</td>
-      </tr>
-    `).join("")
-    : `<tr><td colspan="3" class="sub">Sin filas para mostrar.</td></tr>`;
+  // Render en tabla flotante (modal)
+  const html = String(res.html || "").trim() || "<div class=\"sub\">No se recibió HTML del backend.</div>";
 
-  // Cualitativos
-  $("conJustificacion").value  = String(cual.justificacion || "").trim();
-  $("conEvalClientes").value   = String(cual.evaluacionClientes || "").trim();
-  $("conComColab").value       = String(cual.comentariosColaborador || "").trim();
-  $("conFortalezas").value     = String(cual.fortalezas || "").trim();
-  $("conOportunidades").value  = String(cual.oportunidadesMejora || "").trim();
-  $("conProyeccion").value     = String(cual.proyeccionPotencial || "").trim();
-  $("conCapacitacion").value   = String(cual.necesidadesCapacitacion || "").trim();
-  $("conComEval").value        = String(cual.comentariosEvaluador || "").trim();
-  $("conNomEval").value        = String(cual.nombreEvaluador || "").trim();
+  // Texto listo para copiar
+  const texto =
+`REPORTE EJECUTIVO DE EVALUACIÓN DEL DESEMPEÑO\n\n` +
+`No. de personal: ${$("conNo").value} | Nombre: ${$("conNombre").value} | Posición: ${$("conPosicion").value}\n` +
+`Departamento: ${$("conDepto").value} | Periodo: ${$("conPeriodo").value} | Versión: ${$("conVersion").value} | Fecha: ${$("conFecha").value}\n` +
+`Puntaje total: ${$("conPuntajeFinal").value}\n\n` +
+`ANÁLISIS E INTERPRETACIÓN:\n${$("conAnalisisIA").value}\n\n` +
+`CONCLUSIONES:\n${$("conConclusionesIA").value}\n\n` +
+`RECOMENDACIONES:\n${$("conRecomendacionesIA").value}`.trim();
 
-  // Si tu backend ya devuelve el informe IA (opcional)
-  if($("conInformeIA"))        $("conInformeIA").value        = String(ia.informe || res.informeIA || "").trim();
-  if($("conAnalisisIA"))       $("conAnalisisIA").value       = String(ia.analisis || "").trim();
-  if($("conConclusionesIA"))   $("conConclusionesIA").value   = String(ia.conclusiones || "").trim();
-  if($("conRecomendacionesIA"))$("conRecomendacionesIA").value= String(ia.recomendaciones || "").trim();
+  state.lastIEHtml = html;
+  state.lastIEText = texto;
+
+  openInformeModal_(html, texto);
 }
 
   $("btnRecuperar").addEventListener("click", ()=>{
