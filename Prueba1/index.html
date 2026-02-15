@@ -1033,9 +1033,9 @@ Dejar de hacer:"></textarea>
 
   <div class="card-b">
     <div class="row" style="display:flex; gap:10px; flex-wrap:wrap; align-items:center">
-      <button id="btnGenInforme" class="btn-blue">Generar reporte</button>
-<span class="sub">Se abrirá una tabla flotante con: Puntaje total, Análisis, Conclusiones y Recomendaciones.</span>
-});
+  <button id="btnGenInforme" class="btn-blue">Generar reporte</button>
+  <span class="sub">Se abrirá una tabla flotante con: Puntaje total, Análisis, Conclusiones y Recomendaciones.</span>
+</div>
       <span class="sub">Se abrirá una tabla flotante con: Puntaje total, Análisis, Conclusiones y Recomendaciones.</span>
     </div>
 
@@ -1250,56 +1250,67 @@ Dejar de hacer:`;
   return url.toString();
 }
 
-  function apiGet(params, timeoutMs=15000){
-    return new Promise((resolve,reject)=>{
-      const cb="cb_"+Math.random().toString(36).slice(2);
-      const src = build(params, cb);
-      setApiStatus("", "API: consultando…");
+  function apiGet(params, timeoutMs = 15000) {
+  return new Promise((resolve, reject) => {
+    const cb = "cb_" + Math.random().toString(36).slice(2);
+    const src = build(params, cb);
 
-      const s=document.createElement("script");
-      s.async = true;
-      s.referrerPolicy = "no-referrer";
-      let done=false;
+    setApiStatus("", "API: consultando…");
 
-      const t=setTimeout(()=>{
-        if(done) return;
-        done=true;
-        cleanup();
-        reject(new Error("Timeout. La WebApp no respondió. Abre Ping para verificar el deploy."));
-      }, timeoutMs);
+    const s = document.createElement("script");
+    s.async = true;
+    s.referrerPolicy = "no-referrer";
 
-      function cleanup(){
-        clearTimeout(t);
-        try { delete window[cb]; } catch(_) { window[cb]=undefined; }
-        if (s && s.parentNode) s.parentNode.removeChild(s);
+    let done = false;
+
+    function fail(msg) {
+      setApiStatus("err", "API: " + msg);
+      reject(new Error(msg));
+    }
+
+    const t = setTimeout(() => {
+      if (done) return;
+      done = true;
+      cleanup();
+      fail("Timeout. La WebApp no respondió. Abre Ping para verificar el deploy.");
+    }, timeoutMs);
+
+    function cleanup() {
+      clearTimeout(t);
+      try { delete window[cb]; } catch (_) { window[cb] = undefined; }
+      if (s && s.parentNode) s.parentNode.removeChild(s);
+    }
+
+    window[cb] = (data) => {
+      if (done) return;
+      done = true;
+      cleanup();
+
+      if (!data || typeof data !== "object") {
+        fail("Respuesta inválida. Si al abrir Ping te pide login, el deploy no es público.");
+        return;
       }
 
-      window[cb]=data=>{
-        if(done) return;
-        done=true;
-        cleanup();
-        if(!data || typeof data !== "object"){
-          reject(new Error("Respuesta inválida. Si al abrir Ping te pide login, el deploy no es público."));
-          return;
-        }
-        if(data.ok!==true){
-          reject(new Error(data.error || "Respuesta inválida"));
-          return;
-        }
-        setApiStatus("ok","API: conectada");
-        resolve(data);
-      };
+      if (data.ok !== true) {
+        fail(data.error || "Respuesta inválida");
+        return;
+      }
 
-      s.onerror=()=>{
-        if(done) return;
-        done=true;
-        cleanup();
-        reject(new Error("No se pudo cargar el script. Revisa:  correcta (/exec), Deploy público (Anyone), y desactiva bloqueadores para script.google.com."));
-      };
-      s.src = src;
-      document.body.appendChild(s);
-    });
-  }
+      setApiStatus("ok", "API: conectada");
+      resolve(data);
+    };
+
+    s.onerror = () => {
+      if (done) return;
+      done = true;
+      cleanup();
+      fail("No se pudo cargar el script. Revisa: URL correcta (/exec), Deploy público (Anyone), y desactiva bloqueadores para script.google.com.");
+    };
+
+    s.src = src;
+    document.body.appendChild(s);
+  });
+}
 
   /* ================= UTIL ================= */
   function todayLocal(){
