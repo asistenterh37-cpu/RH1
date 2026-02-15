@@ -1166,7 +1166,7 @@ Dejar de hacer:"></textarea>
 `Empezar a hacer:
 Continuar haciendo:
 Dejar de hacer:`;
-  const DEFAULT_WEBAPP_ = "https://script.google.com/macros/s/AKfycbxkyJXvWypyyis5S4da_h4vF5iX267B7xauPzHNenTVKonCTrRX2AdP9cSO8P4KdiQ/exec";
+  const DEFAULT_WEBAPP_ = "https://script.google.com/macros/s/AKfycbwGV_vyk2AxcaLLF_vbWBwImcDajSkfU10gMoESUilO7Hp9oWg3VlkJX-xMngM1NU06/exec";
   const $ = id => document.getElementById(id);
 
   function normalizeWebApp(raw){
@@ -2482,11 +2482,45 @@ async function generarDesarrollo_(){
     if(isEvalPhase()) return saveEval();
     alert("No hay nada que guardar en esta fase (usa el Guardar interno en Pesos).");
   }
-  function doLimpiar(){
-    if(isClientesPhase()) return clearClientes();
-    if(isEvalPhase()) return clearEval();
-    if(isResultadoPhase()) return clearResultado();
+function doLimpiar(){
+
+  if(isClientesPhase()) return clearClientes();
+
+  if(isEvalPhase()) return clearEval();
+
+  if(isResultadoPhase()) return clearResultado();
+
+  // ✅ Informe ejecutivo (Consolidado)
+  if(isConsolidadoPhase()){
+    // Limpia los 3 campos llave
+    $("noPersonalRes").value = "";
+    $("periodoRes").value = "";
+    $("versionRes").value = "";
+
+    // Limpia campos “compatibilidad” del informe
+    $("conNo").value = "";
+    $("conNombre").value = "";
+    $("conPosicion").value = "";
+    $("conDepto").value = "";
+    $("conPeriodo").value = "";
+    $("conVersion").value = "";
+    $("conFecha").value = "";
+    $("conPuntajeFinal").value = "";
+    $("conAnalisisIA").value = "";
+    $("conConclusionesIA").value = "";
+    $("conRecomendacionesIA").value = "";
+
+    // Limpia modal flotante
+    $("ieModalBody").innerHTML = "";
+    $("ieTextArea").value = "";
+    state.lastIEHtml = "";
+    state.lastIEText = "";
+    closeInformeModal_();
+
+    setApiStatus("Listo para generar Informe ejecutivo.");
+    return;
   }
+}
 
   /* ================= IMPRESIÓN (RESULTADO) ================= */
   function openPrintModal(){
