@@ -463,20 +463,22 @@ button[disabled]{
 <div id="ieModalBack" class="modalBack" role="dialog" aria-modal="true" aria-labelledby="ieTitle">
   <div class="modal" style="max-width:980px">
     <div class="modal-h">
-      <div>
-        <h3 id="ieTitle">Reporte ejecutivo</h3>
-        <div class="modalNote">Generado con la hoja <b>EvaluacionFinal</b> + <b>OpenAI</b>.</div>
-      </div>
-      <div class="modalActions">
-  <button id="btnIEPrintPDF" class="btn-blue">Imprimir: PDF</button>
-  <button id="btnIEText" class="btn-ghost">Imprimir: Texto</button>
-  <button id="btnIEClose" class="btn-ghost">Cerrar</button>
+  <div>
+    <h3 id="ieTitle">Reporte ejecutivo</h3>
+    <div class="modalNote">Generado con la hoja <b>EvaluacionFinal</b> + <b>OpenAI</b>.</div>
+  </div>
+
+  <div class="modalActions">
+    <button id="btnIEPrintPDF" class="btn-blue">Imprimir: PDF</button>
+    <button id="btnIEText" class="btn-ghost">Imprimir: Texto</button>
+    <button id="btnIEClose" class="btn-ghost">Cerrar</button>
+  </div>
 </div>
 
-    <div class="modal-b">
-      <div id="ieHtmlWrap">
-        <div id="ieModalBody"></div>
-      </div>
+<div class="modal-b">
+  <div id="ieHtmlWrap">
+    <div id="ieModalBody"></div>
+  </div>
 
       <div id="ieTextWrap" style="display:none">
         <div class="hint" style="margin-bottom:10px">Tip: copia el texto y pégalo donde quieras. (Sí, también en Word sin pelearte con el formato 😄)</div>
@@ -1032,9 +1034,9 @@ Dejar de hacer:"></textarea>
   </div>
 
   <div class="card-b">
-    <div class="row" style="display:flex; gap:10px; flex-wrap:wrap; align-items:center">
+   <div class="row" style="display:flex; gap:10px; flex-wrap:wrap; align-items:center">
   <button id="btnGenInforme" class="btn-blue">Generar reporte</button>
-  <span class="sub">Se abrirá una tabla flotante con: Puntaje total, Análisis, Conclusiones y Recomendaciones.</span>
+  <span class="sub">Se abrirá una tabla flotante con: Puntaje final, Análisis, Conclusiones, Recomendaciones y Nombre evaluador.</span>
 </div>
       
     <!-- ✅ Mantener IDs ocultos para compatibilidad con JS -->
@@ -1162,7 +1164,7 @@ Dejar de hacer:"></textarea>
 `Empezar a hacer:
 Continuar haciendo:
 Dejar de hacer:`;
-  const DEFAULT_WEBAPP_ = "https://script.google.com/macros/s/AKfycbyTW5Uv-xLGDktZ4Vwu1Xk_czN5A6dVkNbqzAnY4BfhZCFoy4UgFoKwLfuB6A350oHM/exec";
+  const DEFAULT_WEBAPP_ = "https://script.google.com/macros/s/AKfycbwxBmla7XTisa7iwGANlWrPyj0qJdKAZslloyQSgcq1J1PhXceuJucGZ2wQNBlxKDpO/exec";
   const $ = id => document.getElementById(id);
 
   function normalizeWebApp(raw){
@@ -2757,14 +2759,17 @@ function iePrintPdf_(){
   const html = String(res.html || "").trim() || "<div class=\"sub\">No se recibió HTML del backend.</div>";
 
   // Texto listo para copiar
-  const texto =
+  const nombreEval = String((res && res.cualitativo && res.cualitativo.nombreEvaluador) ? res.cualitativo.nombreEvaluador : "").trim();
+
+const texto =
 `REPORTE EJECUTIVO DE EVALUACIÓN DEL DESEMPEÑO\n\n` +
 `No. de personal: ${$("conNo").value} | Nombre: ${$("conNombre").value} | Posición: ${$("conPosicion").value}\n` +
 `Departamento: ${$("conDepto").value} | Periodo: ${$("conPeriodo").value} | Versión: ${$("conVersion").value} | Fecha: ${$("conFecha").value}\n` +
-`Puntaje total: ${$("conPuntajeFinal").value}\n\n` +
+`Puntaje final: ${$("conPuntajeFinal").value}\n\n` +
 `ANÁLISIS E INTERPRETACIÓN:\n${$("conAnalisisIA").value}\n\n` +
 `CONCLUSIONES:\n${$("conConclusionesIA").value}\n\n` +
-`RECOMENDACIONES:\n${$("conRecomendacionesIA").value}`.trim();
+`RECOMENDACIONES:\n${$("conRecomendacionesIA").value}\n\n` +
+`NOMBRE EVALUADOR:\n${nombreEval || "—"}`.trim();
 
   state.lastIEHtml = html;
   state.lastIEText = texto;
