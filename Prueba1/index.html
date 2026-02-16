@@ -1171,7 +1171,7 @@ Dejar de hacer:"></textarea>
 `Empezar a hacer:
 Continuar haciendo:
 Dejar de hacer:`;
-  const DEFAULT_WEBAPP_ = "https://script.google.com/macros/s/AKfycbxvDWDQBiv0bOHVSsKVd4EQSEO3kc2rLSIsW-RHrADspnJmxr8GkdwnR5g200uHqc9x/exec";
+  const DEFAULT_WEBAPP_ = "https://script.google.com/macros/s/AKfycbyX-_r9U2ecbBPHac-yg020mq_TYsfaHN3ynh9Y9ztByd4g0u29IblFs73VqT-GUCMV/exec";
   const $ = id => document.getElementById(id);
 
   function normalizeWebApp(raw){
@@ -1498,27 +1498,33 @@ Dejar de hacer:`;
     // ✅ Imprimir SOLO en RESULTADO (en CONSOLIDADO se imprime desde el modal)
     btnP.style.display = isResultadoPhase() ? "inline-block" : "none";
 
-    // ✅ Guardar (HEADER) solo debe verse en CLIENTES y EVAL
-    const showGuardar = isClientesPhase() || isEvalPhase();
-    btnG.style.display = showGuardar ? "inline-block" : "none";
+    // ✅ Guardar (HEADER) debe verse en CLIENTES y en el Formulario de evaluación (AUTO/DESEMPENO)
 
-    // si está oculto, igual lo dejamos deshabilitado por seguridad
-    if(!showGuardar){
-      btnG.disabled = true;
-      return;
-    }
+const showGuardar = isClientesPhase() || isEvalPhase() || isDesempenoPhase();
 
-    // ✅ Guardar habilitado solo cuando corresponde
-    if(isClientesPhase()){
-      btnG.disabled = !isClientesComplete();
-      return;
-    }
-    if(isEvalPhase()){
-      btnG.disabled = !isEvalComplete();
-      return;
-    }
+btnG.style.display = showGuardar ? "inline-block" : "none";
 
-    btnG.disabled = true;
+
+// si está oculto, igual lo dejamos deshabilitado por seguridad
+if(!showGuardar){
+  btnG.disabled = true;
+  return;
+}
+
+
+// ✅ Guardar habilitado solo cuando corresponde
+if(isClientesPhase()){
+  btnG.disabled = !isClientesComplete();
+  return;
+}
+
+// ✅ En evaluación: AUTO o DESEMPENO (isEvalComplete ya valida extras si es DESEMPENO)
+if(isEvalPhase() || isDesempenoPhase()){
+  btnG.disabled = !isEvalComplete();
+  return;
+}
+
+btnG.disabled = true;
   }
   /* ================= PHASE UI ================= */
 function setPhase(phase){
@@ -2415,10 +2421,16 @@ async function generarDesarrollo_(){
   }
 
   async function saveEval(){
-    if(!isEvalPhase()){
-      alert("Para guardar, usa Autoevaluación o Evaluación del desempeño.");
-      return;
-    }
+
+  // ✅ Permitir guardar si estás en AUTO o en DESEMPENO
+  if(!(isEvalPhase() || isDesempenoPhase())){
+
+    alert("Para guardar, usa Autoevaluación o Evaluación del desempeño.");
+
+    return;
+
+  }
+
     if(!isEvalComplete()){
       alert("Aún faltan datos / respuestas" + (isDesempenoPhase() ? " / comentarios" : " / comentarios del colaborador") + ". Completa todo para habilitar Guardar.");
       return;
@@ -2482,11 +2494,18 @@ async function generarDesarrollo_(){
     clearEval();
   }
 
-  function doGuardar(){
-    if(isClientesPhase()) return saveClientes();
-    if(isEvalPhase()) return saveEval();
-    alert("No hay nada que guardar en esta fase (usa el Guardar interno en Pesos).");
-  }
+ function doGuardar(){
+
+  if(isClientesPhase()) return saveClientes();
+
+  // ✅ Permitir Guardar también estando en la fase DESEMPENO
+  // (aunque EVAL sea “virtual”, esto evita bloqueos si isEvalPhase no cubre tu caso)
+  if(isEvalPhase() || isDesempenoPhase()) return saveEval();
+
+  alert("No hay nada que guardar en esta fase (usa el Guardar interno en Pesos).");
+
+}
+
 function doLimpiar(){
 
   if(isClientesPhase()) return clearClientes();
