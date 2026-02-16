@@ -600,7 +600,7 @@ button[disabled]{
           <div class="controls" style="gap:10px">
             <select id="faseSelect">
       <option value="">Seleccione fase</option>
-     <option value="TIPOS">Niveles</option>
+     <option value="NIVELES">Niveles</option>
     <option value="FORMULARIOS">Formularios</option>
   <option value="PESOS">Pesos</option>
   <option value="AUTO">Formulario de autoevaluación</option>
@@ -1171,7 +1171,7 @@ Dejar de hacer:"></textarea>
 `Empezar a hacer:
 Continuar haciendo:
 Dejar de hacer:`;
-  const DEFAULT_WEBAPP_ = "https://script.google.com/macros/s/AKfycbzSPvbCsHowvOXt_4Pg5Qjh2zz1f7t6u6X7S34fz5HNU22o8qMZW9d3mWzvfJy1JrRl/exec";
+  const DEFAULT_WEBAPP_ = "https://script.google.com/macros/s/AKfycbxfrt87Km2brBIFPWBYpLn1B85MccxAY57G0i319PV70PNdRdfp27ch2aKRrz0zeswM/exec";
   const $ = id => document.getElementById(id);
 
   function normalizeWebApp(raw){
@@ -2463,8 +2463,8 @@ async function generarDesarrollo_(){
 
     const extrasAuto = isAutoPhase() ? { comentariosColaborador: comentariosAuto } : null;
 
-     const payload = {
-  // ✅ FIX: fuerza fase real para que Apps Script guarde en la hoja correcta y calcule puntaje final
+   const payload = {
+  // ✅ Fase real: DESEMPENO guarda en EvaluacionFinal y dispara el cálculo de Puntaje final en GS
   fase: isDesempenoPhase() ? "DESEMPENO" : (isAutoPhase() ? "AUTO" : state.fase),
 
   nivel: nivelRef,
@@ -2477,14 +2477,18 @@ async function generarDesarrollo_(){
   version: $("versionEval").value.trim(),
   fecha: $("fechaEval").value.trim(),
 
-  // ✅ Se guardan ambas:
+  // ✅ Respuestas (compat) + numéricas (para puntaje)
   respuestas: respuestasOrdenadas,
-  respuestasNum: respuestasNum,
+
+  // 👇 normalizamos a “solo número” (1..5) o ""
+  respuestasNum: respuestasNum.map(v => {
+    const n = String(v ?? "").trim().match(/^[1-5]$/) ? String(v).trim() : "";
+    return n;
+  }),
 
   comentarios: isAutoPhase() ? comentariosAuto : buildCompatComentarios(),
   extras: isDesempenoPhase() ? extrasDesempeno : (isAutoPhase() ? extrasAuto : null)
 };
-
     const b64 = btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
     const out = await apiGet({action:"save", payload:b64});
 
@@ -2498,15 +2502,12 @@ async function generarDesarrollo_(){
   }
 
  function doGuardar(){
-
   if(isClientesPhase()) return saveClientes();
 
-  // ✅ Permitir Guardar también estando en la fase DESEMPENO
-  // (aunque EVAL sea “virtual”, esto evita bloqueos si isEvalPhase no cubre tu caso)
+  // ✅ Guardar permitido en evaluación: AUTO (EVAL virtual) o DESEMPENO
   if(isEvalPhase() || isDesempenoPhase()) return saveEval();
 
-  alert("No hay nada que guardar en esta fase (usa el Guardar interno en Pesos).");
-
+  alert("No hay nada que guardar en esta fase (usa el Guardar interno en Pesos o selecciona una fase de evaluación).");
 }
 
 function doLimpiar(){
