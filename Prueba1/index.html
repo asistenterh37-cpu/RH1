@@ -625,6 +625,36 @@ button[disabled]{
         </div>
       </div>
     </section>
+    <!-- ✅ NIVELES -->
+    <section class="card" data-phase-block="NIVELES" id="blockNiveles">
+      <div class="card-h">
+        <div>
+          <h2>Niveles</h2>
+          <div class="sub">Usa <b>Cargar</b> para listar los niveles detectados desde la hoja <b>Formularios</b>.</div>
+        </div>
+        <div class="controls">
+          <button id="btnCargarNiveles" class="btn-blue">Cargar</button>
+          <button id="btnLimpiarNiveles" class="btn-warn">Limpiar</button>
+        </div>
+      </div>
+
+      <div class="card-b">
+        <div id="nivelesInfo" class="sub" style="margin-bottom:10px">—</div>
+
+        <div class="tableWrap">
+          <table id="nivelesTable">
+            <thead>
+              <tr>
+                <th>Nivel</th>
+              </tr>
+            </thead>
+            <tbody id="nivelesTbody">
+              <tr><td class="sub">Presiona <b>Cargar</b> para ver los niveles.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
 
     <!-- FORMULARIOS -->
     <section class="card" data-phase-block="FORMULARIOS" id="blockFormularios">
@@ -644,9 +674,10 @@ button[disabled]{
         </div>
         <div id="formTableInfo" class="sub" style="margin-bottom:10px">—</div>
         <div class="tableWrap">
-          <table id="formTable">
+                    <table id="formTable">
             <thead>
               <tr>
+                <th>Código</th>
                 <th>Nivel</th>
                 <th>Factor</th>
                 <th>Item</th>
@@ -685,18 +716,19 @@ button[disabled]{
         <div id="pesosTableInfo" class="sub" style="margin-bottom:10px">—</div>
 
         <div class="tableWrap">
-          <table id="pesosTable">
+                       <table id="pesosTable">
             <thead>
               <tr>
+                <th>Código</th>
                 <th>Nivel</th>
                 <th>Factor</th>
                 <th>Item</th>
                 <th>Peso</th>
               </tr>
-            </thead>
-            <tbody id="pesosTableBody">
-              <tr><td colspan="4" class="sub">Presiona <b>Cargar</b> para ver la información.</td></tr>
-            </tbody>
+         </thead>
+           <tbody id="pesosTableBody">
+  <tr><td colspan="5" class="sub">Presiona <b>Cargar</b> para ver la información.</td></tr>
+</tbody>
           </table>
         </div>
       </div>
@@ -1171,7 +1203,7 @@ Dejar de hacer:"></textarea>
 `Empezar a hacer:
 Continuar haciendo:
 Dejar de hacer:`;
-  const DEFAULT_WEBAPP_ = "https://script.google.com/macros/s/AKfycbxfrt87Km2brBIFPWBYpLn1B85MccxAY57G0i319PV70PNdRdfp27ch2aKRrz0zeswM/exec";
+  const DEFAULT_WEBAPP_ = "https://script.google.com/macros/s/AKfycbwTc06N6PVwATTvw_3ZwmyaHq-6iN-Uoq1V5WdmUVS8Wa0-0wkidwbF8Yesl14zfGhw/exec";
   const $ = id => document.getElementById(id);
 
   function normalizeWebApp(raw){
@@ -1685,36 +1717,72 @@ function setPhase(phase){
     updateGuardarUIState();
   }
 
+  /* ================= ✅ NIVELES: TABLE ================= */
+
+  function clearNivelesTable(){
+    $("nivelesInfo").textContent = "—";
+    $("nivelesTbody").innerHTML = `<tr><td class="sub">Presiona <b>Cargar</b> para ver los niveles.</td></tr>`;
+  }
+
+  function renderNivelesTable(levels){
+    const arr = Array.isArray(levels) ? levels : [];
+    $("nivelesInfo").textContent = `Niveles encontrados: ${arr.length}`;
+    if(!arr.length){
+      $("nivelesTbody").innerHTML = `<tr><td class="sub">No hay niveles para mostrar.</td></tr>`;
+      return;
+    }
+    $("nivelesTbody").innerHTML = arr.map(n => `
+      <tr><td class="mono">${escapeHtml(String(n ?? ""))}</td></tr>
+    `).join("");
+  }
+  async function loadNivelesList(){
+    if(state.fase !== "NIVELES"){
+      alert("Selecciona la fase Niveles.");
+      return;
+    }
+    const lv = await apiGet({ action:"levels", sheet:"Formularios" });
+    renderNivelesTable(lv.levels || []);
+  }
+  
   /* ================= FORMULARIOS: TABLE ================= */
+
   function clearFormTable(){
     state.lastFormItemsCount = 0;
     $("formTableInfo").textContent = "—";
-    $("formTableBody").innerHTML = `<tr><td colspan="8" class="sub">Presiona <b>Cargar</b> para ver la información.</td></tr>`;
+    $("formTableBody").innerHTML = `<tr><td colspan="9" class="sub">Presiona <b>Cargar</b> para ver la información.</td></tr>`;
   }
-  function renderFormTable(items){
+
+      function renderFormTable(items){
+
     const tbody = $("formTableBody");
+
     const count = Array.isArray(items) ? items.length : 0;
+
     state.lastFormItemsCount = count;
 
     const nivelLabel = getNivelRef();
+
     $("formTableInfo").textContent = `Mostrando: ${count} filas | Nivel seleccionado: ${nivelLabel}`;
 
     if(!count){
-      tbody.innerHTML = `<tr><td colspan="8" class="sub">No hay datos para ese nivel.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="9" class="sub">No hay datos para ese nivel.</td></tr>`;
       return;
     }
 
     tbody.innerHTML = items.map(r => {
-      const n = escapeHtml(r.Nivel ?? "");
-      const f = escapeHtml(r.Factor ?? "");
+      const c  = escapeHtml(r.Codigo ?? r.Código ?? "");
+      const n  = escapeHtml(r.Nivel ?? "");
+      const f  = escapeHtml(r.Factor ?? "");
       const it = escapeHtml(r.Item ?? "");
       const d1 = escapeHtml(r["1"] ?? "");
       const d2 = escapeHtml(r["2"] ?? "");
       const d3 = escapeHtml(r["3"] ?? "");
       const d4 = escapeHtml(r["4"] ?? "");
       const d5 = escapeHtml(r["5"] ?? "");
+
       return `
         <tr>
+          <td class="mono">${c}</td>
           <td class="mono">${n}</td>
           <td>${f}</td>
           <td>${it}</td>
@@ -1727,6 +1795,7 @@ function setPhase(phase){
       `;
     }).join("");
   }
+
   async function loadFormulariosItems(){
     if(!isFormulariosPhase()){
       alert("Selecciona la fase Formularios.");
@@ -1738,46 +1807,84 @@ function setPhase(phase){
   }
 
   /* ================= ✅ PESOS: TABLE (editable) ================= */
-  function clearPesosTable(){
+   function clearPesosTable(){
     state.pesosItems = [];
     state.pesosDirty = false;
     $("pesosTableInfo").textContent = "—";
-    $("pesosTableBody").innerHTML = `<tr><td colspan="4" class="sub">Presiona <b>Cargar</b> para ver la información.</td></tr>`;
+    $("pesosTableBody").innerHTML = `<tr><td colspan="5" class="sub">Presiona <b>Cargar</b> para ver la información.</td></tr>`;
     updatePesosSaveState();
   }
-  function renderPesosTable(items){
+       function renderPesosTable(items){
+
     const tbody = $("pesosTableBody");
+
     const arr = Array.isArray(items) ? items : [];
+
     state.pesosItems = arr.map(r => ({
-      Nivel: r.Nivel ?? "",
-      Factor: r.Factor ?? "",
-      Item: r.Item ?? "",
-      Peso: (r.Peso ?? "")
+      Codigo: (r.Codigo ?? r.Código ?? ""),
+      Nivel:  (r.Nivel ?? ""),
+      Factor: (r.Factor ?? ""),
+      Item:   (r.Item ?? ""),
+      Peso:   (r.Peso ?? "")
     }));
+
     state.pesosDirty = false;
 
     const count = state.pesosItems.length;
     $("pesosTableInfo").textContent = `Mostrando: ${count} filas | Nivel seleccionado: ${getNivelRef()}`;
 
     if(!count){
-      tbody.innerHTML = `<tr><td colspan="4" class="sub">No hay datos para ese nivel.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="5" class="sub">No hay datos para ese nivel.</td></tr>`;
       updatePesosSaveState();
       return;
     }
 
     tbody.innerHTML = state.pesosItems.map((r, idx) => {
-      const n = escapeHtml(r.Nivel ?? "");
-      const f = escapeHtml(r.Factor ?? "");
+      const c  = escapeHtml(r.Codigo ?? "");
+      const n  = escapeHtml(r.Nivel ?? "");
+      const f  = escapeHtml(r.Factor ?? "");
       const it = escapeHtml(r.Item ?? "");
-      const p = escapeAttr(String(r.Peso ?? ""));
+      const p  = escapeAttr(String(r.Peso ?? ""));
 
       return `
         <tr data-idx="${idx}">
+          <td class="mono">${c}</td>
           <td class="mono">${n}</td>
           <td>${f}</td>
           <td>${it}</td>
           <td>
             <input class="pesoInput" inputmode="decimal" placeholder="Ej: 10" value="${p}" />
+            <div class="tdMuted">Edita y guarda</div>
+          </td>
+        </tr>
+      `;
+    }).join("");
+
+    tbody.querySelectorAll("tr").forEach(tr=>{
+      const idx = Number(tr.getAttribute("data-idx"));
+      const input = tr.querySelector("input.pesoInput");
+      if(!input) return;
+
+      input.addEventListener("input", ()=>{
+        state.pesosItems[idx].Peso = input.value;
+        state.pesosDirty = true;
+        updatePesosSaveState();
+      });
+      input.addEventListener("change", ()=>{
+        state.pesosItems[idx].Peso = input.value;
+        state.pesosDirty = true;
+        updatePesosSaveState();
+      });
+
+      $("btnGenInforme")?.addEventListener(
+        "click",
+        () => recoverConsolidado_().catch(err => setApiStatus("err", "API: " + err.message))
+      );
+    });
+
+    updatePesosSaveState();
+  }
+         <input class="pesoInput" inputmode="decimal" placeholder="Ej: 10" value="${p}" />
             <div class="tdMuted">Edita y guarda</div>
           </td>
         </tr>
@@ -1852,7 +1959,8 @@ function setPhase(phase){
   }
 
   /* ================= LOADERS (levels + form) ================= */
-  async function loadLevelsForPhase(){
+    async function loadLevelsForPhase(){
+
     if(isEvalPhase()){
       const lv = await apiGet({action:"levels", sheet:"Formularios"});
       const levels = lv.levels || [];
@@ -1863,6 +1971,21 @@ function setPhase(phase){
       state.nivel = def;
       return;
     }
+
+    if(state.fase === "NIVELES"){
+      const lv = await apiGet({action:"levels", sheet:"Formularios"});
+      const levels = lv.levels || [];
+      if(!levels.length) throw new Error("No se encontraron niveles en 'Formularios'.");
+      // En NIVELES mostramos la lista completa
+      fillNivelSelect(levels, true);
+      const def = pickDefault(levels, true);
+      $("nivelSelect").value = def;
+      state.nivel = def;
+
+      renderNivelesTable(levels);
+      return;
+    }
+
     if(state.fase === "FORMULARIOS"){
       const lv = await apiGet({action:"levels", sheet:"Formularios"});
       const levels = lv.levels || [];
@@ -1873,6 +1996,7 @@ function setPhase(phase){
       state.nivel = def;
       return;
     }
+
     if(state.fase === "PESOS"){
       const lv = await apiGet({action:"levels", sheet:"Pesos"});
       const levels = lv.levels || [];
