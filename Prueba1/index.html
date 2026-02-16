@@ -1171,7 +1171,7 @@ Dejar de hacer:"></textarea>
 `Empezar a hacer:
 Continuar haciendo:
 Dejar de hacer:`;
-  const DEFAULT_WEBAPP_ = "https://script.google.com/macros/s/AKfycbyX-_r9U2ecbBPHac-yg020mq_TYsfaHN3ynh9Y9ztByd4g0u29IblFs73VqT-GUCMV/exec";
+  const DEFAULT_WEBAPP_ = "https://script.google.com/macros/s/AKfycbzSPvbCsHowvOXt_4Pg5Qjh2zz1f7t6u6X7S34fz5HNU22o8qMZW9d3mWzvfJy1JrRl/exec";
   const $ = id => document.getElementById(id);
 
   function normalizeWebApp(raw){
@@ -2463,24 +2463,27 @@ async function generarDesarrollo_(){
 
     const extrasAuto = isAutoPhase() ? { comentariosColaborador: comentariosAuto } : null;
 
-        const payload = {
-      fase: state.fase,
-      nivel: nivelRef,
-      no: $("noPersonalEval").value.trim(),
-      nombre: $("nombreEval").value.trim(),
-      posicion: $("posicionEval").value.trim(),
-      depto: $("deptoEval").value.trim(),
-      periodo: $("periodoEval").value.trim(),
-      version: $("versionEval").value.trim(),
-      fecha: $("fechaEval").value.trim(),
+     const payload = {
+  // ✅ FIX: fuerza fase real para que Apps Script guarde en la hoja correcta y calcule puntaje final
+  fase: isDesempenoPhase() ? "DESEMPENO" : (isAutoPhase() ? "AUTO" : state.fase),
 
-      // ✅ Se guardan ambas:
-      respuestas: respuestasOrdenadas,
-      respuestasNum: respuestasNum,
+  nivel: nivelRef,
 
-      comentarios: isAutoPhase() ? comentariosAuto : buildCompatComentarios(),
-      extras: isDesempenoPhase() ? extrasDesempeno : (isAutoPhase() ? extrasAuto : null)
-    };
+  no: $("noPersonalEval").value.trim(),
+  nombre: $("nombreEval").value.trim(),
+  posicion: $("posicionEval").value.trim(),
+  depto: $("deptoEval").value.trim(),
+  periodo: $("periodoEval").value.trim(),
+  version: $("versionEval").value.trim(),
+  fecha: $("fechaEval").value.trim(),
+
+  // ✅ Se guardan ambas:
+  respuestas: respuestasOrdenadas,
+  respuestasNum: respuestasNum,
+
+  comentarios: isAutoPhase() ? comentariosAuto : buildCompatComentarios(),
+  extras: isDesempenoPhase() ? extrasDesempeno : (isAutoPhase() ? extrasAuto : null)
+};
 
     const b64 = btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
     const out = await apiGet({action:"save", payload:b64});
