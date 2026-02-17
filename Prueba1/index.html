@@ -566,13 +566,6 @@ button[disabled]{
       </div>
 
      <div class="controls">
-  <span id="apiStatus" class="status">
-    <span class="s-dot"></span>
-    <span id="apiStatusText">API: sin probar</span>
-  </span>
-
-  <!-- ❌ Diagnóstico oculto (Probar API / Ping eliminados) -->
-
   <!-- ✅ Para RESULTADO: Recuperar + Limpiar + Imprimir -->
   <button id="btnRecuperar" class="btn-blue" style="display:none">Generar</button>
   <button id="btnLimpiarEval" class="btn-warn" style="display:none">Limpiar</button>
@@ -580,12 +573,10 @@ button[disabled]{
   <!-- ✅ Guardar aplica en CLIENTES y EVAL, no en RESULTADO -->
   <button id="btnGuardar" class="btn-ok" disabled>Guardar</button>
 
-  <button id="btnNuevo" class="btn-blue">Nuevo</button>
-
   <!-- ✅ Imprimir (para RESULTADO): abre menú PDF / Texto -->
   <button id="btnPrint" class="btn-ghost" style="display:none">Imprimir</button>
 </div>
-   </div>
+
   </div>
 </header>
 
@@ -1266,21 +1257,33 @@ Dejar de hacer:`;
     capRows: []
   };
   /* ================= STATUS ================= */
-  function setApiStatus(mode,text){
-    const el=$("apiStatus");
+  function setApiStatus(mode, text){
+  // Header (puede no existir si lo quitaste)
+  const el = $("apiStatus");
+  const elText = $("apiStatusText");
+
+  if(el){
     el.classList.remove("ok","err");
     if(mode) el.classList.add(mode);
-    $("apiStatusText").textContent=text;
-
-    const miniClientes = $("apiMini");
-    if (miniClientes) miniClientes.textContent = text.replace("API: ","");
-    const miniEval = $("apiMiniEval");
-    if (miniEval) miniEval.textContent = text.replace("API: ","");
-    const miniRes = $("apiMiniRes");
-    if (miniRes) miniRes.textContent = text.replace("API: ","");
-        const miniCap = $("apiMiniCap");
-    if (miniCap) miniCap.textContent = text.replace("API: ","");
   }
+  if(elText){
+    elText.textContent = text;
+  }
+
+  // Minis (siguen existiendo en cada bloque)
+  const plain = String(text || "").replace("API: ","");
+  const miniClientes = $("apiMini");
+  if (miniClientes) miniClientes.textContent = plain;
+
+  const miniEval = $("apiMiniEval");
+  if (miniEval) miniEval.textContent = plain;
+
+  const miniRes = $("apiMiniRes");
+  if (miniRes) miniRes.textContent = plain;
+
+  const miniCap = $("apiMiniCap");
+  if (miniCap) miniCap.textContent = plain;
+}
 
   /* ================= JSONP API ================= */
  function build(params, cbName){
@@ -1351,7 +1354,7 @@ Dejar de hacer:`;
       if (done) return;
       done = true;
       cleanup();
-      fail("No se pudo cargar el script. Revisa: URL correcta (/exec), Deploy público (Anyone), y desactiva bloqueadores para script.google.com.");
+      fail("desconectada");
     };
 
     s.src = src;
@@ -3299,17 +3302,16 @@ $("tiposModalBack")?.addEventListener("click", (e)=>{
   }
 });
 
- $("btnNuevo").addEventListener("click", ()=>{
-
+ $("btnNuevo")?.addEventListener("click", ()=>{
   clearClientes();
   clearEval();
   clearResultado();
   clearFormTable();
   clearPesosTable();
-  clearNivelesTable(); // ✅ NUEVO
-
+  clearNivelesTable();
 });
 
+});
  // ✅ NIVELES
 $("btnCargarNiveles")?.addEventListener("click", ()=>loadNivelesList().catch(err=>setApiStatus("err","API: " + err.message)));
 $("btnLimpiarNiveles")?.addEventListener("click", clearNivelesTable);
