@@ -1401,6 +1401,31 @@ Dejar de hacer:`;
     }[m]));
   }
   function escapeAttr(s){ return escapeHtml(s).replace(/"/g,"&quot;"); }
+  // ✅ Quita enumeraciones al inicio: "1. ", "1) ", "A. ", "(a) ", "I. ", "1 - ", etc.
+  // NO toca el código (eso va aparte como prefijo).
+  function stripLeadingEnum_(text){
+    let s = String(text ?? "").trim();
+    if(!s) return s;
+
+    // Repite por si vienen dobles: "1. 2. Texto"
+    for(let i=0; i<3; i++){
+      const before = s;
+
+      // (1) 1) 1. 1- 1: 1 —  12. 12)
+      s = s.replace(/^\(?\s*\d+\s*\)?\s*[\.\)\-–—:]\s+/,"");
+
+      // (A) A) A. A- A:
+      s = s.replace(/^\(?\s*[A-Za-z]\s*\)?\s*[\.\)\-–—:]\s+/,"");
+
+      // I) I. II) III. (romanos)
+      s = s.replace(/^\(?\s*(?=[IVXLCDM]+\b)[IVXLCDM]+\s*\)?\s*[\.\)\-–—:]\s+/i,"");
+
+      // si no cambió, se sale
+      if(s === before) break;
+      s = s.trim();
+    }
+    return s;
+  }
 
   function fillNivelSelect(levels, includeAll=false){
     const sel = $("nivelSelect");
@@ -1738,9 +1763,11 @@ if(nivelWrap){
     form.factors.forEach((f, idxF)=>{
       const box = document.createElement("div");
       box.className = "factor";
-       const factorCode = getFactorCodigoFromItems_(f.items || []);
+             const factorCode = getFactorCodigoFromItems_(f.items || []);
       const factorPrefix = factorCode ? `${escapeHtml(factorCode)} — ` : "";
-      box.innerHTML = `<div class="factor-title">${factorPrefix}${escapeHtml(f.factor || "Factor")}</div>`;
+
+      const factorClean = stripLeadingEnum_(f.factor || "Factor");
+      box.innerHTML = `<div class="factor-title">${factorPrefix}${escapeHtml(factorClean || "Factor")}</div>`;
 
       (f.items || []).forEach((it, idxI)=>{
         totalItems++;
@@ -1749,19 +1776,21 @@ if(nivelWrap){
 
         const current = state.answers.get(key)?.value || "";
         const r = it.rubrica || {};
-        const letter = String.fromCharCode(65 + (idxI % 26));
-
+        
         const row = document.createElement("div");
         row.className = "item-row";
                 // ✅ Calcula el prefijo FUERA del template literal (evita backticks anidados)
-        const itemCode = getCodigoForFormKey_(key);
+              const itemCode = getCodigoForFormKey_(key);
         const itemPrefix = itemCode ? `${escapeHtml(itemCode)} — ` : "";
+
+        const itemClean = stripLeadingEnum_(it.item || "Ítem");
 
         row.innerHTML = `
           <div class="item-left">
-            <div class="item-name">${itemPrefix}${escapeHtml(it.item || "Ítem")}</div>
+            <div class="item-name">${itemPrefix}${escapeHtml(itemClean || "Ítem")}</div>
             <div class="item-sub">Selecciona 1–5 según la rúbrica.</div>
           </div>
+
           <div class="item-right">
             <div class="lbl">Puntaje (1–5)</div>
             <select data-key="${escapeAttr(key)}">
