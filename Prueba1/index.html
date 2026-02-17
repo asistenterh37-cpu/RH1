@@ -640,19 +640,22 @@ button[disabled]{
       <div class="card-b">
         <div id="nivelesInfo" class="sub" style="margin-bottom:10px">—</div>
 
-        <div class="tableWrap">
-          <table id="nivelesTable">
-            <thead>
-              <tr>
-                <th>Nivel</th>
-              </tr>
-            </thead>
-            <tbody id="nivelesTbody">
-              <tr><td class="sub">Presiona <b>Cargar</b> para ver los niveles.</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
+          <div class="tableWrap">
+  <table id="nivelesTable">
+    <thead>
+      <tr>
+        <th style="width:90px">Nivel</th>
+        <th style="width:260px">Nombre</th>
+        <th>Descripción</th>
+        <th style="width:360px">Ejemplos</th>
+      </tr>
+    </thead>
+    <tbody id="nivelesTbody">
+      <tr><td colspan="4" class="sub">Presiona <b>Cargar</b> para ver los niveles.</td></tr>
+    </tbody>
+  </table>
+</div>
+    </div>
     </section>
 
     <!-- FORMULARIOS -->
@@ -1829,21 +1832,52 @@ if(nivelWrap){
   /* ================= ✅ NIVELES: TABLE ================= */
 
   function clearNivelesTable(){
-    $("nivelesInfo").textContent = "—";
-    $("nivelesTbody").innerHTML = `<tr><td class="sub">Presiona <b>Cargar</b> para ver los niveles.</td></tr>`;
+  $("nivelesInfo").textContent = "—";
+  $("nivelesTbody").innerHTML = `<tr><td colspan="4" class="sub">Presiona <b>Cargar</b> para ver los niveles.</td></tr>`;
+}
+
+// helper: intenta extraer número + nombre del string "1. Operativo básico"
+function parseNivelLabel_(raw){
+  const s = String(raw ?? "").trim();
+  // casos típicos: "1. Nombre", "1) Nombre", "1 - Nombre", "1 — Nombre"
+  const m = s.match(/^(\d{1,2})\s*[\.\)\-–—:]\s*(.+)$/);
+  if(m) return { n: Number(m[1]), nombre: m[2].trim() };
+
+  // si viene solo "1" o "Nivel 1"
+  const m2 = s.match(/(\d{1,2})/);
+  if(m2) return { n: Number(m2[1]), nombre: s.replace(m2[1], "").replace(/nivel/i,"").replace(/[\.\)\-–—:]/g,"").trim() };
+
+  return { n: NaN, nombre: s };
+}
+
+function renderNivelesTable(levels){
+  const arr = Array.isArray(levels) ? levels : [];
+  $("nivelesInfo").textContent = `Niveles encontrados: ${arr.length}`;
+
+  if(!arr.length){
+    $("nivelesTbody").innerHTML = `<tr><td colspan="4" class="sub">No hay niveles para mostrar.</td></tr>`;
+    return;
   }
 
-  function renderNivelesTable(levels){
-    const arr = Array.isArray(levels) ? levels : [];
-    $("nivelesInfo").textContent = `Niveles encontrados: ${arr.length}`;
-    if(!arr.length){
-      $("nivelesTbody").innerHTML = `<tr><td class="sub">No hay niveles para mostrar.</td></tr>`;
-      return;
-    }
-    $("nivelesTbody").innerHTML = arr.map(n => `
-      <tr><td class="mono">${escapeHtml(String(n ?? ""))}</td></tr>
-    `).join("");
-  }
+  $("nivelesTbody").innerHTML = arr.map(raw=>{
+    const p = parseNivelLabel_(raw);
+    const tipo = Number.isFinite(p.n) ? TIPOS_DATA.find(t => Number(t.n) === Number(p.n)) : null;
+
+    const nivelNum = Number.isFinite(p.n) ? String(p.n) : "";
+    const nombre = (tipo?.nombre || p.nombre || String(raw ?? "")).trim();
+    const desc   = (tipo?.desc || "").trim();
+    const ej     = (tipo?.ej   || "").trim();
+
+    return `
+      <tr>
+        <td class="mono">${escapeHtml(nivelNum || "—")}</td>
+        <td><b>${escapeHtml(nombre || "—")}</b></td>
+        <td>${escapeHtml(desc || "—")}</td>
+        <td>${escapeHtml(ej || "—")}</td>
+      </tr>
+    `;
+  }).join("");
+}
   async function loadNivelesList(){
     if(state.fase !== "NIVELES"){
       alert("Selecciona la fase Niveles.");
