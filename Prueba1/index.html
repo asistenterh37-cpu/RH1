@@ -1,7 +1,8 @@
 <!doctype html>
 <html lang="es">
 <head>
-  <meta charset="utf-8" />
+  <meta chars
+    et="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Sistema de Evaluación del Desempeño</title>
   <link rel="icon" href="data:,">
@@ -1573,15 +1574,18 @@ function setPhase(phase){
     el.classList.toggle("show", isEvalPhase());
   });
 
-  // Nivel: oculto en CLIENTES/RESULTADO/CONSOLIDADO/CAPACITACION/DESARROLLO/TIPOS
-  const nivelWrap = $("nivelWrap");
-  if(nivelWrap){
-    const hideNivel =
-      isClientesPhase() || isResultadoPhase() || isConsolidadoPhase() ||
-      isCapacitacionPhase() || isDesarrolloPhase() || isTiposPhase();
-    nivelWrap.classList.toggle("hide", hideNivel);
-  }
+// Nivel: oculto en CLIENTES/RESULTADO/CONSOLIDADO/CAPACITACION/DESARROLLO/TIPOS/NIVELES
+const nivelWrap = $("nivelWrap");
 
+if(nivelWrap){
+
+  const hideNivel =
+    isClientesPhase() || isResultadoPhase() || isConsolidadoPhase() ||
+    isCapacitacionPhase() || isDesarrolloPhase() || isTiposPhase() ||
+    state.fase === "NIVELES"; // ✅ NUEVO
+
+  nivelWrap.classList.toggle("hide", hideNivel);
+}
   // habilitar select nivel solo cuando toca
   const enableNivel = (isEvalPhase() || state.fase === "FORMULARIOS" || state.fase === "PESOS");
   if ($("nivelSelect")) $("nivelSelect").disabled = !enableNivel;
@@ -3011,40 +3015,40 @@ $("tiposModalBack")?.addEventListener("click", (e)=>{
   });
 
   $("faseSelect").addEventListener("change", async (e)=>{
-    const fase = e.target.value;
-    setPhase(fase);
-if(fase === "TIPOS"){
-      openTiposModal_();
-      return; // no carga niveles ni nada más
+  const fase = e.target.value;
+  setPhase(fase);
+
+  if(fase === "TIPOS"){
+    openTiposModal_();
+    return; // no carga niveles ni nada más
+  }
+  try{
+    // ✅ ahora incluye NIVELES
+    if(isEvalPhase() || fase === "FORMULARIOS" || fase === "PESOS" || fase === "NIVELES"){
+      await loadLevelsForPhase();
     }
-  
-    try{
-      if(isEvalPhase() || fase === "FORMULARIOS" || fase === "PESOS"){
-        await loadLevelsForPhase();
-      }
-
-      if(fase === "FORMULARIOS"){
-        clearFormTable();
-      }
-
-      if(fase === "PESOS"){
-        clearPesosTable();
-      }
-
-      if(isEvalPhase()){
-        await loadFormByNivel(state.nivel);
-        updateGuardarUIState();
-      }
-
-      // ✅ al entrar a RESULTADO: no necesitamos niveles, solo UI correcta
-      if(isResultadoPhase()){
-        updateGuardarUIState();
-      }
-
-    }catch(err){
-      setApiStatus("err","API: " + err.message);
+    if(fase === "NIVELES"){
+      clearNivelesTable();
+      await loadNivelesList(); // ✅ auto-lista para que no se vea “muerto”
     }
-  });
+    if(fase === "FORMULARIOS"){
+      clearFormTable();
+    }
+    if(fase === "PESOS"){
+      clearPesosTable();
+    }
+    if(isEvalPhase()){
+      await loadFormByNivel(state.nivel);
+      updateGuardarUIState();
+    }
+    // ✅ al entrar a RESULTADO: no necesitamos niveles, solo UI correcta
+    if(isResultadoPhase()){
+      updateGuardarUIState();
+    }
+  }catch(err){
+    setApiStatus("err","API: " + err.message);
+  }
+});
 
   $("nivelSelect").addEventListener("change", async (e)=>{
     try{
@@ -3070,22 +3074,29 @@ if(fase === "TIPOS"){
 
   $("btnGuardar").addEventListener("click", ()=>doGuardar().catch(err=>setApiStatus("err","API: " + err.message)));
 
-  $("btnNuevo").addEventListener("click", ()=>{
-    clearClientes();
-    clearEval();
-    clearResultado();
-    clearFormTable();
-    clearPesosTable();
-  });
+ $("btnNuevo").addEventListener("click", ()=>{
 
-  // FORMULARIOS
-  $("btnCargarForm").addEventListener("click", ()=>loadFormulariosItems().catch(err=>setApiStatus("err","API: " + err.message)));
-  $("btnLimpiarForm").addEventListener("click", clearFormTable);
+  clearClientes();
+  clearEval();
+  clearResultado();
+  clearFormTable();
+  clearPesosTable();
+  clearNivelesTable(); // ✅ NUEVO
 
-  // ✅ PESOS
-  $("btnCargarPesos").addEventListener("click", ()=>loadPesosItems().catch(err=>setApiStatus("err","API: " + err.message)));
-  $("btnLimpiarPesos").addEventListener("click", clearPesosTable);
-  $("btnGuardarPesos").addEventListener("click", ()=>savePesosItems().catch(err=>setApiStatus("err","API: " + err.message)));
+});
+
+ // ✅ NIVELES
+$("btnCargarNiveles")?.addEventListener("click", ()=>loadNivelesList().catch(err=>setApiStatus("err","API: " + err.message)));
+$("btnLimpiarNiveles")?.addEventListener("click", clearNivelesTable);
+
+// FORMULARIOS
+$("btnCargarForm").addEventListener("click", ()=>loadFormulariosItems().catch(err=>setApiStatus("err","API: " + err.message)));
+$("btnLimpiarForm").addEventListener("click", clearFormTable);
+
+// ✅ PESOS
+$("btnCargarPesos").addEventListener("click", ()=>loadPesosItems().catch(err=>setApiStatus("err","API: " + err.message)));
+$("btnLimpiarPesos").addEventListener("click", clearPesosTable);
+$("btnGuardarPesos").addEventListener("click", ()=>savePesosItems().catch(err=>setApiStatus("err","API: " + err.message)));
 
   // ✅ CAPACITACION
   $("btnCapGenerar")?.addEventListener("click", ()=>generarCapacitacion_().catch(err=>setApiStatus("err","API: " + err.message)));
