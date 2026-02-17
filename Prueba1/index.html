@@ -1207,7 +1207,7 @@ Dejar de hacer:"></textarea>
 `Empezar a hacer:
 Continuar haciendo:
 Dejar de hacer:`;
-  const DEFAULT_WEBAPP_ = "https://script.google.com/macros/s/AKfycbxepUZgVquPsqsQsRGsbtVsUxPPFsDq_3C4m22vjLv_UfqkcN3Boc2_iqPmlyXB_wE/exec";
+  const DEFAULT_WEBAPP_ = "https://script.google.com/macros/s/AKfycbxQnkZ4b3LEP6skWcGTm2PoZ3Xep8cwdc11ki-OPPhytxEcRDKlIO2job4f7QikJyY5/exec";
   const $ = id => document.getElementById(id);
 
   function normalizeWebApp(raw){
@@ -3278,7 +3278,26 @@ $("tiposModalBack")?.addEventListener("click", (e)=>{
     }
   });
 
-  $("btnGuardar").addEventListener("click", ()=>doGuardar().catch(err=>setApiStatus("err","API: " + err.message)));
+  $("btnGuardar").addEventListener("click", async ()=>{
+  if(state.saving) return; // ✅ evita doble click / doble request
+  state.saving = true;
+
+  const btn = $("btnGuardar");
+  const prevText = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = "Guardando…";
+
+  try{
+    await doGuardar();
+  }catch(err){
+    setApiStatus("err","API: " + (err?.message || err));
+  }finally{
+    state.saving = false;
+    btn.textContent = prevText;
+    // updateGuardarUIState decide si queda enabled o no
+    updateGuardarUIState();
+  }
+});
 
  $("btnNuevo").addEventListener("click", ()=>{
 
