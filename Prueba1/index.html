@@ -933,7 +933,8 @@ Dejar de hacer:"></textarea>
       </div>
 
       <div class="card-b">
-      <!-- ✅ function todayLocal(){(para PDF y texto) -->
+<div id="resultadoMeta" class="sub" style="margin-bottom:10px">—</div>
+        <!-- ✅ function todayLocal(){(para PDF y texto) -->
 <div class="hint" style="margin-bottom:12px">
   <div class="sub" style="margin-bottom:10px">Datos del colaborador:</div>
 
@@ -1752,12 +1753,13 @@ if(nivelWrap){
 
         const row = document.createElement("div");
         row.className = "item-row";
+                // ✅ Calcula el prefijo FUERA del template literal (evita backticks anidados)
+        const itemCode = getCodigoForFormKey_(key);
+        const itemPrefix = itemCode ? `${escapeHtml(itemCode)} — ` : "";
+
         row.innerHTML = `
           <div class="item-left">
-                        const itemCode = getCodigoForFormKey_(key);
-            const itemPrefix = itemCode ? `${escapeHtml(itemCode)} — ` : "";
             <div class="item-name">${itemPrefix}${escapeHtml(it.item || "Ítem")}</div>
-
             <div class="item-sub">Selecciona 1–5 según la rúbrica.</div>
           </div>
           <div class="item-right">
@@ -1772,7 +1774,6 @@ if(nivelWrap){
             </select>
           </div>
         `;
-
         const sel = row.querySelector("select");
         sel.addEventListener("change", (e)=>{
           const k = e.target.getAttribute("data-key");
@@ -2739,7 +2740,40 @@ function doLimpiar(){
   function closePrintModal(){
     $("printModalBack").classList.remove("show");
   }
+// ✅ Evita ReferenceError si alguien reusa el modal de impresión en CONSOLIDADO
+function buildConsolidadoTexto_(){
+  const no  = $("conNo")?.value?.trim() || $("noPersonalRes")?.value?.trim() || "—";
+  const per = $("conPeriodo")?.value?.trim() || $("periodoRes")?.value?.trim() || "—";
+  const ver = $("conVersion")?.value?.trim() || $("versionRes")?.value?.trim() || "—";
 
+  const nombre   = $("conNombre")?.value?.trim() || "—";
+  const posicion = $("conPosicion")?.value?.trim() || "—";
+  const depto    = $("conDepto")?.value?.trim() || "—";
+  const fecha    = $("conFecha")?.value?.trim() || "—";
+  const pf       = $("conPuntajeFinal")?.value?.trim() || "—";
+
+  const analisis = ($("conAnalisisIA")?.value || "").trim();
+  const concl    = ($("conConclusionesIA")?.value || "").trim();
+  const recom    = ($("conRecomendacionesIA")?.value || "").trim();
+
+  return (
+`REPORTE EJECUTIVO DE EVALUACIÓN DEL DESEMPEÑO
+
+No. de personal: ${no} | Nombre: ${nombre} | Posición: ${posicion}
+Departamento: ${depto} | Periodo: ${per} | Versión: ${ver} | Fecha: ${fecha}
+Puntaje final: ${pf}
+
+ANÁLISIS E INTERPRETACIÓN:
+${analisis}
+
+CONCLUSIONES:
+${concl}
+
+RECOMENDACIONES:
+${recom}`
+  ).trim();
+}
+  
 function buildResultadoTexto_(){
   const no  = $("repNo")?.value?.trim() || $("noPersonalRes")?.value?.trim() || "—";
   const per = $("repPeriodo")?.value?.trim() || $("periodoRes")?.value?.trim() || "—";
