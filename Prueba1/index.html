@@ -3076,26 +3076,55 @@ on("btnProbarApi", "click", async ()=>{
   }
 });
 
+// helpers: wrappers para no romper si faltan funciones
+async function recoverConsolidadoSafe_(){
+  if (typeof recoverConsolidado_ === "function") {
+    return await recoverConsolidado_();
+  }
+  alert("⚠️ Falta la función recoverConsolidado_ en este HTML. (No afecta Niveles/Formularios/Pesos).");
+}
+
+function ieShowTextoSafe_(){
+  if (typeof ieShowTexto_ === "function") return ieShowTexto_();
+  // no-op seguro
+  $("ieTextWrap") && ($("ieTextWrap").style.display = "block");
+  $("ieHtmlWrap") && ($("ieHtmlWrap").style.display = "none");
+}
+
+function closeInformeModalSafe_(){
+  if (typeof closeInformeModal_ === "function") return closeInformeModal_();
+  $("ieModalBack")?.classList.remove("show");
+}
+
+function iePrintPdfSafe_(){
+  if (typeof iePrintPdf_ === "function") return iePrintPdf_();
+  // fallback simple
+  document.body.classList.add("print-ie");
+  window.print();
+  // por si el navegador no dispara afterprint
+  setTimeout(()=>document.body.classList.remove("print-ie"), 500);
+}
+
 // CONSOLIDADO
 on("btnGenInforme", "click", ()=>{
-  recoverConsolidado_()
+  recoverConsolidadoSafe_()
     .catch(err=>setApiStatus("err","API: " + (err?.message || err)));
 });
 
 // Modal IE
-on("btnIEText", "click", ieShowTexto_);
-on("btnIEClose", "click", closeInformeModal_);
-on("btnIEPrintPDF", "click", iePrintPdf_);
+on("btnIEText", "click", ieShowTextoSafe_);
+on("btnIEClose", "click", closeInformeModalSafe_);
+on("btnIEPrintPDF", "click", iePrintPdfSafe_);
 
 on("ieModalBack", "click", (e)=>{
-  if(e.target && e.target.id === "ieModalBack") closeInformeModal_();
+  if(e.target && e.target.id === "ieModalBack") closeInformeModalSafe_();
 });
 
 // Header botones
 on("btnRecuperar", "click", ()=>{
   const fn =
     isResultadoPhase() ? recoverResultado :
-    (isConsolidadoPhase() ? recoverConsolidado_ : recoverSearch);
+    (isConsolidadoPhase() ? recoverConsolidadoSafe_ : recoverSearch);
 
   fn().catch(err=>setApiStatus("err","API: " + (err?.message || err)));
 });
