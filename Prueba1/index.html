@@ -1207,7 +1207,7 @@ Dejar de hacer:"></textarea>
 `Empezar a hacer:
 Continuar haciendo:
 Dejar de hacer:`;
-  const DEFAULT_WEBAPP_ = "https://script.google.com/macros/s/AKfycbwJLT2gCnYiLAfYsviysr3J33NBZkyFbZmLz7BMHVlXFxH1NDtKPFOvDdqcgQkKk4BY/exec";
+  const DEFAULT_WEBAPP_ = "https://script.google.com/macros/s/AKfycbxepUZgVquPsqsQsRGsbtVsUxPPFsDq_3C4m22vjLv_UfqkcN3Boc2_iqPmlyXB_wE/exe";
   const $ = id => document.getElementById(id);
 
   function normalizeWebApp(raw){
@@ -1474,6 +1474,43 @@ Dejar de hacer:`;
     const x = Number(n);
     if(!Number.isFinite(x)) return "—";
     return x.toFixed(2);
+  }
+
+  // ✅ Puntaje final en HTML = Σ ((respuestaNum(1-5)/5) * peso)
+  // Usa itemKeys ("nivel|Factor|Item") y los pesos de la hoja Pesos
+  function calcPuntajeFinalClient_(nivelRef, pesosItems, itemKeys, respuestasNum){
+    const nivelCanon = (String(nivelRef || "").match(/(\d+)/)?.[1] || String(nivelRef || "").trim());
+
+    // Mapa Pesos: "nivel|factorNorm|itemNorm" -> pesoNum
+    const pesoMap = new Map();
+    (Array.isArray(pesosItems) ? pesosItems : []).forEach(r=>{
+      const nivel  = nivelCanonClient_(r.Nivel ?? "");
+      const factor = normKey_(r.Factor ?? "");
+      const item   = normKey_(r.Item ?? "");
+      const peso   = toNum(r.Peso ?? 0, 0);
+      if(nivel && factor && item) pesoMap.set(`${nivel}|${factor}|${item}`, peso);
+    });
+
+    let sum = 0;
+
+    const keys = Array.isArray(itemKeys) ? itemKeys : [];
+    const nums = Array.isArray(respuestasNum) ? respuestasNum : [];
+
+    for(let i=0; i<keys.length; i++){
+      const k = String(keys[i] ?? "").trim();
+      if(!k) continue;
+
+      const v = Number(String(nums[i] ?? "").trim());
+      if(!(v >= 1 && v <= 5)) continue;
+
+      const kn = makeFormKeyNorm_(k); // "nivel|factorNorm|itemNorm"
+      const peso = Number(pesoMap.get(kn) ?? 0);
+
+      sum += (v / 5) * peso;
+    }
+
+    // 2 decimales para guardar en EvaluacionFinal
+    return Number.isFinite(sum) ? sum.toFixed(2) : "0.00";
   }
   /* ================= CÓDIGOS (PESOS -> UI) ================= */
   function nivelCanonClient_(nivel){
@@ -2706,35 +2743,53 @@ async function generarDesarrollo_(){
 
     const extrasAuto = isAutoPhase() ? { comentariosColaborador: comentariosAuto } : null;
 
-   const payload = {
-  // ✅ Fase real: DESEMPENO guarda en EvaluacionFinal y dispara el cálculo de Puntaje final en GS
-  fase: isDesempenoPhase() ? "DESEMPENO" : (isAutoPhase() ? "AUTO" : state.fase),
-
-  nivel: nivelRef,
-
-  // ✅ clave para amarrar Factor/Item con Pesos (mismo orden del cuestionario)
-  itemKeys: Array.isArray(state.itemKeys) ? state.itemKeys.slice() : [],
-
-  no: $("noPersonalEval").value.trim(),
-  nombre: $("nombreEval").value.trim(),
-  posicion: $("posicionEval").value.trim(),
-  depto: $("deptoEval").value.trim(),
-  periodo: $("periodoEval").value.trim(),
-  version: $("versionEval").value.trim(),
-  fecha: $("fechaEval").value.trim(),
-
-  // ✅ Respuestas (compat) + numéricas (para puntaje)
-  respuestas: respuestasOrdenadas,
-
-  // 👇 normalizamos a “solo número” (1..5) o ""
-  respuestasNum: respuestasNum.map(v => {
+    // ✅ Normaliza a “solo número” (1..5) o ""
+  const respuestasNumClean = respuestasNum.map(v => {
     const n = String(v ?? "").trim().match(/^[1-5]$/) ? String(v).trim() : "";
     return n;
-  }),
+  });
 
-  comentarios: isAutoPhase() ? comentariosAuto : buildCompatComentarios(),
-  extras: isDesempenoPhase() ? extrasDesempeno : (isAutoPhase() ? extrasAuto : null)
-};
+  // ✅ Si es DESEMPENO: traer Pesos y calcular puntaje final EN HTML
+  let puntajeFinalClient = "";
+  if(isDesempenoPhase()){
+    const nivelCanon = (String(nivelRef || "").match(/(\d+)/)?.[1] || String(nivelRef || "").trim() || "ALL");
+    const pes = await apiGet({ action:"items", sheet:"Pesos", nivel: nivelCanon });
+    puntajeFinalClient = calcPuntajeFinalClient_(
+      nivelRef,
+      (pes.items || []),
+      (Array.isArray(state.itemKeys) ? state.itemKeys.slice() : []),
+      respuestasNumClean
+    );
+  }
+
+  const payload = {
+    // ✅ Fase real: DESEMPENO guarda en EvaluacionFinal
+    fase: isDesempenoPhase() ? "DESEMPENO" : (isAutoPhase() ? "AUTO" : state.fase),
+
+    nivel: nivelRef,
+
+    // ✅ clave para amarrar Factor/Item con Pesos (mismo orden del cuestionario)
+    itemKeys: Array.isArray(state.itemKeys) ? state.itemKeys.slice() : [],
+
+    no: $("noPersonalEval").value.trim(),
+    nombre: $("nombreEval").value.trim(),
+    posicion: $("posicionEval").value.trim(),
+    depto: $("deptoEval").value.trim(),
+    periodo: $("periodoEval").value.trim(),
+    version: $("versionEval").value.trim(),
+    fecha: $("fechaEval").value.trim(),
+
+    // ✅ Respuestas (compat) + numéricas (para puntaje)
+    respuestas: respuestasOrdenadas,
+    respuestasNum: respuestasNumClean,
+
+    // ✅ NUEVO: Puntaje final calculado en HTML
+    puntajeFinal: isDesempenoPhase() ? puntajeFinalClient : "",
+
+    comentarios: isAutoPhase() ? comentariosAuto : buildCompatComentarios(),
+    extras: isDesempenoPhase() ? extrasDesempeno : (isAutoPhase() ? extrasAuto : null)
+  };
+
     const b64 = btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
     const out = await apiGet({action:"save", payload:b64});
 
