@@ -3029,260 +3029,187 @@ function closeTiposModal_(){
   $("tiposModalBack")?.classList.remove("show");
 }
   
-  /* ================= EVENTS ================= */
-  $("webapp").addEventListener("change", ()=>{
-    const v = normalizeWebApp($("webapp").value);
-    $("webapp").value = v;
-    localStorage.setItem(LS_KEY_, v);
+ /* ================= EVENTS (SAFE) ================= */
+
+// helper seguro: si el elemento no existe, no rompe el JS
+function on(id, evt, fn){
+  const el = $(id);
+  if(!el) return;
+  el.addEventListener(evt, fn);
+}
+
+// “radar” de errores: si algo se rompe, lo verás en pantalla (apiMini*)
+(function attachGlobalErrorTrap(){
+  window.addEventListener("error", (e)=>{
+    const msg = (e?.message || "Error JS");
+    setApiStatus("err", "JS: " + msg);
+    // console real:
+    try{ console.error("JS ERROR:", e); }catch(_){}
   });
 
-  $("btnAbrirPing")?.addEventListener("click", ()=>{
-    const base = getWebApp();
-    const raw = base + (base.includes("?") ? "&" : "?") + "action=ping&_=" + Date.now();
-    window.open(raw, "_blank", "noopener,noreferrer");
+  window.addEventListener("unhandledrejection", (e)=>{
+    const msg = (e?.reason?.message || String(e?.reason || "Promise error"));
+    setApiStatus("err", "JS: " + msg);
+    try{ console.error("PROMISE ERROR:", e); }catch(_){}
   });
+})();
 
-  $("btnProbarApi")?.addEventListener("click", async ()=>{
-    try{
-      await apiGet({action:"ping"});
-      setApiStatus("ok","API: conectada");
-    }catch(e){
-      setApiStatus("err","API: " + e.message);
-    }
-  });
-
-// ✅ Botón dentro del bloque CONSOLIDADO
-$("btnGenInforme")?.addEventListener("click", ()=>{
-  recoverConsolidado_().catch(err=>setApiStatus("err","API: " + (err?.message || err)));
+on("webapp", "change", ()=>{
+  const v = normalizeWebApp($("webapp").value);
+  $("webapp").value = v;
+  localStorage.setItem(LS_KEY_, v);
 });
 
-// ✅ Modal Informe Ejecutivo
-$("btnIEText")?.addEventListener("click", ieShowTexto_);
-$("btnIEClose")?.addEventListener("click", closeInformeModal_);
-$("btnIEPrintPDF")?.addEventListener("click", iePrintPdf_);
+// Ping / Probar (si existen)
+on("btnAbrirPing", "click", ()=>{
+  const base = getWebApp();
+  const raw = base + (base.includes("?") ? "&" : "?") + "action=ping&_=" + Date.now();
+  window.open(raw, "_blank", "noopener,noreferrer");
+});
 
-// Cierra si hacen click en el backdrop
-$("ieModalBack")?.addEventListener("click", (e)=>{
+on("btnProbarApi", "click", async ()=>{
+  try{
+    await apiGet({action:"ping"});
+    setApiStatus("ok","API: conectada");
+  }catch(e){
+    setApiStatus("err","API: " + e.message);
+  }
+});
+
+// CONSOLIDADO
+on("btnGenInforme", "click", ()=>{
+  recoverConsolidado_()
+    .catch(err=>setApiStatus("err","API: " + (err?.message || err)));
+});
+
+// Modal IE
+on("btnIEText", "click", ieShowTexto_);
+on("btnIEClose", "click", closeInformeModal_);
+on("btnIEPrintPDF", "click", iePrintPdf_);
+
+on("ieModalBack", "click", (e)=>{
   if(e.target && e.target.id === "ieModalBack") closeInformeModal_();
 });
-  
-  /* ================= INFORME EJECUTIVO (TABLA FLOTANTE) ================= */
 
-function openInformeModal_(html, texto){
-  $("ieModalBody").innerHTML = html || "";
-  $("ieTextArea").value = texto || "";
-  $("ieHtmlWrap").style.display = "block";
-  $("ieTextWrap").style.display = "none";
-  $("ieModalBack").classList.add("show");
-}
+// Header botones
+on("btnRecuperar", "click", ()=>{
+  const fn =
+    isResultadoPhase() ? recoverResultado :
+    (isConsolidadoPhase() ? recoverConsolidado_ : recoverSearch);
 
-function closeInformeModal_(){
-  $("ieModalBack").classList.remove("show");
-}
+  fn().catch(err=>setApiStatus("err","API: " + (err?.message || err)));
+});
 
-function ieShowTexto_(){
-  $("ieHtmlWrap").style.display = "none";
-  $("ieTextWrap").style.display = "block";
-  $("ieTextArea").focus();
-  $("ieTextArea").select();
-}
+on("btnLimpiarEval", "click", doLimpiar);
+on("btnPrint", "click", openPrintModal);
 
-function ieShowHtml_(){
-  $("ieTextWrap").style.display = "none";
-  $("ieHtmlWrap").style.display = "block";
-}
+// Print modal
+on("btnPrintClose", "click", closePrintModal);
+on("printModalBack", "click", (e)=>{
+  if(e.target === $("printModalBack")) closePrintModal();
+});
 
-function iePrintPdf_(){
-  // Asegura que se vea el HTML (no el textarea)
-  ieShowHtml_();
-
-  // Modo impresión solo del informe ejecutivo
-  document.body.classList.add("print-ie");
+on("btnPrintPDF", "click", ()=>{
+  closePrintModal();
   window.print();
+});
 
-  // Limpia el modo impresión
-  setTimeout(()=>document.body.classList.remove("print-ie"), 400);
-}
+on("btnPrintTXT", "click", ()=>{
+  $("printTextArea").value = isConsolidadoPhase() ? buildConsolidadoTexto_() : buildResultadoTexto_();
+});
 
-   // ✅ CONSOLIDADO (Informe ejecutivo): de momento solo UI.
-  // Si ya tienes tu endpoint, aquí conectas el action correspondiente.
-  async function recoverConsolidado_(){
-  if(!isConsolidadoPhase()){
-    alert("Selecciona la fase: Informe ejecutivo.");
-    return;
+on("btnCopyText", "click", async ()=>{
+  const txt = $("printTextArea")?.value || "";
+  try{
+    await navigator.clipboard.writeText(txt);
+    alert("Copiado ✅");
+  }catch(_){
+    $("printTextArea")?.select?.();
+    document.execCommand("copy");
+    alert("Copiado ✅");
   }
+});
 
-  // Informe ejecutivo usa los mismos 3 campos del wrap de Resultado
-  const no  = $("noPersonalRes").value.trim();
-  const per = $("periodoRes").value.trim();
-  const ver = $("versionRes").value.trim();
+// Recover modal
+on("btnRecoverClose", "click", closeRecoverModal);
+on("recoverModalBack", "click", (e)=>{
+  if(e.target === $("recoverModalBack")) closeRecoverModal();
+});
 
-  if(!no || !per || !ver){
-    alert("Para generar el informe, llena: No. de personal + Periodo + Versión.");
-    return;
-  }
-
-   // ✅ Backend (Apps Script): action=informeEjecutivo
-  const res = await apiGet({ action:"informeEjecutivo", no, periodo: per, version: ver });
-
-  if(!res || res.ok !== true){
-    const msg = (res && res.error) ? res.error : "No se pudo generar el informe.";
-    setApiStatus("err", "API: " + msg);
-    alert(msg);
-    return;
-  }
-
-  // Compatibilidad: llenar IDs ocultos
-  const header = res.header || {};
-  const fechaDMY = formatDateDMY(header.fecha) || todayLocal();
-
-  $("conNo").value       = no || "—";
-  $("conNombre").value   = String(header.nombre || "—");
-  $("conPosicion").value = String(header.posicion || "—");
-  $("conDepto").value    = String(header.depto || "—");
-  $("conPeriodo").value  = per || "—";
-  $("conVersion").value  = ver || "—";
-  $("conFecha").value    = fechaDMY || "—";
-  $("conPuntajeFinal").value = String(res.puntajeFinal ?? "—");
-
-  const ia = res.openai || {};
-  $("conAnalisisIA").value        = String(ia.analisis || "").trim();
-  $("conConclusionesIA").value    = String(ia.conclusiones || "").trim();
-  $("conRecomendacionesIA").value = String(ia.recomendaciones || "").trim();
-
-  // ✅ Si OpenAI falló, verás el motivo real aquí
-  if(String(ia._debug || "").trim()){
-    setApiStatus("err", "OpenAI: " + String(ia._debug).slice(0, 160));
-  }
-
-  // Render en tabla flotante (modal)
-  const html = String(res.html || "").trim() || "<div class=\"sub\">No se recibió HTML del backend.</div>";
-
-  // Texto listo para copiar
-  const nombreEval = String((res && res.cualitativo && res.cualitativo.nombreEvaluador) ? res.cualitativo.nombreEvaluador : "").trim();
-
-const texto =
-`REPORTE EJECUTIVO DE EVALUACIÓN DEL DESEMPEÑO\n\n` +
-`No. de personal: ${$("conNo").value} | Nombre: ${$("conNombre").value} | Posición: ${$("conPosicion").value}\n` +
-`Departamento: ${$("conDepto").value} | Periodo: ${$("conPeriodo").value} | Versión: ${$("conVersion").value} | Fecha: ${$("conFecha").value}\n` +
-`Puntaje final: ${$("conPuntajeFinal").value}\n\n` +
-`ANÁLISIS E INTERPRETACIÓN:\n${$("conAnalisisIA").value}\n\n` +
-`CONCLUSIONES:\n${$("conConclusionesIA").value}\n\n` +
-`RECOMENDACIONES:\n${$("conRecomendacionesIA").value}\n\n` +
-`NOMBRE EVALUADOR:\n${nombreEval || "—"}`.trim();
-
-  state.lastIEHtml = html;
-  state.lastIEText = texto;
-
-  openInformeModal_(html, texto);
-}
-
-  $("btnRecuperar").addEventListener("click", ()=>{
-    const fn =
-      isResultadoPhase() ? recoverResultado :
-      (isConsolidadoPhase() ? recoverConsolidado_ : recoverSearch);
-
-    fn().catch(err=>setApiStatus("err","API: " + err.message));
-  });
-
-  $("btnLimpiarEval").addEventListener("click", doLimpiar);
-
-  $("btnPrint").addEventListener("click", openPrintModal);
-  $("btnPrintClose").addEventListener("click", closePrintModal);
-  $("printModalBack").addEventListener("click", (e)=>{
-    if(e.target === $("printModalBack")) closePrintModal();
-  });
-
-  /* ✅ TIPOS MODAL EVENTS */
-$("btnTiposClose")?.addEventListener("click", closeTiposModal_);
-$("tiposModalBack")?.addEventListener("click", (e)=>{
+// Tipos modal
+on("btnTiposClose", "click", closeTiposModal_);
+on("tiposModalBack", "click", (e)=>{
   if(e.target === $("tiposModalBack")) closeTiposModal_();
 });
 
-  $("btnPrintPDF").addEventListener("click", ()=>{
-    closePrintModal();
-    window.print();
-  });
-  $("btnPrintTXT").addEventListener("click", ()=>{
-  $("printTextArea").value = isConsolidadoPhase() ? buildConsolidadoTexto_() : buildResultadoTexto_();
-});
-  $("btnCopyText").addEventListener("click", async ()=>{
-    const txt = $("printTextArea").value || "";
-    try{
-      await navigator.clipboard.writeText(txt);
-      alert("Copiado ✅");
-    }catch(_){
-      $("printTextArea").select();
-      document.execCommand("copy");
-      alert("Copiado ✅");
-    }
-  });
-
-  $("btnRecoverClose").addEventListener("click", closeRecoverModal);
-  $("recoverModalBack").addEventListener("click", (e)=>{
-    if(e.target === $("recoverModalBack")) closeRecoverModal();
-  });
-
-  $("faseSelect").addEventListener("change", async (e)=>{
+// Fase / Nivel
+on("faseSelect", "change", async (e)=>{
   const fase = e.target.value;
   setPhase(fase);
 
   if(fase === "TIPOS"){
     openTiposModal_();
-    return; // no carga niveles ni nada más
+    return;
   }
+
   try{
-    // ✅ ahora incluye NIVELES
+    // ✅ cargar niveles donde corresponde (incluye NIVELES)
     if(isEvalPhase() || fase === "FORMULARIOS" || fase === "PESOS" || fase === "NIVELES"){
       await loadLevelsForPhase();
     }
+
     if(fase === "NIVELES"){
       clearNivelesTable();
-      await loadNivelesList(); // ✅ auto-lista para que no se vea “muerto”
+      // NO autoload forzado si prefieres, pero aquí sí ayuda a “no se ve muerto”
+      await loadNivelesList();
     }
+
     if(fase === "FORMULARIOS"){
       clearFormTable();
     }
+
     if(fase === "PESOS"){
       clearPesosTable();
     }
+
     if(isEvalPhase()){
       await loadFormByNivel(state.nivel);
       updateGuardarUIState();
     }
-    // ✅ al entrar a RESULTADO: no necesitamos niveles, solo UI correcta
+
     if(isResultadoPhase()){
       updateGuardarUIState();
     }
   }catch(err){
-    setApiStatus("err","API: " + err.message);
+    setApiStatus("err","API: " + (err?.message || err));
   }
 });
 
-  $("nivelSelect").addEventListener("change", async (e)=>{
-    try{
-      state.nivel = e.target.value;
+on("nivelSelect", "change", async (e)=>{
+  try{
+    state.nivel = e.target.value;
 
-      if(isEvalPhase()){
-        await loadFormByNivel(state.nivel);
-        updateGuardarUIState();
-      }
-
-      if(isFormulariosPhase()){
-        $("formTableInfo").textContent = `Nivel cambiado a: ${getNivelRef()} (presiona Cargar)`;
-      }
-
-      if(isPesosPhase()){
-        $("pesosTableInfo").textContent = `Nivel cambiado a: ${getNivelRef()} (presiona Cargar)`;
-        updatePesosSaveState();
-      }
-    }catch(err){
-      setApiStatus("err","API: " + err.message);
+    if(isEvalPhase()){
+      await loadFormByNivel(state.nivel);
+      updateGuardarUIState();
     }
-  });
 
-  $("btnGuardar").addEventListener("click", async ()=>{
-  if(state.saving) return; // ✅ evita doble click / doble request
+    if(isFormulariosPhase()){
+      $("formTableInfo").textContent = `Nivel cambiado a: ${getNivelRef()} (presiona Cargar)`;
+    }
+
+    if(isPesosPhase()){
+      $("pesosTableInfo").textContent = `Nivel cambiado a: ${getNivelRef()} (presiona Cargar)`;
+      updatePesosSaveState();
+    }
+  }catch(err){
+    setApiStatus("err","API: " + (err?.message || err));
+  }
+});
+
+// Guardar (con anti-doble-click)
+on("btnGuardar", "click", async ()=>{
+  if(state.saving) return;
   state.saving = true;
 
   const btn = $("btnGuardar");
@@ -3297,12 +3224,12 @@ $("tiposModalBack")?.addEventListener("click", (e)=>{
   }finally{
     state.saving = false;
     btn.textContent = prevText;
-    // updateGuardarUIState decide si queda enabled o no
     updateGuardarUIState();
   }
 });
 
- $("btnNuevo")?.addEventListener("click", ()=>{
+// Nuevo (si existe)
+on("btnNuevo", "click", ()=>{
   clearClientes();
   clearEval();
   clearResultado();
@@ -3311,134 +3238,112 @@ $("tiposModalBack")?.addEventListener("click", (e)=>{
   clearNivelesTable();
 });
 
-// ✅ NIVELES
-$("btnCargarNiveles")?.addEventListener("click", ()=>loadNivelesList().catch(err=>setApiStatus("err","API: " + err.message)));
-$("btnLimpiarNiveles")?.addEventListener("click", clearNivelesTable);
+// ✅ Botones Cargar/Limpiar (ahora nunca rompen si faltan IDs)
+on("btnCargarNiveles", "click", ()=>loadNivelesList().catch(err=>setApiStatus("err","API: " + err.message)));
+on("btnLimpiarNiveles", "click", clearNivelesTable);
 
-// FORMULARIOS
-$("btnCargarForm").addEventListener("click", ()=>loadFormulariosItems().catch(err=>setApiStatus("err","API: " + err.message)));
-$("btnLimpiarForm").addEventListener("click", clearFormTable);
+on("btnCargarForm", "click", ()=>loadFormulariosItems().catch(err=>setApiStatus("err","API: " + err.message)));
+on("btnLimpiarForm", "click", clearFormTable);
 
-// ✅ PESOS
-$("btnCargarPesos").addEventListener("click", ()=>loadPesosItems().catch(err=>setApiStatus("err","API: " + err.message)));
-$("btnLimpiarPesos").addEventListener("click", clearPesosTable);
-$("btnGuardarPesos").addEventListener("click", ()=>savePesosItems().catch(err=>setApiStatus("err","API: " + err.message)));
+on("btnCargarPesos", "click", ()=>loadPesosItems().catch(err=>setApiStatus("err","API: " + err.message)));
+on("btnLimpiarPesos", "click", clearPesosTable);
+on("btnGuardarPesos", "click", ()=>savePesosItems().catch(err=>setApiStatus("err","API: " + err.message)));
 
-  // ✅ CAPACITACION
-  $("btnCapGenerar")?.addEventListener("click", ()=>generarCapacitacion_().catch(err=>setApiStatus("err","API: " + err.message)));
-  $("btnCapGuardar")?.addEventListener("click", ()=>guardarCapacitacion_().catch(err=>setApiStatus("err","API: " + err.message)));
-  // ✅ DESARROLLO
-$("btnDevGenerar")?.addEventListener("click", ()=>generarDesarrollo_().catch(err=>setApiStatus("err","API: " + err.message)));
+on("btnCapGenerar", "click", ()=>generarCapacitacion_().catch(err=>setApiStatus("err","API: " + err.message)));
+on("btnCapGuardar", "click", ()=>guardarCapacitacion_().catch(err=>setApiStatus("err","API: " + err.message)));
 
-  ["capPeriodo","capVersion"].forEach(id=>{
-    const el = $(id);
-    if(el){
-      el.addEventListener("input", updateCapSaveState_);
-      el.addEventListener("change", updateCapSaveState_);
-    }
-  });
-  
-  // watchers CLIENTES
-  [
-    "noPersonal","nombre","posicion","depto","periodo","version","fecha",
-    "comentariosEvaluadorClientes","nombreEvaluador"
-  ].forEach(id=>{
-    const el = $(id);
-    if(el){
-      el.addEventListener("input", updateGuardarUIState);
-      el.addEventListener("change", updateGuardarUIState);
-    }
-  });
+on("btnDevGenerar", "click", ()=>generarDesarrollo_().catch(err=>setApiStatus("err","API: " + err.message)));
 
-  // watchers EVAL
-  ["noPersonalEval","nombreEval","posicionEval","deptoEval","periodoEval","versionEval","fechaEval"].forEach(id=>{
-    const el = $(id);
-    if(el){
-      el.addEventListener("input", updateGuardarUIState);
-      el.addEventListener("change", updateGuardarUIState);
-    }
-  });
-  [
-    "comentariosColaborador","evaluacionClientesDes","fortalezas","oportunidadesMejora",
-    "proyeccionPotencial","necesidadesCapacitacion","justificacion","comentariosEvaluadorDes","nombreEvaluadorDes"
-  ].forEach(id=>{
-    const el = $(id);
-    if(el){
-      el.addEventListener("input", updateGuardarUIState);
-      el.addEventListener("change", updateGuardarUIState);
-    }
-  });
-  ["comentariosColaboradorAuto"].forEach(id=>{
-    const el = $(id);
-    if(el){
-      el.addEventListener("input", updateGuardarUIState);
-      el.addEventListener("change", updateGuardarUIState);
-    }
-  });
-      if(isCapacitacionPhase()){
-        clearCapacitacion();
-        updateCapSaveState_();
-      }
-  
-  // watchers RESULTADO
-  ["noPersonalRes","periodoRes","versionRes"].forEach(id=>{
-  const el = $(id);
-  if(el){
-    el.addEventListener("input", ()=>{
-      updateGuardarUIState();
-      updateDevGenerarState_(); // ✅ NUEVO
-    });
-    el.addEventListener("change", ()=>{
-      updateGuardarUIState();
-      updateDevGenerarState_(); // ✅ NUEVO
-    });
-  }
+// watchers (idénticos a los tuyos, pero “safe”)
+[
+  "noPersonal","nombre","posicion","depto","periodo","version","fecha",
+  "comentariosEvaluadorClientes","nombreEvaluador"
+].forEach(id=>{
+  on(id,"input", updateGuardarUIState);
+  on(id,"change", updateGuardarUIState);
 });
 
-  /* ================= BOOT ================= */
-  (function boot(){
-    $("fecha").value = todayLocal();
-    $("fechaEval").value = todayLocal();
+["noPersonalEval","nombreEval","posicionEval","deptoEval","periodoEval","versionEval","fechaEval"].forEach(id=>{
+  on(id,"input", updateGuardarUIState);
+  on(id,"change", updateGuardarUIState);
+});
 
-    const tCli = $("comentariosEvaluadorClientes");
-    if (tCli && !String(tCli.value || "").trim()) tCli.value = DEFAULT_COMENTARIOS_CLIENTES;
+[
+  "comentariosColaborador","evaluacionClientesDes","fortalezas","oportunidadesMejora",
+  "proyeccionPotencial","necesidadesCapacitacion","justificacion","comentariosEvaluadorDes","nombreEvaluadorDes"
+].forEach(id=>{
+  on(id,"input", updateGuardarUIState);
+  on(id,"change", updateGuardarUIState);
+});
 
-    setPhase("");
-    clearFormTable();
-    clearPesosTable();
-    clearResultado();
-    clearCapacitacion();
+on("comentariosColaboradorAuto","input", updateGuardarUIState);
+on("comentariosColaboradorAuto","change", updateGuardarUIState);
 
-    const saved = localStorage.getItem(LS_KEY_);
-    setWebApp(saved || DEFAULT_WEBAPP_);
+// Resultado inputs -> también habilita Desarrollo
+["noPersonalRes","periodoRes","versionRes"].forEach(id=>{
+  on(id,"input", ()=>{
+    updateGuardarUIState();
+    updateDevGenerarState_();
+  });
+  on(id,"change", ()=>{
+    updateGuardarUIState();
+    updateDevGenerarState_();
+  });
+});
 
-    apiGet({action:"ping"})
-      .then(()=>{
+["capPeriodo","capVersion"].forEach(id=>{
+  on(id,"input", updateCapSaveState_);
+  on(id,"change", updateCapSaveState_);
+});
+
+/* ================= BOOT (SAFE) ================= */
+(function boot(){
+  // defaults de fechas
+  if($("fecha")) $("fecha").value = todayLocal();
+  if($("fechaEval")) $("fechaEval").value = todayLocal();
+
+  const tCli = $("comentariosEvaluadorClientes");
+  if (tCli && !String(tCli.value || "").trim()) tCli.value = DEFAULT_COMENTARIOS_CLIENTES;
+
+  // UI limpia
+  setPhase("");
+  clearFormTable();
+  clearPesosTable();
+  clearResultado();
+  clearCapacitacion();
+  clearNivelesTable?.();
+
+  // webapp
+  const saved = localStorage.getItem(LS_KEY_);
+  setWebApp(saved || DEFAULT_WEBAPP_);
+
+  // ping inicial
+  apiGet({action:"ping"})
+    .then(()=>{
+      setApiStatus("ok","API: conectada");
+      if($("cuestionario")) $("cuestionario").innerHTML = `<div class="hint">Selecciona una fase para iniciar.</div>`;
+    })
+    .catch(async (e1)=>{
+      setApiStatus("err","API: "+e1.message + " (probando URL por defecto)");
+
+      setWebApp(DEFAULT_WEBAPP_);
+      localStorage.setItem(LS_KEY_, DEFAULT_WEBAPP_);
+
+      try{
+        await apiGet({action:"ping"});
         setApiStatus("ok","API: conectada");
-        $("cuestionario").innerHTML = `<div class="hint">Selecciona una fase para iniciar.</div>`;
-      })
-      .catch(async (e1)=>{
-        setApiStatus("err","API: "+e1.message + " (reintentando con  por defecto)");
+        if($("cuestionario")) $("cuestionario").innerHTML = `<div class="hint">Selecciona una fase para iniciar.</div>`;
+      }catch(e2){
+        setApiStatus("err","API: "+e2.message);
+      }
+    });
 
-        setWebApp(DEFAULT_WEBAPP_);
-        localStorage.setItem(LS_KEY_, DEFAULT_WEBAPP_);
-
-        try{
-          await apiGet({action:"ping"});
-          setApiStatus("ok","API: conectada");
-          $("cuestionario").innerHTML = `<div class="hint">Selecciona una fase para iniciar.</div>`;
-        }catch(e2){
-          setApiStatus("err","API: "+e2.message);
-        }
-      });
-
-   updateGuardarUIState();
-updatePesosSaveState();
-
-updateCapSaveState_();
-updateDevGenerarState_(); // ✅ NUEVO
-  })();
-</script>
+  updateGuardarUIState();
+  updatePesosSaveState();
+  updateCapSaveState_();
+  updateDevGenerarState_();
+})();
+ </script>
 </body>
 </html>
 
