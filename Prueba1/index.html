@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta chars
-    et="utf-8" />
+    <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Sistema de Evaluación del Desempeño</title>
   <link rel="icon" href="data:,">
@@ -917,8 +917,9 @@ Dejar de hacer:"></textarea>
     </div>
   </div>
 </div>
-               <!-- (DUPLICADO ELIMINADO) -->
- 
+   </section>
+    <!-- (DUPLICADO ELIMINADO) -->
+
     <!-- RESULTADO -->
     <!-- RESULTADO -->
       <!-- ✅ RESULTADO -->
@@ -1857,37 +1858,69 @@ if(nivelWrap){
           <td>${f}</td>
           <td>${it}</td>
           <td>
-            <input class="pesoInput" inputmode="decimal" placeholder="Ej: 10" value="${p}" />
-            <div class="tdMuted">Edita y guarda</div>
-          </td>
-        </tr>
-      `;
-    }).join("");
+function renderPesosTable(items){
+  const tbody = $("pesosTableBody");
+  const arr = Array.isArray(items) ? items : [];
 
-    tbody.querySelectorAll("tr").forEach(tr=>{
-      const idx = Number(tr.getAttribute("data-idx"));
-      const input = tr.querySelector("input.pesoInput");
-      if(!input) return;
+  state.pesosItems = arr.map(r => ({
+    Codigo: (r.Codigo ?? r.Código ?? ""),
+    Nivel:  (r.Nivel ?? ""),
+    Factor: (r.Factor ?? ""),
+    Item:   (r.Item ?? ""),
+    Peso:   (r.Peso ?? "")
+  }));
 
-      input.addEventListener("input", ()=>{
-        state.pesosItems[idx].Peso = input.value;
-        state.pesosDirty = true;
-        updatePesosSaveState();
-      });
-      input.addEventListener("change", ()=>{
-        state.pesosItems[idx].Peso = input.value;
-        state.pesosDirty = true;
-        updatePesosSaveState();
-      });
+  state.pesosDirty = false;
 
-      $("btnGenInforme")?.addEventListener(
-        "click",
-        () => recoverConsolidado_().catch(err => setApiStatus("err", "API: " + err.message))
-      );
-    });
+  const count = state.pesosItems.length;
+  $("pesosTableInfo").textContent = `Mostrando: ${count} filas | Nivel seleccionado: ${getNivelRef()}`;
 
+  if(!count){
+    tbody.innerHTML = `<tr><td colspan="5" class="sub">No hay datos para ese nivel.</td></tr>`;
     updatePesosSaveState();
+    return;
   }
+
+  tbody.innerHTML = state.pesosItems.map((r, idx) => {
+    const c  = escapeHtml(r.Codigo ?? "");
+    const n  = escapeHtml(r.Nivel ?? "");
+    const f  = escapeHtml(r.Factor ?? "");
+    const it = escapeHtml(r.Item ?? "");
+    const p  = escapeAttr(String(r.Peso ?? ""));
+
+    return `
+      <tr data-idx="${idx}">
+        <td class="mono">${c}</td>
+        <td class="mono">${n}</td>
+        <td>${f}</td>
+        <td>${it}</td>
+        <td>
+          <input class="pesoInput" inputmode="decimal" placeholder="Ej: 10" value="${p}" />
+          <div class="tdMuted">Edita y guarda</div>
+        </td>
+      </tr>
+    `;
+  }).join("");
+
+  tbody.querySelectorAll("tr").forEach(tr=>{
+    const idx = Number(tr.getAttribute("data-idx"));
+    const input = tr.querySelector("input.pesoInput");
+    if(!input) return;
+
+    const markDirty = ()=>{
+      state.pesosItems[idx].Peso = input.value;
+      state.pesosDirty = true;
+      updatePesosSaveState();
+    };
+
+    input.addEventListener("input", markDirty);
+    input.addEventListener("change", markDirty);
+  });
+
+  updatePesosSaveState();
+}
+
+           
          <input class="pesoInput" inputmode="decimal" placeholder="Ej: 10" value="${p}" />
             <div class="tdMuted">Edita y guarda</div>
           </td>
