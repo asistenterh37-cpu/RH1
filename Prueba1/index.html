@@ -1,12 +1,10 @@
 <!doctype html>
 <html lang="es">
 <head>
-  <meta chars
-    <meta charset="utf-8" />
+  <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Sistema de Evaluación del Desempeño</title>
   <link rel="icon" href="data:,">
-
   <style>
     :root{
       --bg:#0b1220; --panel:#0f1b33; --panel2:#121f3d;
@@ -690,7 +688,7 @@ button[disabled]{
               </tr>
             </thead>
             <tbody id="formTableBody">
-              <tr><td colspan="8" class="sub">Presiona <b>Cargar</b> para ver la información.</td></tr>
+              <tr><td colspan="9" class="sub">Presiona <b>Cargar</b> para ver la información.</td></tr>
             </tbody>
           </table>
         </div>
@@ -1820,45 +1818,6 @@ if(nivelWrap){
     updatePesosSaveState();
   }
        function renderPesosTable(items){
-
-    const tbody = $("pesosTableBody");
-
-    const arr = Array.isArray(items) ? items : [];
-
-    state.pesosItems = arr.map(r => ({
-      Codigo: (r.Codigo ?? r.Código ?? ""),
-      Nivel:  (r.Nivel ?? ""),
-      Factor: (r.Factor ?? ""),
-      Item:   (r.Item ?? ""),
-      Peso:   (r.Peso ?? "")
-    }));
-
-    state.pesosDirty = false;
-
-    const count = state.pesosItems.length;
-    $("pesosTableInfo").textContent = `Mostrando: ${count} filas | Nivel seleccionado: ${getNivelRef()}`;
-
-    if(!count){
-      tbody.innerHTML = `<tr><td colspan="5" class="sub">No hay datos para ese nivel.</td></tr>`;
-      updatePesosSaveState();
-      return;
-    }
-
-    tbody.innerHTML = state.pesosItems.map((r, idx) => {
-      const c  = escapeHtml(r.Codigo ?? "");
-      const n  = escapeHtml(r.Nivel ?? "");
-      const f  = escapeHtml(r.Factor ?? "");
-      const it = escapeHtml(r.Item ?? "");
-      const p  = escapeAttr(String(r.Peso ?? ""));
-
-      return `
-        <tr data-idx="${idx}">
-          <td class="mono">${c}</td>
-          <td class="mono">${n}</td>
-          <td>${f}</td>
-          <td>${it}</td>
-          <td>
-function renderPesosTable(items){
   const tbody = $("pesosTableBody");
   const arr = Array.isArray(items) ? items : [];
 
@@ -1919,38 +1878,6 @@ function renderPesosTable(items){
 
   updatePesosSaveState();
 }
-
-           
-         <input class="pesoInput" inputmode="decimal" placeholder="Ej: 10" value="${p}" />
-            <div class="tdMuted">Edita y guarda</div>
-          </td>
-        </tr>
-      `;
-    }).join("");
-
-    tbody.querySelectorAll("tr").forEach(tr=>{
-      const idx = Number(tr.getAttribute("data-idx"));
-      const input = tr.querySelector("input.pesoInput");
-      if(!input) return;
-
-      input.addEventListener("input", ()=>{
-        state.pesosItems[idx].Peso = input.value;
-        state.pesosDirty = true;
-        updatePesosSaveState();
-      });
-      input.addEventListener("change", ()=>{
-        state.pesosItems[idx].Peso = input.value;
-        state.pesosDirty = true;
-        updatePesosSaveState();
-      });
-      $("btnGenInforme")?.addEventListener(
-  "click",
-  () => recoverConsolidado_().catch(err => setApiStatus("err", "API: " + err.message))
-);
-    });
-
-    updatePesosSaveState();
-  }
   function updatePesosSaveState(){
     const btn = $("btnGuardarPesos");
     if(!btn) return;
@@ -2358,29 +2285,34 @@ function updateDevGenerarState_(){
 }
 
 function renderDesarrolloTable_(rows, no, per, ver){
+  // ✅ Tu UI actual NO muestra tabla, solo textareas.
+  // Si en el futuro vuelves a meter tabla, aquí conectas devTbody/devInfo.
   const arr = Array.isArray(rows) ? rows : [];
 
-  if($("devInfo")){
-    $("devInfo").textContent =
+  const infoEl = $("devInfo");
+  if(infoEl){
+    infoEl.textContent =
       `Mostrando: ${arr.length} filas | No: ${no || "—"} | Periodo: ${per || "—"} | Versión: ${ver || "—"}`;
   }
 
-  if(!arr.length){
-    $("devTbody").innerHTML = `<tr><td colspan="5" class="sub">Sin datos para ese No/Periodo/Versión.</td></tr>`;
-    return;
+  // Si existe tabla (por si la agregas luego), la llenamos sin romper:
+  const tb = $("devTbody");
+  if(tb){
+    if(!arr.length){
+      tb.innerHTML = `<tr><td colspan="5" class="sub">Sin datos para ese No/Periodo/Versión.</td></tr>`;
+      return;
+    }
+    tb.innerHTML = arr.map(r => `
+      <tr>
+        <td>${escapeHtml(r.area ?? "")}</td>
+        <td>${escapeHtml(r.necesidad ?? "")}</td>
+        <td>${escapeHtml(r.accion ?? "")}</td>
+        <td class="mono">${escapeHtml(r.fechaObjetivo ?? "")}</td>
+        <td>${escapeHtml(r.responsable ?? "")}</td>
+      </tr>
+    `).join("");
   }
-
-  $("devTbody").innerHTML = arr.map(r => `
-    <tr>
-      <td>${escapeHtml(r.area ?? "")}</td>
-      <td>${escapeHtml(r.necesidad ?? "")}</td>
-      <td>${escapeHtml(r.accion ?? "")}</td>
-      <td class="mono">${escapeHtml(r.fechaObjetivo ?? "")}</td>
-      <td>${escapeHtml(r.responsable ?? "")}</td>
-    </tr>
-  `).join("");
 }
-
 async function generarDesarrollo_(){
   if(!isDesarrolloPhase()){
     alert("Selecciona la fase: Informe plan de desarrollo.");
