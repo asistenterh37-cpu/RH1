@@ -1233,7 +1233,7 @@ Dejar de hacer:`;
   }
 
   /* ================= STATE ================= */
-    const state = {
+      const state = {
     fase: "",
     nivel: null,
     form: null,
@@ -1241,9 +1241,14 @@ Dejar de hacer:`;
     itemKeys: [],
     lastFormItemsCount: 0,
 
-    // ✅ PESOS
+    // ✅ PESOS (tabla editable)
     pesosItems: [],
     pesosDirty: false,
+
+    // ✅ CÓDIGOS (desde Pesos para pintar en el cuestionario)
+    // key form: "nivelCanon|Factor|Item"
+    codigosByKey: new Map(),      // exact match
+    codigosByKeyNorm: new Map(),  // match tolerante (normalizado)
 
     // ✅ RECOVER
     recovered: null,
@@ -1256,7 +1261,6 @@ Dejar de hacer:`;
     // ✅ CAPACITACIÓN
     capRows: []
   };
-
   /* ================= STATUS ================= */
   function setApiStatus(mode,text){
     const el=$("apiStatus");
@@ -1441,6 +1445,73 @@ Dejar de hacer:`;
     const x = Number(n);
     if(!Number.isFinite(x)) return "—";
     return x.toFixed(2);
+  }
+  /* ================= CÓDIGOS (PESOS -> UI) ================= */
+  function nivelCanonClient_(nivel){
+    const s = String(nivel ?? "").trim();
+    const m = s.match(/(\d+)/);
+    return m ? m[1] : s; // "Nivel 3" -> "3"
+  }
+
+  function normKey_(s){
+    return String(s ?? "")
+      .trim()
+      .toLowerCase()
+      .normalize("NFD").replace(/[\u0300-\u036f]/g,"")  // quita acentos
+      .replace(/\s+/g," ");                             // espacios
+  }
+
+  function makeFormKeyNorm_(formKey){
+    // formKey viene como: "nivelCanon|Factor|Item"
+    const parts = String(formKey ?? "").split("|");
+    const nivel = nivelCanonClient_(parts[0] ?? "");
+    const factor = normKey_(parts[1] ?? "");
+    const item = normKey_(parts[2] ?? "");
+    return `${nivel}|${factor}|${item}`;
+  }
+
+  function buildCodigosMapFromPesos_(items){
+    state.codigosByKey.clear();
+    state.codigosByKeyNorm.clear();
+
+    const arr = Array.isArray(items) ? items : [];
+    arr.forEach(r=>{
+      const codigo = String(r.Codigo ?? r.Código ?? "").trim();
+      const nivel  = nivelCanonClient_(r.Nivel ?? "");
+      const factor = String(r.Factor ?? "").trim();
+      const item   = String(r.Item ?? "").trim();
+      if(!nivel || !factor || !item) return;
+
+      const keyExact = `${nivel}|${factor}|${item}`;
+      state.codigosByKey.set(keyExact, codigo);
+
+      const keyNorm = `${nivel}|${normKey_(factor)}|${normKey_(item)}`;
+      state.codigosByKeyNorm.set(keyNorm, codigo);
+    });
+  }
+
+  function getCodigoForFormKey_(formKey){
+    const k = String(formKey ?? "").trim();
+    if(!k) return "";
+    // 1) exact
+    const exact = state.codigosByKey.get(k);
+    if(exact != null && String(exact).trim() !== "") return String(exact).trim();
+
+    // 2) normalizado
+    const kn = makeFormKeyNorm_(k);
+    const norm = state.codigosByKeyNorm.get(kn);
+    if(norm != null && String(norm).trim() !== "") return String(norm).trim();
+
+    return "";
+  }
+
+  function getFactorCodigoFromItems_(items){
+    // intenta derivar un "código de factor" desde el primer item del factor
+    // (si tus códigos son tipo "F01-IT03", se queda con "F01")
+    const first = Array.isArray(items) && items.length ? getCodigoForFormKey_(items[0].key) : "";
+    if(!first) return "";
+    const part = String(first).split(/[-.]/)[0].trim();
+    return part || first;
   }
 
   /* ================= PHASE HELPERS ================= */
@@ -1666,7 +1737,9 @@ if(nivelWrap){
     form.factors.forEach((f, idxF)=>{
       const box = document.createElement("div");
       box.className = "factor";
-      box.innerHTML = `<div class="factor-title">${isAutoPhase() ? "" : (idxF+1 + ". ")}${escapeHtml(f.factor || "Factor")}</div>`;
+       const factorCode = getFactorCodigoFromItems_(f.items || []);
+      const factorPrefix = factorCode ? `${escapeHtml(factorCode)} — ` : "";
+      box.innerHTML = `<div class="factor-title">${factorPrefix}${escapeHtml(f.factor || "Factor")}</div>`;
 
       (f.items || []).forEach((it, idxI)=>{
         totalItems++;
@@ -1681,7 +1754,10 @@ if(nivelWrap){
         row.className = "item-row";
         row.innerHTML = `
           <div class="item-left">
-            <div class="item-name">${isAutoPhase() ? "" : (letter + ". ")}${escapeHtml(it.item || "Ítem")}</div>
+                        const itemCode = getCodigoForFormKey_(key);
+            const itemPrefix = itemCode ? `${escapeHtml(itemCode)} — ` : "";
+            <div class="item-name">${itemPrefix}${escapeHtml(it.item || "Ítem")}</div>
+
             <div class="item-sub">Selecciona 1–5 según la rúbrica.</div>
           </div>
           <div class="item-right">
@@ -1973,9 +2049,19 @@ if(nivelWrap){
     }
   }
 
-  async function loadFormByNivel(nivel){
-    const res = await apiGet({action:"form", nivel: String(nivel)});
+   async function loadFormByNivel(nivel){
+    const niv = String(nivel ?? "").trim() || "1";
+
+    // 1) formulario (Formularios)
+    const res = await apiGet({ action:"form", nivel: niv });
     state.form = res.form || null;
+
+    // 2) códigos (Pesos) para este nivel
+    //    OJO: usamos el mismo "nivel" para filtrar pesos
+    const pes = await apiGet({ action:"items", sheet:"Pesos", nivel: niv });
+    buildCodigosMapFromPesos_(pes.items || []);
+
+    // 3) render
     state.answers.clear();
     renderCuestionario(state.form);
   }
