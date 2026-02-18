@@ -567,7 +567,7 @@ button[disabled]{
 
      <div class="controls">
   <!-- ✅ Para RESULTADO: Recuperar + Limpiar + Imprimir -->
-  <button id="btnRecuperar" class="btn-blue" style="display:none">Generar</button>
+  
   <button id="btnLimpiarEval" class="btn-warn" style="display:none">Limpiar</button>
 
   <!-- ✅ Guardar aplica en CLIENTES y EVAL, no en RESULTADO -->
@@ -576,7 +576,7 @@ button[disabled]{
   <!-- ✅ Imprimir (para RESULTADO): abre menú PDF / Texto -->
   <button id="btnPrint" class="btn-ghost" style="display:none">Imprimir</button>
 </div>
-
+<button id="btnRecuperar" class="btn-blue" style="display:none">Recuperar</button>
   </div>
 </header>
 
@@ -2847,8 +2847,7 @@ function doLimpiar(){
     $("ieTextArea").value = "";
     state.lastIEHtml = "";
     state.lastIEText = "";
-    closeInformeModal_();
-
+    closeInformeModalSafe_();
     setApiStatus("", "API: lista para generar Informe ejecutivo");
     return;
   }
@@ -2941,7 +2940,130 @@ function buildResultadoTexto_(){
 
   return out.trim();
 }
+/* ================= ✅ INFORME EJECUTIVO (CONSOLIDADO) ================= */
 
+// abre modal
+function openInformeModal_(){
+  $("ieHtmlWrap") && ($("ieHtmlWrap").style.display = "block");
+  $("ieTextWrap") && ($("ieTextWrap").style.display = "none");
+  $("ieModalBack")?.classList.add("show");
+}
+
+function closeInformeModal_(){
+  $("ieModalBack")?.classList.remove("show");
+  document.body.classList.remove("print-ie");
+}
+
+// muestra texto
+function ieShowTexto_(){
+  $("ieTextWrap") && ($("ieTextWrap").style.display = "block");
+  $("ieHtmlWrap") && ($("ieHtmlWrap").style.display = "none");
+  // si no hay texto aún, lo construimos desde inputs con*
+  if($("ieTextArea") && !String($("ieTextArea").value||"").trim()){
+    $("ieTextArea").value = buildConsolidadoTexto_();
+  }
+}
+
+// imprimir PDF (modo print-ie ya lo tienes en CSS)
+function iePrintPdf_(){
+  document.body.classList.add("print-ie");
+  window.print();
+}
+
+// al terminar impresión, limpia la clase
+window.addEventListener("afterprint", ()=>{
+  document.body.classList.remove("print-ie");
+});
+
+// ✅ implementación mínima de recoverConsolidado_
+// (si tu backend todavía no tiene action, al menos no rompe y muestra algo)
+async function recoverConsolidado_(){
+  if(!isConsolidadoPhase()){
+    alert("Selecciona la fase: Informe ejecutivo.");
+    return;
+  }
+
+  const no  = $("noPersonalRes").value.trim();
+  const per = $("periodoRes").value.trim();
+  const ver = $("versionRes").value.trim();
+
+  if(!no || !per || !ver){
+    alert("Para Generar, llena: No. de personal + Periodo + Versión.");
+    return;
+  }
+
+  // ✅ Si tu Apps Script ya tiene action para consolidado, cámbialo aquí.
+  // Yo dejo "consolidado" como nombre sugerido.
+  let res;
+  try{
+    res = await apiGet({ action:"consolidado", no, periodo: per, version: ver });
+  }catch(e){
+    // fallback: abre modal con lo que haya (evita “pantalla muerta”)
+    $("ieModalBody").innerHTML = `
+      <div class="hint">
+        No se pudo generar desde API. Revisa que tu backend soporte <code>action=consolidado</code>.
+        <br><br>
+        Mientras tanto, aquí está el formato listo para imprimir cuando el endpoint exista.
+      </div>`;
+    $("ieTextArea").value = buildConsolidadoTexto_();
+    openInformeModal_();
+    return;
+  }
+
+  // esperado: res.header + res.puntajeFinal + res.ia{analisis,conclusiones,recomendaciones}
+  const h = res.header || {};
+  const ia = res.ia || {};
+
+  $("conNo").value        = no;
+  $("conNombre").value    = String(h.nombre || "—");
+  $("conPosicion").value  = String(h.posicion || "—");
+  $("conDepto").value     = String(h.depto || "—");
+  $("conPeriodo").value   = per;
+  $("conVersion").value   = ver;
+  $("conFecha").value     = formatDateDMY(h.fecha) || todayLocal();
+  $("conPuntajeFinal").value = String(res.puntajeFinal || "—");
+
+  $("conAnalisisIA").value        = String(ia.analisis || "");
+  $("conConclusionesIA").value    = String(ia.conclusiones || "");
+  $("conRecomendacionesIA").value = String(ia.recomendaciones || "");
+
+  // HTML bonito dentro del modal
+  $("ieModalBody").innerHTML = `
+    <div class="field boxed" style="margin-bottom:12px">
+      <div class="lbl">Encabezado</div>
+      <div class="sub">
+        <b>No. de personal:</b> ${escapeHtml(no)} &nbsp; | &nbsp;
+        <b>Nombre:</b> ${escapeHtml($("conNombre").value)} &nbsp; | &nbsp;
+        <b>Posición:</b> ${escapeHtml($("conPosicion").value)}<br>
+        <b>Departamento:</b> ${escapeHtml($("conDepto").value)} &nbsp; | &nbsp;
+        <b>Periodo:</b> ${escapeHtml(per)} &nbsp; | &nbsp;
+        <b>Versión:</b> ${escapeHtml(ver)} &nbsp; | &nbsp;
+        <b>Fecha:</b> ${escapeHtml($("conFecha").value)}<br>
+        <b>Puntaje final:</b> ${escapeHtml($("conPuntajeFinal").value)}
+      </div>
+    </div>
+
+    <div class="field boxed" style="margin-bottom:12px">
+      <div class="lbl">Análisis e interpretación</div>
+      <div class="sub" style="white-space:pre-wrap">${escapeHtml($("conAnalisisIA").value || "—")}</div>
+    </div>
+
+    <div class="field boxed" style="margin-bottom:12px">
+      <div class="lbl">Conclusiones</div>
+      <div class="sub" style="white-space:pre-wrap">${escapeHtml($("conConclusionesIA").value || "—")}</div>
+    </div>
+
+    <div class="field boxed">
+      <div class="lbl">Recomendaciones</div>
+      <div class="sub" style="white-space:pre-wrap">${escapeHtml($("conRecomendacionesIA").value || "—")}</div>
+    </div>
+  `;
+
+  // Texto listo
+  $("ieTextArea").value = buildConsolidadoTexto_();
+
+  openInformeModal_();
+}
 /* ================= ✅ TIPOS (MODAL) ================= */
 const TIPOS_DATA = [
   {
