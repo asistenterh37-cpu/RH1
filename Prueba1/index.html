@@ -1198,7 +1198,7 @@ Dejar de hacer:"></textarea>
 `Empezar a hacer:
 Continuar haciendo:
 Dejar de hacer:`;
-  const DEFAULT_WEBAPP_ = "https://script.google.com/macros/s/AKfycbz5EaV2GSHD1Q69mSPQiDGqfT3hG37Dar6jhbR0ZVO4hYt3nbpKbPvpQDL4sn1La3vH/exec";
+  const DEFAULT_WEBAPP_ = "https://script.google.com/macros/s/AKfycbwpeZU8OgblLgb2cet7T8LOmRSclngVvhFELtCmeju8es0Z4JTrxcXvOLrUiIjGWJT3/exec";
   const $ = id => document.getElementById(id);
 
   function normalizeWebApp(raw){
@@ -3027,41 +3027,37 @@ const ia = res.ia || res.openai || {};
   $("conConclusionesIA").value    = String(ia.conclusiones || "");
   $("conRecomendacionesIA").value = String(ia.recomendaciones || "");
 
-  // HTML bonito dentro del modal (si el backend ya lo manda, úsalo)
-if (res.html) {
-  $("ieModalBody").innerHTML = String(res.html);
-} else {
-  $("ieModalBody").innerHTML = `
-    <div class="field boxed" style="margin-bottom:12px">
-      <div class="lbl">Encabezado</div>
-      <div class="sub">
-        <b>No. de personal:</b> ${escapeHtml(no)} &nbsp; | &nbsp;
-        <b>Nombre:</b> ${escapeHtml($("conNombre").value)} &nbsp; | &nbsp;
-        <b>Posición:</b> ${escapeHtml($("conPosicion").value)}<br>
-        <b>Departamento:</b> ${escapeHtml($("conDepto").value)} &nbsp; | &nbsp;
-        <b>Periodo:</b> ${escapeHtml(per)} &nbsp; | &nbsp;
-        <b>Versión:</b> ${escapeHtml(ver)} &nbsp; | &nbsp;
-        <b>Fecha:</b> ${escapeHtml($("conFecha").value)}<br>
-        <b>Puntaje final:</b> ${escapeHtml($("conPuntajeFinal").value)}
-      </div>
+// ✅ Render SIEMPRE desde los campos (evita depender de res.html)
+$("ieModalBody").innerHTML = `
+  <div class="field boxed" style="margin-bottom:12px">
+    <div class="lbl">Encabezado</div>
+    <div class="sub">
+      <b>No. de personal:</b> ${escapeHtml(no)} &nbsp; | &nbsp;
+      <b>Nombre:</b> ${escapeHtml($("conNombre").value)} &nbsp; | &nbsp;
+      <b>Posición:</b> ${escapeHtml($("conPosicion").value)}<br>
+      <b>Departamento:</b> ${escapeHtml($("conDepto").value)} &nbsp; | &nbsp;
+      <b>Periodo:</b> ${escapeHtml(per)} &nbsp; | &nbsp;
+      <b>Versión:</b> ${escapeHtml(ver)} &nbsp; | &nbsp;
+      <b>Fecha:</b> ${escapeHtml($("conFecha").value)}<br>
+      <b>Puntaje final:</b> ${escapeHtml($("conPuntajeFinal").value)}
     </div>
+  </div>
 
-    <div class="field boxed" style="margin-bottom:12px">
-      <div class="lbl">Análisis e interpretación</div>
-      <div class="sub" style="white-space:pre-wrap">${escapeHtml($("conAnalisisIA").value || "—")}</div>
-    </div>
+  <div class="field boxed" style="margin-bottom:12px">
+    <div class="lbl">Análisis e interpretación</div>
+    <div class="sub" style="white-space:pre-wrap">${escapeHtml(($("conAnalisisIA").value || "").trim() || "—")}</div>
+  </div>
 
-    <div class="field boxed" style="margin-bottom:12px">
-      <div class="lbl">Conclusiones</div>
-      <div class="sub" style="white-space:pre-wrap">${escapeHtml($("conConclusionesIA").value || "—")}</div>
-    </div>
+  <div class="field boxed" style="margin-bottom:12px">
+    <div class="lbl">Conclusiones</div>
+    <div class="sub" style="white-space:pre-wrap">${escapeHtml(($("conConclusionesIA").value || "").trim() || "—")}</div>
+  </div>
 
-    <div class="field boxed">
-      <div class="lbl">Recomendaciones</div>
-      <div class="sub" style="white-space:pre-wrap">${escapeHtml($("conRecomendacionesIA").value || "—")}</div>
-    </div>
-  `;
-}
+  <div class="field boxed">
+    <div class="lbl">Recomendaciones</div>
+    <div class="sub" style="white-space:pre-wrap">${escapeHtml(($("conRecomendacionesIA").value || "").trim() || "—")}</div>
+  </div>
+`;
   // Texto listo
   $("ieTextArea").value = buildConsolidadoTexto_();
 
