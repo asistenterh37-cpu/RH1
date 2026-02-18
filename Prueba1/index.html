@@ -1198,7 +1198,7 @@ Dejar de hacer:"></textarea>
 `Empezar a hacer:
 Continuar haciendo:
 Dejar de hacer:`;
-  const DEFAULT_WEBAPP_ = "https://script.google.com/macros/s/AKfycbyO9aF_SGHQROB8jOXqErXmZ8fuS2I1ZzMTgPaS0JCV9hjdSxoniCECIW75KRwU905m/exec";
+  const DEFAULT_WEBAPP_ = "https://script.google.com/macros/s/AKfycbz5EaV2GSHD1Q69mSPQiDGqfT3hG37Dar6jhbR0ZVO4hYt3nbpKbPvpQDL4sn1La3vH/exec";
   const $ = id => document.getElementById(id);
 
   function normalizeWebApp(raw){
@@ -3012,7 +3012,7 @@ async function recoverConsolidado_(){
 
   // esperado: res.header + res.puntajeFinal + res.ia{analisis,conclusiones,recomendaciones}
   const h = res.header || {};
-  const ia = res.ia || {};
+const ia = res.ia || res.openai || {};
 
   $("conNo").value        = no;
   $("conNombre").value    = String(h.nombre || "—");
@@ -3027,7 +3027,10 @@ async function recoverConsolidado_(){
   $("conConclusionesIA").value    = String(ia.conclusiones || "");
   $("conRecomendacionesIA").value = String(ia.recomendaciones || "");
 
-  // HTML bonito dentro del modal
+  // HTML bonito dentro del modal (si el backend ya lo manda, úsalo)
+if (res.html) {
+  $("ieModalBody").innerHTML = String(res.html);
+} else {
   $("ieModalBody").innerHTML = `
     <div class="field boxed" style="margin-bottom:12px">
       <div class="lbl">Encabezado</div>
@@ -3058,7 +3061,7 @@ async function recoverConsolidado_(){
       <div class="sub" style="white-space:pre-wrap">${escapeHtml($("conRecomendacionesIA").value || "—")}</div>
     </div>
   `;
-
+}
   // Texto listo
   $("ieTextArea").value = buildConsolidadoTexto_();
 
