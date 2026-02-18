@@ -565,13 +565,18 @@ button[disabled]{
           </div>
         </div>
       </div>
+<div class="controls">
+  <button id="btnLimpiarEval" class="btn-warn" style="display:none">Limpiar</button>
+  <button id="btnGuardar" class="btn-ok" disabled>Guardar</button>
+  <button id="btnPrint" class="btn-ghost" style="display:none">Imprimir</button>
+  <button id="btnRecuperar" class="btn-blue" style="display:none">Recuperar</button>
 
-      <div class="controls">
-        <button id="btnLimpiarEval" class="btn-warn" style="display:none">Limpiar</button>
-        <button id="btnGuardar" class="btn-ok" disabled>Guardar</button>
-        <button id="btnPrint" class="btn-ghost" style="display:none">Imprimir</button>
-        <button id="btnRecuperar" class="btn-blue" style="display:none">Recuperar</button>
-      </div>
+  <!-- ✅ PANEL VISIBLE: aquí verás si es API o JS lo que lo “desmaya” -->
+  <span id="apiStatus" class="status" style="margin-left:8px">
+    <span class="s-dot"></span>
+    <span id="apiStatusText">API: —</span>
+  </span>
+</div>      
     </div>
   </div>
 </header>
@@ -3159,15 +3164,16 @@ function on(id, evt, fn){
 (function attachGlobalErrorTrap(){
   window.addEventListener("error", (e)=>{
     const msg = (e?.message || "Error JS");
+    const stack = e?.error?.stack ? ("\n" + e.error.stack) : "";
     setApiStatus("err", "JS: " + msg);
-    // console real:
-    try{ console.error("JS ERROR:", e); }catch(_){}
+    try{ console.error("JS ERROR:", msg, e, stack); }catch(_){}
   });
 
   window.addEventListener("unhandledrejection", (e)=>{
     const msg = (e?.reason?.message || String(e?.reason || "Promise error"));
+    const stack = e?.reason?.stack ? ("\n" + e.reason.stack) : "";
     setApiStatus("err", "JS: " + msg);
-    try{ console.error("PROMISE ERROR:", e); }catch(_){}
+    try{ console.error("PROMISE ERROR:", msg, e, stack); }catch(_){}
   });
 })();
 
@@ -3443,46 +3449,6 @@ on("comentariosColaboradorAuto","change", updateGuardarUIState);
 });
 
 /* ================= BOOT (SAFE) ================= */
-(function boot(){
-  // defaults de fechas
-  if($("fecha")) $("fecha").value = todayLocal();
-  if($("fechaEval")) $("fechaEval").value = todayLocal();
-
-  const tCli = $("comentariosEvaluadorClientes");
-  if (tCli && !String(tCli.value || "").trim()) tCli.value = DEFAULT_COMENTARIOS_CLIENTES;
-
-  // UI limpia
-  setPhase("");
-  clearFormTable();
-  clearPesosTable();
-  clearResultado();
-  clearCapacitacion();
-  clearNivelesTable?.();
-
-  // webapp
-  const saved = localStorage.getItem(LS_KEY_);
-  setWebApp(saved || DEFAULT_WEBAPP_);
-
-  // ping inicial
-  apiGet({action:"ping"})
-    .then(()=>{
-      setApiStatus("ok","API: conectada");
-      if($("cuestionario")) $("cuestionario").innerHTML = `<div class="hint">Selecciona una fase para iniciar.</div>`;
-    })
-    .catch(async (e1)=>{
-      setApiStatus("err","API: "+e1.message + " (probando URL por defecto)");
-
-      setWebApp(DEFAULT_WEBAPP_);
-      localStorage.setItem(LS_KEY_, DEFAULT_WEBAPP_);
-
-      try{
-        await apiGet({action:"ping"});
-        setApiStatus("ok","API: conectada");
-        if($("cuestionario")) $("cuestionario").innerHTML = `<div class="hint">Selecciona una fase para iniciar.</div>`;
-      }catch(e2){
-        setApiStatus("err","API: "+e2.message);
-      }
-    });
 
   updateGuardarUIState();
   updatePesosSaveState();
@@ -3493,4 +3459,57 @@ on("comentariosColaboradorAuto","change", updateGuardarUIState);
 </body>
 </html>
 
- 
+ (function boot(){
+  try{
+    // defaults de fechas
+    if($("fecha")) $("fecha").value = todayLocal();
+    if($("fechaEval")) $("fechaEval").value = todayLocal();
+
+    const tCli = $("comentariosEvaluadorClientes");
+    if (tCli && !String(tCli.value || "").trim()) tCli.value = DEFAULT_COMENTARIOS_CLIENTES;
+
+    // UI limpia
+    setPhase("");
+    clearFormTable();
+    clearPesosTable();
+    clearResultado();
+    clearCapacitacion();
+    if (typeof clearNivelesTable === "function") clearNivelesTable();
+
+    // webapp
+    const saved = localStorage.getItem(LS_KEY_);
+    setWebApp(saved || DEFAULT_WEBAPP_);
+
+    // ping inicial
+    apiGet({action:"ping"})
+      .then(()=>{
+        setApiStatus("ok","API: conectada");
+        if($("cuestionario")) $("cuestionario").innerHTML = `<div class="hint">Selecciona una fase para iniciar.</div>`;
+      })
+      .catch(async (e1)=>{
+        setApiStatus("err","API: "+e1.message + " (probando URL por defecto)");
+
+        setWebApp(DEFAULT_WEBAPP_);
+        localStorage.setItem(LS_KEY_, DEFAULT_WEBAPP_);
+
+        try{
+          await apiGet({action:"ping"});
+          setApiStatus("ok","API: conectada");
+          if($("cuestionario")) $("cuestionario").innerHTML = `<div class="hint">Selecciona una fase para iniciar.</div>`;
+        }catch(e2){
+          setApiStatus("err","API: "+e2.message);
+        }
+      });
+
+    updateGuardarUIState();
+    updatePesosSaveState();
+    updateCapSaveState_();
+    updateDevGenerarState_();
+
+  }catch(err){
+    // ✅ Esto evita “pantalla en blanco” si algo truena en boot
+    setApiStatus("err", "JS: " + (err?.message || String(err)));
+    try{ console.error("BOOT CRASH:", err); }catch(_){}
+  }
+})();
+
