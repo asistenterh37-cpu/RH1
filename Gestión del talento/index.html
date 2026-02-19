@@ -170,77 +170,53 @@
       .sectionTitle{font-size: 28px;}
     }
 
+    /* Card = botón (solo nombre) */
     .card{
+      width:100%;
+      text-align:left;
+      cursor:pointer;
+
       position:relative;
       border-radius: 18px;
       border: 1px solid var(--stroke);
       background: rgba(7,17,31,.55);
-      padding: 14px 14px 14px;
+      padding: 16px 14px;
       overflow:hidden;
-      transition: transform .15s ease, border-color .15s ease;
+      transition: transform .15s ease, border-color .15s ease, background .15s ease;
+      outline:none;
     }
     .card:hover{
       transform: translateY(-2px);
       border-color: rgba(79,124,255,.42);
+      background: rgba(7,17,31,.62);
     }
-    .cardTop{
+    .card:focus-visible{
+      box-shadow: 0 0 0 4px rgba(79,124,255,.20), 0 16px 40px rgba(0,0,0,.28);
+      border-color: rgba(79,124,255,.60);
+    }
+    .nameRow{
       display:flex;
-      align-items:flex-start;
+      align-items:center;
       justify-content:space-between;
       gap: 12px;
-      margin-bottom: 10px;
     }
     .name{
       margin:0;
       font-size: 16px;
-      line-height: 1.2;
+      line-height: 1.25;
       letter-spacing:.2px;
+      font-weight: 800;
     }
-    .tag{
-      font-size: 12px;
-      padding: 6px 10px;
-      border-radius: 999px;
-      border: 1px solid var(--stroke2);
-      background: rgba(255,255,255,.06);
-      color: rgba(234,242,255,.85);
-      white-space:nowrap;
+    .chev{
+      opacity:.85;
+      font-size: 16px;
+      transform: translateX(0);
+      transition: transform .15s ease, opacity .15s ease;
+      user-select:none;
     }
-    .desc{
-      margin: 0 0 12px;
-      color: var(--muted);
-      font-size: 13px;
-      line-height: 1.35;
-    }
-    .actions{
-      display:flex;
-      gap:10px;
-      align-items:center;
-    }
-    .btn{
-      display:inline-flex;
-      align-items:center;
-      gap:8px;
-      padding: 10px 12px;
-      border-radius: 12px;
-      border: 1px solid var(--stroke);
-      background: rgba(79,124,255,.14);
-      color: var(--text);
-      text-decoration:none;
-      font-weight: 700;
-      font-size: 13px;
-      transition: transform .12s ease, background .12s ease, border-color .12s ease;
-    }
-    .btn:hover{
-      transform: translateY(-1px);
-      border-color: rgba(79,124,255,.55);
-      background: rgba(79,124,255,.20);
-    }
-    .btn.secondary{
-      background: rgba(255,255,255,.06);
-    }
-    .btn.secondary:hover{
-      border-color: rgba(255,255,255,.18);
-      background: rgba(255,255,255,.09);
+    .card:hover .chev{
+      transform: translateX(2px);
+      opacity: 1;
     }
 
     /* Quick tip */
@@ -265,7 +241,7 @@
         <div class="logo" aria-hidden="true"></div>
         <div>
           <h1>Panel de Gestión Estratégica y del Talento</h1>
-          <p class="subtitle">Acceso rápido a tus módulos (y sí, aquí manda el orden... no el caos 😄).</p>
+          <p class="subtitle">Acceso rápido a tus módulos (solo nombres; los links van “bajo el capó” 😄).</p>
         </div>
       </div>
 
@@ -281,10 +257,8 @@
       </div>
     </div>
 
-    <!-- Centro de control (texto y botones eliminados) -->
     <section class="section">
       <h2 class="sectionTitle">Centro de control</h2>
-      <!-- ✅ Aquí ya NO va el texto largo ni los 3 botones -->
       <div class="grid" id="modulesGrid"></div>
     </section>
 
@@ -303,22 +277,15 @@
     // =========================
     // 1) CONFIG: módulos
     // =========================
-    // ✅ Si tu proyecto ya tenía este arreglo, pega tus módulos aquí.
-    // ✅ NOTA: Quité "Copiar link", así que no hay botones de copiado.
+    // ✅ SOLO se muestran los NOMBRES en el panel.
+    // ✅ Los enlaces NO se muestran: se abren al hacer click en el módulo.
     const modules = [
-      {
-        title: "Valoración de puestos",
-        desc: "Herramienta para evaluar y valorar puestos por factores y ponderaciones.",
-        url: "https://asistenterh37-cpu.github.io/Juegos/Valoracion%20de%20puestos/",
-        badge: "Herramienta"
-      },
-      {
-        title: "Gestión del talento",
-        desc: "Panel de módulos de talento (este).",
-        url: "https://asistenterh37-cpu.github.io/RH1/Gesti%C3%B3n%20del%20talento/",
-        badge: "Panel"
-      },
-      // Agrega el resto de tus módulos aquí...
+      { title: "Planificación estratégica", url: "https://asistenterh37-cpu.github.io/RH1/planificacion-estrategica/" },
+      { title: "Clima laboral", url: "https://asistenterh37-cpu.github.io/RH1/Clima-Organizacional/" },
+      { title: "Descripción de puestos", url: "https://asistenterh37-cpu.github.io/RH1/Descripcion-de-puestos/" },
+      { title: "Valoración de puestos", url: "https://asistenterh37-cpu.github.io/RH1/Valoracion%20de%20puestos/" },
+      { title: "Evaluación del desempeño I", url: "https://asistenterh37-cpu.github.io/RH1/Evaluaci%C3%B3n-Desempe%C3%B1o-F/" },
+      { title: "Resumen (Dashboard)", url: "https://script.google.com/macros/s/AKfycbwcu64v7aRoYTDzBL_egOwcBm5vvp2TFIVbwFj3M1R70mCj_Mb6tIILdN2T8vvCX1iVC/exec" }
     ];
 
     // =========================
@@ -334,6 +301,11 @@
       }[s]));
     }
 
+    function openModule(url){
+      // Abre en pestaña nueva sin exponer el link en el UI
+      window.open(url, "_blank", "noopener,noreferrer");
+    }
+
     function render(list){
       grid.innerHTML = "";
       const total = modules.length;
@@ -342,39 +314,36 @@
 
       if(!visible){
         grid.innerHTML = `
-          <div class="card" style="grid-column:1/-1;">
-            <h3 class="name">Sin resultados</h3>
-            <p class="desc">Prueba con otra palabra (o revisa si el módulo anda escondiéndose).</p>
-          </div>
+          <button class="card" type="button" style="grid-column:1/-1;" disabled>
+            <div class="nameRow">
+              <h3 class="name">Sin resultados</h3>
+              <span class="chev" aria-hidden="true">🤷‍♀️</span>
+            </div>
+          </button>
         `;
         return;
       }
 
       for(const m of list){
-        const card = document.createElement("div");
-        card.className = "card";
-        card.innerHTML = `
-          <div class="cardTop">
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "card";
+        btn.setAttribute("aria-label", `Abrir módulo: ${m.title}`);
+        btn.innerHTML = `
+          <div class="nameRow">
             <h3 class="name">${escapeHtml(m.title || "Módulo")}</h3>
-            <div class="tag">${escapeHtml(m.badge || "Módulo")}</div>
-          </div>
-          ${m.desc ? `<p class="desc">${escapeHtml(m.desc)}</p>` : ``}
-          <div class="actions">
-            <a class="btn" href="${escapeHtml(m.url)}" target="_blank" rel="noopener noreferrer">➡️ Abrir</a>
-            <a class="btn secondary" href="${escapeHtml(m.url)}" target="_blank" rel="noopener noreferrer">🔗 Ver link</a>
+            <span class="chev" aria-hidden="true">➜</span>
           </div>
         `;
-        grid.appendChild(card);
+        btn.addEventListener("click", () => openModule(m.url));
+        grid.appendChild(btn);
       }
     }
 
     function filterModules(q){
       const s = q.trim().toLowerCase();
       if(!s) return modules;
-      return modules.filter(m => {
-        const hay = `${m.title||""} ${m.desc||""} ${m.badge||""}`.toLowerCase();
-        return hay.includes(s);
-      });
+      return modules.filter(m => (m.title || "").toLowerCase().includes(s));
     }
 
     // initial render
