@@ -106,6 +106,8 @@
       box-shadow: 0 10px 30px rgba(0,0,0,.25);
     }
 
+    .search input::placeholder{color: rgba(234,242,255,.55);}
+
     .search input:focus{
       border-color: rgba(79,124,255,.55);
       box-shadow: 0 0 0 4px rgba(79,124,255,.18), 0 16px 40px rgba(0,0,0,.28);
@@ -191,12 +193,20 @@
       text-align:left;
       cursor:pointer;
 
-      position:relative;
-      border-radius: 18px;
+      /* reset button default styles */
+      appearance: none;
+      -webkit-appearance: none;
       border: 1px solid var(--stroke);
+      color: var(--text);
+      font: inherit;
+
+      position:relative;
+      border-radius: 999px;         /* pill */
       background: rgba(7,17,31,.55);
-      padding: 16px 14px;
+      padding: 14px 16px;
+      min-height: 56px;
       overflow:hidden;
+
       transition: transform .15s ease, border-color .15s ease, background .15s ease;
       outline:none;
     }
@@ -225,6 +235,7 @@
       line-height: 1.25;
       letter-spacing:.2px;
       font-weight: 850;
+      color: var(--text);
     }
 
     .chev{
@@ -233,6 +244,7 @@
       transform: translateX(0);
       transition: transform .15s ease, opacity .15s ease;
       user-select:none;
+      color: rgba(234,242,255,.85);
     }
 
     .card:hover .chev{
@@ -280,16 +292,20 @@
   </div>
 
   <script>
-    // =========================
-    // CONFIG: módulos (NO se muestran URLs en pantalla)
-    // =========================
+    // ==========================================
+    // CONFIG: módulos (según adjunto 2)
+    // - No se muestran URLs en pantalla
+    // - Click entra al módulo
+    // ==========================================
+    const OPEN_IN_NEW_TAB = false; // <- ponlo en true si querés abrir en pestaña nueva
+
     const modules = [
       { title: "Planificación estratégica", url: "https://asistenterh37-cpu.github.io/RH1/planificacion-estrategica/" },
-      { title: "Clima laboral", url: "https://asistenterh37-cpu.github.io/RH1/Clima-Organizacional/" },
-      { title: "Descripción de puestos", url: "https://asistenterh37-cpu.github.io/RH1/Descripcion-de-puestos/" },
-      { title: "Valoración de puestos", url: "https://asistenterh37-cpu.github.io/RH1/Valoracion%20de%20puestos/" },
+      { title: "Clima laboral",            url: "https://asistenterh37-cpu.github.io/RH1/Clima-Organizacional/" },
+      { title: "Descripción de puestos",   url: "https://asistenterh37-cpu.github.io/RH1/Descripcion-de-puestos/" },
+      { title: "Valoración de puestos",    url: "https://asistenterh37-cpu.github.io/RH1/Valoracion%20de%20puestos/" },
       { title: "Evaluación del desempeño I", url: "https://asistenterh37-cpu.github.io/RH1/Evaluaci%C3%B3n-Desempe%C3%B1o-F/" },
-      { title: "Resumen (Dashboard)", url: "https://script.google.com/macros/s/AKfycbwcu64v7aRoYTDzBL_egOwcBm5vvp2TFIVbwFj3M1R70mCj_Mb6tIILdN2T8vvCX1iVC/exec" }
+      { title: "Resumen (Dashboard)",      url: "https://script.google.com/macros/s/AKfycbwcu64v7aRoYTDzBL_egOwcBm5vvp2TFIVbwFj3M1R70mCj_Mb6tIILdN2T8vvCX1iVC/exec" }
     ];
 
     const grid = document.getElementById("modulesGrid");
@@ -302,9 +318,13 @@
       }[s]));
     }
 
-    function openModule(url){
-      // Abre en pestaña nueva; no hay links visibles en el panel
-      window.open(url, "_blank", "noopener,noreferrer");
+    function goTo(url){
+      if(!url) return;
+      if(OPEN_IN_NEW_TAB){
+        window.open(url, "_blank", "noopener,noreferrer");
+      } else {
+        window.location.href = url;
+      }
     }
 
     function render(list){
@@ -340,7 +360,7 @@
             <span class="chev" aria-hidden="true">➜</span>
           </div>
         `;
-        btn.addEventListener("click", () => openModule(m.url));
+        btn.addEventListener("click", () => goTo(m.url));
         grid.appendChild(btn);
       }
     }
