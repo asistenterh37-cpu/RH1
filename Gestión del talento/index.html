@@ -1,1 +1,526 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Panel de Gestión Estratégica y del Talento</title>
+  <style>
+    :root{
+      --bg:#0b1220;
+      --panel:#111a2c;
+      --panel2:#0f172a;
+      --text:#e5e7eb;
+      --muted:#9ca3af;
+      --border: rgba(255,255,255,.10);
+      --accent:#4f7cff;
+      --accent2:#22c55e;
+      --shadow: 0 12px 40px rgba(0,0,0,.35);
+      --radius: 18px;
+    }
+    *{ box-sizing:border-box; }
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Noto Sans", "Helvetica Neue", sans-serif;
+      background: radial-gradient(1200px 700px at 15% 10%, rgba(79,124,255,.18), transparent 55%),
+                  radial-gradient(900px 600px at 85% 20%, rgba(34,197,94,.12), transparent 60%),
+                  var(--bg);
+      color:var(--text);
+      min-height:100vh;
+    }
+    header{
+      position: sticky;
+      top:0;
+      z-index:10;
+      backdrop-filter: blur(10px);
+      background: rgba(11,18,32,.65);
+      border-bottom: 1px solid var(--border);
+    }
+    .wrap{
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 18px 18px;
+    }
+    .topbar{
+      display:flex;
+      gap:14px;
+      align-items:center;
+      justify-content:space-between;
+      flex-wrap:wrap;
+    }
+    .brand{
+      display:flex;
+      align-items:center;
+      gap:12px;
+      min-width: 260px;
+    }
+    .logo{
+      width:42px;height:42px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, var(--accent), rgba(79,124,255,.35));
+      box-shadow: var(--shadow);
+      border: 1px solid rgba(255,255,255,.12);
+      position:relative;
+      overflow:hidden;
+    }
+    .logo:after{
+      content:"";
+      position:absolute; inset:-20px;
+      background: radial-gradient(circle at 30% 30%, rgba(255,255,255,.35), transparent 55%);
+      transform: rotate(25deg);
+    }
+    h1{
+      font-size: 16px;
+      margin:0;
+      letter-spacing:.2px;
+      line-height:1.1;
+    }
+    .subtitle{
+      margin:2px 0 0 0;
+      color:var(--muted);
+      font-size: 12px;
+    }
+    .controls{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      flex: 1;
+      justify-content:flex-end;
+      flex-wrap:wrap;
+    }
+    .search{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      background: rgba(17,26,44,.75);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 10px 12px;
+      min-width: min(520px, 100%);
+      box-shadow: 0 10px 25px rgba(0,0,0,.18);
+    }
+    .search input{
+      width:100%;
+      background: transparent;
+      border:0;
+      outline:0;
+      color: var(--text);
+      font-size: 14px;
+    }
+    .chip{
+      font-size: 12px;
+      padding: 8px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: rgba(17,26,44,.55);
+      color: var(--muted);
+      user-select:none;
+      display:flex;
+      gap:8px;
+      align-items:center;
+    }
+    .chip b{ color: var(--text); font-weight: 600; }
+
+    main{ padding: 18px 0 46px; }
+    .hero{
+      display:grid;
+      grid-template-columns: 1.4fr .6fr;
+      gap:16px;
+      align-items:stretch;
+      margin-top: 16px;
+    }
+    @media (max-width: 900px){
+      .hero{ grid-template-columns: 1fr; }
+      .search{ min-width: 100%; }
+      .brand{ min-width: auto; }
+    }
+    .card{
+      background: linear-gradient(180deg, rgba(17,26,44,.75), rgba(15,23,42,.65));
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 16px;
+      position:relative;
+      overflow:hidden;
+    }
+    .card:before{
+      content:"";
+      position:absolute;
+      inset:-2px;
+      background: radial-gradient(700px 180px at 10% 0%, rgba(79,124,255,.18), transparent 60%),
+                  radial-gradient(500px 160px at 90% 10%, rgba(34,197,94,.10), transparent 60%);
+      pointer-events:none;
+    }
+    .card > *{ position:relative; }
+    .hero h2{
+      margin:0;
+      font-size: 18px;
+      letter-spacing:.2px;
+    }
+    .hero p{
+      margin: 8px 0 0 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+    .quick-actions{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      margin-top: 12px;
+    }
+    .btn{
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,.06);
+      color: var(--text);
+      padding: 10px 12px;
+      border-radius: 14px;
+      font-size: 13px;
+      cursor:pointer;
+      transition: transform .08s ease, background .2s ease, border-color .2s ease;
+      text-decoration:none;
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+    }
+    .btn:hover{
+      transform: translateY(-1px);
+      background: rgba(255,255,255,.09);
+      border-color: rgba(255,255,255,.18);
+    }
+    .btn.primary{
+      background: linear-gradient(135deg, rgba(79,124,255,.95), rgba(79,124,255,.35));
+      border-color: rgba(79,124,255,.55);
+    }
+    .btn.primary:hover{
+      background: linear-gradient(135deg, rgba(79,124,255,1), rgba(79,124,255,.45));
+    }
+
+    .grid{
+      display:grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+      margin-top: 16px;
+    }
+    @media (max-width: 980px){
+      .grid{ grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 640px){
+      .grid{ grid-template-columns: 1fr; }
+    }
+    .module{
+      padding: 14px;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      background: rgba(17,26,44,.55);
+      transition: transform .10s ease, border-color .2s ease, background .2s ease;
+      position:relative;
+      overflow:hidden;
+      min-height: 150px;
+      display:flex;
+      flex-direction:column;
+      justify-content:space-between;
+      gap:10px;
+    }
+    .module:hover{
+      transform: translateY(-2px);
+      border-color: rgba(255,255,255,.22);
+      background: rgba(17,26,44,.70);
+    }
+    .module .tag{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .dot{
+      width:10px;height:10px;border-radius:999px;
+      background: var(--accent);
+      box-shadow: 0 0 0 3px rgba(79,124,255,.15);
+    }
+    .module h3{
+      margin: 6px 0 0 0;
+      font-size: 16px;
+    }
+    .module p{
+      margin: 8px 0 0 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+      min-height: 40px;
+    }
+    .module .actions{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      margin-top: 4px;
+    }
+    .link{
+      color: var(--text);
+      text-decoration:none;
+      font-size: 13px;
+      padding: 9px 11px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,.05);
+      display:inline-flex;
+      gap:8px;
+      align-items:center;
+    }
+    .link:hover{ background: rgba(255,255,255,.08); }
+    .ghost{
+      color: var(--muted);
+      border-style:dashed;
+    }
+    footer{
+      color: var(--muted);
+      font-size: 12px;
+      padding: 18px 0;
+      border-top: 1px solid var(--border);
+      background: rgba(11,18,32,.35);
+    }
+    .kbd{
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: 11px;
+      padding: 2px 6px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,.05);
+      color: var(--text);
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <div class="wrap">
+      <div class="topbar">
+        <div class="brand">
+          <div class="logo" aria-hidden="true"></div>
+          <div>
+            <h1>Panel de Gestión Estratégica y del Talento</h1>
+            <div class="subtitle">Acceso rápido a tus módulos (y sí, aquí manda el orden… no el caos 😄).</div>
+          </div>
+        </div>
+
+        <div class="controls">
+          <div class="search" role="search">
+            <span style="opacity:.8">🔎</span>
+            <input id="searchInput" type="search" placeholder="Buscar módulo… (ej: clima, puestos, desempeño)" autocomplete="off" />
+            <span class="kbd">Ctrl</span><span class="kbd">K</span>
+          </div>
+          <div class="chip" title="Módulos visibles">
+            Módulos: <b id="countVisible">0</b>/<b id="countTotal">0</b>
+          </div>
+        </div>
+      </div>
+
+      <div class="hero">
+        <div class="card">
+          <h2>Centro de control</h2>
+          <p>
+            Usa este panel para entrar a cada herramienta sin andar cazando links como si fueran Pokémon.
+            Puedes agregar módulos fácilmente en el arreglo <span class="kbd">modules</span> (abajo en el código).
+          </p>
+          <div class="quick-actions">
+            <a class="btn primary" href="#" id="openFirst">🚀 Abrir primer módulo</a>
+            <button class="btn" id="clearSearch" type="button">🧹 Limpiar búsqueda</button>
+            <button class="btn" id="toggleDescriptions" type="button">📝 Mostrar/ocultar descripciones</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Tip rápido</h2>
+          <p>
+            Presiona <span class="kbd">Ctrl</span> + <span class="kbd">K</span> para ir directo al buscador.
+            Entre menos clics, más vida.
+          </p>
+          <div class="quick-actions">
+            <a class="btn" href="#" id="addModuleHint">➕ Cómo agrego módulos</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section class="grid" id="modulesGrid" aria-label="Módulos"></section>
+  </main>
+
+  <footer>
+    <div class="wrap">
+      Hecho para que tu ecosistema RH se vea pro. Tip: puedes hospedar esto en GitHub Pages y listo.
+    </div>
+  </footer>
+
+  <script>
+    // ✅ EDITA AQUÍ: agrega/edita módulos fácilmente.
+    // Solo duplica un bloque y cambia title/description/url.
+    const modules = [
+      {
+        title: "Clima laboral",
+        description: "Encuestas y análisis de clima organizacional. Espacio para una breve descripción del objetivo del módulo.",
+        url: "https://asistenterh37-cpu.github.io/RH1/Clima-Organizacional/",
+        color: "accent"
+      },
+      {
+        title: "Descripción de puestos",
+        description: "Estandariza y documenta roles: objetivo, funciones, perfil y requisitos clave.",
+        url: "https://asistenterh37-cpu.github.io/RH1/Descripcion-de-puestos/",
+        color: "accent2"
+      },
+      {
+        title: "Valoración de puestos",
+        description: "Comparación interna y estructura: puntos/factores, jerarquías y equidad salarial.",
+        url: "https://asistenterh37-cpu.github.io/RH1/Valoracion%20de%20puestos/",
+        color: "accent"
+      },
+      {
+        title: "Evaluación del desempeño I",
+        description: "Primera versión del sistema de evaluación: formularios, factores y puntajes.",
+        url: "https://asistenterh37-cpu.github.io/RH1/Evaluación-Desempeño-F/",
+        color: "accent2"
+      },
+      {
+        title: "Evaluación del desempeño II",
+        description: "Versión/prueba del módulo de desempeño (iteración de formularios y cálculos).",
+        url: "https://asistenterh37-cpu.github.io/RH1/Prueba1/",
+        color: "accent"
+      },
+      {
+        title: "Resumen (Dashboard)",
+        description: "Panel resumen con resultados consolidados y visualización ejecutiva.",
+        url: "https://script.google.com/macros/s/AKfycbwcu64v7aRoYTDzBI_egOwcBm5vvp2TFIVbwFj3M1R70mCj_Mp6TllDN2T8vCX1ivC/exec",
+        color: "accent2"
+      },
+
+      // 🧩 PLANTILLA: deja esto como ejemplo o bórralo cuando ya no lo ocupes
+      // {
+      //   title: "Nuevo módulo",
+      //   description: "Breve descripción del módulo (qué hace y para qué sirve).",
+      //   url: "https://tu-url-aqui.com",
+      //   color: "accent"
+      // },
+    ];
+
+    const grid = document.getElementById("modulesGrid");
+    const searchInput = document.getElementById("searchInput");
+    const countVisible = document.getElementById("countVisible");
+    const countTotal = document.getElementById("countTotal");
+
+    let showDescriptions = true;
+
+    function escapeHtml(str){
+      return String(str)
+        .replaceAll("&","&amp;")
+        .replaceAll("<","&lt;")
+        .replaceAll(">","&gt;")
+        .replaceAll('"',"&quot;")
+        .replaceAll("'","&#039;");
+    }
+
+    function render(filterText = ""){
+      grid.innerHTML = "";
+      const ft = filterText.trim().toLowerCase();
+
+      const filtered = modules.filter(m => {
+        const hay = (m.title + " " + (m.description || "")).toLowerCase();
+        return hay.includes(ft);
+      });
+
+      countTotal.textContent = modules.length;
+      countVisible.textContent = filtered.length;
+
+      filtered.forEach((m, idx) => {
+        const dotColor = (m.color === "accent2") ? "var(--accent2)" : "var(--accent)";
+        const card = document.createElement("article");
+        card.className = "module";
+        card.innerHTML = `
+          <div>
+            <div class="tag">
+              <span class="dot" style="background:${dotColor}; box-shadow:0 0 0 3px ${m.color==="accent2"?"rgba(34,197,94,.14)":"rgba(79,124,255,.15)"}"></span>
+              Módulo ${idx + 1}
+            </div>
+            <h3>${escapeHtml(m.title)}</h3>
+            <p class="desc" style="${showDescriptions ? "" : "display:none;"}">
+              ${escapeHtml(m.description || "Descripción pendiente… (sí, aquí va esa breve descripción).")}
+            </p>
+          </div>
+          <div class="actions">
+            <a class="link" href="${m.url}" target="_blank" rel="noopener noreferrer">🔗 Abrir</a>
+            <button class="link ghost" type="button" data-copy="${m.url}">📋 Copiar link</button>
+          </div>
+        `;
+        grid.appendChild(card);
+      });
+
+      // Eventos de copiar link
+      grid.querySelectorAll("button[data-copy]").forEach(btn => {
+        btn.addEventListener("click", async () => {
+          const url = btn.getAttribute("data-copy");
+          try{
+            await navigator.clipboard.writeText(url);
+            btn.textContent = "✅ Copiado";
+            setTimeout(()=> btn.textContent = "📋 Copiar link", 1200);
+          }catch(e){
+            alert("No se pudo copiar. Tu navegador bloqueó el portapapeles 🙃\n\n" + url);
+          }
+        });
+      });
+    }
+
+    // Buscar
+    searchInput.addEventListener("input", (e) => render(e.target.value));
+
+    // Acciones rápidas
+    document.getElementById("clearSearch").addEventListener("click", () => {
+      searchInput.value = "";
+      render("");
+      searchInput.focus();
+    });
+
+    document.getElementById("toggleDescriptions").addEventListener("click", () => {
+      showDescriptions = !showDescriptions;
+      render(searchInput.value);
+    });
+
+    document.getElementById("openFirst").addEventListener("click", (e) => {
+      e.preventDefault();
+      const first = modules[0];
+      if(first?.url) window.open(first.url, "_blank", "noopener,noreferrer");
+    });
+
+    document.getElementById("addModuleHint").addEventListener("click", (e) => {
+      e.preventDefault();
+      alert(
+`Para agregar un módulo:
+1) Baja en el código al arreglo "modules"
+2) Copia un bloque como este:
+
+{
+  title: "Nuevo módulo",
+  description: "Breve descripción...",
+  url: "https://tu-url-aqui.com",
+  color: "accent"
+}
+
+3) Pégalo dentro del arreglo y listo.`
+      );
+    });
+
+    // Atajo Ctrl+K para enfocar buscador
+    window.addEventListener("keydown", (e) => {
+      const isMac = navigator.platform.toUpperCase().includes("MAC");
+      const mod = isMac ? e.metaKey : e.ctrlKey;
+      if(mod && e.key.toLowerCase() === "k"){
+        e.preventDefault();
+        searchInput.focus();
+      }
+    });
+
+    // Inicial
+    render("");
+  </script>
+</body>
+</html>
 
