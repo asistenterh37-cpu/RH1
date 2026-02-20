@@ -48,6 +48,10 @@
       gap:16px;
       justify-content:space-between;
       margin-bottom: 16px;
+
+      /* ====== NUEVO: separador sutil bajo el header ====== */
+      padding-bottom:14px;
+      border-bottom:1px solid rgba(255,255,255,.06);
     }
 
     .brand{
@@ -70,6 +74,22 @@
 
       box-shadow: var(--shadow);
       border: 1px solid var(--stroke);
+
+      /* ====== NUEVO: detalles “enterprise” del logo ====== */
+      position:relative;
+      cursor:pointer;
+    }
+
+    /* glow “premium” detrás del logo */
+    .logo::after{
+      content:"";
+      position:absolute;
+      inset:-2px;
+      border-radius: 20px;
+      background: linear-gradient(135deg, #4f7cff, #22c55e);
+      opacity:.25;
+      filter: blur(10px);
+      z-index:-1;
     }
 
     h1{
@@ -109,6 +129,9 @@
       color: var(--text);
       font-size: 16px;
       box-shadow: 0 10px 30px rgba(0,0,0,.25);
+
+      /* ====== NUEVO: micro-interacción suave ====== */
+      transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
     }
 
     .search input::placeholder{color: rgba(234,242,255,.55);}
@@ -116,6 +139,9 @@
     .search input:focus{
       border-color: rgba(79,124,255,.55);
       box-shadow: 0 0 0 4px rgba(79,124,255,.18), 0 16px 40px rgba(0,0,0,.28);
+
+      /* ====== NUEVO: zoom sutil al enfocar ====== */
+      transform: scale(1.02);
     }
 
     .mag{
@@ -155,6 +181,12 @@
       color: rgba(234,242,255,.88);
       font-size: 14px;
       white-space:nowrap;
+
+      /* ====== NUEVO: estilo badge más “inteligente” ====== */
+      font-weight: 600;
+      letter-spacing: .4px;
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
     }
 
     /* Section */
@@ -212,14 +244,25 @@
       min-height: 56px;
       overflow:hidden;
 
-      transition: transform .15s ease, border-color .15s ease, background .15s ease;
+      transition: transform .15s ease, border-color .15s ease, background .15s ease, box-shadow .15s ease;
       outline:none;
+
+      /* ====== NUEVO: animación al cargar (enterprise feel) ====== */
+      animation: fadeUp .5s ease both;
+    }
+
+    @keyframes fadeUp{
+      from{ opacity:0; transform: translateY(8px); }
+      to{   opacity:1; transform: translateY(0); }
     }
 
     .card:hover{
       transform: translateY(-2px);
       border-color: rgba(79,124,255,.42);
       background: rgba(7,17,31,.62);
+
+      /* ====== NUEVO: hover premium ====== */
+      box-shadow: 0 10px 30px rgba(79,124,255,.15);
     }
 
     .card:focus-visible{
@@ -289,7 +332,7 @@
   <div class="wrap">
     <div class="top">
       <div class="brand">
-        <div class="logo" aria-hidden="true"></div>
+        <div class="logo" aria-hidden="true" title="Inicio"></div>
         <div>
           <h1>Panel de Gestión Estratégica y del Talento</h1>
           <p class="subtitle">Selecciona un módulo para abrirlo. Aquí solo se muestran los nombres.</p>
@@ -304,6 +347,10 @@
             <span>Ctrl</span><span>K</span>
           </div>
         </div>
+
+        <!-- NUEVO: Usuario conectado (placeholder) -->
+        <div class="pill" id="userPill" title="Usuario conectado">👤 Usuario</div>
+
         <div class="pill" id="countPill">Módulos: 0 / 0</div>
       </div>
     </div>
@@ -339,6 +386,20 @@
     const grid = document.getElementById("modulesGrid");
     const searchInput = document.getElementById("searchInput");
     const countPill = document.getElementById("countPill");
+    const userPill = document.getElementById("userPill");
+    const logoEl = document.querySelector(".logo");
+
+    // ====== NUEVO: click en el logo (ajústalo si querés otro destino) ======
+    function goHome(){
+      // Por defecto: recarga y vuelve al listado completo
+      searchInput.value = "";
+      render(modules);
+      searchInput.focus();
+    }
+    logoEl.addEventListener("click", goHome);
+
+    // (Opcional) Cambiar usuario desde aquí:
+    // userPill.textContent = "👤 Valentina";
 
     function escapeHtml(str){
       return String(str).replace(/[&<>"']/g, s => ({
@@ -382,6 +443,10 @@
         btn.type = "button";
         btn.className = "card";
         btn.setAttribute("aria-label", `Abrir módulo: ${m.title}`);
+
+        // escalona animación (se ve más “pro”)
+        btn.style.animationDelay = (Math.min(visible, 12) ? (list.indexOf(m) * 40) : 0) + "ms";
+
         btn.innerHTML = `
           <div class="nameRow">
             <h3 class="name">${escapeHtml(m.title || "Módulo")}</h3>
