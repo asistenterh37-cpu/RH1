@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Patronato Residencial Santa Moniva - Estado de cuenta</title>
+  <title>Patronato Residencial Santa Mónica - Estado de cuenta</title>
   <style>
     :root{
       --bg:#0b1220; --panel:#101a2f; --panel2:#0f1730; --text:#e7eefc;
@@ -46,7 +46,7 @@
       padding:8px 12px; border-radius:999px; color:var(--muted); font-size:12px;
     }
     .pill strong{ color:var(--text); }
-    .msg{ margin-top:12px; padding:10px 12px; border-radius:12px; border:1px solid var(--line); background:rgba(15,23,48,.65); color:var(--muted); }
+    .msg{ margin-top:12px; padding:10px 12px; border-radius:12px; border:1px solid var(--line); background:rgba(15,23,48,.65); color:var(--muted); white-space:pre-wrap; }
     .msg.ok{ border-color: rgba(34,197,94,.5); }
     .msg.bad{ border-color: rgba(239,68,68,.5); color:#ffd5d5; }
     table{ width:100%; border-collapse:collapse; margin-top:14px; }
@@ -77,12 +77,11 @@
   <div class="wrap">
     <div class="card">
       <div class="head">
-        <h1>Patronato Residencial Santa Moniva</h1>
+        <h1>Patronato Residencial Santa Mónica</h1>
         <h2>Estado de cuenta</h2>
       </div>
 
       <div class="body">
-
         <details class="sources" id="sources">
           <summary>
             <span>Fuentes (Sheet + WebApp)</span>
@@ -93,7 +92,8 @@
             <div class="small">
               Este módulo usa <strong>JSONP</strong> (carga el WebApp como <code class="k">&lt;script src="..."></code>).<br/>
               Si el WebApp devuelve <strong>HTML</strong> (login/permisos) en vez de <strong>JavaScript</strong> <code class="k">callback({...});</code>,
-              el navegador marca error y <strong>no llega el callback</strong>.
+              el navegador <strong>NO ejecuta callback</strong> (y te cae timeout).<br/>
+              Si te sale <strong>“Falló la carga del &lt;script&gt;”</strong>, eso es típico de <strong>URL mala/404</strong> o <strong>bloqueo por extensión</strong>.
             </div>
 
             <div class="row2" style="margin-top:10px;">
@@ -114,8 +114,8 @@
               <label for="gsUrl">URL del WebApp (Apps Script /exec)</label>
               <input id="gsUrl" placeholder="Pega aquí tu URL .../exec" />
               <div class="small">
-                ✅ Debe terminar en <strong>/exec</strong> (si pegás <strong>/dev</strong>, lo convertimos a <strong>/exec</strong>).<br/>
-                Si re-implementaste, <strong>pegá la nueva /exec</strong> (la vieja suele morir en silencio 😅).
+                ✅ Debe terminar en <strong>/exec</strong> (si pegás <strong>/dev</strong>, lo convertimos).<br/>
+                🔒 Solución definitiva: en Apps Script, no creés deployments nuevos; <strong>Editá el deployment existente</strong> para que la URL no cambie.
               </div>
             </div>
           </div>
@@ -140,7 +140,7 @@
             <button class="btn" id="btnConsultar" type="button">Consultar</button>
           </div>
 
-          <div class="pill" title="Solo para que se vea pro 😄">
+          <div class="pill" title="Conteo de movimientos">
             Resultado: <strong id="count">0</strong>
           </div>
         </div>
@@ -177,9 +177,8 @@
   <script>
     const DEFAULT_SHEET_URL = "https://docs.google.com/spreadsheets/d/1PeFt5YUi1W5jI-sHo75E-0CHQUihADd2u4uqmHU5AK8/edit?usp=sharing";
 
-    // TIP: si re-implementás seguido, mejor NO “casarte” con una default vieja.
-    // Igual la dejo, pero el reset te vuelve a esta.
-    const DEFAULT_GS_EXEC_URL = "https://script.google.com/macros/s/AKfycbwfl653aHa7JQJk5oL9lZARmkduAFq1PgIkuAF1aaswccqJoM3Gg1kiIXbpUS0VZdS-LA/exec";
+    // OJO: esta puede quedar vieja si creás deployments nuevos.
+    const DEFAULT_GS_EXEC_URL = "https://script.google.com/macros/s/AKfycbzlY2ZHeEnkueTEHHi6s_vP1hKFHPJq5g8s_IIcXAkf_o5I6N8Uqz8R9IXcO71Hcr565w/exec";
 
     const LS_KEY = "PRSM_GS_URL";
 
@@ -260,7 +259,7 @@
       return x.toLocaleString('es-HN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     }
 
-    // ✅ JSONP robusto: distingue network error vs "cargó pero devolvió HTML y no ejecutó callback"
+    // ✅ JSONP blindado
     function jsonp(url, params = {}, timeoutMs = 15000) {
       return new Promise((resolve, reject) => {
         const cbName = 'cb_' + Math.random().toString(36).slice(2);
@@ -279,11 +278,11 @@
         const timeout = setTimeout(() => {
           cleanup();
           reject(new Error(
-            'Timeout esperando el callback JSONP.\n' +
-            'URL usada: ' + src + '\n' +
+            'Timeout esperando callback JSONP.\n' +
+            'URL: ' + src + '\n' +
             (loaded
-              ? 'El <script> cargó, pero NO ejecutó el callback. Casi siempre es porque el WebApp devolvió HTML (login/permisos) en vez de JavaScript callback(...).'
-              : 'El <script> no cargó. Puede ser URL vieja (404) o bloqueo de red/extensión.'
+              ? 'El <script> cargó, pero NO ejecutó callback. Esto pasa si el WebApp devolvió HTML (login/permisos) en vez de callback({...});'
+              : 'El <script> no cargó. Puede ser 404/URL vieja o bloqueo por extensión.'
             )
           ));
         }, timeoutMs);
@@ -302,19 +301,18 @@
 
         script.onload = () => {
           loaded = true;
-          // Si cargó algo pero no llamó callback, dejamos que el timeout lo explique con precisión.
-          // (esto pasa cuando el WebApp devuelve HTML)
-          if (loaded && !called) {
-            // no hacemos reject aquí para dar chance a callback tardío, pero ya marcamos loaded.
-          }
         };
 
         script.onerror = () => {
           cleanup();
+          // pistas típicas: ERR_BLOCKED_BY_CLIENT (adblock), 404, etc.
           reject(new Error(
             'Falló la carga del <script> (JSONP).\n' +
-            'URL usada: ' + src + '\n' +
-            'Esto suele ser: URL vieja/incorrecta, deployment cambiado, o el WebApp no es público.'
+            'URL: ' + src + '\n\n' +
+            'Causas típicas:\n' +
+            '• URL /exec vieja o incorrecta (deployment cambiado)\n' +
+            '• Bloqueo por AdBlock/Tracking protection\n' +
+            '• WebApp no público (en algunos casos la redirección rompe el load)'
           ));
         };
 
@@ -346,7 +344,7 @@
         if (!data || data.ok !== true) throw new Error((data && data.error) ? data.error : 'Respuesta inválida');
         setMsg('WebApp OK ✅ (' + (data.message || 'pong') + ')', 'ok');
       }catch(err){
-        setMsg('Error: ' + err.message, 'bad');
+        setMsg('Error:\n' + err.message, 'bad');
       }
     }
 
@@ -359,7 +357,12 @@
         new URLSearchParams({ action: "diag", callback: cb, ts: Date.now() }).toString();
 
       window.open(url, "_blank", "noopener");
-      setMsg('Diagnóstico: se abrió una pestaña. Debe verse algo tipo: ' + cb + '({...});. Si ves HTML/login, ahí está el villano.', '');
+      setMsg(
+        'Diagnóstico abierto en nueva pestaña.\n' +
+        '✅ Debe verse EXACTO algo como: ' + cb + '({...});\n' +
+        '❌ Si ves HTML/login o 404, tu URL/deployment está mal (o no está público).',
+        ''
+      );
     }
 
     function resetUrl(){
@@ -367,7 +370,7 @@
       gsUrlEl.value = DEFAULT_GS_EXEC_URL;
       localStorage.setItem(LS_KEY, DEFAULT_GS_EXEC_URL);
       refreshExecBadge();
-      setMsg('URL reseteada. Si recién re-implementaste, pega la NUEVA /exec en “Fuentes”.', '');
+      setMsg('URL reseteada. Si re-implementaste, pega la NUEVA /exec en “Fuentes”.', '');
     }
 
     async function consultar(){
@@ -394,7 +397,7 @@
           throw new Error((data && data.error) ? data.error : 'Respuesta inválida del WebApp');
         }
 
-        const items = data.items || [];
+        const items = Array.isArray(data.items) ? data.items : [];
         nombreEl.textContent = data.nombre || '—';
         totalEl.textContent = money(data.total);
         tfootTotalEl.textContent = money(data.total);
@@ -407,9 +410,9 @@
 
         tbodyEl.innerHTML = items.map(it => `
           <tr>
-            <td>${it.Año || ''}</td>
-            <td>${it.Mes || ''}</td>
-            <td>${it.Concepto || ''}</td>
+            <td>${it.Año ?? ''}</td>
+            <td>${it.Mes ?? ''}</td>
+            <td>${it.Concepto ?? ''}</td>
             <td class="right">${money(it.Valor)}</td>
           </tr>
         `).join('');
@@ -418,7 +421,7 @@
         setMsg('Listo ✅', 'ok');
 
       } catch(err){
-        setMsg('Error: ' + err.message, 'bad');
+        setMsg('Error:\n' + err.message, 'bad');
       }
     }
 
