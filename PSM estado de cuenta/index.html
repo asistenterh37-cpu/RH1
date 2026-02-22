@@ -1,1 +1,342 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Patronato Residencial Santa Moniva - Estado de cuenta</title>
+  <style>
+    :root{
+      --bg:#0b1220; --panel:#101a2f; --panel2:#0f1730; --text:#e7eefc;
+      --muted:#9fb3d9; --line:#1e2d52; --acc:#4f7cff; --ok:#22c55e; --bad:#ef4444;
+      --radius:16px;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    }
+    body{ margin:0; background:linear-gradient(180deg,#070c16, var(--bg)); color:var(--text); }
+    .wrap{ max-width:980px; margin:0 auto; padding:28px 16px 60px; }
+    .card{ background:rgba(16,26,47,.92); border:1px solid var(--line); border-radius:var(--radius); box-shadow:0 14px 40px rgba(0,0,0,.35); overflow:hidden; }
+    .head{ padding:22px 22px 8px; border-bottom:1px solid var(--line); }
+    h1{ margin:0; font-size:22px; letter-spacing:.2px; }
+    h2{ margin:6px 0 0; font-size:15px; color:var(--muted); font-weight:600; }
+    .body{ padding:18px 22px 22px; }
 
+    .grid{ display:grid; grid-template-columns: 1.3fr 1fr auto auto; gap:12px; align-items:end; }
+    label{ display:block; font-size:12px; color:var(--muted); margin:0 0 6px; }
+    input, select{
+      width:100%; box-sizing:border-box;
+      background:rgba(15,23,48,.85);
+      border:1px solid var(--line);
+      color:var(--text);
+      padding:11px 12px;
+      border-radius:12px;
+      outline:none;
+    }
+    input:focus, select:focus{ border-color:rgba(79,124,255,.7); box-shadow:0 0 0 3px rgba(79,124,255,.18); }
+    .btn{
+      background:linear-gradient(180deg, rgba(79,124,255,.95), rgba(79,124,255,.75));
+      border:1px solid rgba(79,124,255,.65);
+      color:white; padding:11px 16px; border-radius:12px;
+      cursor:pointer; font-weight:700;
+      white-space:nowrap;
+    }
+    .btn:hover{ filter:brightness(1.05); }
+    .row2{ margin-top:14px; display:flex; gap:12px; flex-wrap:wrap; align-items:center; }
+    .pill{
+      border:1px solid var(--line); background:rgba(15,23,48,.65);
+      padding:8px 12px; border-radius:999px; color:var(--muted); font-size:12px;
+    }
+    .pill strong{ color:var(--text); }
+    .msg{ margin-top:12px; padding:10px 12px; border-radius:12px; border:1px solid var(--line); background:rgba(15,23,48,.65); color:var(--muted); }
+    .msg.ok{ border-color: rgba(34,197,94,.5); }
+    .msg.bad{ border-color: rgba(239,68,68,.5); color:#ffd5d5; }
+    table{ width:100%; border-collapse:collapse; margin-top:14px; }
+    th, td{ padding:10px 10px; border-bottom:1px solid rgba(30,45,82,.65); text-align:left; font-size:13px; }
+    th{ color:var(--muted); font-size:12px; letter-spacing:.3px; text-transform:uppercase; }
+    tfoot td{ font-weight:800; }
+    .right{ text-align:right; }
+    .small{ font-size:12px; color:var(--muted); margin-top:8px; }
+
+    details.sources{
+      margin-bottom:14px;
+      border:1px solid var(--line);
+      border-radius:12px;
+      background:rgba(15,23,48,.45);
+      overflow:hidden;
+    }
+    details.sources > summary{
+      cursor:pointer;
+      list-style:none;
+      padding:10px 12px;
+      color:var(--muted);
+      font-weight:700;
+      user-select:none;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+    }
+    details.sources > summary::-webkit-details-marker{ display:none; }
+    .sourcesBody{ padding:12px; border-top:1px solid rgba(30,45,82,.65); }
+    .linkrow{
+      display:flex; gap:10px; flex-wrap:wrap; align-items:center;
+      margin-top:8px;
+    }
+    a.link{
+      color:var(--text);
+      text-decoration:none;
+      border:1px solid rgba(79,124,255,.35);
+      background:rgba(79,124,255,.12);
+      padding:6px 10px;
+      border-radius:999px;
+      font-size:12px;
+    }
+    a.link:hover{ filter:brightness(1.07); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <div class="head">
+        <h1>Patronato Residencial Santa Moniva</h1>
+        <h2>Estado de cuenta</h2>
+      </div>
+
+      <div class="body">
+
+        <!-- Fuentes / claves (Sheet + WebApp) -->
+        <details class="sources" id="sources">
+          <summary>
+            <span>Fuentes (Sheet + WebApp)</span>
+            <span class="pill" style="margin:0;">Soporte</span>
+          </summary>
+          <div class="sourcesBody">
+            <div class="small">Si algo falla, aquí están las “claves” (las URLs) para revisar rápido.</div>
+
+            <div class="row2" style="margin-top:10px;">
+              <div class="pill">Google Sheet: <strong id="sheetId">—</strong></div>
+              <div class="pill">WebApp: <strong id="execOk">—</strong></div>
+            </div>
+
+            <div class="linkrow">
+              <a class="link" id="sheetLink" href="#" target="_blank" rel="noopener">Abrir Google Sheet</a>
+              <a class="link" id="execLink" href="#" target="_blank" rel="noopener">Abrir WebApp /exec</a>
+            </div>
+
+            <div style="margin-top:12px;">
+              <label for="gsUrl">URL del WebApp (Apps Script /exec)</label>
+              <input id="gsUrl" placeholder="Pega aquí tu URL .../exec" />
+              <div class="small">Tip: si no termina en <strong>/exec</strong>, esa URL no es la buena (es como llamar a la pizza por fax).</div>
+            </div>
+          </div>
+        </details>
+
+        <div class="grid">
+          <div>
+            <label for="codigoF">Códigof</label>
+            <input id="codigoF" placeholder="Ej: 336ab" />
+          </div>
+
+          <div>
+            <label for="anio">Año</label>
+            <select id="anio">
+              <option value="Todos">Todos</option>
+              <option value="2025">2025</option>
+              <option value="2026">2026</option>
+            </select>
+          </div>
+
+          <div>
+            <button class="btn" id="btnConsultar">Consultar</button>
+          </div>
+
+          <div class="pill" title="Solo para que se vea pro 😄">
+            Resultado: <strong id="count">0</strong>
+          </div>
+        </div>
+
+        <div class="row2">
+          <div class="pill">Nombre: <strong id="nombre">—</strong></div>
+          <div class="pill">Total: <strong id="total">0.00</strong></div>
+        </div>
+
+        <div id="msg" class="msg">Escribe el Códigof y presiona “Consultar”. (La URL ya quedó configurada.)</div>
+
+        <table id="tabla" style="display:none;">
+          <thead>
+            <tr>
+              <th>Año</th>
+              <th>Mes</th>
+              <th>Concepto</th>
+              <th class="right">Valor</th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+          <tfoot>
+            <tr>
+              <td colspan="3" class="right">Total</td>
+              <td class="right" id="tfootTotal">0.00</td>
+            </tr>
+          </tfoot>
+        </table>
+
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // =========================
+    // CLAVES / FUENTES (URLs)
+    // =========================
+    const DEFAULT_SHEET_URL = "https://docs.google.com/spreadsheets/d/1PeFt5YUi1W5jI-sHo75E-0CHQUihADd2u4uqmHU5AK8/edit?usp=sharing";
+    const DEFAULT_GS_EXEC_URL = "https://script.google.com/macros/s/AKfycbxZCmEcchx7IXsnhfSpKtWjK7gI9WmMFo77jWuOyJnmFxyrqx96QjvE-r-Y9N2gRcsq/exec";
+
+    // Mostrar fuentes arriba
+    const sheetIdEl = document.getElementById('sheetId');
+    const execOkEl = document.getElementById('execOk');
+    const sheetLinkEl = document.getElementById('sheetLink');
+    const execLinkEl = document.getElementById('execLink');
+
+    function getSheetId(url){
+      const m = String(url || "").match(/\/spreadsheets\/d\/([^/]+)/i);
+      return m ? m[1] : "—";
+    }
+
+    sheetIdEl.textContent = getSheetId(DEFAULT_SHEET_URL);
+    execOkEl.textContent = DEFAULT_GS_EXEC_URL.includes('/exec') ? 'OK (/exec)' : 'Revisar';
+    sheetLinkEl.href = DEFAULT_SHEET_URL;
+    execLinkEl.href = DEFAULT_GS_EXEC_URL;
+
+    // =========================
+    // Guardar URL en localStorage
+    // =========================
+    const gsUrlEl = document.getElementById('gsUrl');
+
+    // Si ya existe una guardada, úsala. Si no, usa la default que nos diste.
+    const saved = localStorage.getItem('PRSM_GS_URL');
+    gsUrlEl.value = (saved && saved.trim()) ? saved.trim() : DEFAULT_GS_EXEC_URL;
+
+    gsUrlEl.addEventListener('change', () => {
+      localStorage.setItem('PRSM_GS_URL', gsUrlEl.value.trim());
+    });
+
+    const codigoFEl = document.getElementById('codigoF');
+    const anioEl = document.getElementById('anio');
+    const btn = document.getElementById('btnConsultar');
+
+    const msgEl = document.getElementById('msg');
+    const tablaEl = document.getElementById('tabla');
+    const tbodyEl = document.getElementById('tbody');
+    const nombreEl = document.getElementById('nombre');
+    const totalEl = document.getElementById('total');
+    const tfootTotalEl = document.getElementById('tfootTotal');
+    const countEl = document.getElementById('count');
+
+    function setMsg(text, type) {
+      msgEl.textContent = text;
+      msgEl.className = 'msg' + (type ? ' ' + type : '');
+    }
+
+    function money(n){
+      const x = Number(n || 0);
+      return x.toLocaleString('es-HN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    // JSONP helper
+    function jsonp(url, params = {}) {
+      return new Promise((resolve, reject) => {
+        const cbName = 'cb_' + Math.random().toString(36).slice(2);
+        params.callback = cbName;
+
+        const qs = new URLSearchParams(params).toString();
+        const src = url + (url.includes('?') ? '&' : '?') + qs;
+
+        const script = document.createElement('script');
+        const timeout = setTimeout(() => {
+          cleanup();
+          reject(new Error('Tiempo de espera agotado'));
+        }, 15000);
+
+        function cleanup(){
+          clearTimeout(timeout);
+          delete window[cbName];
+          if (script.parentNode) script.parentNode.removeChild(script);
+        }
+
+        window[cbName] = (data) => {
+          cleanup();
+          resolve(data);
+        };
+
+        script.onerror = () => {
+          cleanup();
+          reject(new Error('No se pudo cargar el WebApp (URL incorrecta o permisos)'));
+        };
+
+        script.src = src;
+        document.body.appendChild(script);
+      });
+    }
+
+    async function consultar(){
+      const gsUrl = gsUrlEl.value.trim();
+      const codigof = codigoFEl.value.trim();
+      const year = anioEl.value;
+
+      if (!gsUrl) return setMsg('La URL del WebApp está vacía. Ábre “Fuentes” y revisa la URL /exec.', 'bad');
+      if (!gsUrl.includes('/exec')) return setMsg('Esa URL no parece ser /exec. Revisa el despliegue del WebApp.', 'bad');
+      if (!codigof) return setMsg('Escribe el Códigof para consultar.', 'bad');
+
+      setMsg('Consultando... 🔎', '');
+      tablaEl.style.display = 'none';
+      tbodyEl.innerHTML = '';
+      nombreEl.textContent = '—';
+      totalEl.textContent = '0.00';
+      tfootTotalEl.textContent = '0.00';
+      countEl.textContent = '0';
+
+      try{
+        const data = await jsonp(gsUrl, {
+          action: 'estadoCuenta',
+          codigof,
+          year
+        });
+
+        if (!data || data.ok !== true) {
+          throw new Error((data && data.error) ? data.error : 'Respuesta inválida');
+        }
+
+        const items = data.items || [];
+        nombreEl.textContent = data.nombre || '—';
+        totalEl.textContent = money(data.total);
+        tfootTotalEl.textContent = money(data.total);
+        countEl.textContent = String(items.length);
+
+        if (!items.length){
+          setMsg('No hay movimientos para ese Códigof (y año seleccionado).', 'bad');
+          return;
+        }
+
+        const rows = items.map(it => `
+          <tr>
+            <td>${it.Año || ''}</td>
+            <td>${it.Mes || ''}</td>
+            <td>${it.Concepto || ''}</td>
+            <td class="right">${money(it.Valor)}</td>
+          </tr>
+        `).join('');
+
+        tbodyEl.innerHTML = rows;
+        tablaEl.style.display = '';
+        setMsg('Listo ✅', 'ok');
+
+      } catch(err){
+        setMsg('Error: ' + err.message, 'bad');
+      }
+    }
+
+    btn.addEventListener('click', consultar);
+    codigoFEl.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') consultar();
+    });
+  </script>
+</body>
+</html>
