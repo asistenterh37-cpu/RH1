@@ -44,6 +44,11 @@
       border:1px solid rgba(79,124,255,.35);
       color:var(--text);
     }
+    .btn.danger{
+      background:rgba(239,68,68,.12);
+      border:1px solid rgba(239,68,68,.35);
+      color:#ffd5d5;
+    }
 
     .row2{ margin-top:14px; display:flex; gap:12px; flex-wrap:wrap; align-items:center; }
     .pill{
@@ -96,6 +101,7 @@
       font-size:12px;
     }
     a.link:hover{ filter:brightness(1.07); }
+    code.k{ font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size:12px; color:#cfe0ff; }
   </style>
 </head>
 <body>
@@ -116,25 +122,30 @@
 
           <div class="sourcesBody">
             <div class="small">
-              Si el WebApp no está público <strong>“Cualquier usuario, incluso anónimo”</strong>, el navegador lo bloquea y el JSONP no puede regresar.
+              Este módulo usa <strong>JSONP</strong> (carga el WebApp como <code class="k">&lt;script src="..."></code>).
+              Si la URL es vieja / apunta a <strong>/dev</strong> / o te redirige a login, el callback no llega y la consulta falla.
             </div>
 
             <div class="row2" style="margin-top:10px;">
               <div class="pill">Google Sheet: <strong id="sheetId">—</strong></div>
               <div class="pill">WebApp: <strong id="execOk">—</strong></div>
+              <div class="pill">URL usada: <strong id="execUrlShow">—</strong></div>
             </div>
 
             <div class="linkrow">
               <a class="link" id="sheetLink" href="#" target="_blank" rel="noopener">Abrir Google Sheet</a>
-              <a class="link" id="execLink" href="#" target="_blank" rel="noopener">Abrir WebApp /exec</a>
+              <a class="link" id="execLink" href="#" target="_blank" rel="noopener">Abrir WebApp (/exec)</a>
               <button class="btn ghost" id="btnPing" type="button">Probar WebApp</button>
+              <button class="btn ghost" id="btnDiag" type="button">Diagnóstico</button>
+              <button class="btn danger" id="btnReset" type="button">Reset URL</button>
             </div>
 
             <div style="margin-top:12px;">
               <label for="gsUrl">URL del WebApp (Apps Script /exec)</label>
               <input id="gsUrl" placeholder="Pega aquí tu URL .../exec" />
               <div class="small">
-                Debe terminar en <strong>/exec</strong>. Si al abrir /exec te manda a login, el acceso NO es anónimo.
+                ✅ Debe terminar en <strong>/exec</strong> (si pegás <strong>/dev</strong>, aquí lo convertimos a <strong>/exec</strong> automáticamente).<br/>
+                Tip: si acabás de “Implementar” de nuevo, <strong>copiá la nueva URL</strong> y pegala aquí (la vieja puede quedar 404).
               </div>
             </div>
           </div>
@@ -195,10 +206,12 @@
 
   <script>
     const DEFAULT_SHEET_URL = "https://docs.google.com/spreadsheets/d/1PeFt5YUi1W5jI-sHo75E-0CHQUihADd2u4uqmHU5AK8/edit?usp=sharing";
-    const DEFAULT_GS_EXEC_URL = "https://script.google.com/macros/s/AKfycbxZl3VZhk7wg5NvMOCtejgoVzRZ5cAELAHetNBbxVgoNGm9-IePVdeJhLcvvrehDYki3A/exec";
+    const DEFAULT_GS_EXEC_URL = "https://script.google.com/macros/s/AKfycbwz_XudRfKGwz_Us3PMoBv0oSIbNbZh8M0DG0aadUUAQxzA6brBQ_9gCeW_MNVIC9k3BQ/exec";
+    const LS_KEY = "PRSM_GS_URL";
 
     const sheetIdEl = document.getElementById('sheetId');
     const execOkEl = document.getElementById('execOk');
+    const execUrlShowEl = document.getElementById('execUrlShow');
     const sheetLinkEl = document.getElementById('sheetLink');
     const execLinkEl = document.getElementById('execLink');
 
@@ -210,27 +223,43 @@
     sheetLinkEl.href = DEFAULT_SHEET_URL;
 
     const gsUrlEl = document.getElementById('gsUrl');
-    const saved = localStorage.getItem('PRSM_GS_URL');
+    const saved = localStorage.getItem(LS_KEY);
     gsUrlEl.value = (saved && saved.trim()) ? saved.trim() : DEFAULT_GS_EXEC_URL;
+
+    function normalizeGsUrl(u){
+      u = String(u || "").trim();
+      if (!u) return "";
+      // Si te pegan /dev, lo convertimos a /exec (porque /dev no sirve para anónimo)
+      u = u.replace(/\/dev(\?.*)?$/i, "/exec");
+      // Si termina en /exec/ (slash extra), lo limpiamos
+      u = u.replace(/\/exec\/$/i, "/exec");
+      return u;
+    }
 
     function isExecUrl(u){
       u = String(u || "").trim();
-      return u.includes('/exec');
+      return /\/exec(\?.*)?$/i.test(u) || u.includes("/exec");
     }
 
     function refreshExecBadge(){
-      const u = gsUrlEl.value.trim();
+      const raw = gsUrlEl.value;
+      const u = normalizeGsUrl(raw);
+      if (u !== raw) gsUrlEl.value = u;
+
       execOkEl.textContent = isExecUrl(u) ? 'OK (/exec)' : 'Revisar';
       execLinkEl.href = u || '#';
+      execUrlShowEl.textContent = u ? u : '—';
     }
     refreshExecBadge();
 
-    // Guarda mientras escribís (evita el clásico “no disparó change”)
+    // Guarda mientras escribís
     let _saveTimer = null;
     gsUrlEl.addEventListener('input', () => {
       clearTimeout(_saveTimer);
       _saveTimer = setTimeout(() => {
-        localStorage.setItem('PRSM_GS_URL', gsUrlEl.value.trim());
+        const u = normalizeGsUrl(gsUrlEl.value);
+        gsUrlEl.value = u;
+        localStorage.setItem(LS_KEY, u);
         refreshExecBadge();
       }, 250);
     });
@@ -239,6 +268,8 @@
     const anioEl = document.getElementById('anio');
     const btn = document.getElementById('btnConsultar');
     const btnPing = document.getElementById('btnPing');
+    const btnDiag = document.getElementById('btnDiag');
+    const btnReset = document.getElementById('btnReset');
 
     const msgEl = document.getElementById('msg');
     const tablaEl = document.getElementById('tabla');
@@ -268,11 +299,14 @@
         const src = url + (url.includes('?') ? '&' : '?') + qs;
 
         const script = document.createElement('script');
+        script.async = true;
+
         const timeout = setTimeout(() => {
           cleanup();
           reject(new Error(
-            'Tiempo de espera agotado. Si tu WebApp NO está como “Cualquier usuario, incluso anónimo”, ' +
-            'Google redirige a login y el callback nunca llega.'
+            'Timeout esperando el callback JSONP.\n' +
+            'URL usada: ' + src + '\n' +
+            'Esto pasa si la URL es vieja (404), apunta a /dev, o redirige a login.'
           ));
         }, timeoutMs);
 
@@ -287,7 +321,9 @@
         script.onerror = () => {
           cleanup();
           reject(new Error(
-            'No se pudo cargar el WebApp. Revisa: (1) que la URL termine en /exec y (2) permisos: “Cualquier usuario, incluso anónimo”.'
+            'Falló la carga del <script> (JSONP).\n' +
+            'URL usada: ' + src + '\n' +
+            'Revisa que sea /exec ACTUAL y que el despliegue permita “Cualquier usuario”.'
           ));
         };
 
@@ -296,10 +332,22 @@
       });
     }
 
+    function getExecUrlOrExplain(){
+      const gsUrl = normalizeGsUrl(gsUrlEl.value);
+      if (!gsUrl) {
+        setMsg('La URL del WebApp está vacía. Ábre “Fuentes” y pega la /exec.', 'bad');
+        return null;
+      }
+      if (!isExecUrl(gsUrl)) {
+        setMsg('Esa URL no parece /exec. Pega la URL de Implementación WebApp que termina en /exec.', 'bad');
+        return null;
+      }
+      return gsUrl;
+    }
+
     async function ping(){
-      const gsUrl = gsUrlEl.value.trim();
-      if (!gsUrl) return setMsg('La URL del WebApp está vacía. Ábre “Fuentes” y pega la /exec.', 'bad');
-      if (!isExecUrl(gsUrl)) return setMsg('Esa URL no parece ser /exec. Revisa el despliegue del WebApp.', 'bad');
+      const gsUrl = getExecUrlOrExplain();
+      if (!gsUrl) return;
 
       setMsg('Probando WebApp... 🧪', '');
       try{
@@ -311,13 +359,34 @@
       }
     }
 
+    function diagnostico(){
+      const gsUrl = getExecUrlOrExplain();
+      if (!gsUrl) return;
+
+      const cb = "diag_" + Math.random().toString(36).slice(2);
+      const url = gsUrl + (gsUrl.includes('?') ? '&' : '?') +
+        new URLSearchParams({ action: "ping", callback: cb, ts: Date.now() }).toString();
+
+      // Abrimos en nueva pestaña para que veas si devuelve JS tipo: diag_xxx({...});
+      window.open(url, "_blank", "noopener");
+      setMsg('Diagnóstico: abrí una pestaña con el ping. Si ves algo tipo "' + cb + '(...)" entonces el WebApp responde bien.', '');
+    }
+
+    function resetUrl(){
+      localStorage.removeItem(LS_KEY);
+      gsUrlEl.value = DEFAULT_GS_EXEC_URL;
+      localStorage.setItem(LS_KEY, DEFAULT_GS_EXEC_URL);
+      refreshExecBadge();
+      setMsg('URL reseteada a la default. Si recién re-implementaste, pegá la NUEVA /exec en “Fuentes”.', '');
+    }
+
     async function consultar(){
-      const gsUrl = gsUrlEl.value.trim();
+      const gsUrl = getExecUrlOrExplain();
+      if (!gsUrl) return;
+
       const codigof = codigoFEl.value.trim();
       const year = anioEl.value;
 
-      if (!gsUrl) return setMsg('La URL del WebApp está vacía. Ábre “Fuentes” y pega la /exec.', 'bad');
-      if (!isExecUrl(gsUrl)) return setMsg('Esa URL no parece ser /exec. Revisa el despliegue del WebApp.', 'bad');
       if (!codigof) return setMsg('Escribe el Códigof para consultar.', 'bad');
 
       setMsg('Consultando... 🔎', '');
@@ -364,6 +433,9 @@
     }
 
     btnPing.addEventListener('click', ping);
+    btnDiag.addEventListener('click', diagnostico);
+    btnReset.addEventListener('click', resetUrl);
+
     btn.addEventListener('click', consultar);
     codigoFEl.addEventListener('keydown', (e) => { if (e.key === 'Enter') consultar(); });
   </script>
