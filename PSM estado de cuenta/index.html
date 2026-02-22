@@ -73,8 +73,8 @@
         <div class="sourcesBody">
           <div class="small">
             Este módulo usa <strong>JSONP</strong> (carga el WebApp como <code class="k">&lt;script src="..."></code>).<br/>
-            Si el WebApp devuelve <strong>HTML</strong> (login/permisos) en vez de <strong>JavaScript</strong> tipo
-            <code class="k">callback({...});</code>, el navegador <strong>NO ejecuta callback</strong> y termina en timeout.
+            Si el WebApp devuelve <strong>HTML</strong> (error/login) en vez de JavaScript <code class="k">callback({...});</code>,
+            el navegador puede bloquearlo como script (y verás errores tipo <strong>Unexpected token &lt;</strong> o <strong>script error</strong>).
           </div>
 
           <div class="row2" style="margin-top:10px;">
@@ -96,8 +96,7 @@
             <input id="gsUrl" placeholder="Pega aquí tu URL .../exec" />
             <div class="small">
               ✅ Debe terminar en <strong>/exec</strong> (si pegás <strong>/dev</strong>, lo convertimos).<br/>
-              🔒 Recomendación real: NO estar creando deployments nuevos; mejor <strong>“Edit” al deployment existente</strong>
-              para no cambiar URL.
+              ⚠️ Si vuelves a crear deployment nuevo, la URL cambia: pega la nueva.
             </div>
           </div>
         </div>
@@ -154,7 +153,7 @@
 
 <script>
   const DEFAULT_SHEET_URL = "https://docs.google.com/spreadsheets/d/1PeFt5YUi1W5jI-sHo75E-0CHQUihADd2u4uqmHU5AK8/edit?usp=sharing";
-  const DEFAULT_GS_EXEC_URL = "https://script.google.com/macros/s/AKfycbwDL_Jv52Z63MHtye_9hQGhxtnnvMAniolN3LDZVwY-sExOMp_-VMdI8EopCK-k_poP/exec";
+  const DEFAULT_GS_EXEC_URL = "https://script.google.com/macros/s/AKfycbwUukaQF2OseqktwViY19gI3JRqaTg3tOE6WDi_bdXXpd6lNSJEb74Q1kHq2r4jHoKBgg/exec";
   const LS_KEY = "PRSM_GS_URL";
 
   const sheetIdEl = document.getElementById('sheetId');
@@ -229,7 +228,30 @@
     return x.toLocaleString('es-HN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
 
-  // JSONP robusto
+  function getExecUrlOrExplain(){
+    const gsUrl = normalizeGsUrl(gsUrlEl.value);
+    if (!gsUrl) { setMsg('La URL del WebApp está vacía. Abre “Fuentes” y pega la /exec.', 'bad'); return null; }
+    if (!isExecUrl(gsUrl)) { setMsg('Esa URL no parece /exec. Pega la URL que termina en /exec.', 'bad'); return null; }
+    return gsUrl;
+  }
+
+  // Captura errores de scripts (si el WebApp devuelve HTML: "Unexpected token <")
+  window.addEventListener("error", (ev) => {
+    const msg = String(ev.message || "");
+    if (msg.includes("Unexpected token") || msg.includes("Script error") || msg.includes("<")) {
+      // No spamear: solo si justo estábamos consultando/pingeando
+      // Igual lo mostramos para que no quede “misterio”
+      setMsg(
+        "Error de ejecución del script (probable HTML en vez de JS).\n" +
+        "Esto pasa si la URL /exec devuelve login/error/HTML.\n\n" +
+        "Detalle: " + msg + "\n\n" +
+        "Usa el botón “Diagnóstico”. Si en esa pestaña NO ves cb_xxx({...});, tu deployment/URL está mal.",
+        "bad"
+      );
+    }
+  }, true);
+
+  // JSONP robusto + mensajes con causa probable
   function jsonp(url, params = {}, timeoutMs = 15000) {
     return new Promise((resolve, reject) => {
       const cbName = 'cb_' + Math.random().toString(36).slice(2);
@@ -241,49 +263,53 @@
 
       const script = document.createElement('script');
       script.async = true;
+      script.type = "text/javascript";
+      script.referrerPolicy = "no-referrer";
 
+      let finished = false;
       let loaded = false;
-      const timeout = setTimeout(() => {
-        cleanup();
-        reject(new Error(
-          'Timeout esperando callback JSONP.\n' +
-          'URL: ' + src + '\n' +
-          (loaded
-            ? 'El <script> cargó, pero NO ejecutó callback. Eso pasa si el WebApp devolvió HTML en vez de callback({...});'
-            : 'El <script> no cargó. Puede ser 404/URL vieja o bloqueo por extensión.')
-        ));
-      }, timeoutMs);
 
-      function cleanup(){
-        clearTimeout(timeout);
+      function done(err, data){
+        if (finished) return;
+        finished = true;
+        clearTimeout(timer);
         try { delete window[cbName]; } catch(_){}
         if (script.parentNode) script.parentNode.removeChild(script);
+        err ? reject(err) : resolve(data);
       }
 
-      window[cbName] = (data) => { cleanup(); resolve(data); };
+      window[cbName] = (data) => done(null, data);
+
       script.onload = () => { loaded = true; };
       script.onerror = () => {
-        cleanup();
-        reject(new Error(
-          'Falló la carga del <script> (JSONP).\n' +
-          'URL: ' + src + '\n\n' +
-          'Causas típicas:\n' +
-          '• URL /exec vieja o incorrecta (deployment cambiado)\n' +
-          '• Bloqueo por AdBlock/Tracking protection\n' +
-          '• WebApp no público'
-        ));
+        // Esto es bloqueo o error de red o bloqueo por MIME/nosniff
+        const hint =
+          "Falló la carga del <script> (JSONP).\n" +
+          "URL: " + src + "\n\n" +
+          "Causas más comunes:\n" +
+          "• URL /exec vieja (deployment cambiado)\n" +
+          "• Protección de rastreo / AdBlock bloqueando script.google.com\n" +
+          "• El WebApp está devolviendo HTML y el navegador lo bloquea como JS (nosniff)\n\n" +
+          "Prueba: abre “Diagnóstico” y revisa si ves cb_xxx({...});";
+        done(new Error(hint));
       };
 
-      script.src = src;
-      document.body.appendChild(script);
-    });
-  }
+      const timer = setTimeout(() => {
+        const hint =
+          "Timeout esperando callback JSONP.\n" +
+          "URL: " + src + "\n\n" +
+          (loaded
+            ? "El <script> cargó, pero NO ejecutó callback.\n" +
+              "Eso pasa si el WebApp devolvió HTML (login/error) o si tu callback fue rechazado.\n" +
+              "Usa “Diagnóstico” para confirmarlo."
+            : "El <script> no llegó a cargar.\n" +
+              "Esto suele ser bloqueo/extensión o URL incorrecta.");
+        done(new Error(hint));
+      }, timeoutMs);
 
-  function getExecUrlOrExplain(){
-    const gsUrl = normalizeGsUrl(gsUrlEl.value);
-    if (!gsUrl) { setMsg('La URL del WebApp está vacía. Abre “Fuentes” y pega la /exec.', 'bad'); return null; }
-    if (!isExecUrl(gsUrl)) { setMsg('Esa URL no parece /exec. Pega la URL que termina en /exec.', 'bad'); return null; }
-    return gsUrl;
+      script.src = src;
+      document.head.appendChild(script);
+    });
   }
 
   async function ping(){
@@ -303,12 +329,14 @@
     const cb = "diag_" + Math.random().toString(36).slice(2);
     const url = gsUrl + (gsUrl.includes('?') ? '&' : '?') +
       new URLSearchParams({ action: "diag", callback: cb, ts: Date.now() }).toString();
+
     window.open(url, "_blank", "noopener");
+
     setMsg(
-      'Diagnóstico abierto en nueva pestaña.\n' +
-      '✅ Debe verse EXACTO algo como: ' + cb + '({...});\n' +
-      '❌ Si ves HTML/login o 404, tu WebApp/URL está mal.',
-      ''
+      "Diagnóstico abierto en nueva pestaña.\n" +
+      "✅ Debes ver EXACTO algo como: " + cb + "({...});\n" +
+      "❌ Si ves HTML / login / error, tu deployment/URL no está bien (o estás usando /exec viejo).",
+      ""
     );
   }
 
