@@ -102,14 +102,13 @@
 
       <div class="body">
 
-        <!-- Fuentes / claves (Sheet + WebApp) -->
         <details class="sources" id="sources">
           <summary>
             <span>Fuentes (Sheet + WebApp)</span>
             <span class="pill" style="margin:0;">Soporte</span>
           </summary>
           <div class="sourcesBody">
-            <div class="small">Si algo falla, aquí están las “claves” (las URLs) para revisar rápido.</div>
+            <div class="small">Si algo falla, aquí están las URLs. Si el WebApp no está público, el navegador lo bloquea (sí, dramático, pero real).</div>
 
             <div class="row2" style="margin-top:10px;">
               <div class="pill">Google Sheet: <strong id="sheetId">—</strong></div>
@@ -124,7 +123,7 @@
             <div style="margin-top:12px;">
               <label for="gsUrl">URL del WebApp (Apps Script /exec)</label>
               <input id="gsUrl" placeholder="Pega aquí tu URL .../exec" />
-              <div class="small">Tip: si no termina en <strong>/exec</strong>, esa URL no es la buena (es como llamar a la pizza por fax).</div>
+              <div class="small">Debe terminar en <strong>/exec</strong>. Si pide login: el despliegue no está “Cualquiera”.</div>
             </div>
           </div>
         </details>
@@ -158,7 +157,7 @@
           <div class="pill">Total: <strong id="total">0.00</strong></div>
         </div>
 
-        <div id="msg" class="msg">Escribe el Códigof y presiona “Consultar”. (La URL ya quedó configurada.)</div>
+        <div id="msg" class="msg">Escribe el Códigof y presiona “Consultar”.</div>
 
         <table id="tabla" style="display:none;">
           <thead>
@@ -183,13 +182,9 @@
   </div>
 
   <script>
-    // =========================
-    // CLAVES / FUENTES (URLs)
-    // =========================
     const DEFAULT_SHEET_URL = "https://docs.google.com/spreadsheets/d/1PeFt5YUi1W5jI-sHo75E-0CHQUihADd2u4uqmHU5AK8/edit?usp=sharing";
-    const DEFAULT_GS_EXEC_URL = "https://script.google.com/macros/s/AKfycbxZCmEcchx7IXsnhfSpKtWjK7gI9WmMFo77jWuOyJnmFxyrqx96QjvE-r-Y9N2gRcsq/exec";
+    const DEFAULT_GS_EXEC_URL = "https://script.google.com/macros/s/AKfycbz_ZYVRgVWVc05-xBPU8F14cCgCmDJmgc0PaBdTju03KowGT2ymLWnLvV8WfwbWg4WTjA/exec";
 
-    // Mostrar fuentes arriba
     const sheetIdEl = document.getElementById('sheetId');
     const execOkEl = document.getElementById('execOk');
     const sheetLinkEl = document.getElementById('sheetLink');
@@ -199,23 +194,23 @@
       const m = String(url || "").match(/\/spreadsheets\/d\/([^/]+)/i);
       return m ? m[1] : "—";
     }
-
     sheetIdEl.textContent = getSheetId(DEFAULT_SHEET_URL);
-    execOkEl.textContent = DEFAULT_GS_EXEC_URL.includes('/exec') ? 'OK (/exec)' : 'Revisar';
     sheetLinkEl.href = DEFAULT_SHEET_URL;
-    execLinkEl.href = DEFAULT_GS_EXEC_URL;
 
-    // =========================
-    // Guardar URL en localStorage
-    // =========================
     const gsUrlEl = document.getElementById('gsUrl');
-
-    // Si ya existe una guardada, úsala. Si no, usa la default que nos diste.
     const saved = localStorage.getItem('PRSM_GS_URL');
     gsUrlEl.value = (saved && saved.trim()) ? saved.trim() : DEFAULT_GS_EXEC_URL;
 
+    function refreshExecBadge(){
+      const u = gsUrlEl.value.trim();
+      execOkEl.textContent = u.includes('/exec') ? 'OK (/exec)' : 'Revisar';
+      execLinkEl.href = u || '#';
+    }
+    refreshExecBadge();
+
     gsUrlEl.addEventListener('change', () => {
       localStorage.setItem('PRSM_GS_URL', gsUrlEl.value.trim());
+      refreshExecBadge();
     });
 
     const codigoFEl = document.getElementById('codigoF');
@@ -240,8 +235,7 @@
       return x.toLocaleString('es-HN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     }
 
-    // JSONP helper
-    function jsonp(url, params = {}) {
+    function jsonp(url, params = {}, timeoutMs = 15000) {
       return new Promise((resolve, reject) => {
         const cbName = 'cb_' + Math.random().toString(36).slice(2);
         params.callback = cbName;
@@ -252,12 +246,12 @@
         const script = document.createElement('script');
         const timeout = setTimeout(() => {
           cleanup();
-          reject(new Error('Tiempo de espera agotado'));
-        }, 15000);
+          reject(new Error('Tiempo de espera agotado. (Si el WebApp pide login, el callback nunca llega)'));
+        }, timeoutMs);
 
         function cleanup(){
           clearTimeout(timeout);
-          delete window[cbName];
+          try { delete window[cbName]; } catch(_){}
           if (script.parentNode) script.parentNode.removeChild(script);
         }
 
@@ -268,7 +262,7 @@
 
         script.onerror = () => {
           cleanup();
-          reject(new Error('No se pudo cargar el WebApp (URL incorrecta o permisos)'));
+          reject(new Error('No se pudo cargar el WebApp. Causa típica: despliegue NO público (permiso) o URL /exec inválida.'));
         };
 
         script.src = src;
@@ -281,7 +275,7 @@
       const codigof = codigoFEl.value.trim();
       const year = anioEl.value;
 
-      if (!gsUrl) return setMsg('La URL del WebApp está vacía. Ábre “Fuentes” y revisa la URL /exec.', 'bad');
+      if (!gsUrl) return setMsg('La URL del WebApp está vacía. Ábre “Fuentes” y pega la /exec.', 'bad');
       if (!gsUrl.includes('/exec')) return setMsg('Esa URL no parece ser /exec. Revisa el despliegue del WebApp.', 'bad');
       if (!codigof) return setMsg('Escribe el Códigof para consultar.', 'bad');
 
@@ -294,14 +288,10 @@
       countEl.textContent = '0';
 
       try{
-        const data = await jsonp(gsUrl, {
-          action: 'estadoCuenta',
-          codigof,
-          year
-        });
+        const data = await jsonp(gsUrl, { action: 'estadoCuenta', codigof, year });
 
         if (!data || data.ok !== true) {
-          throw new Error((data && data.error) ? data.error : 'Respuesta inválida');
+          throw new Error((data && data.error) ? data.error : 'Respuesta inválida del WebApp');
         }
 
         const items = data.items || [];
@@ -315,7 +305,7 @@
           return;
         }
 
-        const rows = items.map(it => `
+        tbodyEl.innerHTML = items.map(it => `
           <tr>
             <td>${it.Año || ''}</td>
             <td>${it.Mes || ''}</td>
@@ -324,7 +314,6 @@
           </tr>
         `).join('');
 
-        tbodyEl.innerHTML = rows;
         tablaEl.style.display = '';
         setMsg('Listo ✅', 'ok');
 
