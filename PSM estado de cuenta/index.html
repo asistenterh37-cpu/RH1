@@ -39,6 +39,12 @@
       white-space:nowrap;
     }
     .btn:hover{ filter:brightness(1.05); }
+    .btn.ghost{
+      background:rgba(79,124,255,.12);
+      border:1px solid rgba(79,124,255,.35);
+      color:var(--text);
+    }
+
     .row2{ margin-top:14px; display:flex; gap:12px; flex-wrap:wrap; align-items:center; }
     .pill{
       border:1px solid var(--line); background:rgba(15,23,48,.65);
@@ -107,8 +113,11 @@
             <span>Fuentes (Sheet + WebApp)</span>
             <span class="pill" style="margin:0;">Soporte</span>
           </summary>
+
           <div class="sourcesBody">
-            <div class="small">Si algo falla, aquí están las URLs. Si el WebApp no está público, el navegador lo bloquea (sí, dramático, pero real).</div>
+            <div class="small">
+              Si el WebApp no está público <strong>“Cualquier usuario, incluso anónimo”</strong>, el navegador lo bloquea y el JSONP no puede regresar.
+            </div>
 
             <div class="row2" style="margin-top:10px;">
               <div class="pill">Google Sheet: <strong id="sheetId">—</strong></div>
@@ -118,12 +127,15 @@
             <div class="linkrow">
               <a class="link" id="sheetLink" href="#" target="_blank" rel="noopener">Abrir Google Sheet</a>
               <a class="link" id="execLink" href="#" target="_blank" rel="noopener">Abrir WebApp /exec</a>
+              <button class="btn ghost" id="btnPing" type="button">Probar WebApp</button>
             </div>
 
             <div style="margin-top:12px;">
               <label for="gsUrl">URL del WebApp (Apps Script /exec)</label>
               <input id="gsUrl" placeholder="Pega aquí tu URL .../exec" />
-              <div class="small">Debe terminar en <strong>/exec</strong>. Si pide login: el despliegue no está “Cualquiera”.</div>
+              <div class="small">
+                Debe terminar en <strong>/exec</strong>. Si al abrir /exec te manda a login, el acceso NO es anónimo.
+              </div>
             </div>
           </div>
         </details>
@@ -144,7 +156,7 @@
           </div>
 
           <div>
-            <button class="btn" id="btnConsultar">Consultar</button>
+            <button class="btn" id="btnConsultar" type="button">Consultar</button>
           </div>
 
           <div class="pill" title="Solo para que se vea pro 😄">
@@ -183,7 +195,7 @@
 
   <script>
     const DEFAULT_SHEET_URL = "https://docs.google.com/spreadsheets/d/1PeFt5YUi1W5jI-sHo75E-0CHQUihADd2u4uqmHU5AK8/edit?usp=sharing";
-    const DEFAULT_GS_EXEC_URL = "https://script.google.com/macros/s/AKfycbz_ZYVRgVWVc05-xBPU8F14cCgCmDJmgc0PaBdTju03KowGT2ymLWnLvV8WfwbWg4WTjA/exec";
+    const DEFAULT_GS_EXEC_URL = "https://script.google.com/macros/s/AKfycbxZl3VZhk7wg5NvMOCtejgoVzRZ5cAELAHetNBbxVgoNGm9-IePVdeJhLcvvrehDYki3A/exec";
 
     const sheetIdEl = document.getElementById('sheetId');
     const execOkEl = document.getElementById('execOk');
@@ -201,21 +213,32 @@
     const saved = localStorage.getItem('PRSM_GS_URL');
     gsUrlEl.value = (saved && saved.trim()) ? saved.trim() : DEFAULT_GS_EXEC_URL;
 
+    function isExecUrl(u){
+      u = String(u || "").trim();
+      return u.includes('/exec');
+    }
+
     function refreshExecBadge(){
       const u = gsUrlEl.value.trim();
-      execOkEl.textContent = u.includes('/exec') ? 'OK (/exec)' : 'Revisar';
+      execOkEl.textContent = isExecUrl(u) ? 'OK (/exec)' : 'Revisar';
       execLinkEl.href = u || '#';
     }
     refreshExecBadge();
 
-    gsUrlEl.addEventListener('change', () => {
-      localStorage.setItem('PRSM_GS_URL', gsUrlEl.value.trim());
-      refreshExecBadge();
+    // Guarda mientras escribís (evita el clásico “no disparó change”)
+    let _saveTimer = null;
+    gsUrlEl.addEventListener('input', () => {
+      clearTimeout(_saveTimer);
+      _saveTimer = setTimeout(() => {
+        localStorage.setItem('PRSM_GS_URL', gsUrlEl.value.trim());
+        refreshExecBadge();
+      }, 250);
     });
 
     const codigoFEl = document.getElementById('codigoF');
     const anioEl = document.getElementById('anio');
     const btn = document.getElementById('btnConsultar');
+    const btnPing = document.getElementById('btnPing');
 
     const msgEl = document.getElementById('msg');
     const tablaEl = document.getElementById('tabla');
@@ -239,6 +262,7 @@
       return new Promise((resolve, reject) => {
         const cbName = 'cb_' + Math.random().toString(36).slice(2);
         params.callback = cbName;
+        params.ts = Date.now(); // anti-cache
 
         const qs = new URLSearchParams(params).toString();
         const src = url + (url.includes('?') ? '&' : '?') + qs;
@@ -246,7 +270,10 @@
         const script = document.createElement('script');
         const timeout = setTimeout(() => {
           cleanup();
-          reject(new Error('Tiempo de espera agotado. (Si el WebApp pide login, el callback nunca llega)'));
+          reject(new Error(
+            'Tiempo de espera agotado. Si tu WebApp NO está como “Cualquier usuario, incluso anónimo”, ' +
+            'Google redirige a login y el callback nunca llega.'
+          ));
         }, timeoutMs);
 
         function cleanup(){
@@ -255,19 +282,33 @@
           if (script.parentNode) script.parentNode.removeChild(script);
         }
 
-        window[cbName] = (data) => {
-          cleanup();
-          resolve(data);
-        };
+        window[cbName] = (data) => { cleanup(); resolve(data); };
 
         script.onerror = () => {
           cleanup();
-          reject(new Error('No se pudo cargar el WebApp. Causa típica: despliegue NO público (permiso) o URL /exec inválida.'));
+          reject(new Error(
+            'No se pudo cargar el WebApp. Revisa: (1) que la URL termine en /exec y (2) permisos: “Cualquier usuario, incluso anónimo”.'
+          ));
         };
 
         script.src = src;
         document.body.appendChild(script);
       });
+    }
+
+    async function ping(){
+      const gsUrl = gsUrlEl.value.trim();
+      if (!gsUrl) return setMsg('La URL del WebApp está vacía. Ábre “Fuentes” y pega la /exec.', 'bad');
+      if (!isExecUrl(gsUrl)) return setMsg('Esa URL no parece ser /exec. Revisa el despliegue del WebApp.', 'bad');
+
+      setMsg('Probando WebApp... 🧪', '');
+      try{
+        const data = await jsonp(gsUrl, { action: 'ping' }, 12000);
+        if (!data || data.ok !== true) throw new Error((data && data.error) ? data.error : 'Respuesta inválida');
+        setMsg('WebApp OK ✅ (' + (data.message || 'pong') + ')', 'ok');
+      }catch(err){
+        setMsg('Error: ' + err.message, 'bad');
+      }
     }
 
     async function consultar(){
@@ -276,7 +317,7 @@
       const year = anioEl.value;
 
       if (!gsUrl) return setMsg('La URL del WebApp está vacía. Ábre “Fuentes” y pega la /exec.', 'bad');
-      if (!gsUrl.includes('/exec')) return setMsg('Esa URL no parece ser /exec. Revisa el despliegue del WebApp.', 'bad');
+      if (!isExecUrl(gsUrl)) return setMsg('Esa URL no parece ser /exec. Revisa el despliegue del WebApp.', 'bad');
       if (!codigof) return setMsg('Escribe el Códigof para consultar.', 'bad');
 
       setMsg('Consultando... 🔎', '');
@@ -288,7 +329,7 @@
       countEl.textContent = '0';
 
       try{
-        const data = await jsonp(gsUrl, { action: 'estadoCuenta', codigof, year });
+        const data = await jsonp(gsUrl, { action: 'estadoCuenta', codigof, year }, 18000);
 
         if (!data || data.ok !== true) {
           throw new Error((data && data.error) ? data.error : 'Respuesta inválida del WebApp');
@@ -322,10 +363,9 @@
       }
     }
 
+    btnPing.addEventListener('click', ping);
     btn.addEventListener('click', consultar);
-    codigoFEl.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') consultar();
-    });
+    codigoFEl.addEventListener('keydown', (e) => { if (e.key === 'Enter') consultar(); });
   </script>
 </body>
 </html>
