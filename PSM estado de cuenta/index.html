@@ -41,6 +41,32 @@
     .msg.ok{ border-color: rgba(34,197,94,.5); }
     .msg.bad{ border-color: rgba(239,68,68,.5); color:#ffd5d5; }
 
+    .panel{
+      margin-top:12px;
+      border:1px solid rgba(79,124,255,.25);
+      background:rgba(79,124,255,.06);
+      border-radius:14px;
+      padding:12px;
+      display:none;
+    }
+    .panel h3{
+      margin:0 0 10px;
+      font-size:13px;
+      color:var(--text);
+      letter-spacing:.2px;
+    }
+    .panelGrid{
+      display:grid;
+      grid-template-columns: 1fr 1.2fr auto;
+      gap:12px;
+      align-items:end;
+    }
+    .hint{
+      font-size:12px;
+      color:var(--muted);
+      margin-top:8px;
+    }
+
     /* ✅ TABLA: desktop */
     .tableWrap{ margin-top:14px; }
     table{
@@ -107,6 +133,8 @@
       h2{ font-size:13px; }
 
       .grid{ grid-template-columns: 1fr; align-items:stretch; }
+
+      .panelGrid{ grid-template-columns: 1fr; }
 
       .tableWrap{
         overflow-x:auto;
@@ -197,31 +225,11 @@
         </div>
       </details>
 
-      <!-- ✅ NUEVO: Referencia + Aplicar -->
+      <!-- ✅ 1) PRIMERO: CONSULTAR -->
       <div class="grid" style="margin-bottom:12px;">
         <div>
-          <label for="referencia">Referencia</label>
-          <input id="referencia" placeholder="Ej: FT25042C8BQT" />
-        </div>
-        <div>
-          <label>&nbsp;</label>
-          <div class="small" style="margin:0; padding:12px; border:1px dashed rgba(79,124,255,.35); border-radius:12px; background:rgba(79,124,255,.06);">
-            Busca la referencia en la hoja <strong>Base</strong> y aplica el Código F.
-          </div>
-        </div>
-        <div>
-          <button class="btn" id="btnAplicar" type="button">Aplicar</button>
-        </div>
-        <div class="pill" title="Estado de aplicación">
-          Estado: <strong id="estadoAplicar">—</strong>
-        </div>
-      </div>
-
-      <!-- Consulta normal -->
-      <div class="grid">
-        <div>
           <label for="codigoF">Código F</label>
-          <input id="codigoF" placeholder="Ej: 336ab" />
+          <input id="codigoF" placeholder="Ej: 336" />
         </div>
         <div>
           <label for="anio">Año</label>
@@ -239,12 +247,56 @@
         </div>
       </div>
 
+      <!-- ✅ 2) DESPUÉS: APLICAR -->
+      <div class="grid" style="margin-bottom:12px;">
+        <div>
+          <label for="referencia">Referencia</label>
+          <input id="referencia" placeholder="Ej: FT25042C8BQT" />
+        </div>
+        <div>
+          <label>&nbsp;</label>
+          <div class="small" style="margin:0; padding:12px; border:1px dashed rgba(79,124,255,.35); border-radius:12px; background:rgba(79,124,255,.06);">
+            Busca la referencia en la hoja <strong>Base</strong>. Si existe, podrás llenar Código F y Nombre y guardar.
+          </div>
+        </div>
+        <div style="display:flex; gap:10px;">
+          <button class="btn" id="btnAplicar" type="button">Aplicar</button>
+          <button class="btn ghost" id="btnLimpiar" type="button">Limpiar</button>
+        </div>
+        <div class="pill" title="Estado de aplicación">
+          Estado: <strong id="estadoAplicar">—</strong>
+        </div>
+      </div>
+
+      <!-- Panel de Guardar (solo si referencia existe) -->
+      <div class="panel" id="panelGuardar">
+        <h3>Guardar datos para la referencia: <span style="font-family:ui-monospace,Menlo,Consolas,monospace" id="refSeleccionada">—</span></h3>
+
+        <div class="panelGrid">
+          <div>
+            <label for="codigoFNuevo">Código F</label>
+            <input id="codigoFNuevo" placeholder="(vacío) ingrésalo aquí" />
+          </div>
+
+          <div>
+            <label for="nombreNuevo">Nombre</label>
+            <input id="nombreNuevo" placeholder="(vacío) ingrésalo aquí" />
+          </div>
+
+          <div>
+            <button class="btn" id="btnGuardar" type="button">Guardar</button>
+          </div>
+        </div>
+
+        <div class="hint">Tip: aquí no adivinamos nada 😄 — tú mandas el Código F y el Nombre, y se guardan en la hoja Base.</div>
+      </div>
+
       <div class="row2">
         <div class="pill">Nombre: <strong id="nombre">—</strong></div>
         <div class="pill">Total: <strong id="total">0.00</strong></div>
       </div>
 
-      <div id="msg" class="msg">Escribe una Referencia y presiona “Aplicar”, o escribe el Código F y presiona “Consultar”.</div>
+      <div id="msg" class="msg">Primero puedes “Consultar” por Código F, o “Aplicar” una Referencia para luego guardar Código F y Nombre.</div>
 
       <div class="tableWrap">
         <table id="tabla" style="display:none;">
@@ -280,7 +332,7 @@
 
 <script>
   const DEFAULT_SHEET_URL = "https://docs.google.com/spreadsheets/d/1PeFt5YUi1W5jI-sHo75E-0CHQUihADd2u4uqmHU5AK8/edit?usp=sharing";
-  const DEFAULT_GS_EXEC_URL = "https://script.google.com/macros/s/AKfycbwH3kGi1-OeKMsOCiasMcFwlFAe-m8ue7NucPsmEMX1BhtZ5vpXcCGzKA60HyeB2G496w/exec";
+  const DEFAULT_GS_EXEC_URL = "https://script.google.com/macros/s/AKfycbxmyKFbzANWEQ7psB1HwjSeRwD6cb0_8l-iA7R6xqjDK5Ov0J3PCeyooVJzQAe6jZdH2g/exec";
   const LS_KEY = "PRSM_GS_URL";
 
   const sheetIdEl = document.getElementById('sheetId');
@@ -334,14 +386,17 @@
 
   const referenciaEl = document.getElementById('referencia');
   const btnAplicar = document.getElementById('btnAplicar');
+  const btnLimpiar = document.getElementById('btnLimpiar');
   const estadoAplicarEl = document.getElementById('estadoAplicar');
 
   const codigoFEl = document.getElementById('codigoF');
   const anioEl = document.getElementById('anio');
   const btnConsultar = document.getElementById('btnConsultar');
+
   const btnPing = document.getElementById('btnPing');
   const btnDiag = document.getElementById('btnDiag');
   const btnReset = document.getElementById('btnReset');
+
   const msgEl = document.getElementById('msg');
   const tablaEl = document.getElementById('tabla');
   const tbodyEl = document.getElementById('tbody');
@@ -350,10 +405,21 @@
   const tfootTotalEl = document.getElementById('tfootTotal');
   const countEl = document.getElementById('count');
 
+  // Panel guardar
+  const panelGuardarEl = document.getElementById('panelGuardar');
+  const refSeleccionadaEl = document.getElementById('refSeleccionada');
+  const codigoFNuevoEl = document.getElementById('codigoFNuevo');
+  const nombreNuevoEl = document.getElementById('nombreNuevo');
+  const btnGuardar = document.getElementById('btnGuardar');
+
+  // Estado interno
+  let referenciaActiva = "";
+
   function setMsg(text, type) {
     msgEl.textContent = text;
     msgEl.className = 'msg' + (type ? ' ' + type : '');
   }
+
   function money(n){
     const x = Number(n || 0);
     return x.toLocaleString('es-HN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -365,6 +431,23 @@
     totalEl.textContent = '0.00';
     tfootTotalEl.textContent = '0.00';
     countEl.textContent = '0';
+  }
+
+  function hidePanelGuardar(){
+    panelGuardarEl.style.display = 'none';
+    refSeleccionadaEl.textContent = '—';
+    codigoFNuevoEl.value = '';
+    nombreNuevoEl.value = '';
+    referenciaActiva = '';
+  }
+
+  function showPanelGuardar(referencia){
+    referenciaActiva = referencia;
+    refSeleccionadaEl.textContent = referencia;
+    // Campos vacíos (requisito)
+    codigoFNuevoEl.value = '';
+    nombreNuevoEl.value = '';
+    panelGuardarEl.style.display = '';
   }
 
   function getExecUrlOrExplain(){
@@ -401,7 +484,6 @@
       }
 
       window[cbName] = (data) => done(null, data);
-
       script.onload = () => { loaded = true; };
 
       script.onerror = () => {
@@ -470,19 +552,35 @@
     setMsg('URL reseteada. Si re-implementaste, pega la NUEVA /exec en “Fuentes”.', '');
   }
 
-  // ✅ NUEVO: Aplicar por Referencia
+  function limpiarTodo(){
+    referenciaEl.value = '';
+    codigoFEl.value = '';
+    anioEl.value = 'Todos';
+
+    nombreEl.textContent = '—';
+    estadoAplicarEl.textContent = '—';
+
+    resetVistaResultados();
+    hidePanelGuardar();
+
+    setMsg('Listo. Pantalla limpia 🧼✨', '');
+  }
+
+  // ✅ Aplicar por Referencia (solo valida existencia y muestra panel)
   async function aplicarReferencia(){
     const gsUrl = getExecUrlOrExplain(); if (!gsUrl) return;
 
     const referencia = referenciaEl.value.trim();
     if (!referencia){
       estadoAplicarEl.textContent = '—';
+      hidePanelGuardar();
       return setMsg('Escribe la Referencia y presiona “Aplicar”.', 'bad');
     }
 
     setMsg('Buscando referencia... 🧾🔎', '');
     estadoAplicarEl.textContent = 'Buscando';
-    resetVistaResultados();
+    hidePanelGuardar();          // por si había algo abierto
+    resetVistaResultados();       // no mezclar con consulta
 
     try{
       const data = await jsonp(gsUrl, { action: 'buscarReferencia', referencia }, 18000);
@@ -490,23 +588,55 @@
 
       if (!data.found){
         estadoAplicarEl.textContent = 'No encontrada';
-        nombreEl.textContent = '—';
-        // no borro el codigoF manual por si lo tenían
         setMsg('Referencia no encontrada.', 'bad');
         return;
       }
 
-      // ✅ Si encontró: rellena campos
-      codigoFEl.value = data.codigof || '';
-      nombreEl.textContent = data.nombre || '—';
-      estadoAplicarEl.textContent = 'Aplicada';
+      // ✅ Requisito: mostrar campos vacíos + Guardar
+      estadoAplicarEl.textContent = 'Encontrada';
+      showPanelGuardar(referencia);
 
       setMsg(
         'Referencia encontrada ✅\n' +
-        'Código F aplicado: ' + (data.codigof || '—') + '\n' +
-        'Puedes presionar “Consultar” para ver el estado de cuenta.',
+        'Ahora llena Código F y Nombre y presiona “Guardar”.',
         'ok'
       );
+    }catch(err){
+      estadoAplicarEl.textContent = 'Error';
+      setMsg('Error:\n' + err.message, 'bad');
+    }
+  }
+
+  // ✅ Guardar Código F + Nombre para esa referencia
+  async function guardar(){
+    const gsUrl = getExecUrlOrExplain(); if (!gsUrl) return;
+
+    const ref = (referenciaActiva || '').trim();
+    if (!ref){
+      hidePanelGuardar();
+      return setMsg('No hay referencia activa para guardar. Presiona “Aplicar” primero.', 'bad');
+    }
+
+    const codigof = codigoFNuevoEl.value.trim();
+    const nombre = nombreNuevoEl.value.trim();
+
+    if (!codigof || !nombre){
+      return setMsg('Completa Código F y Nombre antes de guardar.', 'bad');
+    }
+
+    setMsg('Guardando... 💾', '');
+    try{
+      const data = await jsonp(gsUrl, { action: 'guardarReferencia', referencia: ref, codigof, nombre }, 20000);
+      if (!data || data.ok !== true) throw new Error((data && data.error) ? data.error : 'Respuesta inválida del WebApp');
+
+      estadoAplicarEl.textContent = 'Guardada';
+      setMsg('Guardado ✅\nReferencia: ' + ref + '\nCódigo F: ' + codigof + '\nNombre: ' + nombre, 'ok');
+
+      // opcional: reflejar en “Nombre:” abajo
+      nombreEl.textContent = nombre;
+
+      // si quieres dejar el panel abierto, comenta la línea:
+      // hidePanelGuardar();
     }catch(err){
       estadoAplicarEl.textContent = 'Error';
       setMsg('Error:\n' + err.message, 'bad');
@@ -563,14 +693,20 @@
   btnDiag.addEventListener('click', diagnostico);
   btnReset.addEventListener('click', resetUrl);
 
-  btnAplicar.addEventListener('click', aplicarReferencia);
-  referenciaEl.addEventListener('keydown', (e) => { if (e.key === 'Enter') aplicarReferencia(); });
-
   btnConsultar.addEventListener('click', consultar);
   codigoFEl.addEventListener('keydown', (e) => { if (e.key === 'Enter') consultar(); });
 
+  btnAplicar.addEventListener('click', aplicarReferencia);
+  referenciaEl.addEventListener('keydown', (e) => { if (e.key === 'Enter') aplicarReferencia(); });
+
+  btnGuardar.addEventListener('click', guardar);
+  nombreNuevoEl.addEventListener('keydown', (e) => { if (e.key === 'Enter') guardar(); });
+
+  btnLimpiar.addEventListener('click', limpiarTodo);
+
   // Estado inicial
   estadoAplicarEl.textContent = '—';
+  hidePanelGuardar();
 </script>
 </body>
 </html>
