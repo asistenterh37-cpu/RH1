@@ -59,7 +59,7 @@
     a.link:hover{ filter:brightness(1.07); }
     code.k{ font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size:12px; color:#cfe0ff; }
 
-    /* ✅ Responsive: móvil */
+    /* ✅ Responsive: móvil (manteniendo la vista limpia como tu adjunto) */
     @media (max-width: 640px){
       .wrap{ padding:18px 12px 46px; }
       .head{ padding:18px 16px 8px; }
@@ -67,59 +67,91 @@
       h1{ font-size:18px; }
       h2{ font-size:13px; }
 
-      /* el grid se apila */
+      /* el grid superior se apila */
       .grid{
         grid-template-columns: 1fr;
         align-items:stretch;
       }
-      .grid .pill{ width:fit-content; }
 
       .row2{ gap:10px; }
       .pill{ font-size:12px; }
 
-      /* Tabla -> tarjetas */
+      /* Tabla -> tarjetas (ordenado: Año/Mes, Valor, Concepto, Referencia) */
       table{ display:block; }
       thead{ display:none; }
       tbody{ display:block; }
       tfoot{ display:block; margin-top:10px; }
-      tfoot tr{ display:flex; justify-content:space-between; gap:10px; padding:12px; border:1px solid rgba(30,45,82,.65); border-radius:14px; background:rgba(15,23,48,.45); }
+
+      tfoot tr{
+        display:flex;
+        justify-content:space-between;
+        gap:10px;
+        padding:12px;
+        border:1px solid rgba(30,45,82,.65);
+        border-radius:14px;
+        background:rgba(15,23,48,.45);
+      }
       tfoot td{ border-bottom:none; padding:0; }
       tfoot td.right{ text-align:right; }
 
       tbody tr{
-        display:block;
+        display:grid;
+        grid-template-columns: 1fr 1fr;
+        gap:10px 14px;
         border:1px solid rgba(30,45,82,.65);
         border-radius:14px;
         background:rgba(15,23,48,.45);
-        padding:10px 12px;
+        padding:12px 12px;
         margin-top:10px;
       }
+
+      /* cada “celda” como bloque */
       tbody td{
-        display:flex;
-        justify-content:space-between;
-        gap:12px;
-        border-bottom:1px dashed rgba(30,45,82,.55);
-        padding:8px 0;
-        text-align:left;
+        display:block;
+        border-bottom:none;
+        padding:0;
         font-size:13px;
+        min-width:0;
       }
-      tbody td:last-child{ border-bottom:none; }
+
+      /* etiqueta arriba del valor (como ficha) */
       tbody td::before{
         content: attr(data-label);
+        display:block;
         color: var(--muted);
-        font-size:12px;
+        font-size:11px;
         text-transform:uppercase;
-        letter-spacing:.2px;
-        flex: 0 0 auto;
+        letter-spacing:.25px;
+        margin-bottom:4px;
       }
-      /* Valor destacado */
+
+      /* orden/posicionamiento */
+      tbody td.anio{ grid-column: 1; }
+      tbody td.mes{ grid-column: 2; }
+
       tbody td.valor{
-        font-weight:800;
+        grid-column: 1 / -1;
+        text-align:right;
+        font-weight:900;
+        font-size:14px;
       }
       tbody td.valor::before{
         color:#cfe0ff;
       }
-      .right{ text-align:right; }
+
+      tbody td.concepto{ grid-column: 1 / -1; }
+      tbody td.referencia{ grid-column: 1 / -1; }
+
+      /* separador sutil entre secciones dentro de la tarjeta */
+      tbody td.valor,
+      tbody td.concepto,
+      tbody td.referencia{
+        padding-top:8px;
+        border-top:1px dashed rgba(30,45,82,.55);
+      }
+      tbody td.valor{
+        padding-top:10px;
+      }
     }
   </style>
 </head>
@@ -431,14 +463,14 @@
         return;
       }
 
-      /* ✅ Render con data-label para modo móvil (tarjetas) */
+      /* ✅ Render con clases para acomodar en móvil */
       tbodyEl.innerHTML = items.map(it => `
         <tr>
-          <td data-label="Año">${it.Año ?? ''}</td>
-          <td data-label="Mes">${it.Mes ?? ''}</td>
-          <td data-label="Concepto">${it.Concepto ?? ''}</td>
-          <td data-label="Referencia">${it.Referencia ?? ''}</td>
+          <td data-label="Año" class="anio">${it.Año ?? ''}</td>
+          <td data-label="Mes" class="mes">${it.Mes ?? ''}</td>
           <td data-label="Valor" class="right valor">${money(it.Valor)}</td>
+          <td data-label="Concepto" class="concepto">${it.Concepto ?? ''}</td>
+          <td data-label="Referencia" class="referencia">${it.Referencia ?? ''}</td>
         </tr>
       `).join('');
 
