@@ -40,20 +40,34 @@
       background:rgba(15,23,48,.65); color:var(--muted); white-space:pre-wrap; }
     .msg.ok{ border-color: rgba(34,197,94,.5); }
     .msg.bad{ border-color: rgba(239,68,68,.5); color:#ffd5d5; }
-    .panel{ margin-top:12px; border:1px solid rgba(79,124,255,.25); background:rgba(79,124,255,.06);
-      border-radius:14px; padding:12px; display:none; }
-    .panel h3{ margin:0 0 10px; font-size:13px; color:var(--text); letter-spacing:.2px; }
 
-    /* ✅ Panel edición: UNA sola fila: Código F corto + Nombre largo + Guardar */
+    /* ✅ Fila inline edición: una sola fila */
     .panelGrid{
       display:grid;
       grid-template-columns: 160px 1fr auto; /* Código F corto, Nombre largo, botón */
       gap:12px;
       align-items:end;
     }
+    .inlineEditWrap{
+      margin: 10px 0 12px;
+      border:1px solid rgba(79,124,255,.25);
+      background:rgba(79,124,255,.06);
+      border-radius:14px;
+      padding:12px;
+      display:none;
+    }
     .hint{ font-size:12px; color:var(--muted); margin-top:8px; }
-    .notFoundBox{ border:1px dashed rgba(239,68,68,.45); background:rgba(239,68,68,.06); color:#ffd5d5;
-      padding:12px; border-radius:12px; font-size:13px; }
+    .notFoundBox{
+      margin: 10px 0 12px;
+      border:1px dashed rgba(239,68,68,.45);
+      background:rgba(239,68,68,.06);
+      color:#ffd5d5;
+      padding:12px;
+      border-radius:12px;
+      font-size:13px;
+      display:none;
+    }
+
     .tableWrap{ margin-top:14px; }
     table{ width:100%; border-collapse:collapse; table-layout:fixed; min-width: 620px; }
     col.c-anio{ width:90px; }
@@ -90,7 +104,7 @@
       h1{ font-size:18px; }
       h2{ font-size:13px; }
       .grid{ grid-template-columns: 1fr; align-items:stretch; }
-      .panelGrid{ grid-template-columns: 1fr; } /* en móvil se apila */
+      .panelGrid{ grid-template-columns: 1fr; } /* móvil: se apila */
       .tableWrap{ overflow-x:auto; -webkit-overflow-scrolling:touch; border:1px solid rgba(30,45,82,.65);
         border-radius:14px; background:rgba(15,23,48,.45); }
       table{ width:max-content; min-width: 100%; table-layout:fixed; }
@@ -149,7 +163,7 @@
           </div>
         </details>
 
-        <!-- ✅ 1) PRIMERO: CONSULTAR -->
+        <!-- ✅ 1) CONSULTAR -->
         <div class="grid" style="margin-bottom:12px;">
           <div>
             <label for="codigoF">Código F</label>
@@ -174,7 +188,7 @@
           </div>
         </div>
 
-        <!-- ✅ 2) DESPUÉS: BUSCAR referencia -->
+        <!-- ✅ 2) BUSCAR referencia -->
         <div class="grid" style="margin-bottom:12px;">
           <div>
             <label for="referencia">Referencia</label>
@@ -184,7 +198,7 @@
           <div>
             <label>&nbsp;</label>
             <div class="small" style="margin:0; padding:12px; border:1px dashed rgba(79,124,255,.35); border-radius:12px; background:rgba(79,124,255,.06);">
-              Busca la referencia en la hoja <strong>Base</strong>. Si existe, podrás llenar Código F y Nombre y <strong>Guardar</strong>.
+              Busca la referencia en la hoja <strong>Base</strong>. Si existe, se abrirá la fila para llenar <strong>Código F</strong> y <strong>Nombre</strong> y <strong>Guardar</strong>.
             </div>
           </div>
 
@@ -198,36 +212,35 @@
           </div>
         </div>
 
-        <!-- ✅ Panel edición (Guardar) -->
-        <div class="panel" id="panelGuardar">
-          <h3>Referencia: <span style="font-family:ui-monospace,Menlo,Consolas,monospace" id="refSeleccionada">—</span></h3>
+        <!-- ✅ Si NO existe: aviso -->
+        <div class="notFoundBox" id="refNotFound">
+          Referencia no encontrada.
+          <div class="hint">Revisa espacios, guiones, mayúsculas o confirma que exista en la hoja <strong>Base</strong>.</div>
+        </div>
 
-          <!-- NO encontrada -->
-          <div id="panelNoEncontrada" style="display:none;">
-            <div class="notFoundBox">Referencia no encontrada.</div>
-            <div class="hint">Revisa el texto (espacios, guiones, mayúsculas) o confirma que exista en la hoja <strong>Base</strong>.</div>
+        <!-- ✅ Si existe: MISMA FILA (Código F + Nombre + Guardar) -->
+        <div class="inlineEditWrap" id="inlineEdit">
+          <div class="row2" style="margin-top:0; margin-bottom:10px;">
+            <div class="pill">Editando referencia: <strong id="refActiva">—</strong></div>
           </div>
 
-          <!-- ENCONTRADA: campos vacíos + Guardar -->
-          <div id="panelEncontrada" style="display:none;">
-            <div class="panelGrid">
-              <div>
-                <label for="codigoFNuevo">Caja Código F (corto)</label>
-                <input id="codigoFNuevo" placeholder="" autocomplete="off" />
-              </div>
-
-              <div>
-                <label for="nombreNuevo">Caja Nombre (largo)</label>
-                <input id="nombreNuevo" placeholder="" autocomplete="off" />
-              </div>
-
-              <div>
-                <button class="btn" id="btnAplicarCambios" type="button">Guardar</button>
-              </div>
+          <div class="panelGrid">
+            <div>
+              <label for="codigoFNuevo">Caja Código F</label>
+              <input id="codigoFNuevo" placeholder="" autocomplete="off" />
             </div>
 
-            <div class="hint">Los campos aparecen vacíos a propósito. Tú escribes y al guardar se sustituyen en Base ✅</div>
+            <div>
+              <label for="nombreNuevo">Caja Nombre</label>
+              <input id="nombreNuevo" placeholder="" autocomplete="off" />
+            </div>
+
+            <div>
+              <button class="btn" id="btnAplicarCambios" type="button">Guardar</button>
+            </div>
           </div>
+
+          <div class="hint">Los campos aparecen vacíos a propósito. Tú escribes y al guardar se sustituyen en Base ✅</div>
         </div>
 
         <div class="row2">
@@ -274,7 +287,7 @@
 
   <script>
     const DEFAULT_SHEET_URL = "https://docs.google.com/spreadsheets/d/1PeFt5YUi1W5jI-sHo75E-0CHQUihADd2u4uqmHU5AK8/edit?usp=sharing";
-    const DEFAULT_GS_EXEC_URL = "https://script.google.com/macros/s/AKfycbzbh-KZa5_A1qjdxxJFB3GMuBqxNGzlVJX9ayWaNTR0qzC-jyRNs0U34I5mYDNAxJE2MA/exec";
+    const DEFAULT_GS_EXEC_URL = "https://script.google.com/macros/s/AKfycbzBB4qWVGa6GB7fHEZMXZMr3338XANQGkkbLItr5Wtab7wELRlgnc4aLaNpfoQSSm9wMw/exec";
     const LS_KEY = "PRSM_GS_URL";
 
     const sheetIdEl = document.getElementById('sheetId');
@@ -327,7 +340,7 @@
     });
 
     const referenciaEl = document.getElementById('referencia');
-    const btnAplicar = document.getElementById('btnAplicar'); // ahora dice "Buscar"
+    const btnAplicar = document.getElementById('btnAplicar'); // Buscar
     const btnLimpiar = document.getElementById('btnLimpiar');
     const estadoAplicarEl = document.getElementById('estadoAplicar');
 
@@ -347,14 +360,13 @@
     const tfootTotalEl = document.getElementById('tfootTotal');
     const countEl = document.getElementById('count');
 
-    // Panel edición
-    const panelGuardarEl = document.getElementById('panelGuardar');
-    const refSeleccionadaEl = document.getElementById('refSeleccionada');
-    const panelEncontradaEl = document.getElementById('panelEncontrada');
-    const panelNoEncontradaEl = document.getElementById('panelNoEncontrada');
+    // ✅ Inline edit row (lo que pediste)
+    const inlineEditEl = document.getElementById('inlineEdit');
+    const refActivaEl = document.getElementById('refActiva');
+    const refNotFoundEl = document.getElementById('refNotFound');
     const codigoFNuevoEl = document.getElementById('codigoFNuevo');
     const nombreNuevoEl = document.getElementById('nombreNuevo');
-    const btnAplicarCambios = document.getElementById('btnAplicarCambios'); // ahora dice "Guardar"
+    const btnAplicarCambios = document.getElementById('btnAplicarCambios'); // Guardar
 
     let referenciaActiva = "";
 
@@ -376,39 +388,32 @@
       countEl.textContent = '0';
     }
 
-    function hidePanelEditar(){
-      panelGuardarEl.style.display = 'none';
-      panelEncontradaEl.style.display = 'none';
-      panelNoEncontradaEl.style.display = 'none';
-      refSeleccionadaEl.textContent = '—';
+    function hideInlineEdit(){
+      inlineEditEl.style.display = 'none';
+      refNotFoundEl.style.display = 'none';
+      refActivaEl.textContent = '—';
       codigoFNuevoEl.value = '';
       nombreNuevoEl.value = '';
       referenciaActiva = '';
     }
 
-    function showPanelEncontrada(referencia){
+    function showInlineEdit(referencia){
       referenciaActiva = referencia;
-      refSeleccionadaEl.textContent = referencia;
-      // siempre vacíos
+      refActivaEl.textContent = referencia;
       codigoFNuevoEl.value = '';
       nombreNuevoEl.value = '';
-
-      panelGuardarEl.style.display = '';
-      panelNoEncontradaEl.style.display = 'none';
-      panelEncontradaEl.style.display = '';
-
+      refNotFoundEl.style.display = 'none';
+      inlineEditEl.style.display = '';
       setTimeout(() => codigoFNuevoEl.focus(), 0);
     }
 
-    function showPanelNoEncontrada(referencia){
+    function showNotFound(referencia){
       referenciaActiva = '';
-      refSeleccionadaEl.textContent = referencia || '—';
+      inlineEditEl.style.display = 'none';
+      refActivaEl.textContent = referencia || '—';
       codigoFNuevoEl.value = '';
       nombreNuevoEl.value = '';
-
-      panelGuardarEl.style.display = '';
-      panelEncontradaEl.style.display = 'none';
-      panelNoEncontradaEl.style.display = '';
+      refNotFoundEl.style.display = '';
     }
 
     function getExecUrlOrExplain(){
@@ -525,11 +530,11 @@
       nombreEl.textContent = '—';
       estadoAplicarEl.textContent = '—';
       resetVistaResultados();
-      hidePanelEditar();
+      hideInlineEdit();
       setMsg('Listo. Pantalla limpia 🧼✨', '');
     }
 
-    // ✅ BOTÓN "Buscar" que realmente BUSCA la referencia
+    // ✅ Buscar: si existe, muestra la fila inline (Código+Nombre+Guardar) EN LA MISMA LÍNEA
     async function buscarReferencia(){
       const gsUrl = getExecUrlOrExplain();
       if (!gsUrl) return;
@@ -537,13 +542,13 @@
       const referencia = referenciaEl.value.trim();
       if (!referencia){
         estadoAplicarEl.textContent = '—';
-        hidePanelEditar();
+        hideInlineEdit();
         return setMsg('Escribe la Referencia y presiona “Buscar”.', 'bad');
       }
 
       setMsg('Buscando referencia... 🧾🔎', '');
       estadoAplicarEl.textContent = 'Buscando';
-      hidePanelEditar();
+      hideInlineEdit();
       resetVistaResultados();
 
       try{
@@ -552,21 +557,18 @@
 
         if (!data.found){
           estadoAplicarEl.textContent = 'No encontrada';
-          showPanelNoEncontrada(referencia);
+          showNotFound(referencia);
           setMsg('Referencia no encontrada.', 'bad');
           return;
         }
 
         estadoAplicarEl.textContent = 'Encontrada';
-        showPanelEncontrada(referencia);
-        setMsg(
-          'Referencia encontrada ✅\n' +
-          'Ahora llena Código F y Nombre y presiona “Guardar”.',
-          'ok'
-        );
+        showInlineEdit(referencia);
+        setMsg('Referencia encontrada ✅\nAhora llena Código F y Nombre y presiona “Guardar”.', 'ok');
+
       }catch(err){
         estadoAplicarEl.textContent = 'Error';
-        hidePanelEditar();
+        hideInlineEdit();
         setMsg('Error:\n' + err.message, 'bad');
       }
     }
@@ -596,18 +598,12 @@
 
         if (data.saved !== true){
           estadoAplicarEl.textContent = 'No encontrada';
-          showPanelNoEncontrada(ref);
+          showNotFound(ref);
           return setMsg('Referencia no encontrada (no se guardó nada).', 'bad');
         }
 
         estadoAplicarEl.textContent = 'Guardado';
-        setMsg(
-          'Guardado ✅\n' +
-          'Referencia: ' + ref + '\n' +
-          'Código F: ' + codigof + '\n' +
-          'Nombre: ' + nombre,
-          'ok'
-        );
+        setMsg('Guardado ✅\nReferencia: ' + ref + '\nCódigo F: ' + codigof + '\nNombre: ' + nombre, 'ok');
 
         // opcional: mostrar nombre arriba
         nombreEl.textContent = nombre;
@@ -690,7 +686,7 @@
 
     // init
     estadoAplicarEl.textContent = '—';
-    hidePanelEditar();
+    hideInlineEdit();
   </script>
 </body>
 </html>
