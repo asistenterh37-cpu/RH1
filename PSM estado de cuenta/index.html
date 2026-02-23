@@ -54,12 +54,15 @@
       color:var(--text);
       letter-spacing:.2px;
     }
+
+    /* Panel estilo “como el Excel” (2 casillas + botón Guardar) */
     .panelGrid{
       display:grid;
-      grid-template-columns: 1fr 1.2fr auto;
+      grid-template-columns: 220px 1fr auto;
       gap:12px;
       align-items:end;
     }
+
     .hint{
       font-size:12px;
       color:var(--muted);
@@ -283,12 +286,12 @@
           <div class="panelGrid">
             <div>
               <label for="codigoFNuevo">Código F</label>
-              <input id="codigoFNuevo" placeholder="(vacío) ingrésalo aquí" />
+              <input id="codigoFNuevo" placeholder="" autocomplete="off" />
             </div>
 
             <div>
               <label for="nombreNuevo">Nombre</label>
-              <input id="nombreNuevo" placeholder="(vacío) ingrésalo aquí" />
+              <input id="nombreNuevo" placeholder="" autocomplete="off" />
             </div>
 
             <div>
@@ -296,7 +299,7 @@
             </div>
           </div>
 
-          <div class="hint">Tip: aquí no adivinamos nada 😄 — tú mandas el Código F y el Nombre, y se guardan en la hoja Base.</div>
+          <div class="hint">Los campos aparecen vacíos a propósito (como en tu Excel). Tú escribes y al guardar se sustituyen en Base ✅</div>
         </div>
       </div>
 
@@ -341,7 +344,7 @@
 
 <script>
   const DEFAULT_SHEET_URL = "https://docs.google.com/spreadsheets/d/1PeFt5YUi1W5jI-sHo75E-0CHQUihADd2u4uqmHU5AK8/edit?usp=sharing";
-  const DEFAULT_GS_EXEC_URL = "https://script.google.com/macros/s/AKfycbx2CVnSx3djLflBpVNlM2bBKTuPfe-Ztb6AqLnNgCkzKrC-EG3BVocMagfU8LAm3ymn8Q/exec";
+  const DEFAULT_GS_EXEC_URL = "https://script.google.com/macros/s/AKfycbwffIFh_s7A-O3rJEquQv0EXqbcFGC27BH2W-Uw7dM_Eigc7FJIy9Qd9o7cojQO0hhvXw/exec";
   const LS_KEY = "PRSM_GS_URL";
 
   const sheetIdEl = document.getElementById('sheetId');
@@ -455,18 +458,18 @@
     referenciaActiva = '';
   }
 
-  // ✅ Mostrar panel en modo "ENCONTRADA"
+  // ✅ Mostrar panel en modo "ENCONTRADA" (campos SIEMPRE vacíos)
   function showPanelEncontrada(referencia){
     referenciaActiva = referencia;
     refSeleccionadaEl.textContent = referencia;
 
-    // requisito: SIEMPRE vacíos
     codigoFNuevoEl.value = '';
     nombreNuevoEl.value = '';
 
     panelGuardarEl.style.display = '';
     panelNoEncontradaEl.style.display = 'none';
     panelEncontradaEl.style.display = '';
+    setTimeout(() => codigoFNuevoEl.focus(), 0);
   }
 
   // ✅ Mostrar panel en modo "NO ENCONTRADA"
@@ -474,7 +477,6 @@
     referenciaActiva = '';
     refSeleccionadaEl.textContent = referencia || '—';
 
-    // por si venía de encontrada
     codigoFNuevoEl.value = '';
     nombreNuevoEl.value = '';
 
@@ -599,7 +601,7 @@
     setMsg('Listo. Pantalla limpia 🧼✨', '');
   }
 
-  // ✅ Aplicar por Referencia (si existe => inputs vacíos + guardar; si no => texto)
+  // ✅ Aplicar por Referencia
   async function aplicarReferencia(){
     const gsUrl = getExecUrlOrExplain(); if (!gsUrl) return;
 
@@ -613,7 +615,6 @@
     setMsg('Buscando referencia... 🧾🔎', '');
     estadoAplicarEl.textContent = 'Buscando';
 
-    // limpiamos panel previo y resultados para no mezclar
     hidePanelGuardar();
     resetVistaResultados();
 
@@ -623,13 +624,13 @@
 
       if (!data.found){
         estadoAplicarEl.textContent = 'No encontrada';
-        showPanelNoEncontrada(referencia); // ✅ ahora sí “dice” Referencia no encontrada, en el panel
+        showPanelNoEncontrada(referencia);
         setMsg('Referencia no encontrada.', 'bad');
         return;
       }
 
       estadoAplicarEl.textContent = 'Encontrada';
-      showPanelEncontrada(referencia); // ✅ requisito: 2 campos vacíos + guardar
+      showPanelEncontrada(referencia);
 
       setMsg(
         'Referencia encontrada ✅\n' +
@@ -643,7 +644,7 @@
     }
   }
 
-  // ✅ Guardar Código F + Nombre en la fila de esa referencia (reemplaza valores)
+  // ✅ Guardar (SUSTITUYE Código F + Nombre en la fila de esa referencia)
   async function guardar(){
     const gsUrl = getExecUrlOrExplain(); if (!gsUrl) return;
 
@@ -675,6 +676,11 @@
 
       // reflejar en “Nombre:” abajo
       nombreEl.textContent = nombre;
+
+      // (opcional) limpiar campos para el siguiente registro tipo excel
+      codigoFNuevoEl.value = '';
+      nombreNuevoEl.value = '';
+      setTimeout(() => codigoFNuevoEl.focus(), 0);
 
     }catch(err){
       estadoAplicarEl.textContent = 'Error';
@@ -740,6 +746,7 @@
 
   btnGuardar.addEventListener('click', guardar);
   nombreNuevoEl.addEventListener('keydown', (e) => { if (e.key === 'Enter') guardar(); });
+  codigoFNuevoEl.addEventListener('keydown', (e) => { if (e.key === 'Enter') guardar(); });
 
   btnLimpiar.addEventListener('click', limpiarTodo);
 
