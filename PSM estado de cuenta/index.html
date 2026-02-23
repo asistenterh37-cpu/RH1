@@ -46,11 +46,10 @@
     table{
       width:100%;
       border-collapse:collapse;
-      table-layout:fixed; /* 🔑 */
-      min-width: 620px;  /* desktop ok */
+      table-layout:fixed;
+      min-width: 620px;
     }
 
-    /* Control fino de anchos (desktop) */
     col.c-anio{ width:90px; }
     col.c-mes{ width:130px; }
     col.c-concepto{ width:auto; }
@@ -100,7 +99,6 @@
     a.link:hover{ filter:brightness(1.07); }
     code.k{ font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size:12px; color:#cfe0ff; }
 
-    /* ✅ Responsive: móvil -> 5 columnas visibles + espacio por encabezado (ch) */
     @media (max-width: 640px){
       .wrap{ padding:18px 12px 46px; }
       .head{ padding:18px 16px 8px; }
@@ -110,7 +108,6 @@
 
       .grid{ grid-template-columns: 1fr; align-items:stretch; }
 
-      /* Mantener tabla como tabla, pero con scroll horizontal */
       .tableWrap{
         overflow-x:auto;
         -webkit-overflow-scrolling:touch;
@@ -120,12 +117,11 @@
       }
 
       table{
-        width:max-content; /* se ajusta al contenido/colgroup */
+        width:max-content;
         min-width: 100%;
         table-layout:fixed;
       }
 
-      /* 👇 ANCHOS POR "AMPLITUD" pedida (en caracteres) */
       col.c-anio{ width:4ch; }
       col.c-mes{ width:9ch; }
       col.c-concepto{ width:7ch; }
@@ -135,20 +131,17 @@
       th, td{
         padding:8px 8px;
         font-size:12px;
-        white-space:nowrap; /* columnas compactas */
+        white-space:nowrap;
       }
 
-      /* Concepto y Referencia pueden romper línea si se pasan */
       td.concepto, td.referencia{
         white-space:normal;
         overflow-wrap:anywhere;
         word-break:break-word;
       }
 
-      /* Valor alineado a la derecha siempre */
       td.valor, th.valor, .right{ text-align:right; }
 
-      /* Footer compacto */
       tfoot td{
         border-bottom:none;
         padding:10px 8px;
@@ -204,6 +197,27 @@
         </div>
       </details>
 
+      <!-- ✅ NUEVO: Referencia + Aplicar -->
+      <div class="grid" style="margin-bottom:12px;">
+        <div>
+          <label for="referencia">Referencia</label>
+          <input id="referencia" placeholder="Ej: FT25042C8BQT" />
+        </div>
+        <div>
+          <label>&nbsp;</label>
+          <div class="small" style="margin:0; padding:12px; border:1px dashed rgba(79,124,255,.35); border-radius:12px; background:rgba(79,124,255,.06);">
+            Busca la referencia en la hoja <strong>Base</strong> y aplica el Código F.
+          </div>
+        </div>
+        <div>
+          <button class="btn" id="btnAplicar" type="button">Aplicar</button>
+        </div>
+        <div class="pill" title="Estado de aplicación">
+          Estado: <strong id="estadoAplicar">—</strong>
+        </div>
+      </div>
+
+      <!-- Consulta normal -->
       <div class="grid">
         <div>
           <label for="codigoF">Código F</label>
@@ -230,9 +244,8 @@
         <div class="pill">Total: <strong id="total">0.00</strong></div>
       </div>
 
-      <div id="msg" class="msg">Escribe el Código F y presiona “Consultar”.</div>
+      <div id="msg" class="msg">Escribe una Referencia y presiona “Aplicar”, o escribe el Código F y presiona “Consultar”.</div>
 
-      <!-- ✅ Envoltorio para scroll horizontal en móvil -->
       <div class="tableWrap">
         <table id="tabla" style="display:none;">
           <colgroup>
@@ -267,7 +280,7 @@
 
 <script>
   const DEFAULT_SHEET_URL = "https://docs.google.com/spreadsheets/d/1PeFt5YUi1W5jI-sHo75E-0CHQUihADd2u4uqmHU5AK8/edit?usp=sharing";
-  const DEFAULT_GS_EXEC_URL = "https://script.google.com/macros/s/AKfycbyRqU3XA_3eyCEVnNBkCt1IghvzvjlpulqECrFMejVRU1qYjQ-3N0-_MGdvwPVQfoJkOQ/exec";
+  const DEFAULT_GS_EXEC_URL = "https://script.google.com/macros/s/AKfycbwH3kGi1-OeKMsOCiasMcFwlFAe-m8ue7NucPsmEMX1BhtZ5vpXcCGzKA60HyeB2G496w/exec";
   const LS_KEY = "PRSM_GS_URL";
 
   const sheetIdEl = document.getElementById('sheetId');
@@ -319,9 +332,13 @@
     }, 250);
   });
 
+  const referenciaEl = document.getElementById('referencia');
+  const btnAplicar = document.getElementById('btnAplicar');
+  const estadoAplicarEl = document.getElementById('estadoAplicar');
+
   const codigoFEl = document.getElementById('codigoF');
   const anioEl = document.getElementById('anio');
-  const btn = document.getElementById('btnConsultar');
+  const btnConsultar = document.getElementById('btnConsultar');
   const btnPing = document.getElementById('btnPing');
   const btnDiag = document.getElementById('btnDiag');
   const btnReset = document.getElementById('btnReset');
@@ -340,6 +357,14 @@
   function money(n){
     const x = Number(n || 0);
     return x.toLocaleString('es-HN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  function resetVistaResultados(){
+    tablaEl.style.display = 'none';
+    tbodyEl.innerHTML = '';
+    totalEl.textContent = '0.00';
+    tfootTotalEl.textContent = '0.00';
+    countEl.textContent = '0';
   }
 
   function getExecUrlOrExplain(){
@@ -445,6 +470,49 @@
     setMsg('URL reseteada. Si re-implementaste, pega la NUEVA /exec en “Fuentes”.', '');
   }
 
+  // ✅ NUEVO: Aplicar por Referencia
+  async function aplicarReferencia(){
+    const gsUrl = getExecUrlOrExplain(); if (!gsUrl) return;
+
+    const referencia = referenciaEl.value.trim();
+    if (!referencia){
+      estadoAplicarEl.textContent = '—';
+      return setMsg('Escribe la Referencia y presiona “Aplicar”.', 'bad');
+    }
+
+    setMsg('Buscando referencia... 🧾🔎', '');
+    estadoAplicarEl.textContent = 'Buscando';
+    resetVistaResultados();
+
+    try{
+      const data = await jsonp(gsUrl, { action: 'buscarReferencia', referencia }, 18000);
+      if (!data || data.ok !== true) throw new Error((data && data.error) ? data.error : 'Respuesta inválida del WebApp');
+
+      if (!data.found){
+        estadoAplicarEl.textContent = 'No encontrada';
+        nombreEl.textContent = '—';
+        // no borro el codigoF manual por si lo tenían
+        setMsg('Referencia no encontrada.', 'bad');
+        return;
+      }
+
+      // ✅ Si encontró: rellena campos
+      codigoFEl.value = data.codigof || '';
+      nombreEl.textContent = data.nombre || '—';
+      estadoAplicarEl.textContent = 'Aplicada';
+
+      setMsg(
+        'Referencia encontrada ✅\n' +
+        'Código F aplicado: ' + (data.codigof || '—') + '\n' +
+        'Puedes presionar “Consultar” para ver el estado de cuenta.',
+        'ok'
+      );
+    }catch(err){
+      estadoAplicarEl.textContent = 'Error';
+      setMsg('Error:\n' + err.message, 'bad');
+    }
+  }
+
   async function consultar(){
     const gsUrl = getExecUrlOrExplain(); if (!gsUrl) return;
 
@@ -455,7 +523,6 @@
     setMsg('Consultando... 🔎', '');
     tablaEl.style.display = 'none';
     tbodyEl.innerHTML = '';
-    nombreEl.textContent = '—';
     totalEl.textContent = '0.00';
     tfootTotalEl.textContent = '0.00';
     countEl.textContent = '0';
@@ -495,8 +562,15 @@
   btnPing.addEventListener('click', ping);
   btnDiag.addEventListener('click', diagnostico);
   btnReset.addEventListener('click', resetUrl);
-  btn.addEventListener('click', consultar);
+
+  btnAplicar.addEventListener('click', aplicarReferencia);
+  referenciaEl.addEventListener('keydown', (e) => { if (e.key === 'Enter') aplicarReferencia(); });
+
+  btnConsultar.addEventListener('click', consultar);
   codigoFEl.addEventListener('keydown', (e) => { if (e.key === 'Enter') consultar(); });
+
+  // Estado inicial
+  estadoAplicarEl.textContent = '—';
 </script>
 </body>
 </html>
