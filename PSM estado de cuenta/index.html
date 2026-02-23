@@ -398,25 +398,26 @@
     }
 
     function showInlineEdit(referencia){
-  referenciaActiva = referencia;
-  refActivaEl.textContent = referencia;
-  codigoFNuevoEl.value = '';
-  nombreNuevoEl.value = '';
-  refNotFoundEl.style.display = 'none';
+      referenciaActiva = referencia;
+      refActivaEl.textContent = referencia;
+      codigoFNuevoEl.value = '';
+      nombreNuevoEl.value = '';
+      refNotFoundEl.style.display = 'none';
 
-  inlineEditEl.style.display = 'block';   // ✅ antes estaba ''
-  setTimeout(() => codigoFNuevoEl.focus(), 0);
-}
+      inlineEditEl.style.display = 'block';
+      setTimeout(() => codigoFNuevoEl.focus(), 0);
+    }
 
-function showNotFound(referencia){
-  referenciaActiva = '';
-  inlineEditEl.style.display = 'none';
-  refActivaEl.textContent = referencia || '—';
-  codigoFNuevoEl.value = '';
-  nombreNuevoEl.value = '';
+    function showNotFound(referencia){
+      referenciaActiva = '';
+      inlineEditEl.style.display = 'none';
+      refActivaEl.textContent = referencia || '—';
+      codigoFNuevoEl.value = '';
+      nombreNuevoEl.value = '';
 
-  refNotFoundEl.style.display = 'block';  // ✅ antes estaba ''
-}
+      refNotFoundEl.style.display = 'block';
+    }
+
     function getExecUrlOrExplain(){
       const gsUrl = normalizeGsUrl(gsUrlEl.value);
       if (!gsUrl) {
@@ -620,6 +621,43 @@ function showNotFound(referencia){
       }
     }
 
+    /* ==========================================================
+       ✅ ORDEN DE MESES (Enero → Diciembre) POR AÑO
+       ========================================================== */
+    const MONTH_ORDER = {
+      enero: 1,
+      febrero: 2,
+      marzo: 3,
+      abril: 4,
+      mayo: 5,
+      junio: 6,
+      julio: 7,
+      agosto: 8,
+      septiembre: 9,
+      setiembre: 9,   // por si viene así
+      octubre: 10,
+      noviembre: 11,
+      diciembre: 12
+    };
+
+    function normText(s){
+      return String(s ?? "")
+        .trim()
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, ""); // quita tildes
+    }
+
+    function monthIndex(mes){
+      const key = normText(mes);
+      return MONTH_ORDER[key] || 99; // meses raros al final
+    }
+
+    function toYearNumber(v){
+      const n = parseInt(String(v ?? "").trim(), 10);
+      return Number.isFinite(n) ? n : 9999;
+    }
+
     async function consultar(){
       const gsUrl = getExecUrlOrExplain();
       if (!gsUrl) return;
@@ -640,7 +678,23 @@ function showNotFound(referencia){
         const data = await jsonp(gsUrl, { action: 'estadoCuenta', codigof, year }, 18000);
         if (!data || data.ok !== true) throw new Error((data && data.error) ? data.error : 'Respuesta inválida del WebApp');
 
-        const items = Array.isArray(data.items) ? data.items : [];
+        const itemsRaw = Array.isArray(data.items) ? data.items : [];
+
+        // ✅ Ordenar: Año asc, Mes asc (Ene..Dic), y de “extra” referencia para estabilidad
+        const items = [...itemsRaw].sort((a, b) => {
+          const ya = toYearNumber(a.Año);
+          const yb = toYearNumber(b.Año);
+          if (ya !== yb) return ya - yb;
+
+          const ma = monthIndex(a.Mes);
+          const mb = monthIndex(b.Mes);
+          if (ma !== mb) return ma - mb;
+
+          const ra = String(a.Referencia ?? "");
+          const rb = String(b.Referencia ?? "");
+          return ra.localeCompare(rb, "es");
+        });
+
         nombreEl.textContent = data.nombre || '—';
         totalEl.textContent = money(data.total);
         tfootTotalEl.textContent = money(data.total);
