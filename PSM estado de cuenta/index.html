@@ -44,7 +44,7 @@
       border-radius:14px; padding:12px; display:none; }
     .panel h3{ margin:0 0 10px; font-size:13px; color:var(--text); letter-spacing:.2px; }
 
-    /* ✅ Panel edición: UNA sola fila: Código F corto + Nombre largo + Aplicar */
+    /* ✅ Panel edición: UNA sola fila: Código F corto + Nombre largo + Guardar */
     .panelGrid{
       display:grid;
       grid-template-columns: 160px 1fr auto; /* Código F corto, Nombre largo, botón */
@@ -174,7 +174,7 @@
           </div>
         </div>
 
-        <!-- ✅ 2) DESPUÉS: (Buscar referencia / aplicar cambios) -->
+        <!-- ✅ 2) DESPUÉS: BUSCAR referencia -->
         <div class="grid" style="margin-bottom:12px;">
           <div>
             <label for="referencia">Referencia</label>
@@ -184,13 +184,12 @@
           <div>
             <label>&nbsp;</label>
             <div class="small" style="margin:0; padding:12px; border:1px dashed rgba(79,124,255,.35); border-radius:12px; background:rgba(79,124,255,.06);">
-              Busca la referencia en la hoja <strong>Base</strong>. Si existe, podrás llenar Código F y Nombre y <strong>Aplicar</strong>.
+              Busca la referencia en la hoja <strong>Base</strong>. Si existe, podrás llenar Código F y Nombre y <strong>Guardar</strong>.
             </div>
           </div>
 
           <div style="display:flex; gap:10px;">
-            <!-- Botón que BUSCA la referencia -->
-            <button class="btn" id="btnAplicar" type="button">Aplicar</button>
+            <button class="btn" id="btnAplicar" type="button">Buscar</button>
             <button class="btn ghost" id="btnLimpiar" type="button">Limpiar</button>
           </div>
 
@@ -199,7 +198,7 @@
           </div>
         </div>
 
-        <!-- ✅ Panel edición (antes “Guardar”, ahora “Aplicar”) -->
+        <!-- ✅ Panel edición (Guardar) -->
         <div class="panel" id="panelGuardar">
           <h3>Referencia: <span style="font-family:ui-monospace,Menlo,Consolas,monospace" id="refSeleccionada">—</span></h3>
 
@@ -209,7 +208,7 @@
             <div class="hint">Revisa el texto (espacios, guiones, mayúsculas) o confirma que exista en la hoja <strong>Base</strong>.</div>
           </div>
 
-          <!-- ENCONTRADA: campos vacíos + Aplicar -->
+          <!-- ENCONTRADA: campos vacíos + Guardar -->
           <div id="panelEncontrada" style="display:none;">
             <div class="panelGrid">
               <div>
@@ -223,12 +222,11 @@
               </div>
 
               <div>
-                <!-- 👇 Sustituye Guardar por Aplicar -->
-                <button class="btn" id="btnAplicarCambios" type="button">Aplicar</button>
+                <button class="btn" id="btnAplicarCambios" type="button">Guardar</button>
               </div>
             </div>
 
-            <div class="hint">Los campos aparecen vacíos a propósito. Tú escribes y al aplicar se sustituyen en Base ✅</div>
+            <div class="hint">Los campos aparecen vacíos a propósito. Tú escribes y al guardar se sustituyen en Base ✅</div>
           </div>
         </div>
 
@@ -237,7 +235,7 @@
           <div class="pill">Total: <strong id="total">0.00</strong></div>
         </div>
 
-        <div id="msg" class="msg">Primero puedes “Consultar” por Código F, o “Aplicar” una Referencia para luego aplicar Código F y Nombre.</div>
+        <div id="msg" class="msg">Primero puedes “Consultar” por Código F, o “Buscar” una Referencia para luego guardar Código F y Nombre.</div>
 
         <div class="tableWrap">
           <table id="tabla" style="display:none;">
@@ -276,7 +274,7 @@
 
   <script>
     const DEFAULT_SHEET_URL = "https://docs.google.com/spreadsheets/d/1PeFt5YUi1W5jI-sHo75E-0CHQUihADd2u4uqmHU5AK8/edit?usp=sharing";
-    const DEFAULT_GS_EXEC_URL = "https://script.google.com/macros/s/AKfycbznSfa45GAkrkc3A1HWA4DGh_jPBJDTd43tRO1Ur6xzwUPdpJicWTx73KfV50MH-dCcQw/exec";
+    const DEFAULT_GS_EXEC_URL = "https://script.google.com/macros/s/AKfycbzbh-KZa5_A1qjdxxJFB3GMuBqxNGzlVJX9ayWaNTR0qzC-jyRNs0U34I5mYDNAxJE2MA/exec";
     const LS_KEY = "PRSM_GS_URL";
 
     const sheetIdEl = document.getElementById('sheetId');
@@ -329,7 +327,7 @@
     });
 
     const referenciaEl = document.getElementById('referencia');
-    const btnAplicar = document.getElementById('btnAplicar'); // busca referencia
+    const btnAplicar = document.getElementById('btnAplicar'); // ahora dice "Buscar"
     const btnLimpiar = document.getElementById('btnLimpiar');
     const estadoAplicarEl = document.getElementById('estadoAplicar');
 
@@ -356,7 +354,7 @@
     const panelNoEncontradaEl = document.getElementById('panelNoEncontrada');
     const codigoFNuevoEl = document.getElementById('codigoFNuevo');
     const nombreNuevoEl = document.getElementById('nombreNuevo');
-    const btnAplicarCambios = document.getElementById('btnAplicarCambios');
+    const btnAplicarCambios = document.getElementById('btnAplicarCambios'); // ahora dice "Guardar"
 
     let referenciaActiva = "";
 
@@ -531,7 +529,7 @@
       setMsg('Listo. Pantalla limpia 🧼✨', '');
     }
 
-    // ✅ BOTÓN (Aplicar) que realmente BUSCA la referencia
+    // ✅ BOTÓN "Buscar" que realmente BUSCA la referencia
     async function buscarReferencia(){
       const gsUrl = getExecUrlOrExplain();
       if (!gsUrl) return;
@@ -540,7 +538,7 @@
       if (!referencia){
         estadoAplicarEl.textContent = '—';
         hidePanelEditar();
-        return setMsg('Escribe la Referencia y presiona “Aplicar”.', 'bad');
+        return setMsg('Escribe la Referencia y presiona “Buscar”.', 'bad');
       }
 
       setMsg('Buscando referencia... 🧾🔎', '');
@@ -563,7 +561,7 @@
         showPanelEncontrada(referencia);
         setMsg(
           'Referencia encontrada ✅\n' +
-          'Ahora llena Código F y Nombre y presiona “Aplicar”.',
+          'Ahora llena Código F y Nombre y presiona “Guardar”.',
           'ok'
         );
       }catch(err){
@@ -573,24 +571,24 @@
       }
     }
 
-    // ✅ Aplicar cambios (antes “guardar”)
+    // ✅ Guardar cambios (actualiza Base)
     async function aplicarCambios(){
       const gsUrl = getExecUrlOrExplain();
       if (!gsUrl) return;
 
       const ref = (referenciaActiva || '').trim();
       if (!ref){
-        return setMsg('No hay referencia activa. Presiona “Aplicar” (buscar) primero.', 'bad');
+        return setMsg('No hay referencia activa. Presiona “Buscar” primero.', 'bad');
       }
 
       const codigof = codigoFNuevoEl.value.trim();
       const nombre = nombreNuevoEl.value.trim();
 
       if (!codigof || !nombre){
-        return setMsg('Completa Código F y Nombre antes de aplicar.', 'bad');
+        return setMsg('Completa Código F y Nombre antes de guardar.', 'bad');
       }
 
-      setMsg('Aplicando cambios... ✅', '');
+      setMsg('Guardando cambios... 💾✅', '');
 
       try{
         const data = await jsonp(gsUrl, { action: 'guardarReferencia', referencia: ref, codigof, nombre }, 20000);
@@ -599,12 +597,12 @@
         if (data.saved !== true){
           estadoAplicarEl.textContent = 'No encontrada';
           showPanelNoEncontrada(ref);
-          return setMsg('Referencia no encontrada (no se aplicó nada).', 'bad');
+          return setMsg('Referencia no encontrada (no se guardó nada).', 'bad');
         }
 
-        estadoAplicarEl.textContent = 'Aplicado';
+        estadoAplicarEl.textContent = 'Guardado';
         setMsg(
-          'Aplicado ✅\n' +
+          'Guardado ✅\n' +
           'Referencia: ' + ref + '\n' +
           'Código F: ' + codigof + '\n' +
           'Nombre: ' + nombre,
@@ -656,7 +654,6 @@
           return;
         }
 
-        // ✅ FIX: template literals correctos
         tbodyEl.innerHTML = items.map(it => `
           <tr>
             <td class="anio">${it.Año ?? ''}</td>
