@@ -84,6 +84,15 @@
     .right{ text-align:right; }
     .small{ font-size:12px; color:var(--muted); margin-top:8px; }
 
+    /* ==========================================================
+       ✅ AUMENTAR +2px SOLO EN SALIDA "CONSULTAR"
+       (resumen Nombre/Total + tabla de resultados)
+       ========================================================== */
+    #resumenConsultar .pill{ font-size:14px; }                 /* antes 12px */
+    #tabla th{ font-size:14px; }                               /* antes 12px */
+    #tabla td{ font-size:15px; }                               /* antes 13px */
+    #tabla td.referencia{ font-size:14px; }                    /* antes 12px */
+
     details.sources{ margin-bottom:14px; border:1px solid var(--line); border-radius:12px; background:rgba(15,23,48,.45); overflow:hidden; }
     details.sources > summary{
       cursor:pointer; list-style:none; padding:10px 12px; color:var(--muted); font-weight:700; user-select:none;
@@ -109,10 +118,17 @@
         border-radius:14px; background:rgba(15,23,48,.45); }
       table{ width:max-content; min-width: 100%; table-layout:fixed; }
       col.c-anio{ width:4ch; } col.c-mes{ width:9ch; } col.c-concepto{ width:7ch; } col.c-referencia{ width:13ch; } col.c-valor{ width:5ch; }
+
       th, td{ padding:8px 8px; font-size:12px; white-space:nowrap; }
       td.concepto, td.referencia{ white-space:normal; overflow-wrap:anywhere; word-break:break-word; }
       td.valor, th.valor, .right{ text-align:right; }
       tfoot td{ border-bottom:none; padding:10px 8px; font-weight:900; }
+
+      /* ✅ +2px también en móvil para la salida Consultar */
+      #resumenConsultar .pill{ font-size:14px; }
+      #tabla th{ font-size:14px; }
+      #tabla td{ font-size:14px; }           /* en móvil subimos 12→14 (más cómodo) */
+      #tabla td.referencia{ font-size:14px; }
     }
   </style>
 </head>
@@ -243,7 +259,8 @@
           <div class="hint">Los campos aparecen vacíos a propósito. Tú escribes y al guardar se sustituyen en Base ✅</div>
         </div>
 
-        <div class="row2">
+        <!-- ✅ Resumen de salida Consultar (id agregado para subir fuente solo aquí) -->
+        <div class="row2" id="resumenConsultar">
           <div class="pill">Nombre: <strong id="nombre">—</strong></div>
           <div class="pill">Total: <strong id="total">0.00</strong></div>
         </div>
@@ -360,7 +377,7 @@
     const tfootTotalEl = document.getElementById('tfootTotal');
     const countEl = document.getElementById('count');
 
-    // ✅ Inline edit row (lo que pediste)
+    // ✅ Inline edit row
     const inlineEditEl = document.getElementById('inlineEdit');
     const refActivaEl = document.getElementById('refActiva');
     const refNotFoundEl = document.getElementById('refNotFound');
@@ -536,7 +553,6 @@
       setMsg('Listo. Pantalla limpia 🧼✨', '');
     }
 
-    // ✅ Buscar: si existe, muestra la fila inline (Código+Nombre+Guardar) EN LA MISMA LÍNEA
     async function buscarReferencia(){
       const gsUrl = getExecUrlOrExplain();
       if (!gsUrl) return;
@@ -575,7 +591,6 @@
       }
     }
 
-    // ✅ Guardar cambios (actualiza Base)
     async function aplicarCambios(){
       const gsUrl = getExecUrlOrExplain();
       if (!gsUrl) return;
@@ -607,10 +622,8 @@
         estadoAplicarEl.textContent = 'Guardado';
         setMsg('Guardado ✅\nReferencia: ' + ref + '\nCódigo F: ' + codigof + '\nNombre: ' + nombre, 'ok');
 
-        // opcional: mostrar nombre arriba
         nombreEl.textContent = nombre;
 
-        // modo excel: limpiar para siguiente
         codigoFNuevoEl.value = '';
         nombreNuevoEl.value = '';
         setTimeout(() => codigoFNuevoEl.focus(), 0);
@@ -634,7 +647,7 @@
       julio: 7,
       agosto: 8,
       septiembre: 9,
-      setiembre: 9,   // por si viene así
+      setiembre: 9,
       octubre: 10,
       noviembre: 11,
       diciembre: 12
@@ -645,12 +658,12 @@
         .trim()
         .toLowerCase()
         .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, ""); // quita tildes
+        .replace(/[\u0300-\u036f]/g, "");
     }
 
     function monthIndex(mes){
       const key = normText(mes);
-      return MONTH_ORDER[key] || 99; // meses raros al final
+      return MONTH_ORDER[key] || 99;
     }
 
     function toYearNumber(v){
@@ -680,7 +693,6 @@
 
         const itemsRaw = Array.isArray(data.items) ? data.items : [];
 
-        // ✅ Ordenar: Año asc, Mes asc (Ene..Dic), y de “extra” referencia para estabilidad
         const items = [...itemsRaw].sort((a, b) => {
           const ya = toYearNumber(a.Año);
           const yb = toYearNumber(b.Año);
