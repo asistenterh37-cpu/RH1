@@ -41,9 +41,51 @@
     .msg.ok{ border-color: rgba(34,197,94,.5); }
     .msg.bad{ border-color: rgba(239,68,68,.5); color:#ffd5d5; }
 
-    table{ width:100%; border-collapse:collapse; margin-top:14px; }
-    th, td{ padding:10px 10px; border-bottom:1px solid rgba(30,45,82,.65); text-align:left; font-size:13px; }
-    th{ color:var(--muted); font-size:12px; letter-spacing:.3px; text-transform:uppercase; }
+    /* ✅ TABLA DESKTOP: columnas bien alineadas + mejor distribución */
+    table{
+      width:100%;
+      border-collapse:collapse;
+      margin-top:14px;
+      table-layout:fixed; /* 🔑 evita que "Referencia" reviente la tabla */
+    }
+
+    /* Control fino de anchos (desktop) */
+    col.c-anio{ width:90px; }
+    col.c-mes{ width:130px; }
+    col.c-concepto{ width:auto; }
+    col.c-referencia{ width:200px; }
+    col.c-valor{ width:120px; }
+
+    th, td{
+      padding:10px 10px;
+      border-bottom:1px solid rgba(30,45,82,.65);
+      text-align:left;
+      font-size:13px;
+      vertical-align:top;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    th{
+      color:var(--muted);
+      font-size:12px;
+      letter-spacing:.3px;
+      text-transform:uppercase;
+      white-space:nowrap;
+    }
+
+    /* Concepto y Referencia pueden envolver */
+    td.concepto, td.referencia{
+      white-space:normal;
+      overflow-wrap:anywhere;
+      word-break:break-word;
+    }
+    /* Referencia: un poquito más “código friendly” sin romper */
+    td.referencia{
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size:12px;
+      color:#cfe0ff;
+    }
+
     tfoot td{ font-weight:800; }
     .right{ text-align:right; }
     .small{ font-size:12px; color:var(--muted); margin-top:8px; }
@@ -59,7 +101,7 @@
     a.link:hover{ filter:brightness(1.07); }
     code.k{ font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size:12px; color:#cfe0ff; }
 
-    /* ✅ Responsive: móvil (Año | Mes en columnas, luego Valor/Concepto/Referencia) */
+    /* ✅ Responsive: móvil (Año | Mes en columnas, luego Concepto / Referencia / Valor) */
     @media (max-width: 640px){
       .wrap{ padding:18px 12px 46px; }
       .head{ padding:18px 16px 8px; }
@@ -67,16 +109,8 @@
       h1{ font-size:18px; }
       h2{ font-size:13px; }
 
-      /* el grid superior se apila */
-      .grid{
-        grid-template-columns: 1fr;
-        align-items:stretch;
-      }
+      .grid{ grid-template-columns: 1fr; align-items:stretch; }
 
-      .row2{ gap:10px; }
-      .pill{ font-size:12px; }
-
-      /* Tabla -> tarjetas */
       table{ display:block; }
       thead{ display:none; }
       tbody{ display:block; }
@@ -94,11 +128,10 @@
       tfoot td{ border-bottom:none; padding:0; }
       tfoot td.right{ text-align:right; }
 
-      /* ✅ Tarjeta en grid sin desborde */
       tbody tr{
         display:grid;
-        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); /* columnas reales para Año | Mes */
-        gap:10px 12px; /* espacio entre columnas y filas */
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        gap:10px 12px;
         border:1px solid rgba(30,45,82,.65);
         border-radius:14px;
         background:rgba(15,23,48,.45);
@@ -111,10 +144,11 @@
         border-bottom:none;
         padding:0;
         font-size:13px;
-        min-width:0; /* 🔑 permite que el texto se ajuste dentro de la grid */
+        min-width:0;
+        overflow:visible;
+        text-overflow:clip;
       }
 
-      /* etiqueta arriba del valor */
       tbody td::before{
         content: attr(data-label);
         display:block;
@@ -125,11 +159,17 @@
         margin-bottom:4px;
       }
 
-      /* Año y Mes en columnas */
       tbody td.anio{ grid-column: 1; }
       tbody td.mes{ grid-column: 2; }
 
-      /* Valor debajo ocupando todo */
+      tbody td.concepto,
+      tbody td.referencia{
+        grid-column: 1 / -1;
+        overflow-wrap:anywhere;
+        word-break:break-word;
+      }
+
+      /* Valor al final, a la derecha, sin romper */
       tbody td.valor{
         grid-column: 1 / -1;
         text-align:right;
@@ -139,18 +179,10 @@
       }
       tbody td.valor::before{ color:#cfe0ff; }
 
-      /* Concepto y Referencia a ancho completo */
+      /* Separador sutil */
       tbody td.concepto,
-      tbody td.referencia{
-        grid-column: 1 / -1;
-        overflow-wrap:anywhere; /* 🔥 corta strings largas sin romper layout */
-        word-break:break-word;
-      }
-
-      /* separador sutil dentro de tarjeta */
-      tbody td.valor,
-      tbody td.concepto,
-      tbody td.referencia{
+      tbody td.referencia,
+      tbody td.valor{
         padding-top:8px;
         border-top:1px dashed rgba(30,45,82,.55);
       }
@@ -234,6 +266,15 @@
       <div id="msg" class="msg">Escribe el Código F y presiona “Consultar”.</div>
 
       <table id="tabla" style="display:none;">
+        <!-- ✅ colgroup para distribución correcta en desktop -->
+        <colgroup>
+          <col class="c-anio">
+          <col class="c-mes">
+          <col class="c-concepto">
+          <col class="c-referencia">
+          <col class="c-valor">
+        </colgroup>
+
         <thead>
           <tr>
             <th>Año</th>
@@ -465,13 +506,15 @@
         return;
       }
 
+      /* ✅ AQUÍ ESTÁ LA CORRECCIÓN CLAVE:
+         Orden del <tbody> = Año | Mes | Concepto | Referencia | Valor (igual al thead) */
       tbodyEl.innerHTML = items.map(it => `
         <tr>
           <td data-label="Año" class="anio">${it.Año ?? ''}</td>
           <td data-label="Mes" class="mes">${it.Mes ?? ''}</td>
-          <td data-label="Valor" class="right valor">${money(it.Valor)}</td>
           <td data-label="Concepto" class="concepto">${it.Concepto ?? ''}</td>
           <td data-label="Referencia" class="referencia">${it.Referencia ?? ''}</td>
+          <td data-label="Valor" class="right valor">${money(it.Valor)}</td>
         </tr>
       `).join('');
 
