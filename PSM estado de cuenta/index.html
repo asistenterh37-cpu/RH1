@@ -55,10 +55,10 @@
       letter-spacing:.2px;
     }
 
-    /* Panel estilo “como el Excel” (2 casillas + botón Guardar) */
+    /* ✅ Panel Aplicar: UNA sola fila: Código F corto + Nombre largo + Guardar */
     .panelGrid{
       display:grid;
-      grid-template-columns: 220px 1fr auto;
+      grid-template-columns: 160px 1fr auto; /* <- Código F corto, Nombre largo */
       gap:12px;
       align-items:end;
     }
@@ -140,6 +140,8 @@
       h1{ font-size:18px; }
       h2{ font-size:13px; }
       .grid{ grid-template-columns: 1fr; align-items:stretch; }
+
+      /* En móvil se apila (se entiende mejor y evita overflow) */
       .panelGrid{ grid-template-columns: 1fr; }
 
       .tableWrap{
@@ -271,26 +273,26 @@
         </div>
       </div>
 
-      <!-- ✅ Panel de Aplicar/Guardar (Encontrada / No encontrada) -->
+      <!-- ✅ Panel de Aplicar/Guardar -->
       <div class="panel" id="panelGuardar">
         <h3>Referencia: <span style="font-family:ui-monospace,Menlo,Consolas,monospace" id="refSeleccionada">—</span></h3>
 
-        <!-- Estado: NO encontrada -->
+        <!-- NO encontrada -->
         <div id="panelNoEncontrada" style="display:none;">
           <div class="notFoundBox">Referencia no encontrada.</div>
           <div class="hint">Revisa el texto (espacios, guiones, mayúsculas) o confirma que exista en la hoja <strong>Base</strong>.</div>
         </div>
 
-        <!-- Estado: ENCONTRADA (campos vacíos + Guardar) -->
+        <!-- ENCONTRADA: (campos vacíos + Guardar) EN LA MISMA FILA -->
         <div id="panelEncontrada" style="display:none;">
           <div class="panelGrid">
             <div>
-              <label for="codigoFNuevo">Código F</label>
+              <label for="codigoFNuevo">Caja Código F (corto)</label>
               <input id="codigoFNuevo" placeholder="" autocomplete="off" />
             </div>
 
             <div>
-              <label for="nombreNuevo">Nombre</label>
+              <label for="nombreNuevo">Caja Nombre (largo)</label>
               <input id="nombreNuevo" placeholder="" autocomplete="off" />
             </div>
 
@@ -299,7 +301,7 @@
             </div>
           </div>
 
-          <div class="hint">Los campos aparecen vacíos a propósito (como en tu Excel). Tú escribes y al guardar se sustituyen en Base ✅</div>
+          <div class="hint">Los campos aparecen vacíos a propósito. Tú escribes y al guardar se sustituyen en Base ✅</div>
         </div>
       </div>
 
@@ -344,7 +346,7 @@
 
 <script>
   const DEFAULT_SHEET_URL = "https://docs.google.com/spreadsheets/d/1PeFt5YUi1W5jI-sHo75E-0CHQUihADd2u4uqmHU5AK8/edit?usp=sharing";
-  const DEFAULT_GS_EXEC_URL = "https://script.google.com/macros/s/AKfycbwffIFh_s7A-O3rJEquQv0EXqbcFGC27BH2W-Uw7dM_Eigc7FJIy9Qd9o7cojQO0hhvXw/exec";
+  const DEFAULT_GS_EXEC_URL = "https://script.google.com/macros/s/AKfycbwe1cpiAT3cEMXC3645q9sx1JeYvauCfhSeokIPd1mVofvoe4Nh2S7oRiEcEGHy063EMg/exec";
   const LS_KEY = "PRSM_GS_URL";
 
   const sheetIdEl = document.getElementById('sheetId');
@@ -458,11 +460,11 @@
     referenciaActiva = '';
   }
 
-  // ✅ Mostrar panel en modo "ENCONTRADA" (campos SIEMPRE vacíos)
   function showPanelEncontrada(referencia){
     referenciaActiva = referencia;
     refSeleccionadaEl.textContent = referencia;
 
+    // siempre vacíos (excel mode)
     codigoFNuevoEl.value = '';
     nombreNuevoEl.value = '';
 
@@ -472,7 +474,6 @@
     setTimeout(() => codigoFNuevoEl.focus(), 0);
   }
 
-  // ✅ Mostrar panel en modo "NO ENCONTRADA"
   function showPanelNoEncontrada(referencia){
     referenciaActiva = '';
     refSeleccionadaEl.textContent = referencia || '—';
@@ -601,7 +602,6 @@
     setMsg('Listo. Pantalla limpia 🧼✨', '');
   }
 
-  // ✅ Aplicar por Referencia
   async function aplicarReferencia(){
     const gsUrl = getExecUrlOrExplain(); if (!gsUrl) return;
 
@@ -644,7 +644,6 @@
     }
   }
 
-  // ✅ Guardar (SUSTITUYE Código F + Nombre en la fila de esa referencia)
   async function guardar(){
     const gsUrl = getExecUrlOrExplain(); if (!gsUrl) return;
 
@@ -674,10 +673,9 @@
       estadoAplicarEl.textContent = 'Guardada';
       setMsg('Guardado ✅\nReferencia: ' + ref + '\nCódigo F: ' + codigof + '\nNombre: ' + nombre, 'ok');
 
-      // reflejar en “Nombre:” abajo
       nombreEl.textContent = nombre;
 
-      // (opcional) limpiar campos para el siguiente registro tipo excel
+      // modo excel: limpia y queda listo para el siguiente
       codigoFNuevoEl.value = '';
       nombreNuevoEl.value = '';
       setTimeout(() => codigoFNuevoEl.focus(), 0);
@@ -750,7 +748,6 @@
 
   btnLimpiar.addEventListener('click', limpiarTodo);
 
-  // Estado inicial
   estadoAplicarEl.textContent = '—';
   hidePanelGuardar();
 </script>
