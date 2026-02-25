@@ -86,12 +86,11 @@
 
     /* ==========================================================
        ✅ AUMENTAR +2px SOLO EN SALIDA "CONSULTAR"
-       (resumen Nombre/Total + tabla de resultados)
        ========================================================== */
-    #resumenConsultar .pill{ font-size:14px; }                 /* antes 12px */
-    #tabla th{ font-size:14px; }                               /* antes 12px */
-    #tabla td{ font-size:15px; }                               /* antes 13px */
-    #tabla td.referencia{ font-size:14px; }                    /* antes 12px */
+    #resumenConsultar .pill{ font-size:14px; }
+    #tabla th{ font-size:14px; }
+    #tabla td{ font-size:15px; }
+    #tabla td.referencia{ font-size:14px; }
 
     details.sources{ margin-bottom:14px; border:1px solid var(--line); border-radius:12px; background:rgba(15,23,48,.45); overflow:hidden; }
     details.sources > summary{
@@ -106,6 +105,36 @@
     a.link:hover{ filter:brightness(1.07); }
     code.k{ font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size:12px; color:#cfe0ff; }
 
+    /* ✅ Bloque Análisis */
+    .analysisWrap{
+      margin: 10px 0 12px;
+      border:1px solid rgba(79,124,255,.25);
+      background:rgba(79,124,255,.06);
+      border-radius:14px;
+      padding:12px;
+    }
+    .analysisTitle{
+      display:flex; align-items:center; justify-content:space-between; gap:10px;
+      margin-bottom:10px;
+    }
+    .analysisTitle .ttl{
+      font-weight:800; letter-spacing:.2px;
+    }
+    .analysisGrid{
+      display:grid;
+      grid-template-columns: 1fr 1fr 1fr auto;
+      gap:12px;
+      align-items:end;
+    }
+    .chartBox{
+      margin-top:12px;
+      border:1px solid rgba(30,45,82,.65);
+      border-radius:14px;
+      background:rgba(15,23,48,.35);
+      padding:12px;
+    }
+    canvas{ width:100%; height:260px; display:block; }
+
     @media (max-width: 640px){
       .wrap{ padding:18px 12px 46px; }
       .head{ padding:18px 16px 8px; }
@@ -113,7 +142,8 @@
       h1{ font-size:18px; }
       h2{ font-size:13px; }
       .grid{ grid-template-columns: 1fr; align-items:stretch; }
-      .panelGrid{ grid-template-columns: 1fr; } /* móvil: se apila */
+      .panelGrid{ grid-template-columns: 1fr; }
+      .analysisGrid{ grid-template-columns: 1fr; }
       .tableWrap{ overflow-x:auto; -webkit-overflow-scrolling:touch; border:1px solid rgba(30,45,82,.65);
         border-radius:14px; background:rgba(15,23,48,.45); }
       table{ width:max-content; min-width: 100%; table-layout:fixed; }
@@ -124,11 +154,12 @@
       td.valor, th.valor, .right{ text-align:right; }
       tfoot td{ border-bottom:none; padding:10px 8px; font-weight:900; }
 
-      /* ✅ +2px también en móvil para la salida Consultar */
       #resumenConsultar .pill{ font-size:14px; }
       #tabla th{ font-size:14px; }
-      #tabla td{ font-size:14px; }           /* en móvil subimos 12→14 (más cómodo) */
+      #tabla td{ font-size:14px; }
       #tabla td.referencia{ font-size:14px; }
+
+      canvas{ height:240px; }
     }
   </style>
 </head>
@@ -228,6 +259,66 @@
           </div>
         </div>
 
+        <!-- ✅ 3) ANÁLISIS (DEBAJO del bloque Referencia/Buscar/Limpiar) -->
+        <div class="analysisWrap" id="analysisWrap">
+          <div class="analysisTitle">
+            <div class="ttl">Análisis</div>
+            <div class="pill">Filas analizadas: <strong id="analisisFilas">0</strong></div>
+          </div>
+
+          <div class="analysisGrid">
+            <div>
+              <label for="anioA">Año</label>
+              <select id="anioA">
+                <option value="Todos">Todos</option>
+                <option value="2025">2025</option>
+                <option value="2026">2026</option>
+              </select>
+            </div>
+
+            <div>
+              <label for="mesA">Mes</label>
+              <select id="mesA">
+                <option value="Todos">Todos</option>
+                <option value="Enero">Enero</option>
+                <option value="Febrero">Febrero</option>
+                <option value="Marzo">Marzo</option>
+                <option value="Abril">Abril</option>
+                <option value="Mayo">Mayo</option>
+                <option value="Junio">Junio</option>
+                <option value="Julio">Julio</option>
+                <option value="Agosto">Agosto</option>
+                <option value="Septiembre">Septiembre</option>
+                <option value="Octubre">Octubre</option>
+                <option value="Noviembre">Noviembre</option>
+                <option value="Diciembre">Diciembre</option>
+              </select>
+            </div>
+
+            <div>
+              <label for="bloqueA">Bloque</label>
+              <select id="bloqueA"></select>
+            </div>
+
+            <div>
+              <button class="btn" id="btnAnalizar" type="button">Analizar</button>
+            </div>
+          </div>
+
+          <div class="chartBox">
+            <div class="row2" style="margin-top:0;">
+              <div class="pill">Frecuencia máx: <strong id="analisisMax">0</strong></div>
+              <div class="pill">Filtro: <strong id="analisisFiltro">—</strong></div>
+            </div>
+            <div style="margin-top:10px;">
+              <canvas id="chartCanvas"></canvas>
+              <div class="small" id="chartHint" style="margin-top:10px;">
+                Gráfico 2D de frecuencias por bloque (columna <strong>Bloque</strong> en hoja <strong>Base</strong>).
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- ✅ Si NO existe: aviso -->
         <div class="notFoundBox" id="refNotFound">
           Referencia no encontrada.
@@ -259,7 +350,7 @@
           <div class="hint">Los campos aparecen vacíos a propósito. Tú escribes y al guardar se sustituyen en Base ✅</div>
         </div>
 
-        <!-- ✅ Resumen de salida Consultar (id agregado para subir fuente solo aquí) -->
+        <!-- ✅ Resumen de salida Consultar -->
         <div class="row2" id="resumenConsultar">
           <div class="pill">Nombre: <strong id="nombre">—</strong></div>
           <div class="pill">Total: <strong id="total">0.00</strong></div>
@@ -304,7 +395,7 @@
 
   <script>
     const DEFAULT_SHEET_URL = "https://docs.google.com/spreadsheets/d/1PeFt5YUi1W5jI-sHo75E-0CHQUihADd2u4uqmHU5AK8/edit?usp=sharing";
-    const DEFAULT_GS_EXEC_URL = "https://script.google.com/macros/s/AKfycbzBB4qWVGa6GB7fHEZMXZMr3338XANQGkkbLItr5Wtab7wELRlgnc4aLaNpfoQSSm9wMw/exec";
+    const DEFAULT_GS_EXEC_URL = "https://script.google.com/macros/s/AKfycbyYWCW-cHrCbUTbgwx-6C10DZitKd54R41xv6QatB_ZRiXwjYnX701D3TzMSUCZehQxVQ/exec";
     const LS_KEY = "PRSM_GS_URL";
 
     const sheetIdEl = document.getElementById('sheetId');
@@ -383,9 +474,38 @@
     const refNotFoundEl = document.getElementById('refNotFound');
     const codigoFNuevoEl = document.getElementById('codigoFNuevo');
     const nombreNuevoEl = document.getElementById('nombreNuevo');
-    const btnAplicarCambios = document.getElementById('btnAplicarCambios'); // Guardar
+    const btnAplicarCambios = document.getElementById('btnAplicarCambios');
 
     let referenciaActiva = "";
+
+    // ✅ Análisis
+    const anioAEl = document.getElementById('anioA');
+    const mesAEl = document.getElementById('mesA');
+    const bloqueAEl = document.getElementById('bloqueA');
+    const btnAnalizar = document.getElementById('btnAnalizar');
+    const analisisFilasEl = document.getElementById('analisisFilas');
+    const analisisMaxEl = document.getElementById('analisisMax');
+    const analisisFiltroEl = document.getElementById('analisisFiltro');
+    const chartCanvas = document.getElementById('chartCanvas');
+
+    // llenar Bloques 1..36 + Todos
+    function fillBloques(){
+      const frag = document.createDocumentFragment();
+      const opt0 = document.createElement('option');
+      opt0.value = "Todos";
+      opt0.textContent = "Todos";
+      frag.appendChild(opt0);
+
+      for (let i=1;i<=36;i++){
+        const opt = document.createElement('option');
+        opt.value = String(i);
+        opt.textContent = String(i);
+        frag.appendChild(opt);
+      }
+      bloqueAEl.innerHTML = "";
+      bloqueAEl.appendChild(frag);
+    }
+    fillBloques();
 
     function setMsg(text, type) {
       msgEl.textContent = text;
@@ -542,6 +662,124 @@
       setMsg('URL reseteada. Si re-implementaste, pega la NUEVA /exec en “Fuentes”.', '');
     }
 
+    /* ===========================
+       ✅ GRÁFICO (Canvas)
+       =========================== */
+    function clearChart(){
+      const ctx = chartCanvas.getContext('2d');
+      const dpr = window.devicePixelRatio || 1;
+      const w = chartCanvas.clientWidth || 600;
+      const h = chartCanvas.clientHeight || 260;
+      chartCanvas.width = Math.floor(w * dpr);
+      chartCanvas.height = Math.floor(h * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, w, h);
+
+      // mini placeholder
+      ctx.globalAlpha = 0.9;
+      ctx.fillStyle = "rgba(159,179,217,.9)";
+      ctx.font = "12px system-ui, -apple-system, Segoe UI, Roboto, Arial";
+      ctx.fillText("Sin datos aún. Presiona “Analizar”.", 12, 20);
+      ctx.globalAlpha = 1;
+    }
+
+    function drawBarChart(freqs){
+      const ctx = chartCanvas.getContext('2d');
+      const dpr = window.devicePixelRatio || 1;
+
+      const w = chartCanvas.clientWidth || 600;
+      const h = chartCanvas.clientHeight || 260;
+
+      chartCanvas.width = Math.floor(w * dpr);
+      chartCanvas.height = Math.floor(h * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, w, h);
+
+      const padL = 44, padR = 16, padT = 16, padB = 38;
+      const plotW = w - padL - padR;
+      const plotH = h - padT - padB;
+
+      const max = Math.max(0, ...freqs.map(x => x.freq || 0));
+      analisisMaxEl.textContent = String(max);
+
+      // grid / axes
+      ctx.strokeStyle = "rgba(30,45,82,.8)";
+      ctx.lineWidth = 1;
+
+      // eje Y + líneas
+      const steps = 4;
+      for(let i=0;i<=steps;i++){
+        const y = padT + (plotH * i/steps);
+        ctx.beginPath();
+        ctx.moveTo(padL, y);
+        ctx.lineTo(padL + plotW, y);
+        ctx.stroke();
+      }
+
+      // eje X
+      ctx.beginPath();
+      ctx.moveTo(padL, padT + plotH);
+      ctx.lineTo(padL + plotW, padT + plotH);
+      ctx.stroke();
+
+      // labels y
+      ctx.fillStyle = "rgba(159,179,217,.95)";
+      ctx.font = "11px system-ui, -apple-system, Segoe UI, Roboto, Arial";
+      ctx.textAlign = "right";
+      ctx.textBaseline = "middle";
+      for(let i=0;i<=steps;i++){
+        const v = max === 0 ? 0 : Math.round(max * (1 - i/steps));
+        const y = padT + (plotH * i/steps);
+        ctx.fillText(String(v), padL - 8, y);
+      }
+
+      // bars
+      const n = freqs.length; // 36
+      const gap = 2;
+      const barW = Math.max(2, Math.floor((plotW - gap*(n-1)) / n));
+
+      ctx.textAlign = "center";
+      ctx.textBaseline = "top";
+
+      for(let i=0;i<n;i++){
+        const f = freqs[i];
+        const val = f.freq || 0;
+        const x = padL + i*(barW + gap);
+        const bh = max === 0 ? 0 : (val/max) * plotH;
+        const y = padT + (plotH - bh);
+
+        // bar
+        ctx.fillStyle = "rgba(79,124,255,.75)";
+        ctx.fillRect(x, y, barW, bh);
+
+        // labels X (no saturar: cada 3)
+        if ((i+1) % 3 === 0 || i === 0 || i === n-1){
+          ctx.fillStyle = "rgba(159,179,217,.95)";
+          ctx.font = "10px system-ui, -apple-system, Segoe UI, Roboto, Arial";
+          ctx.fillText(String(f.bloque), x + barW/2, padT + plotH + 8);
+        }
+      }
+
+      // título pequeño
+      ctx.fillStyle = "rgba(231,238,252,.95)";
+      ctx.font = "12px system-ui, -apple-system, Segoe UI, Roboto, Arial";
+      ctx.textAlign = "left";
+      ctx.textBaseline = "top";
+      ctx.fillText("Frecuencia por Bloque", padL, 6);
+    }
+
+    clearChart();
+
+    function limpiarAnalisis(){
+      anioAEl.value = "Todos";
+      mesAEl.value = "Todos";
+      bloqueAEl.value = "Todos";
+      analisisFilasEl.textContent = "0";
+      analisisMaxEl.textContent = "0";
+      analisisFiltroEl.textContent = "—";
+      clearChart();
+    }
+
     function limpiarTodo(){
       referenciaEl.value = '';
       codigoFEl.value = '';
@@ -550,6 +788,7 @@
       estadoAplicarEl.textContent = '—';
       resetVistaResultados();
       hideInlineEdit();
+      limpiarAnalisis(); // ✅ ahora también limpia gráficos
       setMsg('Listo. Pantalla limpia 🧼✨', '');
     }
 
@@ -734,6 +973,51 @@
       }
     }
 
+    /* ===========================
+       ✅ Análisis: frecuencias por bloque
+       =========================== */
+    function filtroText(){
+      const y = anioAEl.value;
+      const m = mesAEl.value;
+      const b = bloqueAEl.value;
+      return `Año=${y} | Mes=${m} | Bloque=${b}`;
+    }
+
+    async function analizar(){
+      const gsUrl = getExecUrlOrExplain();
+      if (!gsUrl) return;
+
+      const year = anioAEl.value;
+      const mes = mesAEl.value;
+      const bloque = bloqueAEl.value;
+
+      analisisFiltroEl.textContent = filtroText();
+      setMsg('Analizando frecuencias por bloque... 📊', '');
+
+      try{
+        const data = await jsonp(gsUrl, { action: 'freqBloques', year, mes, bloque }, 20000);
+        if (!data || data.ok !== true) throw new Error((data && data.error) ? data.error : 'Respuesta inválida del WebApp');
+
+        const freqs = Array.isArray(data.freqs) ? data.freqs : [];
+        const filas = Number(data.totalFilas || 0);
+
+        analisisFilasEl.textContent = String(filas);
+
+        // asegurar 36
+        const arr36 = [];
+        for(let i=1;i<=36;i++){
+          const hit = freqs.find(x => String(x.bloque) === String(i));
+          arr36.push({ bloque: i, freq: hit ? Number(hit.freq||0) : 0 });
+        }
+
+        drawBarChart(arr36);
+        setMsg('Listo ✅ (Análisis)', 'ok');
+      }catch(err){
+        setMsg('Error:\n' + err.message, 'bad');
+        clearChart();
+      }
+    }
+
     // Eventos
     btnPing.addEventListener('click', ping);
     btnDiag.addEventListener('click', diagnostico);
@@ -749,11 +1033,14 @@
     codigoFNuevoEl.addEventListener('keydown', (e) => { if (e.key === 'Enter') aplicarCambios(); });
     nombreNuevoEl.addEventListener('keydown', (e) => { if (e.key === 'Enter') aplicarCambios(); });
 
+    btnAnalizar.addEventListener('click', analizar);
+
     btnLimpiar.addEventListener('click', limpiarTodo);
 
     // init
     estadoAplicarEl.textContent = '—';
     hideInlineEdit();
+    limpiarAnalisis();
   </script>
 </body>
 </html>
