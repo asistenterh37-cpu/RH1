@@ -308,7 +308,7 @@
             <div style="margin-top:10px;">
               <canvas id="chartCanvas"></canvas>
               <div class="small" id="chartHint" style="margin-top:10px;">
-                Gráfico 2D (Horizontal Bar Chart) de frecuencias por bloque (columna <strong>Bloque</strong> en hoja <strong>Base</strong>) — incluye bloques 1..51.
+                Gráfico 2D (Horizontal Bar Chart) de frecuencias por bloque (columna <strong>Bloque</strong> en hoja <strong>Base</strong>) — incluye bloques existentes: 1..33, 50 y 51 (sin “huecos” 34–49).
               </div>
             </div>
           </div>
@@ -387,11 +387,17 @@
 
   <script>
     const DEFAULT_SHEET_URL = "https://docs.google.com/spreadsheets/d/1PeFt5YUi1W5jI-sHo75E-0CHQUihADd2u4uqmHU5AK8/edit?usp=sharing";
-    const DEFAULT_GS_EXEC_URL = "https://script.google.com/macros/s/AKfycbwjeAONoZBjqhH5VdsPkKqY2V89IvWj0xzUQIUCxGjcPRXRI_LH-PHTvGfGnEJw6Ly_PQ/exec";
+    const DEFAULT_GS_EXEC_URL = "https://script.google.com/macros/s/AKfycbwesvnZB2UW5v1d0WlXZO_9GgKUzurotmL7ch6L9KD59ObTx46pY_kBDPuZAzogfxuzGQ/exec";
     const LS_KEY = "PRSM_GS_URL";
 
-    // ✅ CAMBIO: ahora el análisis/grafico incluye bloques hasta 51
-    const MAX_BLOQUE = 51;
+    // ✅ CAMBIO: Lista REAL de bloques existentes (sin 34..49)
+    const BLOCK_LIST = (() => {
+      const a = [];
+      for (let i=1;i<=33;i++) a.push(i);
+      a.push(50, 51);
+      return a;
+    })();
+    const BLOCK_SET = new Set(BLOCK_LIST);
 
     const sheetIdEl = document.getElementById('sheetId');
     const execOkEl = document.getElementById('execOk');
@@ -481,7 +487,7 @@
     const analisisFiltroEl = document.getElementById('analisisFiltro');
     const chartCanvas = document.getElementById('chartCanvas');
 
-    // ✅ CAMBIO: llena bloques 1..51
+    // ✅ CAMBIO: llena SOLO bloques existentes (1..33, 50, 51) — sin 34..49
     function fillBloques(){
       const frag = document.createDocumentFragment();
       const opt0 = document.createElement('option');
@@ -489,10 +495,10 @@
       opt0.textContent = "Todos";
       frag.appendChild(opt0);
 
-      for (let i=1;i<=MAX_BLOQUE;i++){
+      for (const b of BLOCK_LIST){
         const opt = document.createElement('option');
-        opt.value = String(i);
-        opt.textContent = String(i);
+        opt.value = String(b);
+        opt.textContent = String(b);
         frag.appendChild(opt);
       }
       bloqueAEl.innerHTML = "";
@@ -739,7 +745,10 @@
       ctx.font = "12px system-ui, -apple-system, Segoe UI, Roboto, Arial";
       ctx.textAlign = "left";
       ctx.textBaseline = "top";
-      ctx.fillText("Frecuencia por Bloque (Horizontal Bar Chart 2D) — 1.."+MAX_BLOQUE, 12, 6);
+      ctx.fillText(
+        "Frecuencia por Bloque (Horizontal Bar Chart 2D) — existentes: 1..33, 50, 51",
+        12, 6
+      );
 
       for(let i=0;i<n;i++){
         const f = freqs[i];
@@ -993,6 +1002,16 @@
       analisisFiltroEl.textContent = filtroText();
       setMsg('Analizando frecuencias por bloque... 📊', '');
 
+      // ✅ extra: si el usuario intenta mandar 34..49 (no debería aparecer), lo frenamos bonito
+      if (bloque !== "Todos"){
+        const bNum = parseInt(String(bloque), 10);
+        if (!BLOCK_SET.has(bNum)){
+          setMsg('Ese bloque no existe en el sistema (solo 1..33, 50 y 51).', 'bad');
+          clearChart();
+          return;
+        }
+      }
+
       try{
         const data = await jsonp(gsUrl, { action: 'freqBloques', year, mes, bloque }, 20000);
         if (!data || data.ok !== true) throw new Error((data && data.error) ? data.error : 'Respuesta inválida del WebApp');
@@ -1002,12 +1021,9 @@
 
         analisisFilasEl.textContent = String(filas);
 
-        // ✅ CAMBIO: arma arreglo 1..51 (incluye 50 y 51)
-        const arr = [];
-        for(let i=1;i<=MAX_BLOQUE;i++){
-          const hit = freqs.find(x => String(x.bloque) === String(i));
-          arr.push({ bloque: i, freq: hit ? Number(hit.freq||0) : 0 });
-        }
+        // ✅ CAMBIO: arma arreglo SOLO con bloques existentes (sin 34..49)
+        const map = new Map(freqs.map(x => [String(x.bloque), Number(x.freq || 0)]));
+        const arr = BLOCK_LIST.map(b => ({ bloque: b, freq: map.get(String(b)) || 0 }));
 
         drawHorizontalBarChart(arr);
         setMsg('Listo ✅ (Análisis)', 'ok');
