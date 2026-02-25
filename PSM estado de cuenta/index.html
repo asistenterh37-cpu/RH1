@@ -127,6 +127,7 @@
       border-radius:14px;
       background:rgba(15,23,48,.35);
       padding:12px;
+      overflow:auto;
     }
     canvas{ width:100%; height:260px; display:block; }
 
@@ -153,7 +154,6 @@
       #tabla th{ font-size:14px; }
       #tabla td{ font-size:14px; }
       #tabla td.referencia{ font-size:14px; }
-
       canvas{ height:240px; }
     }
   </style>
@@ -308,7 +308,7 @@
             <div style="margin-top:10px;">
               <canvas id="chartCanvas"></canvas>
               <div class="small" id="chartHint" style="margin-top:10px;">
-                Gráfico 2D de frecuencias por bloque (columna <strong>Bloque</strong> en hoja <strong>Base</strong>).
+                Gráfico 2D (Horizontal Bar Chart) de frecuencias por bloque (columna <strong>Bloque</strong> en hoja <strong>Base</strong>).
               </div>
             </div>
           </div>
@@ -387,7 +387,7 @@
 
   <script>
     const DEFAULT_SHEET_URL = "https://docs.google.com/spreadsheets/d/1PeFt5YUi1W5jI-sHo75E-0CHQUihADd2u4uqmHU5AK8/edit?usp=sharing";
-    const DEFAULT_GS_EXEC_URL = "https://script.google.com/macros/s/AKfycbwU48hjKpJc06FQMH7V1CrY0rlRmmhfk8WK4zWM4t-GO0fg-UOL-qdQyJcTHRa2POgW8g/exec";
+    const DEFAULT_GS_EXEC_URL = "https://script.google.com/macros/s/AKfycbyrJnrrtfC8hJ0KzH5d7ArIh0TWO11qLFg3lHvbaVM8OslWEc15B-tw5Yl1WxBMhVKcJg/exec";
     const LS_KEY = "PRSM_GS_URL";
 
     const sheetIdEl = document.getElementById('sheetId');
@@ -652,18 +652,25 @@
     }
 
     /* ===========================
-       ✅ GRÁFICO (Canvas)
+       ✅ GRÁFICO (Canvas) - HORIZONTAL BAR CHART
        =========================== */
 
     function pad2(n){
       return String(n).padStart(2,'0');
     }
 
+    function resizeCanvasCssHeight(px){
+      chartCanvas.style.height = px + "px";
+    }
+
     function clearChart(){
+      resizeCanvasCssHeight(260);
+
       const ctx = chartCanvas.getContext('2d');
       const dpr = window.devicePixelRatio || 1;
       const w = chartCanvas.clientWidth || 600;
       const h = chartCanvas.clientHeight || 260;
+
       chartCanvas.width = Math.floor(w * dpr);
       chartCanvas.height = Math.floor(h * dpr);
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -676,107 +683,55 @@
       ctx.globalAlpha = 1;
     }
 
-    // ✅ Columnas 2D (vertical) “hacia abajo” + etiquetas Bloque/Frecuencia en la barra
-    function drawBarChart(freqs){
+    // ✅ Horizontal Bar Chart (2D) + etiqueta "Bloque XX • Frec" en cada barra
+    function drawHorizontalBarChart(freqs){
       const ctx = chartCanvas.getContext('2d');
       const dpr = window.devicePixelRatio || 1;
 
-      const w = chartCanvas.clientWidth || 600;
-      const h = chartCanvas.clientHeight || 260;
+      const w = chartCanvas.clientWidth || 760;
+
+      const n = freqs.length || 0;
+      const barH = 14;
+      const gapY = 6;
+
+      const padL = 140;  // espacio para etiquetas de Bloque a la izquierda
+      const padR = 22;
+      const padT = 28;
+      const padB = 18;
+
+      const desiredH = Math.max(260, padT + padB + n * (barH + gapY));
+      resizeCanvasCssHeight(desiredH);
+
+      const h = desiredH;
 
       chartCanvas.width = Math.floor(w * dpr);
       chartCanvas.height = Math.floor(h * dpr);
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.clearRect(0, 0, w, h);
 
-      const padL = 52, padR = 16, padT = 22, padB = 44;
       const plotW = w - padL - padR;
-      const plotH = h - padT - padB;
-
       const max = Math.max(0, ...freqs.map(x => Number(x.freq || 0)));
       analisisMaxEl.textContent = String(max);
 
-      // Grid
+      // Fondo de grilla vertical (eje X)
       ctx.strokeStyle = "rgba(30,45,82,.8)";
       ctx.lineWidth = 1;
-      const steps = 4;
 
+      const steps = 5;
       for(let i=0;i<=steps;i++){
-        const y = padT + (plotH * i/steps);
+        const x = padL + (plotW * i/steps);
         ctx.beginPath();
-        ctx.moveTo(padL, y);
-        ctx.lineTo(padL + plotW, y);
+        ctx.moveTo(x, padT - 6);
+        ctx.lineTo(x, h - padB);
         ctx.stroke();
-      }
 
-      // Eje X (arriba, porque columnas “caen”)
-      ctx.beginPath();
-      ctx.moveTo(padL, padT);
-      ctx.lineTo(padL + plotW, padT);
-      ctx.stroke();
-
-      // Labels Y (0..max pero hacia abajo)
-      ctx.fillStyle = "rgba(159,179,217,.95)";
-      ctx.font = "11px system-ui, -apple-system, Segoe UI, Roboto, Arial";
-      ctx.textAlign = "right";
-      ctx.textBaseline = "middle";
-      for(let i=0;i<=steps;i++){
+        // números eje X arriba
         const v = max === 0 ? 0 : Math.round(max * (i/steps));
-        const y = padT + (plotH * i/steps);
-        ctx.fillText(String(v), padL - 10, y);
-      }
-
-      // Bars
-      const n = freqs.length; // 36
-      const gap = 3;
-      const barW = Math.max(2, Math.floor((plotW - gap*(n-1)) / n));
-
-      // X labels (bloque)
-      ctx.textAlign = "center";
-      ctx.textBaseline = "top";
-
-      for(let i=0;i<n;i++){
-        const f = freqs[i];
-        const val = Number(f.freq || 0);
-        const x = padL + i*(barW + gap);
-
-        const bh = max === 0 ? 0 : (val/max) * plotH;
-        const y = padT; // desde arriba
-        const yEnd = padT + bh;
-
-        // barra (columna)
-        ctx.fillStyle = "rgba(79,124,255,.75)";
-        ctx.fillRect(x, y, barW, bh);
-
-        // Etiqueta dentro de la barra: "BB" y debajo "freq"
-        // (si la barra es muy pequeña, lo ponemos arriba para que se lea)
-        const bloqueTxt = pad2(f.bloque);
-        const freqTxt = String(val);
-
-        const inside = bh >= 26; // espacio mínimo para 2 líneas
-        if (val > 0){
-          ctx.fillStyle = "rgba(231,238,252,.95)";
-          ctx.font = "10px system-ui, -apple-system, Segoe UI, Roboto, Arial";
-          const cx = x + barW/2;
-
-          if (inside){
-            ctx.textBaseline = "top";
-            ctx.fillText(bloqueTxt, cx, y + 4);
-            ctx.fillText(freqTxt,   cx, y + 16);
-          }else{
-            // arriba del “final” de la barra
-            ctx.textBaseline = "bottom";
-            ctx.fillText(bloqueTxt + " • " + freqTxt, cx, yEnd - 2);
-          }
-        }
-
-        // Labels X (no saturar: cada 3) abajo
-        if ((i+1) % 3 === 0 || i === 0 || i === n-1){
-          ctx.fillStyle = "rgba(159,179,217,.95)";
-          ctx.font = "10px system-ui, -apple-system, Segoe UI, Roboto, Arial";
-          ctx.textBaseline = "top";
-          ctx.fillText(bloqueTxt, x + barW/2, padT + plotH + 10);
-        }
+        ctx.fillStyle = "rgba(159,179,217,.95)";
+        ctx.font = "11px system-ui, -apple-system, Segoe UI, Roboto, Arial";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "bottom";
+        ctx.fillText(String(v), x, padT - 8);
       }
 
       // Título
@@ -784,7 +739,55 @@
       ctx.font = "12px system-ui, -apple-system, Segoe UI, Roboto, Arial";
       ctx.textAlign = "left";
       ctx.textBaseline = "top";
-      ctx.fillText("Frecuencia por Bloque (Columnas 2D)", padL, 4);
+      ctx.fillText("Frecuencia por Bloque (Horizontal Bar Chart 2D)", 12, 6);
+
+      // Barras
+      for(let i=0;i<n;i++){
+        const f = freqs[i];
+        const bloqueTxt = pad2(f.bloque);
+        const val = Number(f.freq || 0);
+
+        const y = padT + i * (barH + gapY);
+
+        // Etiqueta izquierda (Bloque)
+        ctx.fillStyle = "rgba(159,179,217,.95)";
+        ctx.font = "11px system-ui, -apple-system, Segoe UI, Roboto, Arial";
+        ctx.textAlign = "right";
+        ctx.textBaseline = "middle";
+        ctx.fillText("Bloque " + bloqueTxt, padL - 12, y + barH/2);
+
+        // Barra
+        const bw = (max === 0) ? 0 : (val/max) * plotW;
+        ctx.fillStyle = "rgba(79,124,255,.75)";
+        ctx.fillRect(padL, y, bw, barH);
+
+        // Etiqueta en barra: "XX • freq" o "Bloque XX • freq"
+        const label = bloqueTxt + " • " + val;
+
+        ctx.font = "11px system-ui, -apple-system, Segoe UI, Roboto, Arial";
+        ctx.textBaseline = "middle";
+
+        // Medir texto para decidir si va dentro o afuera
+        const tw = ctx.measureText(label).width;
+        const inside = bw >= (tw + 10);
+
+        if (val > 0){
+          if (inside){
+            ctx.fillStyle = "rgba(231,238,252,.95)";
+            ctx.textAlign = "left";
+            ctx.fillText(label, padL + 8, y + barH/2);
+          } else {
+            ctx.fillStyle = "rgba(231,238,252,.92)";
+            ctx.textAlign = "left";
+            ctx.fillText(label, padL + bw + 8, y + barH/2);
+          }
+        } else {
+          // Si es 0, lo pegamos al inicio para que se vea
+          ctx.fillStyle = "rgba(231,238,252,.60)";
+          ctx.textAlign = "left";
+          ctx.fillText(label, padL + 8, y + barH/2);
+        }
+      }
     }
 
     clearChart();
@@ -1011,7 +1014,7 @@
           arr36.push({ bloque: i, freq: hit ? Number(hit.freq||0) : 0 });
         }
 
-        drawBarChart(arr36);
+        drawHorizontalBarChart(arr36);
         setMsg('Listo ✅ (Análisis)', 'ok');
       }catch(err){
         setMsg('Error:\n' + err.message, 'bad');
