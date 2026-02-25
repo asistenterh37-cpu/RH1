@@ -308,7 +308,7 @@
             <div style="margin-top:10px;">
               <canvas id="chartCanvas"></canvas>
               <div class="small" id="chartHint" style="margin-top:10px;">
-                Gráfico 2D (Horizontal Bar Chart) de frecuencias por bloque (columna <strong>Bloque</strong> en hoja <strong>Base</strong>).
+                Gráfico 2D (Horizontal Bar Chart) de frecuencias por bloque (columna <strong>Bloque</strong> en hoja <strong>Base</strong>) — incluye bloques 1..51.
               </div>
             </div>
           </div>
@@ -387,8 +387,11 @@
 
   <script>
     const DEFAULT_SHEET_URL = "https://docs.google.com/spreadsheets/d/1PeFt5YUi1W5jI-sHo75E-0CHQUihADd2u4uqmHU5AK8/edit?usp=sharing";
-    const DEFAULT_GS_EXEC_URL = "https://script.google.com/macros/s/AKfycbyrJnrrtfC8hJ0KzH5d7ArIh0TWO11qLFg3lHvbaVM8OslWEc15B-tw5Yl1WxBMhVKcJg/exec";
+    const DEFAULT_GS_EXEC_URL = "https://script.google.com/macros/s/AKfycbwjeAONoZBjqhH5VdsPkKqY2V89IvWj0xzUQIUCxGjcPRXRI_LH-PHTvGfGnEJw6Ly_PQ/exec";
     const LS_KEY = "PRSM_GS_URL";
+
+    // ✅ CAMBIO: ahora el análisis/grafico incluye bloques hasta 51
+    const MAX_BLOQUE = 51;
 
     const sheetIdEl = document.getElementById('sheetId');
     const execOkEl = document.getElementById('execOk');
@@ -478,6 +481,7 @@
     const analisisFiltroEl = document.getElementById('analisisFiltro');
     const chartCanvas = document.getElementById('chartCanvas');
 
+    // ✅ CAMBIO: llena bloques 1..51
     function fillBloques(){
       const frag = document.createDocumentFragment();
       const opt0 = document.createElement('option');
@@ -485,7 +489,7 @@
       opt0.textContent = "Todos";
       frag.appendChild(opt0);
 
-      for (let i=1;i<=36;i++){
+      for (let i=1;i<=MAX_BLOQUE;i++){
         const opt = document.createElement('option');
         opt.value = String(i);
         opt.textContent = String(i);
@@ -683,7 +687,6 @@
       ctx.globalAlpha = 1;
     }
 
-    // ✅ Horizontal Bar Chart (2D) + etiqueta "Bloque XX • Frec" en cada barra
     function drawHorizontalBarChart(freqs){
       const ctx = chartCanvas.getContext('2d');
       const dpr = window.devicePixelRatio || 1;
@@ -694,7 +697,7 @@
       const barH = 14;
       const gapY = 6;
 
-      const padL = 140;  // espacio para etiquetas de Bloque a la izquierda
+      const padL = 140;
       const padR = 22;
       const padT = 28;
       const padB = 18;
@@ -713,7 +716,6 @@
       const max = Math.max(0, ...freqs.map(x => Number(x.freq || 0)));
       analisisMaxEl.textContent = String(max);
 
-      // Fondo de grilla vertical (eje X)
       ctx.strokeStyle = "rgba(30,45,82,.8)";
       ctx.lineWidth = 1;
 
@@ -725,7 +727,6 @@
         ctx.lineTo(x, h - padB);
         ctx.stroke();
 
-        // números eje X arriba
         const v = max === 0 ? 0 : Math.round(max * (i/steps));
         ctx.fillStyle = "rgba(159,179,217,.95)";
         ctx.font = "11px system-ui, -apple-system, Segoe UI, Roboto, Arial";
@@ -734,14 +735,12 @@
         ctx.fillText(String(v), x, padT - 8);
       }
 
-      // Título
       ctx.fillStyle = "rgba(231,238,252,.95)";
       ctx.font = "12px system-ui, -apple-system, Segoe UI, Roboto, Arial";
       ctx.textAlign = "left";
       ctx.textBaseline = "top";
-      ctx.fillText("Frecuencia por Bloque (Horizontal Bar Chart 2D)", 12, 6);
+      ctx.fillText("Frecuencia por Bloque (Horizontal Bar Chart 2D) — 1.."+MAX_BLOQUE, 12, 6);
 
-      // Barras
       for(let i=0;i<n;i++){
         const f = freqs[i];
         const bloqueTxt = pad2(f.bloque);
@@ -749,25 +748,21 @@
 
         const y = padT + i * (barH + gapY);
 
-        // Etiqueta izquierda (Bloque)
         ctx.fillStyle = "rgba(159,179,217,.95)";
         ctx.font = "11px system-ui, -apple-system, Segoe UI, Roboto, Arial";
         ctx.textAlign = "right";
         ctx.textBaseline = "middle";
         ctx.fillText("Bloque " + bloqueTxt, padL - 12, y + barH/2);
 
-        // Barra
         const bw = (max === 0) ? 0 : (val/max) * plotW;
         ctx.fillStyle = "rgba(79,124,255,.75)";
         ctx.fillRect(padL, y, bw, barH);
 
-        // Etiqueta en barra: "XX • freq" o "Bloque XX • freq"
         const label = bloqueTxt + " • " + val;
 
         ctx.font = "11px system-ui, -apple-system, Segoe UI, Roboto, Arial";
         ctx.textBaseline = "middle";
 
-        // Medir texto para decidir si va dentro o afuera
         const tw = ctx.measureText(label).width;
         const inside = bw >= (tw + 10);
 
@@ -782,7 +777,6 @@
             ctx.fillText(label, padL + bw + 8, y + barH/2);
           }
         } else {
-          // Si es 0, lo pegamos al inicio para que se vea
           ctx.fillStyle = "rgba(231,238,252,.60)";
           ctx.textAlign = "left";
           ctx.fillText(label, padL + 8, y + barH/2);
@@ -1008,13 +1002,14 @@
 
         analisisFilasEl.textContent = String(filas);
 
-        const arr36 = [];
-        for(let i=1;i<=36;i++){
+        // ✅ CAMBIO: arma arreglo 1..51 (incluye 50 y 51)
+        const arr = [];
+        for(let i=1;i<=MAX_BLOQUE;i++){
           const hit = freqs.find(x => String(x.bloque) === String(i));
-          arr36.push({ bloque: i, freq: hit ? Number(hit.freq||0) : 0 });
+          arr.push({ bloque: i, freq: hit ? Number(hit.freq||0) : 0 });
         }
 
-        drawHorizontalBarChart(arr36);
+        drawHorizontalBarChart(arr);
         setMsg('Listo ✅ (Análisis)', 'ok');
       }catch(err){
         setMsg('Error:\n' + err.message, 'bad');
