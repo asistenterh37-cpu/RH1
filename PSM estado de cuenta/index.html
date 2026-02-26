@@ -18,6 +18,36 @@
     h1{ margin:0; font-size:22px; letter-spacing:.2px; }
     h2{ margin:6px 0 0; font-size:15px; color:var(--muted); font-weight:600; }
     .body{ padding:18px 22px 22px; }
+
+    /* ✅ MENU */
+    .menuBar{
+      display:flex; gap:10px; flex-wrap:wrap;
+      padding:12px; margin-bottom:12px;
+      border:1px solid rgba(30,45,82,.65);
+      background:rgba(15,23,48,.45);
+      border-radius:14px;
+      align-items:center;
+    }
+    .menuBtn{
+      appearance:none;
+      border:1px solid rgba(79,124,255,.35);
+      background:rgba(79,124,255,.10);
+      color:var(--text);
+      padding:10px 12px;
+      border-radius:999px;
+      cursor:pointer;
+      font-weight:800;
+      letter-spacing:.2px;
+    }
+    .menuBtn:hover{ filter:brightness(1.07); }
+    .menuBtn.active{
+      background:linear-gradient(180deg, rgba(79,124,255,.95), rgba(79,124,255,.72));
+      border-color:rgba(79,124,255,.65);
+      color:white;
+    }
+    .section{ display:none; }
+    .section.active{ display:block; }
+
     .grid{ display:grid; grid-template-columns: 1.3fr 1fr auto auto; gap:12px; align-items:end; }
     label{ display:block; font-size:12px; color:var(--muted); margin:0 0 6px; }
     input, select{
@@ -205,180 +235,202 @@
           </div>
         </details>
 
-        <!-- ✅ 1) CONSULTAR -->
-        <div class="grid" style="margin-bottom:12px;">
-          <div>
-            <label for="codigoF">Código F</label>
-            <input id="codigoF" placeholder="Ej: 336" />
-          </div>
-
-          <div>
-            <label for="anio">Año</label>
-            <select id="anio">
-              <option value="Todos">Todos</option>
-              <option value="2025">2025</option>
-              <option value="2026">2026</option>
-            </select>
-          </div>
-
-          <div>
-            <button class="btn" id="btnConsultar" type="button">Consultar</button>
-          </div>
-
-          <div class="pill" title="Conteo de movimientos">
-            Resultado: <strong id="count">0</strong>
-          </div>
+        <!-- ✅ MENU -->
+        <div class="menuBar" role="tablist" aria-label="Menú principal">
+          <button class="menuBtn active" id="tabConsultar" type="button" data-target="secConsultar">Consultar estado de cuenta</button>
+          <button class="menuBtn" id="tabRegistrar" type="button" data-target="secRegistrar">Registrar referencia</button>
+          <button class="menuBtn" id="tabReportes" type="button" data-target="secReportes">Reportes</button>
+          <span class="pill" style="margin-left:auto;">Modo: <strong id="menuMode">Consultar</strong></span>
         </div>
 
-        <!-- ✅ 2) BUSCAR referencia -->
-        <div class="grid" style="margin-bottom:12px;">
-          <div>
-            <label for="referencia">Referencia</label>
-            <input id="referencia" placeholder="Ej: FT25042C8BQT" />
-          </div>
-
-          <div>
-            <label>&nbsp;</label>
-            <div class="small" style="margin:0; padding:12px; border:1px dashed rgba(79,124,255,.35); border-radius:12px; background:rgba(79,124,255,.06);">
-              Busca la referencia en la hoja <strong>Base</strong>. Si existe, se abrirá la fila para llenar <strong>Código F</strong> y <strong>Nombre</strong> y <strong>Guardar</strong>.
-            </div>
-          </div>
-
-          <div style="display:flex; gap:10px;">
-            <button class="btn" id="btnAplicar" type="button">Buscar</button>
-            <button class="btn ghost" id="btnLimpiar" type="button">Limpiar</button>
-          </div>
-
-          <div class="pill" title="Estado de referencia">
-            Estado: <strong id="estadoAplicar">—</strong>
-          </div>
-        </div>
-
-        <!-- ✅ 3) ANÁLISIS -->
-        <div class="analysisWrap" id="analysisWrap">
-          <div class="analysisTitle">
-            <div class="ttl">Análisis</div>
-            <div class="pill">Filas analizadas: <strong id="analisisFilas">0</strong></div>
-          </div>
-
-          <div class="analysisGrid">
+        <!-- ✅ 1) CONSULTAR ESTADO DE CUENTA -->
+        <div class="section active" id="secConsultar">
+          <div class="grid" style="margin-bottom:12px;">
             <div>
-              <label for="anioA">Año</label>
-              <select id="anioA">
+              <label for="codigoF">Código F</label>
+              <input id="codigoF" placeholder="Ej: 336" />
+            </div>
+
+            <div>
+              <label for="anio">Año</label>
+              <select id="anio">
                 <option value="Todos">Todos</option>
                 <option value="2025">2025</option>
                 <option value="2026">2026</option>
               </select>
             </div>
 
-            <div>
-              <label for="mesA">Mes</label>
-              <select id="mesA">
-                <option value="Todos">Todos</option>
-                <option value="Enero">Enero</option>
-                <option value="Febrero">Febrero</option>
-                <option value="Marzo">Marzo</option>
-                <option value="Abril">Abril</option>
-                <option value="Mayo">Mayo</option>
-                <option value="Junio">Junio</option>
-                <option value="Julio">Julio</option>
-                <option value="Agosto">Agosto</option>
-                <option value="Septiembre">Septiembre</option>
-                <option value="Octubre">Octubre</option>
-                <option value="Noviembre">Noviembre</option>
-                <option value="Diciembre">Diciembre</option>
-              </select>
+            <div style="display:flex; gap:10px;">
+              <button class="btn" id="btnConsultar" type="button">Consultar</button>
+              <button class="btn ghost" id="btnLimpiarConsultar" type="button">Limpiar</button>
             </div>
 
-            <div>
-              <label for="bloqueA">Bloque</label>
-              <select id="bloqueA"></select>
-            </div>
-
-            <div>
-              <button class="btn" id="btnAnalizar" type="button">Analizar</button>
+            <div class="pill" title="Conteo de movimientos">
+              Resultado: <strong id="count">0</strong>
             </div>
           </div>
 
-          <div class="chartBox">
-            <div class="row2" style="margin-top:0;">
-              <div class="pill">Frecuencia máx: <strong id="analisisMax">0</strong></div>
-              <div class="pill">Filtro: <strong id="analisisFiltro">—</strong></div>
+          <div class="row2" id="resumenConsultar">
+            <div class="pill">Nombre: <strong id="nombre">—</strong></div>
+            <div class="pill">Total: <strong id="total">0.00</strong></div>
+          </div>
+
+          <div id="msg" class="msg">Primero puedes “Consultar” por Código F, o “Buscar” una Referencia para luego guardar Código F y Nombre.</div>
+
+          <div class="tableWrap">
+            <table id="tabla" style="display:none;">
+              <colgroup>
+                <col class="c-anio">
+                <col class="c-mes">
+                <col class="c-concepto">
+                <col class="c-referencia">
+                <col class="c-valor">
+              </colgroup>
+
+              <thead>
+                <tr>
+                  <th>Año</th>
+                  <th>Mes</th>
+                  <th>Concepto</th>
+                  <th>Referencia</th>
+                  <th class="right valor">Valor</th>
+                </tr>
+              </thead>
+
+              <tbody id="tbody"></tbody>
+
+              <tfoot>
+                <tr>
+                  <td colspan="4" class="right">Total</td>
+                  <td class="right" id="tfootTotal">0.00</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+
+        <!-- ✅ 2) REGISTRAR REFERENCIA -->
+        <div class="section" id="secRegistrar">
+          <div class="grid" style="margin-bottom:12px;">
+            <div>
+              <label for="referencia">Referencia</label>
+              <input id="referencia" placeholder="Ej: FT25042C8BQT" />
             </div>
-            <div style="margin-top:10px;">
-              <canvas id="chartCanvas"></canvas>
-              <div class="small" id="chartHint" style="margin-top:10px;">
-                Gráfico 2D (Horizontal Bar Chart) de frecuencias por bloque (columna <strong>Bloque</strong> en hoja <strong>Base</strong>) — incluye bloques existentes: 1..33, 50 y 51 (sin “huecos” 34–49).
+
+            <div>
+              <label>&nbsp;</label>
+              <div class="small" style="margin:0; padding:12px; border:1px dashed rgba(79,124,255,.35); border-radius:12px; background:rgba(79,124,255,.06);">
+                Busca la referencia en la hoja <strong>Base</strong>. Si existe, se abrirá la fila para llenar <strong>Código F</strong> y <strong>Nombre</strong> y <strong>Guardar</strong>.
+              </div>
+            </div>
+
+            <div style="display:flex; gap:10px;">
+              <button class="btn" id="btnAplicar" type="button">Buscar</button>
+              <button class="btn ghost" id="btnLimpiarRegistrar" type="button">Limpiar</button>
+            </div>
+
+            <div class="pill" title="Estado de referencia">
+              Estado: <strong id="estadoAplicar">—</strong>
+            </div>
+          </div>
+
+          <div class="notFoundBox" id="refNotFound">
+            Referencia no encontrada.
+            <div class="hint">Revisa espacios, guiones, mayúsculas o confirma que exista en la hoja <strong>Base</strong>.</div>
+          </div>
+
+          <div class="inlineEditWrap" id="inlineEdit">
+            <div class="row2" style="margin-top:0; margin-bottom:10px;">
+              <div class="pill">Editando referencia: <strong id="refActiva">—</strong></div>
+            </div>
+
+            <div class="panelGrid">
+              <div>
+                <label for="codigoFNuevo">Caja Código F</label>
+                <input id="codigoFNuevo" placeholder="" autocomplete="off" />
+              </div>
+
+              <div>
+                <label for="nombreNuevo">Caja Nombre</label>
+                <input id="nombreNuevo" placeholder="" autocomplete="off" />
+              </div>
+
+              <div>
+                <button class="btn" id="btnAplicarCambios" type="button">Guardar</button>
+              </div>
+            </div>
+
+            <div class="hint">Los campos aparecen vacíos a propósito. Tú escribes y al guardar se sustituyen en Base ✅</div>
+          </div>
+
+          <div class="msg" id="msgRegistrar" style="display:none;"></div>
+        </div>
+
+        <!-- ✅ 3) REPORTES (ANÁLISIS) -->
+        <div class="section" id="secReportes">
+          <div class="analysisWrap" id="analysisWrap">
+            <div class="analysisTitle">
+              <div class="ttl">Análisis</div>
+              <div style="display:flex; gap:10px; align-items:center;">
+                <div class="pill">Filas analizadas: <strong id="analisisFilas">0</strong></div>
+                <button class="btn ghost" id="btnLimpiarAnalisis" type="button">Limpiar</button>
+              </div>
+            </div>
+
+            <div class="analysisGrid">
+              <div>
+                <label for="anioA">Año</label>
+                <select id="anioA">
+                  <option value="Todos">Todos</option>
+                  <option value="2025">2025</option>
+                  <option value="2026">2026</option>
+                </select>
+              </div>
+
+              <div>
+                <label for="mesA">Mes</label>
+                <select id="mesA">
+                  <option value="Todos">Todos</option>
+                  <option value="Enero">Enero</option>
+                  <option value="Febrero">Febrero</option>
+                  <option value="Marzo">Marzo</option>
+                  <option value="Abril">Abril</option>
+                  <option value="Mayo">Mayo</option>
+                  <option value="Junio">Junio</option>
+                  <option value="Julio">Julio</option>
+                  <option value="Agosto">Agosto</option>
+                  <option value="Septiembre">Septiembre</option>
+                  <option value="Octubre">Octubre</option>
+                  <option value="Noviembre">Noviembre</option>
+                  <option value="Diciembre">Diciembre</option>
+                </select>
+              </div>
+
+              <div>
+                <label for="bloqueA">Bloque</label>
+                <select id="bloqueA"></select>
+              </div>
+
+              <div>
+                <button class="btn" id="btnAnalizar" type="button">Analizar</button>
+              </div>
+            </div>
+
+            <div class="chartBox">
+              <div class="row2" style="margin-top:0;">
+                <div class="pill">Frecuencia máx: <strong id="analisisMax">0</strong></div>
+                <div class="pill">Filtro: <strong id="analisisFiltro">—</strong></div>
+              </div>
+              <div style="margin-top:10px;">
+                <canvas id="chartCanvas"></canvas>
+                <div class="small" id="chartHint" style="margin-top:10px;">
+                  Gráfico 2D (Horizontal Bar Chart) de frecuencias por bloque (columna <strong>Bloque</strong> en hoja <strong>Base</strong>) — incluye bloques existentes: 1..33, 50 y 51 (sin “huecos” 34–49).
+                </div>
               </div>
             </div>
           </div>
-        </div>
 
-        <div class="notFoundBox" id="refNotFound">
-          Referencia no encontrada.
-          <div class="hint">Revisa espacios, guiones, mayúsculas o confirma que exista en la hoja <strong>Base</strong>.</div>
-        </div>
-
-        <div class="inlineEditWrap" id="inlineEdit">
-          <div class="row2" style="margin-top:0; margin-bottom:10px;">
-            <div class="pill">Editando referencia: <strong id="refActiva">—</strong></div>
-          </div>
-
-          <div class="panelGrid">
-            <div>
-              <label for="codigoFNuevo">Caja Código F</label>
-              <input id="codigoFNuevo" placeholder="" autocomplete="off" />
-            </div>
-
-            <div>
-              <label for="nombreNuevo">Caja Nombre</label>
-              <input id="nombreNuevo" placeholder="" autocomplete="off" />
-            </div>
-
-            <div>
-              <button class="btn" id="btnAplicarCambios" type="button">Guardar</button>
-            </div>
-          </div>
-
-          <div class="hint">Los campos aparecen vacíos a propósito. Tú escribes y al guardar se sustituyen en Base ✅</div>
-        </div>
-
-        <div class="row2" id="resumenConsultar">
-          <div class="pill">Nombre: <strong id="nombre">—</strong></div>
-          <div class="pill">Total: <strong id="total">0.00</strong></div>
-        </div>
-
-        <div id="msg" class="msg">Primero puedes “Consultar” por Código F, o “Buscar” una Referencia para luego guardar Código F y Nombre.</div>
-
-        <div class="tableWrap">
-          <table id="tabla" style="display:none;">
-            <colgroup>
-              <col class="c-anio">
-              <col class="c-mes">
-              <col class="c-concepto">
-              <col class="c-referencia">
-              <col class="c-valor">
-            </colgroup>
-
-            <thead>
-              <tr>
-                <th>Año</th>
-                <th>Mes</th>
-                <th>Concepto</th>
-                <th>Referencia</th>
-                <th class="right valor">Valor</th>
-              </tr>
-            </thead>
-
-            <tbody id="tbody"></tbody>
-
-            <tfoot>
-              <tr>
-                <td colspan="4" class="right">Total</td>
-                <td class="right" id="tfootTotal">0.00</td>
-              </tr>
-            </tfoot>
-          </table>
+          <div class="msg" id="msgReportes" style="display:none;"></div>
         </div>
 
       </div>
@@ -448,14 +500,16 @@
       }, 250);
     });
 
+    // ✅ ELEMENTOS UI
     const referenciaEl = document.getElementById('referencia');
     const btnAplicar = document.getElementById('btnAplicar');
-    const btnLimpiar = document.getElementById('btnLimpiar');
+    const btnLimpiarRegistrar = document.getElementById('btnLimpiarRegistrar');
     const estadoAplicarEl = document.getElementById('estadoAplicar');
 
     const codigoFEl = document.getElementById('codigoF');
     const anioEl = document.getElementById('anio');
     const btnConsultar = document.getElementById('btnConsultar');
+    const btnLimpiarConsultar = document.getElementById('btnLimpiarConsultar');
 
     const btnPing = document.getElementById('btnPing');
     const btnDiag = document.getElementById('btnDiag');
@@ -482,10 +536,38 @@
     const mesAEl = document.getElementById('mesA');
     const bloqueAEl = document.getElementById('bloqueA');
     const btnAnalizar = document.getElementById('btnAnalizar');
+    const btnLimpiarAnalisis = document.getElementById('btnLimpiarAnalisis');
     const analisisFilasEl = document.getElementById('analisisFilas');
     const analisisMaxEl = document.getElementById('analisisMax');
     const analisisFiltroEl = document.getElementById('analisisFiltro');
     const chartCanvas = document.getElementById('chartCanvas');
+
+    /* ===========================
+       ✅ MENU (Tabs)
+       =========================== */
+    const menuModeEl = document.getElementById('menuMode');
+    const menuButtons = Array.from(document.querySelectorAll('.menuBtn'));
+    const sections = Array.from(document.querySelectorAll('.section'));
+
+    function setActiveSection(id){
+      sections.forEach(s => s.classList.toggle('active', s.id === id));
+      menuButtons.forEach(b => b.classList.toggle('active', b.dataset.target === id));
+
+      const label =
+        id === 'secConsultar' ? 'Consultar' :
+        id === 'secRegistrar' ? 'Registrar' : 'Reportes';
+
+      menuModeEl.textContent = label;
+
+      // mini detalle: al cambiar a "Reportes" deja el foco listo para filtrar
+      if (id === 'secReportes') setTimeout(() => anioAEl.focus(), 0);
+      if (id === 'secConsultar') setTimeout(() => codigoFEl.focus(), 0);
+      if (id === 'secRegistrar') setTimeout(() => referenciaEl.focus(), 0);
+    }
+
+    menuButtons.forEach(btn => {
+      btn.addEventListener('click', () => setActiveSection(btn.dataset.target));
+    });
 
     // ✅ CAMBIO: llena SOLO bloques existentes (1..33, 50, 51) — sin 34..49
     function fillBloques(){
@@ -805,16 +887,23 @@
       clearChart();
     }
 
-    function limpiarTodo(){
-      referenciaEl.value = '';
+    // ✅ NUEVO: Limpiezas por sección
+    function limpiarConsultar(){
       codigoFEl.value = '';
       anioEl.value = 'Todos';
       nombreEl.textContent = '—';
-      estadoAplicarEl.textContent = '—';
       resetVistaResultados();
+      setMsg('Listo. Consulta limpia 🧼', '');
+      setTimeout(() => codigoFEl.focus(), 0);
+    }
+
+    function limpiarRegistrar(){
+      referenciaEl.value = '';
+      estadoAplicarEl.textContent = '—';
       hideInlineEdit();
-      limpiarAnalisis();
-      setMsg('Listo. Pantalla limpia 🧼✨', '');
+      refNotFoundEl.style.display = 'none';
+      setMsg('Listo. Registro limpio 🧼', '');
+      setTimeout(() => referenciaEl.focus(), 0);
     }
 
     async function buscarReferencia(){
@@ -886,6 +975,7 @@
         estadoAplicarEl.textContent = 'Guardado';
         setMsg('Guardado ✅\nReferencia: ' + ref + '\nCódigo F: ' + codigof + '\nNombre: ' + nombre, 'ok');
 
+        // Tip: dejamos el nombre mostrado en Consultar (por si luego consulta)
         nombreEl.textContent = nombre;
 
         codigoFNuevoEl.value = '';
@@ -1048,11 +1138,20 @@
     nombreNuevoEl.addEventListener('keydown', (e) => { if (e.key === 'Enter') aplicarCambios(); });
 
     btnAnalizar.addEventListener('click', analizar);
-    btnLimpiar.addEventListener('click', limpiarTodo);
 
+    // ✅ NUEVOS: Limpiar por menú
+    btnLimpiarConsultar.addEventListener('click', limpiarConsultar);
+    btnLimpiarRegistrar.addEventListener('click', limpiarRegistrar);
+    btnLimpiarAnalisis.addEventListener('click', () => {
+      limpiarAnalisis();
+      setMsg('Listo. Reportes limpios 🧼', '');
+    });
+
+    // ✅ Estado inicial
     estadoAplicarEl.textContent = '—';
     hideInlineEdit();
     limpiarAnalisis();
+    setActiveSection('secConsultar');
   </script>
 </body>
 </html>
