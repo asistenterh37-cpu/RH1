@@ -101,6 +101,13 @@
     .chartBox{ margin-top:12px; border:1px solid rgba(30,45,82,.65); border-radius:14px; background:rgba(15,23,48,.35); padding:12px; overflow:auto; }
     canvas{ width:100%; height:260px; display:block; }
 
+    /* ✅ tabla aportaciones */
+    .miniTableWrap{ margin-top:12px; border:1px solid rgba(30,45,82,.65); border-radius:14px; background:rgba(15,23,48,.35); overflow:auto; }
+    table.mini{ min-width: 480px; width:100%; border-collapse:collapse; }
+    table.mini th, table.mini td{ padding:10px; border-bottom:1px solid rgba(30,45,82,.65); font-size:13px; }
+    table.mini th{ color:var(--muted); font-size:12px; letter-spacing:.3px; text-transform:uppercase; }
+    table.mini tfoot td{ font-weight:900; border-bottom:none; }
+
     /* ✅ CONFIG MODAL (NO visible por defecto) */
     .modalOverlay{ position:fixed; inset:0; background:rgba(0,0,0,.55); display:none; align-items:center; justify-content:center; padding:18px; z-index:9999; }
     .modalOverlay.open{ display:flex; }
@@ -270,7 +277,7 @@
         <div class="section" id="secReportes">
           <div class="analysisWrap" id="analysisWrap">
             <div class="analysisTitle">
-              <div class="ttl">Reportes</div>
+              <div class="ttl" id="reportTitle">Reportes</div>
               <div style="display:flex; gap:10px; align-items:center;">
                 <div class="pill">Filas analizadas: <strong id="analisisFilas">0</strong></div>
                 <button class="btn ghost" id="btnLimpiarAnalisis" type="button">Limpiar</button>
@@ -279,6 +286,14 @@
 
             <div class="analysisGrid">
               <div>
+                <label for="tipoReporte">Tipo de reporte</label>
+                <select id="tipoReporte">
+                  <option value="aportantes">1) Aportantes</option>
+                  <option value="aportaciones">2) Aportaciones</option>
+                </select>
+              </div>
+
+              <div>
                 <label for="anioA">Año</label>
                 <select id="anioA">
                   <option value="Todos">Todos</option>
@@ -286,6 +301,7 @@
                   <option value="2026">2026</option>
                 </select>
               </div>
+
               <div>
                 <label for="mesA">Mes</label>
                 <select id="mesA">
@@ -296,26 +312,48 @@
                   <option value="Octubre">Octubre</option><option value="Noviembre">Noviembre</option><option value="Diciembre">Diciembre</option>
                 </select>
               </div>
+
+              <div>
+                <button class="btn" id="btnAnalizar" type="button">Generar</button>
+              </div>
+            </div>
+
+            <!-- Bloque (solo para Aportantes) -->
+            <div class="analysisGrid" style="margin-top:10px;" id="rowBloque">
               <div>
                 <label for="bloqueA">Bloque</label>
                 <select id="bloqueA"></select>
               </div>
-              <div>
-                <button class="btn" id="btnAnalizar" type="button">Analizar</button>
-              </div>
+              <div class="pill" title="Máximo">Máx: <strong id="analisisMax">0</strong></div>
+              <div class="pill" title="Filtro">Filtro: <strong id="analisisFiltro">—</strong></div>
+              <div></div>
             </div>
 
             <div class="chartBox">
-              <div class="row2" style="margin-top:0;">
-                <div class="pill">Frecuencia máx: <strong id="analisisMax">0</strong></div>
-                <div class="pill">Filtro: <strong id="analisisFiltro">—</strong></div>
-              </div>
-
               <div style="margin-top:10px;">
                 <canvas id="chartCanvas"></canvas>
                 <div class="small" id="chartHint" style="margin-top:10px;">
-                  Gráfico 2D (Horizontal Bar Chart) de frecuencias por bloque (columna <strong>Bloque</strong> en hoja <strong>Base</strong>) — incluye bloques existentes: 1..33, 50 y 51 (sin “huecos” 34–49).
+                  Aportantes: número de aportantes únicos (Código F) por bloque.
                 </div>
+              </div>
+
+              <!-- Tabla de Aportaciones -->
+              <div class="miniTableWrap" id="aportacionesTableWrap" style="display:none;">
+                <table class="mini">
+                  <thead>
+                    <tr>
+                      <th>Mes</th>
+                      <th class="right">Total</th>
+                    </tr>
+                  </thead>
+                  <tbody id="aportacionesTbody"></tbody>
+                  <tfoot>
+                    <tr>
+                      <td class="right">Total general</td>
+                      <td class="right" id="aportacionesTotalGeneral">0.00</td>
+                    </tr>
+                  </tfoot>
+                </table>
               </div>
             </div>
           </div>
@@ -426,12 +464,14 @@
 
   <script>
     const DEFAULT_SHEET_URL = "https://docs.google.com/spreadsheets/d/1PeFt5YUi1W5jI-sHo75E-0CHQUihADd2u4uqmHU5AK8/edit?usp=sharing";
-    const DEFAULT_GS_EXEC_URL = "https://script.google.com/macros/s/AKfycbx_oOBS9pPpan3CWCZUydTwXnUawAd4c_R1i89QAuuzEctjG22U771wWJcnGB8ybYWjvQ/exec";
+    const DEFAULT_GS_EXEC_URL = "https://script.google.com/macros/s/AKfycbylZ83iVmc4fDWSk3tT4TaXYbVNlBSB6puqYp0y0M6UDdoXU2UXD0dIGT1Wx7PxJTwbRA/exec";
     const LS_KEY = "PRSM_GS_URL";
 
-    // ✅ CAMBIO: Lista REAL de bloques existentes (sin 34..49)
+    // ✅ Lista REAL de bloques existentes (sin 34..49)
     const BLOCK_LIST = (() => { const a = []; for (let i=1;i<=33;i++) a.push(i); a.push(50, 51); return a; })();
     const BLOCK_SET = new Set(BLOCK_LIST);
+
+    const MONTHS_ES = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
 
     /* =========================== ✅ CONFIG OCULTA (modal) =========================== */
     const cfgOverlay = document.getElementById('cfgOverlay');
@@ -534,15 +574,24 @@
     const btnAplicarCambios = document.getElementById('btnAplicarCambios');
     let referenciaActiva = "";
 
+    /* =========================== ✅ REPORTES UI =========================== */
+    const tipoReporteEl = document.getElementById('tipoReporte');
+    const reportTitleEl = document.getElementById('reportTitle');
     const anioAEl = document.getElementById('anioA');
     const mesAEl = document.getElementById('mesA');
     const bloqueAEl = document.getElementById('bloqueA');
+    const rowBloqueEl = document.getElementById('rowBloque');
     const btnAnalizar = document.getElementById('btnAnalizar');
     const btnLimpiarAnalisis = document.getElementById('btnLimpiarAnalisis');
     const analisisFilasEl = document.getElementById('analisisFilas');
     const analisisMaxEl = document.getElementById('analisisMax');
     const analisisFiltroEl = document.getElementById('analisisFiltro');
     const chartCanvas = document.getElementById('chartCanvas');
+    const chartHintEl = document.getElementById('chartHint');
+
+    const aportacionesTableWrapEl = document.getElementById('aportacionesTableWrap');
+    const aportacionesTbodyEl = document.getElementById('aportacionesTbody');
+    const aportacionesTotalGeneralEl = document.getElementById('aportacionesTotalGeneral');
 
     /* =========================== ✅ ELEMENTOS UI (Pins) =========================== */
     const pinsPassEl = document.getElementById('pinsPass');
@@ -577,7 +626,7 @@
 
       menuModeEl.textContent = label;
 
-      if (id === 'secReportes') setTimeout(() => anioAEl.focus(), 0);
+      if (id === 'secReportes') setTimeout(() => tipoReporteEl.focus(), 0);
       if (id === 'secConsultar') setTimeout(() => codigoFEl.focus(), 0);
       if (id === 'secRegistrar') setTimeout(() => referenciaEl.focus(), 0);
       if (id === 'secPins') setTimeout(() => pinsPassEl.focus(), 0);
@@ -728,9 +777,9 @@
     }
 
     /* =========================== ✅ GRÁFICO (Canvas) =========================== */
-    function pad2(n){ return String(n).padStart(2,'0'); }
     function resizeCanvasCssHeight(px){ chartCanvas.style.height = px + "px"; }
-    function clearChart(){
+
+    function clearChart(msg = "Sin datos aún. Presiona “Generar”."){
       resizeCanvasCssHeight(260);
       const ctx = chartCanvas.getContext('2d');
       const dpr = window.devicePixelRatio || 1;
@@ -743,18 +792,19 @@
       ctx.globalAlpha = 0.9;
       ctx.fillStyle = "rgba(159,179,217,.9)";
       ctx.font = "12px system-ui, -apple-system, Segoe UI, Roboto, Arial";
-      ctx.fillText("Sin datos aún. Presiona “Analizar”.", 12, 20);
+      ctx.fillText(msg, 12, 20);
       ctx.globalAlpha = 1;
     }
 
-    function drawHorizontalBarChart(freqs){
+    // items: [{ label: "Bloque 01" | "Enero", value: 10 }]
+    function drawHorizontalBarsGeneric(items, titleText, valueFormatter){
       const ctx = chartCanvas.getContext('2d');
       const dpr = window.devicePixelRatio || 1;
       const w = chartCanvas.clientWidth || 760;
-      const n = freqs.length || 0;
+      const n = items.length || 0;
 
       const barH = 14, gapY = 6;
-      const padL = 140, padR = 22, padT = 28, padB = 18;
+      const padL = 180, padR = 22, padT = 34, padB = 18;
 
       const desiredH = Math.max(260, padT + padB + n * (barH + gapY));
       resizeCanvasCssHeight(desiredH);
@@ -766,80 +816,70 @@
       ctx.clearRect(0, 0, w, h);
 
       const plotW = w - padL - padR;
-      const max = Math.max(0, ...freqs.map(x => Number(x.freq || 0)));
+      const max = Math.max(0, ...items.map(x => Number(x.value || 0)));
       analisisMaxEl.textContent = String(max);
 
+      // grid
       ctx.strokeStyle = "rgba(30,45,82,.8)";
       ctx.lineWidth = 1;
       const steps = 5;
-
       for(let i=0;i<=steps;i++){
         const x = padL + (plotW * i/steps);
-        ctx.beginPath(); ctx.moveTo(x, padT - 6); ctx.lineTo(x, h - padB); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(x, padT - 8); ctx.lineTo(x, h - padB); ctx.stroke();
         const v = max === 0 ? 0 : Math.round(max * (i/steps));
         ctx.fillStyle = "rgba(159,179,217,.95)";
         ctx.font = "11px system-ui, -apple-system, Segoe UI, Roboto, Arial";
         ctx.textAlign = "center";
         ctx.textBaseline = "bottom";
-        ctx.fillText(String(v), x, padT - 8);
+        ctx.fillText(String(v), x, padT - 10);
       }
 
+      // title
       ctx.fillStyle = "rgba(231,238,252,.95)";
       ctx.font = "12px system-ui, -apple-system, Segoe UI, Roboto, Arial";
       ctx.textAlign = "left";
       ctx.textBaseline = "top";
-      ctx.fillText("Frecuencia por Bloque (Horizontal Bar Chart 2D) — existentes: 1..33, 50, 51", 12, 6);
+      ctx.fillText(titleText, 12, 8);
 
+      // bars
       for(let i=0;i<n;i++){
-        const f = freqs[i];
-        const bloqueTxt = pad2(f.bloque);
-        const val = Number(f.freq || 0);
+        const it = items[i];
+        const label = String(it.label ?? "");
+        const val = Number(it.value || 0);
         const y = padT + i * (barH + gapY);
 
         ctx.fillStyle = "rgba(159,179,217,.95)";
         ctx.font = "11px system-ui, -apple-system, Segoe UI, Roboto, Arial";
         ctx.textAlign = "right";
         ctx.textBaseline = "middle";
-        ctx.fillText("Bloque " + bloqueTxt, padL - 12, y + barH/2);
+        ctx.fillText(label, padL - 12, y + barH/2);
 
         const bw = (max === 0) ? 0 : (val/max) * plotW;
         ctx.fillStyle = "rgba(79,124,255,.75)";
         ctx.fillRect(padL, y, bw, barH);
 
-        const label = bloqueTxt + " • " + val;
+        const valTxt = valueFormatter ? valueFormatter(val) : String(val);
+        const text = valTxt;
         ctx.font = "11px system-ui, -apple-system, Segoe UI, Roboto, Arial";
-        ctx.textBaseline = "middle";
-        const tw = ctx.measureText(label).width;
+        const tw = ctx.measureText(text).width;
         const inside = bw >= (tw + 10);
 
         if (val > 0){
           if (inside){
             ctx.fillStyle = "rgba(231,238,252,.95)";
             ctx.textAlign = "left";
-            ctx.fillText(label, padL + 8, y + barH/2);
+            ctx.fillText(text, padL + 8, y + barH/2);
           } else {
             ctx.fillStyle = "rgba(231,238,252,.92)";
             ctx.textAlign = "left";
-            ctx.fillText(label, padL + bw + 8, y + barH/2);
+            ctx.fillText(text, padL + bw + 8, y + barH/2);
           }
         } else {
           ctx.fillStyle = "rgba(231,238,252,.60)";
           ctx.textAlign = "left";
-          ctx.fillText(label, padL + 8, y + barH/2);
+          ctx.fillText(text, padL + 8, y + barH/2);
         }
       }
-    }
-
-    clearChart();
-
-    function limpiarAnalisis(){
-      anioAEl.value = "Todos";
-      mesAEl.value = "Todos";
-      bloqueAEl.value = "Todos";
-      analisisFilasEl.textContent = "0";
-      analisisMaxEl.textContent = "0";
-      analisisFiltroEl.textContent = "—";
-      clearChart();
     }
 
     /* =========================== ✅ Limpiezas por sección =========================== */
@@ -874,6 +914,21 @@
       btnPinsBuscar.disabled = true;
       setPinsMsg('Ingresa la contraseña para habilitar la búsqueda 🔐', '');
       setTimeout(() => pinsPassEl.focus(), 0);
+    }
+
+    function limpiarReportes(){
+      tipoReporteEl.value = "aportantes";
+      anioAEl.value = "Todos";
+      mesAEl.value = "Todos";
+      bloqueAEl.value = "Todos";
+      analisisFilasEl.textContent = "0";
+      analisisMaxEl.textContent = "0";
+      analisisFiltroEl.textContent = "—";
+      aportacionesTableWrapEl.style.display = "none";
+      aportacionesTbodyEl.innerHTML = "";
+      aportacionesTotalGeneralEl.textContent = "0.00";
+      syncReporteUI();
+      clearChart();
     }
 
     /* =========================== ✅ Registrar referencia =========================== */
@@ -1009,47 +1064,116 @@
     }
 
     /* =========================== ✅ Reportes =========================== */
-    function filtroText(){
+    function filtroTextReportes(){
+      const t = tipoReporteEl.value;
       const y = anioAEl.value, m = mesAEl.value, b = bloqueAEl.value;
-      return `Año=${y} | Mes=${m} | Bloque=${b}`;
+      if (t === "aportantes") return `Tipo=Aportantes | Año=${y} | Mes=${m} | Bloque=${b}`;
+      return `Tipo=Aportaciones | Año=${y} | Mes=${m}`;
     }
 
-    async function analizar(){
+    function syncReporteUI(){
+      const t = tipoReporteEl.value;
+      const isAportantes = (t === "aportantes");
+
+      rowBloqueEl.style.display = isAportantes ? "" : "none";
+      aportacionesTableWrapEl.style.display = "none"; // se muestra solo al generar aportaciones
+
+      if (isAportantes){
+        reportTitleEl.textContent = "Reportes • 1) Aportantes";
+        chartHintEl.innerHTML = `Aportantes: <strong>número de aportantes únicos</strong> (Código F) por bloque (hoja <strong>Base</strong>).`;
+        clearChart("Aportantes: presiona “Generar”.");
+      } else {
+        reportTitleEl.textContent = "Reportes • 2) Aportaciones";
+        chartHintEl.innerHTML = `Aportaciones: <strong>suma de Valor por mes</strong> (hoja <strong>Base</strong>) — también se muestra tabla.`;
+        clearChart("Aportaciones: presiona “Generar”.");
+      }
+
+      analisisFiltroEl.textContent = filtroTextReportes();
+    }
+
+    async function generarReporte(){
       const gsUrl = getExecUrlOrExplain();
       if (!gsUrl) return;
 
+      const tipo = tipoReporteEl.value;
       const year = anioAEl.value;
       const mes = mesAEl.value;
       const bloque = bloqueAEl.value;
 
-      analisisFiltroEl.textContent = filtroText();
-      setMsg('Analizando frecuencias por bloque... 📊', '');
-
-      if (bloque !== "Todos"){
-        const bNum = parseInt(String(bloque), 10);
-        if (!BLOCK_SET.has(bNum)){
-          setMsg('Ese bloque no existe en el sistema (solo 1..33, 50 y 51).', 'bad');
-          clearChart();
-          return;
-        }
-      }
+      analisisFiltroEl.textContent = filtroTextReportes();
+      setMsg('Generando reporte... 📊', '');
 
       try{
-        const data = await jsonp(gsUrl, { action: 'freqBloques', year, mes, bloque }, 20000);
-        if (!data || data.ok !== true) throw new Error((data && data.error) ? data.error : 'Respuesta inválida del WebApp');
+        if (tipo === "aportantes"){
+          if (bloque !== "Todos"){
+            const bNum = parseInt(String(bloque), 10);
+            if (!BLOCK_SET.has(bNum)){
+              setMsg('Ese bloque no existe en el sistema (solo 1..33, 50 y 51).', 'bad');
+              clearChart("Bloque inválido.");
+              return;
+            }
+          }
 
-        const freqs = Array.isArray(data.freqs) ? data.freqs : [];
-        const filas = Number(data.totalFilas || 0);
-        analisisFilasEl.textContent = String(filas);
+          // ✅ ahora cuenta aportantes únicos (Código F) por bloque
+          const data = await jsonp(gsUrl, { action: 'freqBloques', year, mes, bloque }, 20000);
+          if (!data || data.ok !== true) throw new Error((data && data.error) ? data.error : 'Respuesta inválida del WebApp');
 
-        const map = new Map(freqs.map(x => [String(x.bloque), Number(x.freq || 0)]));
-        const arr = BLOCK_LIST.map(b => ({ bloque: b, freq: map.get(String(b)) || 0 }));
+          const freqs = Array.isArray(data.freqs) ? data.freqs : [];
+          const filas = Number(data.totalFilas || 0);
+          analisisFilasEl.textContent = String(filas);
 
-        drawHorizontalBarChart(arr);
-        setMsg('Listo ✅ (Reportes)', 'ok');
+          const map = new Map(freqs.map(x => [String(x.bloque), Number(x.freq || 0)]));
+          const items = BLOCK_LIST.map(b => {
+            const label = "Bloque " + String(b).padStart(2,'0');
+            const value = map.get(String(b)) || 0;
+            return { label, value };
+          });
+
+          aportacionesTableWrapEl.style.display = "none";
+          drawHorizontalBarsGeneric(
+            items,
+            "Aportantes por Bloque (Código F únicos) — existentes: 1..33, 50, 51",
+            (v) => String(v)
+          );
+
+          setMsg('Listo ✅ (Aportantes)', 'ok');
+          return;
+        }
+
+        // ✅ APORTACIONES (sumas por mes)
+        const data2 = await jsonp(gsUrl, { action: 'sumAportaciones', year, mes }, 20000);
+        if (!data2 || data2.ok !== true) throw new Error((data2 && data2.error) ? data2.error : 'Respuesta inválida del WebApp');
+
+        const filas2 = Number(data2.totalFilas || 0);
+        analisisFilasEl.textContent = String(filas2);
+
+        const meses = Array.isArray(data2.meses) ? data2.meses : [];
+        const totalGeneral = Number(data2.totalGeneral || 0);
+
+        // tabla
+        aportacionesTbodyEl.innerHTML = meses.map(x => `
+          <tr>
+            <td>${x.mes ?? ""}</td>
+            <td class="right">${money(x.total || 0)}</td>
+          </tr>
+        `).join("");
+        aportacionesTotalGeneralEl.textContent = money(totalGeneral);
+        aportacionesTableWrapEl.style.display = "";
+
+        // chart
+        const items2 = meses.map(x => ({ label: String(x.mes ?? ""), value: Number(x.total || 0) }));
+        drawHorizontalBarsGeneric(
+          items2,
+          "Aportaciones por Mes (Suma de Valor) — Horizontal Bar Chart 2D",
+          (v) => money(v)
+        );
+
+        setMsg('Listo ✅ (Aportaciones)', 'ok');
+
       }catch(err){
         setMsg('Error:\n' + err.message, 'bad');
-        clearChart();
+        clearChart("Error al generar.");
+        aportacionesTableWrapEl.style.display = "none";
       }
     }
 
@@ -1078,7 +1202,6 @@
       pinsEstadoEl.textContent = 'Validando';
 
       try{
-        // ✅ valida en el servidor (GS) con action=pinAuth
         const data = await jsonp(gsUrl, { action: 'pinAuth', pass }, 15000);
         if (!data || data.ok !== true) throw new Error((data && data.error) ? data.error : 'Respuesta inválida del WebApp');
 
@@ -1131,7 +1254,6 @@
         if (!data || data.ok !== true) throw new Error((data && data.error) ? data.error : 'Respuesta inválida del WebApp');
 
         if (data.authed !== true){
-          // si falló auth, bloquea
           pinsEstadoEl.textContent = 'Denegado';
           setPinsAccess(false);
           pinsFoundEl.textContent = '—';
@@ -1168,11 +1290,21 @@
     codigoFNuevoEl.addEventListener('keydown', (e) => { if (e.key === 'Enter') aplicarCambios(); });
     nombreNuevoEl.addEventListener('keydown', (e) => { if (e.key === 'Enter') aplicarCambios(); });
 
-    btnAnalizar.addEventListener('click', analizar);
+    // Reportes
+    tipoReporteEl.addEventListener('change', () => {
+      syncReporteUI();
+      // resetea algunos indicadores visuales
+      analisisFilasEl.textContent = "0";
+      analisisMaxEl.textContent = "0";
+      aportacionesTableWrapEl.style.display = "none";
+      aportacionesTbodyEl.innerHTML = "";
+      aportacionesTotalGeneralEl.textContent = "0.00";
+    });
+    btnAnalizar.addEventListener('click', generarReporte);
 
     btnLimpiarConsultar.addEventListener('click', limpiarConsultar);
     btnLimpiarRegistrar.addEventListener('click', limpiarRegistrar);
-    btnLimpiarAnalisis.addEventListener('click', () => { limpiarAnalisis(); setMsg('Listo. Reportes limpios 🧼', ''); });
+    btnLimpiarAnalisis.addEventListener('click', () => { limpiarReportes(); setMsg('Listo. Reportes limpios 🧼', ''); });
 
     // Pins
     btnPinsEntrar.addEventListener('click', pinsEntrar);
@@ -1182,9 +1314,10 @@
     pinsCodigoEl.addEventListener('keydown', (e) => { if (e.key === 'Enter') pinsBuscar(); });
     btnLimpiarPins.addEventListener('click', limpiarPins);
 
+    // init
     estadoAplicarEl.textContent = '—';
     hideInlineEdit();
-    limpiarAnalisis();
+    limpiarReportes();
     limpiarPins();
     setActiveSection('secConsultar');
   </script>
