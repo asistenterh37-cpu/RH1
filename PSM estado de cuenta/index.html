@@ -118,19 +118,6 @@
     #tabla td{ font-size:15px; }
     #tabla td.referencia{ font-size:14px; }
 
-    details.sources{ margin-bottom:14px; border:1px solid var(--line); border-radius:12px; background:rgba(15,23,48,.45); overflow:hidden; }
-    details.sources > summary{
-      cursor:pointer; list-style:none; padding:10px 12px; color:var(--muted); font-weight:700; user-select:none;
-      display:flex; align-items:center; justify-content:space-between; gap:10px;
-    }
-    details.sources > summary::-webkit-details-marker{ display:none; }
-    .sourcesBody{ padding:12px; border-top:1px solid rgba(30,45,82,.65); }
-    .linkrow{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-top:8px; }
-    a.link{ color:var(--text); text-decoration:none; border:1px solid rgba(79,124,255,.35); background:rgba(79,124,255,.12);
-      padding:6px 10px; border-radius:999px; font-size:12px; }
-    a.link:hover{ filter:brightness(1.07); }
-    code.k{ font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size:12px; color:#cfe0ff; }
-
     .analysisWrap{
       margin: 10px 0 12px;
       border:1px solid rgba(79,124,255,.25);
@@ -160,6 +147,41 @@
       overflow:auto;
     }
     canvas{ width:100%; height:260px; display:block; }
+
+    /* ✅ CONFIG MODAL (NO visible por defecto) */
+    .modalOverlay{
+      position:fixed; inset:0;
+      background:rgba(0,0,0,.55);
+      display:none;
+      align-items:center;
+      justify-content:center;
+      padding:18px;
+      z-index:9999;
+    }
+    .modalOverlay.open{ display:flex; }
+    .modal{
+      width:min(920px, 100%);
+      background:rgba(16,26,47,.96);
+      border:1px solid rgba(30,45,82,.75);
+      border-radius:18px;
+      box-shadow:0 18px 60px rgba(0,0,0,.55);
+      overflow:hidden;
+    }
+    .modalHead{
+      padding:14px 16px;
+      border-bottom:1px solid rgba(30,45,82,.65);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+    }
+    .modalHead .ttl{ font-weight:900; letter-spacing:.2px; }
+    .modalBody{ padding:14px 16px 16px; }
+    .linkrow{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-top:10px; }
+    a.link{ color:var(--text); text-decoration:none; border:1px solid rgba(79,124,255,.35); background:rgba(79,124,255,.12);
+      padding:6px 10px; border-radius:999px; font-size:12px; }
+    a.link:hover{ filter:brightness(1.07); }
+    code.k{ font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size:12px; color:#cfe0ff; }
 
     @media (max-width: 640px){
       .wrap{ padding:18px 12px 46px; }
@@ -193,48 +215,11 @@
   <div class="wrap">
     <div class="card">
       <div class="head">
-        <h1>Patronato Residencial Santa Mónica</h1>
+        <h1 id="titleH1">Patronato Residencial Santa Mónica</h1>
         <h2>Estado de cuenta</h2>
       </div>
 
       <div class="body">
-        <details class="sources" id="sources">
-          <summary>
-            <span>Fuentes (Sheet + WebApp)</span>
-            <span class="pill" style="margin:0;">Soporte</span>
-          </summary>
-          <div class="sourcesBody">
-            <div class="small">
-              Este módulo usa <strong>JSONP</strong> (carga el WebApp como <code class="k">&lt;script src="..."></code>).<br/>
-              Si el WebApp devuelve <strong>HTML</strong> (login/error) en vez de JavaScript <code class="k">callback({...});</code>,
-              Chrome lo bloquea como script (MIME + <strong>nosniff</strong>) y verás “Falló la carga del script”.
-            </div>
-
-            <div class="row2" style="margin-top:10px;">
-              <div class="pill">Google Sheet: <strong id="sheetId">—</strong></div>
-              <div class="pill">WebApp: <strong id="execOk">—</strong></div>
-              <div class="pill">URL usada: <strong id="execUrlShow">—</strong></div>
-            </div>
-
-            <div class="linkrow">
-              <a class="link" id="sheetLink" href="#" target="_blank" rel="noopener">Abrir Google Sheet</a>
-              <a class="link" id="execLink" href="#" target="_blank" rel="noopener">Abrir WebApp (/exec)</a>
-              <button class="btn ghost" id="btnPing" type="button">Probar WebApp</button>
-              <button class="btn ghost" id="btnDiag" type="button">Diagnóstico</button>
-              <button class="btn danger" id="btnReset" type="button">Reset URL</button>
-            </div>
-
-            <div style="margin-top:12px;">
-              <label for="gsUrl">URL del WebApp (Apps Script /exec)</label>
-              <input id="gsUrl" placeholder="Pega aquí tu URL .../exec" />
-              <div class="small">
-                ✅ Debe terminar en <strong>/exec</strong> (si pegás <strong>/dev</strong>, lo convertimos).<br/>
-                ⚠️ Si creas un deployment nuevo, cambia el ID: pega la nueva URL.
-              </div>
-            </div>
-          </div>
-        </details>
-
         <!-- ✅ MENU -->
         <div class="menuBar" role="tablist" aria-label="Menú principal">
           <button class="menuBtn active" id="tabConsultar" type="button" data-target="secConsultar">Consultar estado de cuenta</button>
@@ -437,6 +422,47 @@
     </div>
   </div>
 
+  <!-- ✅ CONFIG OCULTA (NO se muestra por defecto)
+       Abrir: Ctrl+Shift+S  |  o agrega #config al final de la URL  |  o doble click al título -->
+  <div class="modalOverlay" id="cfgOverlay" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="cfgTitle">
+      <div class="modalHead">
+        <div class="ttl" id="cfgTitle">Fuentes (Sheet + WebApp)</div>
+        <button class="btn ghost" id="btnCfgClose" type="button">Cerrar</button>
+      </div>
+      <div class="modalBody">
+        <div class="row2" style="margin-top:0;">
+          <div class="pill">Google Sheet: <strong id="sheetId">—</strong></div>
+          <div class="pill">WebApp: <strong id="execOk">—</strong></div>
+          <div class="pill" style="max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+            URL: <strong id="execUrlShow">—</strong>
+          </div>
+        </div>
+
+        <div class="linkrow">
+          <a class="link" id="sheetLink" href="#" target="_blank" rel="noopener">Abrir Google Sheet</a>
+          <a class="link" id="execLink" href="#" target="_blank" rel="noopener">Abrir WebApp (/exec)</a>
+          <button class="btn ghost" id="btnPing" type="button">Probar WebApp</button>
+          <button class="btn ghost" id="btnDiag" type="button">Diagnóstico</button>
+          <button class="btn danger" id="btnReset" type="button">Reset URL</button>
+        </div>
+
+        <div style="margin-top:12px;">
+          <label for="gsUrl">URL del WebApp (Apps Script /exec)</label>
+          <input id="gsUrl" placeholder="Pega aquí tu URL .../exec" />
+          <div class="small">
+            ✅ Debe terminar en <strong>/exec</strong> (si pegás <strong>/dev</strong>, lo convertimos).<br/>
+            ⚠️ Si creas un deployment nuevo, cambia el ID: pega la nueva URL.
+          </div>
+        </div>
+
+        <div class="small" style="margin-top:10px;">
+          Tip rápido: si algo falla, abre “Diagnóstico” y deberías ver <code class="k">cb_xxx({...});</code>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script>
     const DEFAULT_SHEET_URL = "https://docs.google.com/spreadsheets/d/1PeFt5YUi1W5jI-sHo75E-0CHQUihADd2u4uqmHU5AK8/edit?usp=sharing";
     const DEFAULT_GS_EXEC_URL = "https://script.google.com/macros/s/AKfycbwesvnZB2UW5v1d0WlXZO_9GgKUzurotmL7ch6L9KD59ObTx46pY_kBDPuZAzogfxuzGQ/exec";
@@ -451,6 +477,38 @@
     })();
     const BLOCK_SET = new Set(BLOCK_LIST);
 
+    /* ===========================
+       ✅ CONFIG OCULTA (modal)
+       =========================== */
+    const cfgOverlay = document.getElementById('cfgOverlay');
+    const btnCfgClose = document.getElementById('btnCfgClose');
+    const titleH1 = document.getElementById('titleH1');
+
+    function openConfig(){
+      cfgOverlay.classList.add('open');
+      cfgOverlay.setAttribute('aria-hidden', 'false');
+      setTimeout(() => gsUrlEl.focus(), 0);
+    }
+    function closeConfig(){
+      cfgOverlay.classList.remove('open');
+      cfgOverlay.setAttribute('aria-hidden', 'true');
+      if (location.hash === '#config') history.replaceState(null, '', location.pathname + location.search);
+    }
+    btnCfgClose.addEventListener('click', closeConfig);
+    cfgOverlay.addEventListener('click', (e) => { if (e.target === cfgOverlay) closeConfig(); });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && cfgOverlay.classList.contains('open')) closeConfig();
+      if (e.ctrlKey && e.shiftKey && (e.key === 'S' || e.key === 's')) {
+        e.preventDefault();
+        openConfig();
+      }
+    });
+    titleH1.addEventListener('dblclick', openConfig);
+    if (location.hash === '#config') openConfig();
+
+    /* ===========================
+       ✅ Fuentes (solo en modal)
+       =========================== */
     const sheetIdEl = document.getElementById('sheetId');
     const execOkEl = document.getElementById('execOk');
     const execUrlShowEl = document.getElementById('execUrlShow');
@@ -559,7 +617,6 @@
 
       menuModeEl.textContent = label;
 
-      // mini detalle: al cambiar a "Reportes" deja el foco listo para filtrar
       if (id === 'secReportes') setTimeout(() => anioAEl.focus(), 0);
       if (id === 'secConsultar') setTimeout(() => codigoFEl.focus(), 0);
       if (id === 'secRegistrar') setTimeout(() => referenciaEl.focus(), 0);
@@ -639,11 +696,11 @@
     function getExecUrlOrExplain(){
       const gsUrl = normalizeGsUrl(gsUrlEl.value);
       if (!gsUrl) {
-        setMsg('La URL del WebApp está vacía. Abre “Fuentes” y pega la /exec.', 'bad');
+        setMsg('La URL del WebApp está vacía. Abre Config (Ctrl+Shift+S) y pega la /exec.', 'bad');
         return null;
       }
       if (!isExecUrl(gsUrl)) {
-        setMsg('Esa URL no parece /exec. Pega la URL que termina en /exec.', 'bad');
+        setMsg('Esa URL no parece /exec. Abre Config (Ctrl+Shift+S) y pega la URL que termina en /exec.', 'bad');
         return null;
       }
       return gsUrl;
@@ -681,12 +738,7 @@
           const hint =
             "Falló la carga del <script> (JSONP).\n" +
             "URL: " + src + "\n\n" +
-            "Si tu WebApp devolvió HTML (login/error) Chrome lo BLOQUEA como script (MIME+nosniff).\n\n" +
-            "Causas típicas:\n" +
-            "• Deployment NO está en acceso: Anyone\n" +
-            "• URL /exec vieja (cambiaste deployment)\n" +
-            "• Bloqueo por extensión (adblock/tracking)\n\n" +
-            "Prueba: botón “Diagnóstico”. Debes ver cb_xxx({...});";
+            "Prueba Config (Ctrl+Shift+S) → “Diagnóstico”.";
           done(new Error(hint));
         };
 
@@ -695,9 +747,7 @@
             "Timeout esperando callback JSONP.\n" +
             "URL: " + src + "\n\n" +
             (loaded
-              ? "El <script> cargó, pero NO ejecutó callback.\n" +
-                "Eso pasa si el WebApp devolvió HTML o si el callback no fue ejecutado.\n" +
-                "Usa “Diagnóstico”."
+              ? "El <script> cargó, pero NO ejecutó callback."
               : "El <script> no llegó a cargar (bloqueo o URL incorrecta).");
           done(new Error(hint));
         }, timeoutMs);
@@ -729,8 +779,7 @@
       window.open(url, "_blank", "noopener");
       setMsg(
         "Diagnóstico abierto en nueva pestaña.\n" +
-        "✅ Debes ver algo como: " + cb + "({...});\n" +
-        "❌ Si ves HTML/login, el deployment NO está público (Anyone) o tu /exec es vieja.",
+        "✅ Debes ver algo como: " + cb + "({...});",
         ""
       );
     }
@@ -740,20 +789,14 @@
       gsUrlEl.value = DEFAULT_GS_EXEC_URL;
       localStorage.setItem(LS_KEY, DEFAULT_GS_EXEC_URL);
       refreshExecBadge();
-      setMsg('URL reseteada. Si re-implementaste, pega la NUEVA /exec en “Fuentes”.', '');
+      setMsg('URL reseteada. Si re-implementaste, pega la NUEVA /exec en Config (Ctrl+Shift+S).', '');
     }
 
     /* ===========================
        ✅ GRÁFICO (Canvas) - HORIZONTAL BAR CHART
        =========================== */
-
-    function pad2(n){
-      return String(n).padStart(2,'0');
-    }
-
-    function resizeCanvasCssHeight(px){
-      chartCanvas.style.height = px + "px";
-    }
+    function pad2(n){ return String(n).padStart(2,'0'); }
+    function resizeCanvasCssHeight(px){ chartCanvas.style.height = px + "px"; }
 
     function clearChart(){
       resizeCanvasCssHeight(260);
@@ -887,7 +930,7 @@
       clearChart();
     }
 
-    // ✅ NUEVO: Limpiezas por sección
+    // ✅ Limpiezas por sección
     function limpiarConsultar(){
       codigoFEl.value = '';
       anioEl.value = 'Todos';
@@ -975,7 +1018,6 @@
         estadoAplicarEl.textContent = 'Guardado';
         setMsg('Guardado ✅\nReferencia: ' + ref + '\nCódigo F: ' + codigof + '\nNombre: ' + nombre, 'ok');
 
-        // Tip: dejamos el nombre mostrado en Consultar (por si luego consulta)
         nombreEl.textContent = nombre;
 
         codigoFNuevoEl.value = '';
@@ -1092,7 +1134,6 @@
       analisisFiltroEl.textContent = filtroText();
       setMsg('Analizando frecuencias por bloque... 📊', '');
 
-      // ✅ extra: si el usuario intenta mandar 34..49 (no debería aparecer), lo frenamos bonito
       if (bloque !== "Todos"){
         const bNum = parseInt(String(bloque), 10);
         if (!BLOCK_SET.has(bNum)){
@@ -1111,7 +1152,6 @@
 
         analisisFilasEl.textContent = String(filas);
 
-        // ✅ CAMBIO: arma arreglo SOLO con bloques existentes (sin 34..49)
         const map = new Map(freqs.map(x => [String(x.bloque), Number(x.freq || 0)]));
         const arr = BLOCK_LIST.map(b => ({ bloque: b, freq: map.get(String(b)) || 0 }));
 
@@ -1139,7 +1179,6 @@
 
     btnAnalizar.addEventListener('click', analizar);
 
-    // ✅ NUEVOS: Limpiar por menú
     btnLimpiarConsultar.addEventListener('click', limpiarConsultar);
     btnLimpiarRegistrar.addEventListener('click', limpiarRegistrar);
     btnLimpiarAnalisis.addEventListener('click', () => {
@@ -1147,7 +1186,6 @@
       setMsg('Listo. Reportes limpios 🧼', '');
     });
 
-    // ✅ Estado inicial
     estadoAplicarEl.textContent = '—';
     hideInlineEdit();
     limpiarAnalisis();
