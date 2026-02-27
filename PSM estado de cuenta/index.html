@@ -429,7 +429,7 @@
 
 <script>
   const DEFAULT_SHEET_URL = "https://docs.google.com/spreadsheets/d/1PeFt5YUi1W5jI-sHo75E-0CHQUihADd2u4uqmHU5AK8/edit?usp=sharing";
-  const DEFAULT_GS_EXEC_URL = "https://script.google.com/macros/s/AKfycbz-uu7ZRxLn_tTI-gV3hpY4mpX1mLQzs5D0dsikXi8sj09E7tFE144dYasuKfaPMHQglA/exec";
+  const DEFAULT_GS_EXEC_URL = "https://script.google.com/macros/s/AKfycbxHSz0v6Crm8jrptXZ_WuegsBgxKqqZcsfXwTsRcfUxX5YWu1BSRKRegBakWZCKielnJA/exec";
   const LS_KEY = "PRSM_GS_URL";
 
   // ✅ Lista REAL de bloques existentes (sin 34..49)
@@ -861,7 +861,6 @@
     }
   }
 
-  // ✅ Vertical bar chart (Aportantes)
   function drawVerticalBarsGeneric(items, titleText, valueFormatter){
     const ctx = chartCanvas.getContext('2d');
     const dpr = window.devicePixelRatio || 1;
@@ -910,7 +909,6 @@
       ctx.fillText(String(v), padL - 8, y);
     }
 
-    // bars sizing
     const gap = 6;
     const barW = n > 0 ? Math.max(6, Math.floor((plotW - gap*(n-1)) / n)) : 0;
     const totalBarsW = n * barW + gap * (n - 1);
@@ -928,7 +926,6 @@
       ctx.fillStyle = "rgba(79,124,255,.78)";
       ctx.fillRect(x, y, barW, bh);
 
-      // value (arriba)
       const valTxt = valueFormatter ? valueFormatter(val) : String(val);
       ctx.font = "11px system-ui, -apple-system, Segoe UI, Roboto, Arial";
       ctx.fillStyle = "rgba(231,238,252,.92)";
@@ -936,7 +933,6 @@
       ctx.textBaseline = "bottom";
       ctx.fillText(valTxt, x + barW/2, y - 4);
 
-      // label (abajo)
       ctx.fillStyle = "rgba(159,179,217,.95)";
       ctx.font = "11px system-ui, -apple-system, Segoe UI, Roboto, Arial";
       ctx.textAlign = "center";
@@ -944,7 +940,6 @@
       ctx.fillText(label, x + barW/2, padT + plotH + 10);
     }
 
-    // axis baseline
     ctx.strokeStyle = "rgba(30,45,82,.95)";
     ctx.beginPath();
     ctx.moveTo(padL, padT + plotH);
@@ -1151,11 +1146,11 @@
 
     if (isAportantes){
       reportTitleEl.textContent = "Reportes • 1) Aportantes";
-      chartHintEl.innerHTML = `Aportantes: <strong>frecuencia de lecturas (filas)</strong> por bloque (columna <strong>Bloque</strong> en hoja <strong>Base</strong>) — <strong>Vertical Bar Chart</strong>.`;
+      chartHintEl.innerHTML = `Aportantes: <strong>frecuencia de lecturas (filas)</strong> por bloque (columna <strong>Bloque</strong> en hoja <strong>Base</strong>) — <strong>Horizontal Bar Chart</strong>.`;
       clearChart("Aportantes: presiona “Generar”.");
     } else {
       reportTitleEl.textContent = "Reportes • 2) Aportaciones";
-      chartHintEl.innerHTML = `Aportaciones: <strong>suma de Valor por mes</strong> (hoja <strong>Base</strong>) — también se muestra tabla.`;
+      chartHintEl.innerHTML = `Aportaciones: <strong>suma de Valor por mes</strong> (hoja <strong>Base</strong>) — <strong>Vertical Bar Chart</strong> + tabla.`;
       clearChart("Aportaciones: presiona “Generar”.");
     }
     analisisFiltroEl.textContent = filtroTextReportes();
@@ -1193,7 +1188,7 @@
 
         const map = new Map(freqs.map(x => [String(x.bloque), Number(x.freq || 0)]));
 
-        // ✅ vertical: label corto 01..33,50,51
+        // ✅ Aportantes: usamos SOLO bloques existentes y label 01..33,50,51
         const items = BLOCK_LIST.map(b => {
           const label = String(b).padStart(2,'0');
           const value = map.get(String(b)) || 0;
@@ -1202,8 +1197,8 @@
 
         aportacionesTableWrapEl.style.display = "none";
 
-        // ✅ Aportantes = VERTICAL BAR CHART
-        drawVerticalBarsGeneric(
+        // ✅ CAMBIO: APORTANTES = HORIZONTAL BAR CHART
+        drawHorizontalBarsGeneric(
           items,
           "Aportantes por Bloque (Frecuencia de Lecturas) — existentes: 1..33, 50, 51",
           (v) => String(v)
@@ -1234,9 +1229,10 @@
 
       const items2 = mesesArr.map(x => ({ label: String(x.mes ?? ""), value: Number(x.total || 0) }));
 
-      drawHorizontalBarsGeneric(
+      // ✅ CAMBIO: APORTACIONES = VERTICAL BAR CHART
+      drawVerticalBarsGeneric(
         items2,
-        "Aportaciones por Mes (Suma de Valor) — Horizontal Bar Chart 2D",
+        "Aportaciones por Mes (Suma de Valor) — Vertical Bar Chart 2D",
         (v) => money(v)
       );
 
