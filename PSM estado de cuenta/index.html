@@ -429,7 +429,7 @@
 
 <script>
   const DEFAULT_SHEET_URL = "https://docs.google.com/spreadsheets/d/1PeFt5YUi1W5jI-sHo75E-0CHQUihADd2u4uqmHU5AK8/edit?usp=sharing";
-  const DEFAULT_GS_EXEC_URL = "https://script.google.com/macros/s/AKfycbxHpSQj3_IcPXKt8ERLbw5W_i2JV_iQ2vQ8oB0fsYYRaV5E9GFmMoU1dIw_bKmzRx8lTw/exec";
+  const DEFAULT_GS_EXEC_URL = "https://script.google.com/macros/s/AKfycbz-uu7ZRxLn_tTI-gV3hpY4mpX1mLQzs5D0dsikXi8sj09E7tFE144dYasuKfaPMHQglA/exec";
   const LS_KEY = "PRSM_GS_URL";
 
   // ✅ Lista REAL de bloques existentes (sin 34..49)
@@ -861,7 +861,7 @@
     }
   }
 
-  // ✅ NUEVO: Vertical bar chart (para Aportantes)
+  // ✅ Vertical bar chart (Aportantes)
   function drawVerticalBarsGeneric(items, titleText, valueFormatter){
     const ctx = chartCanvas.getContext('2d');
     const dpr = window.devicePixelRatio || 1;
@@ -928,7 +928,7 @@
       ctx.fillStyle = "rgba(79,124,255,.78)";
       ctx.fillRect(x, y, barW, bh);
 
-      // value (encima)
+      // value (arriba)
       const valTxt = valueFormatter ? valueFormatter(val) : String(val);
       ctx.font = "11px system-ui, -apple-system, Segoe UI, Roboto, Arial";
       ctx.fillStyle = "rgba(231,238,252,.92)";
@@ -941,8 +941,6 @@
       ctx.font = "11px system-ui, -apple-system, Segoe UI, Roboto, Arial";
       ctx.textAlign = "center";
       ctx.textBaseline = "top";
-
-      // para que no choque, ponemos label corto (ej: "01", "50")
       ctx.fillText(label, x + barW/2, padT + plotH + 10);
     }
 
@@ -1186,7 +1184,6 @@
           }
         }
 
-        // ✅ frecuencia de lecturas (filas) por bloque
         const data = await jsonp(gsUrl, { action: 'freqBloques', year, mes, bloque }, 20000);
         if (!data || data.ok !== true) throw new Error((data && data.error) ? data.error : 'Respuesta inválida del WebApp');
 
@@ -1196,7 +1193,7 @@
 
         const map = new Map(freqs.map(x => [String(x.bloque), Number(x.freq || 0)]));
 
-        // ✅ PARA VERTICAL: label corto (01, 02, ..., 50, 51)
+        // ✅ vertical: label corto 01..33,50,51
         const items = BLOCK_LIST.map(b => {
           const label = String(b).padStart(2,'0');
           const value = map.get(String(b)) || 0;
@@ -1205,7 +1202,7 @@
 
         aportacionesTableWrapEl.style.display = "none";
 
-        // ✅ CAMBIO PRINCIPAL: Aportantes ahora es VERTICAL BAR CHART
+        // ✅ Aportantes = VERTICAL BAR CHART
         drawVerticalBarsGeneric(
           items,
           "Aportantes por Bloque (Frecuencia de Lecturas) — existentes: 1..33, 50, 51",
