@@ -2,8 +2,35 @@
 <html lang="es">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Evaluación del desempeño</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Evaluación del desempeño</title>
+
+<!-- ✅ Seguridad (NO oculta el código; reduce vectores de ataque tipo XSS) -->
+<meta http-equiv="Content-Security-Policy"
+      content="
+        default-src 'self';
+        base-uri 'self';
+        object-src 'none';
+        frame-ancestors 'self';
+        img-src 'self' data:;
+        style-src 'self' 'unsafe-inline';
+        script-src 'self' 'unsafe-inline';
+        connect-src 'self' https://script.google.com https://script.googleusercontent.com;
+        form-action 'self' https://script.google.com;
+        upgrade-insecure-requests;
+      " />
+
+<!-- ✅ Reduce permisos innecesarios del navegador -->
+<meta http-equiv="Permissions-Policy"
+      content="
+        camera=(),
+        microphone=(),
+        geolocation=(),
+        payment=(),
+        usb=(),
+        interest-cohort=()
+      " />
+<meta name="referrer" content="no-referrer" />
   <style>
     :root{
       --bg:#050a14;
@@ -1110,7 +1137,8 @@ select:focus{
 /************************************************************
  * 1) URL COMPLETA DEL APPS SCRIPT (/exec)
  ************************************************************/
-const API_URL = "https://script.google.com/macros/s/AKfycbzflcPM9F34tX61wQ24JqYYkSwSYSHmnEJwGblJIAovXoi4TfqQw28VaIgmjO0jJFx6/exec";
+const API_URL = // ✅ Inyectar desde el servidor (Apps Script HtmlService) para no hardcodear endpoints en el HTML público
+const API_URL = (window.__CFG__ && window.__CFG__.API_URL) ? String(window.__CFG__.API_URL) : "";
 
 function normalizeApiUrl(u){
   let x = String(u || "").trim();
