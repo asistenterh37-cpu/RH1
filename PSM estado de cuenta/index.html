@@ -306,9 +306,24 @@
       tfoot td{ border-bottom:none; padding:10px 8px; font-weight:900; }
       canvas{ height:240px; }
     }
+    /* ✅ Casas100 tabla flotante */
+#casas100Tabla td{
+  white-space:normal;
+  overflow-wrap:anywhere;
+  word-break:break-word;
+}
+#casas100Tabla tbody tr{
+  cursor:pointer;
+}
+#casas100Tabla tbody tr:hover{
+  background:rgba(79,124,255,.08);
+}
+#casas100Tabla tbody tr.selected{
+  outline:2px solid rgba(79,124,255,.55);
+  background:rgba(79,124,255,.10);
+}
   </style>
 </head>
-
 <body>
   <div class="wrap">
     <div class="card">
@@ -497,11 +512,51 @@
                 <canvas id="chartCanvas"></canvas>
                 <div class="small" id="chartHint" style="margin-top:10px;"></div>
 
-                <!-- ✅ NUEVO: salida Reporte 3 -->
-                <div class="codesBox" id="casas100Box">
-                  <div class="small" id="casas100Meta" style="margin:0 0 8px;"></div>
-                  <div class="codesLine" id="casas100Lines"></div>
-                </div>
+               <!-- ✅ NUEVO: Casas al 100% (tabla flotante) -->
+<div class="codesBox" id="casas100Box" style="display:none;">
+  <div class="row2" style="margin-top:0; justify-content:space-between; gap:10px;">
+    <div class="small" id="casas100Meta" style="margin:0;"></div>
+    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+      <button class="btn ghost" id="btnCasas100VerTabla" type="button">Ver tabla</button>
+      <button class="btn ghost" id="btnCasas100Copiar" type="button">Copiar</button>
+    </div>
+  </div>
+
+  <!-- ✅ Resumen rápido (una fila) -->
+  <div class="codesLine" id="casas100Lines" style="margin-top:10px;"></div>
+</div>
+
+<!-- ✅ Overlay flotante con tabla -->
+<div class="modalOverlay" id="casas100Overlay" aria-hidden="true">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="casas100Title">
+    <div class="modalHead">
+      <div class="ttl" id="casas100Title">Casas al 100% — Códigos</div>
+      <button class="btn ghost" id="btnCasas100Close" type="button">Cerrar</button>
+    </div>
+
+    <div class="modalBody">
+      <div class="pill" style="margin-bottom:10px; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+        Ventana: <strong id="casas100WinLabel">—</strong>
+      </div>
+
+      <div class="miniTableWrap" style="margin-top:0;">
+        <table class="mini" id="casas100Tabla">
+          <thead>
+            <tr>
+              <th style="width:180px;">Mes</th>
+              <th>Códigos (≥ 3600)</th>
+            </tr>
+          </thead>
+          <tbody id="casas100Tbody"></tbody>
+        </table>
+      </div>
+
+      <div class="small" style="margin-top:10px;">
+        Tip: “Copiar” copia el resumen (una línea con comas). En modo “Por mes” copia la línea del mes seleccionado en la tabla (si lo marcás).
+      </div>
+    </div>
+  </div>
+</div>
               </div>
 
               <div class="miniTableWrap" id="aportacionesTableWrap" style="display:none;">
@@ -831,11 +886,62 @@ const aportacionesTableWrapEl = document.getElementById('aportacionesTableWrap')
 const aportacionesTbodyEl = document.getElementById('aportacionesTbody');
 const aportacionesTotalGeneralEl = document.getElementById('aportacionesTotalGeneral');
 
-/* ✅ NUEVO: UI Casas 100% */
+/* ✅ NUEVO: UI Casas 100% (tabla flotante) */
 const casas100BoxEl = document.getElementById('casas100Box');
 const casas100MetaEl = document.getElementById('casas100Meta');
 const casas100LinesEl = document.getElementById('casas100Lines');
 
+const btnCasas100VerTabla = document.getElementById('btnCasas100VerTabla');
+const btnCasas100Copiar   = document.getElementById('btnCasas100Copiar');
+
+const casas100Overlay = document.getElementById('casas100Overlay');
+const btnCasas100Close = document.getElementById('btnCasas100Close');
+const casas100WinLabel = document.getElementById('casas100WinLabel');
+const casas100Tbody = document.getElementById('casas100Tbody');
+
+let casas100SelectedText = ""; // para copiar desde tabla (modo por mes)
+
+function openCasas100Overlay(){
+  if (!casas100Overlay) return;
+  casas100Overlay.classList.add('open');
+  casas100Overlay.setAttribute('aria-hidden', 'false');
+}
+function closeCasas100Overlay(){
+  if (!casas100Overlay) return;
+  casas100Overlay.classList.remove('open');
+  casas100Overlay.setAttribute('aria-hidden', 'true');
+}
+if (btnCasas100Close) btnCasas100Close.addEventListener('click', closeCasas100Overlay);
+if (casas100Overlay) casas100Overlay.addEventListener('click', (e) => { if (e.target === casas100Overlay) closeCasas100Overlay(); });
+
+if (btnCasas100VerTabla) btnCasas100VerTabla.addEventListener('click', openCasas100Overlay);
+
+async function copyTextToClipboard(txt){
+  const s = String(txt || "").trim();
+  if (!s) return;
+  try{
+    await navigator.clipboard.writeText(s);
+    setMsg("Copiado ✅", "ok");
+  }catch(_){
+    // fallback
+    const ta = document.createElement("textarea");
+    ta.value = s;
+    ta.style.position = "fixed";
+    ta.style.left = "-9999px";
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand("copy");
+    document.body.removeChild(ta);
+    setMsg("Copiado ✅", "ok");
+  }
+}
+
+if (btnCasas100Copiar) btnCasas100Copiar.addEventListener('click', async () => {
+  // Prioriza selección de tabla si existe (modo pormes), si no, copia resumen
+  const txt = (casas100SelectedText || casas100LinesEl.textContent || "").trim();
+  if (!txt) return setMsg("Nada para copiar.", "bad");
+  await copyTextToClipboard(txt);
+});
 /* =========================== ✅ ELEMENTOS UI (Pins) =========================== */
 const pinsPassEl = document.getElementById('pinsPass');
 const btnPinsEntrar = document.getElementById('btnPinsEntrar');
@@ -1451,40 +1557,82 @@ const data3 = await jsonp(gsUrl, { action:'casas100', year, mes, bloque, modo },
     // oculta tabla aportaciones
     aportacionesTableWrapEl.style.display = "none";
 
-    // muestra box
-    casas100BoxEl.style.display = "";
-    const anchor = data3.anchor ? `${data3.anchor.mes} ${data3.anchor.anio}` : "—";
-    const win = data3.window ? `${data3.window.start} → ${data3.window.end}` : "—";
-    casas100MetaEl.textContent = `Último mes (Aportaciones): ${anchor} | Ventana 12 meses: ${win} | Umbral: ≥ 3600`;
+   // muestra box (resumen + botones)
+casas100BoxEl.style.display = "";
+const anchor = data3.anchor ? `${data3.anchor.mes} ${data3.anchor.anio}` : "—";
+const win = data3.window ? `${data3.window.start} → ${data3.window.end}` : "—";
+casas100MetaEl.textContent = `Último mes (Aportaciones): ${anchor} | Ventana 12 meses: ${win} | Umbral: ≥ 3600`;
 
-    const lines = Array.isArray(data3.lines) ? data3.lines : [];
-    if (!lines.length){
-      casas100LinesEl.textContent = "Sin resultados para el filtro seleccionado.";
-      clearChart("Sin resultados.");
-      setMsg('Listo ✅ (Casas al 100%) — sin resultados', 'ok');
-      return;
-    }
+if (casas100WinLabel) casas100WinLabel.textContent = win;
+if (casas100Tbody) casas100Tbody.innerHTML = "";
+casas100SelectedText = "";
 
-       // Render: cada bloque en su línea (o una sola si bloque específico)
-    // ✅ Usa el "modo" ya definido arriba (NO redeclarar const modo)
+const lines = Array.isArray(data3.lines) ? data3.lines : [];
 
-    if (modo === "todos") {
-      // ✅ UNA SOLA FILA (si bloque específico, viene un solo registro)
-      const L = lines[0] || {};
+// Si no hay líneas, mostramos vacío
+if (!lines.length){
+  casas100LinesEl.textContent = "Sin resultados para el filtro seleccionado.";
+  if (casas100Tbody){
+    casas100Tbody.innerHTML = `<tr><td>—</td><td>—</td></tr>`;
+  }
+  clearChart("Sin resultados.");
+  setMsg('Listo ✅ (Casas al 100%) — sin resultados', 'ok');
+  return;
+}
+
+// ✅ Render resumen (una sola fila con comas)
+if (modo === "todos"){
+  const L = lines[0] || {};
+  const txt = (L.codigos && L.codigos.length) ? L.codigos.join(", ") : "—";
+  casas100LinesEl.textContent = txt;
+
+  // Tabla flotante: 1 fila (Ventana completa)
+  if (casas100Tbody){
+    casas100Tbody.innerHTML = `
+      <tr>
+        <td>Ventana completa</td>
+        <td>${txt}</td>
+      </tr>
+    `;
+  }
+} else {
+  // modo=pormes: resumen “compacto” (solo primera línea útil) + tabla completa
+  // Si querés resumen multi-línea, lo dejamos bonito pero compacto:
+  const first = lines[lines.length - 1] || lines[0] || {};
+  const firstTxt = (first.codigos && first.codigos.length) ? first.codigos.join(", ") : "—";
+  casas100LinesEl.textContent = `${String(first.mesLabel || "").trim()}: ${firstTxt}`;
+
+  if (casas100Tbody){
+    casas100Tbody.innerHTML = lines.map((L, i) => {
+      const mesLabel = String(L.mesLabel || "").trim() || "—";
       const txt = (L.codigos && L.codigos.length) ? L.codigos.join(", ") : "—";
-      casas100LinesEl.textContent = txt; // <- una fila, separado por comas
-    } else {
-      // ✅ POR MES: cada mes en su línea, pero los códigos siempre en UNA fila separados por coma
-      casas100LinesEl.textContent = lines.map(L => {
-        const mesLabel = String(L.mesLabel || "").trim();
-        const txt = (L.codigos && L.codigos.length) ? L.codigos.join(", ") : "—";
-        return `${mesLabel}: ${txt}`;
-      }).join("\n");
-    }
-    clearChart("Resultados listados abajo 👇");
-    setMsg('Listo ✅ (Casas al 100%)', 'ok');
-    return;
+      // data-text para copiar por fila
+      return `
+        <tr data-text="${txt.replace(/"/g,'&quot;')}" data-i="${i}">
+          <td>${mesLabel}</td>
+          <td>${txt}</td>
+        </tr>
+      `;
+    }).join("");
 
+    // click para seleccionar fila (y preparar copia)
+    const rows = Array.from(casas100Tbody.querySelectorAll("tr"));
+    rows.forEach(tr => {
+      tr.addEventListener("click", () => {
+        rows.forEach(x => x.classList.remove("selected"));
+        tr.classList.add("selected");
+        casas100SelectedText = (tr.getAttribute("data-text") || "").trim();
+      });
+    });
+  }
+}
+
+clearChart("Resultados listados en tabla flotante 👇");
+setMsg('Listo ✅ (Casas al 100%)', 'ok');
+
+// ✅ Abrir automáticamente la tabla flotante cuando ya hay resultados
+openCasas100Overlay();
+return;
   }catch(err){
     setMsg('Error:\n' + err.message, 'bad');
     clearChart("Error al generar.");
