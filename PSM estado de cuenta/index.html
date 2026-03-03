@@ -449,26 +449,27 @@
                 </select>
               </div>
 
-              <div>
-                <label for="anioA">Año</label>
-                <select id="anioA">
-                  <option value="Todos">Todos</option>
-                  <option value="2025">2025</option>
-                  <option value="2026">2026</option>
-                </select>
-              </div>
+              <!-- ✅ Año/Mes: se usan para 1) Aportantes y 2) Aportaciones
+     🚫 Para 3) Casas al 100% NO se muestran (se toma el último Año/Mes usado en Aportaciones) -->
+<div id="rowYM">
+  <label for="anioA">Año</label>
+  <select id="anioA">
+    <option value="Todos">Todos</option>
+    <option value="2025">2025</option>
+    <option value="2026">2026</option>
+  </select>
+</div>
 
-              <div>
-                <label for="mesA">Mes</label>
-                <select id="mesA">
-                  <option value="Todos">Todos</option>
-                  <option value="Enero">Enero</option><option value="Febrero">Febrero</option><option value="Marzo">Marzo</option>
-                  <option value="Abril">Abril</option><option value="Mayo">Mayo</option><option value="Junio">Junio</option>
-                  <option value="Julio">Julio</option><option value="Agosto">Agosto</option><option value="Septiembre">Septiembre</option>
-                  <option value="Octubre">Octubre</option><option value="Noviembre">Noviembre</option><option value="Diciembre">Diciembre</option>
-                </select>
-              </div>
-
+<div id="rowYM2">
+  <label for="mesA">Mes</label>
+  <select id="mesA">
+    <option value="Todos">Todos</option>
+    <option value="Enero">Enero</option><option value="Febrero">Febrero</option><option value="Marzo">Marzo</option>
+    <option value="Abril">Abril</option><option value="Mayo">Mayo</option><option value="Junio">Junio</option>
+    <option value="Julio">Julio</option><option value="Agosto">Agosto</option><option value="Septiembre">Septiembre</option>
+    <option value="Octubre">Octubre</option><option value="Noviembre">Noviembre</option><option value="Diciembre">Diciembre</option>
+  </select>
+</div>
               <div><button class="btn" id="btnAnalizar" type="button">Generar</button></div>
             </div>
 
@@ -625,7 +626,7 @@ document.addEventListener('keydown', (e) => {
 
 /* =========================== ✅ CONFIG + APP =========================== */
 const DEFAULT_SHEET_URL = "https://docs.google.com/spreadsheets/d/1PeFt5YUi1W5jI-sHo75E-0CHQUihADd2u4uqmHU5AK8/edit?usp=sharing";
-const DEFAULT_GS_EXEC_URL = "https://script.google.com/macros/s/AKfycbwBDs3Aau-ksnJIpTVEvEUag7VVAmF4jZpZqZ-gncL2IKRHFa6wf8b1TEeqdcadZa51RQ/exec";
+const DEFAULT_GS_EXEC_URL = "https://script.google.com/macros/s/AKfycbxctaXT5siZJVo26NoJiSODn5vRWrk7c_IMr3YM39U_TvATiTo8cE07VI5S-FIVv0R8DA/exec";
 const LS_KEY = "PRSM_GS_URL";
 const PINS_TOKEN_KEY = "PRSM_PINS_TOKEN";
 
@@ -795,7 +796,14 @@ const tipoReporteEl = document.getElementById('tipoReporte');
 const reportTitleEl = document.getElementById('reportTitle');
 const anioAEl = document.getElementById('anioA');
 const mesAEl = document.getElementById('mesA');
-const bloqueAEl = document.getElementById('bloqueA');
+
+/* ✅ NUEVO: wrappers para ocultar Año/Mes en Casas100 */
+const rowYMEl = document.getElementById('rowYM');
+const rowYM2El = document.getElementById('rowYM2');
+
+/* ✅ NUEVO: recordar el último Año/Mes usado en Aportaciones */
+let lastAportacionesYear = "Todos";
+let lastAportacionesMes  = "Todos";const bloqueAEl = document.getElementById('bloqueA');
 const rowBloqueEl = document.getElementById('rowBloque');
 
 const btnAnalizar = document.getElementById('btnAnalizar');
@@ -1287,18 +1295,25 @@ async function consultar(){
 function filtroTextReportes(){
   const t = tipoReporteEl.value;
   const y = anioAEl.value, m = mesAEl.value, b = bloqueAEl.value;
-  if (t === "aportantes") return `Tipo=Aportantes | Año=${y} | Mes=${m} | Bloque=${b}`;
-  if (t === "aportaciones") return `Tipo=Aportaciones | Año=${y} | Mes=${m}`;
-  return `Tipo=Casas100 | Año=${y} | Mes=${m} | Bloque=${b}`;
-}
 
+  if (t === "aportantes")  return `Tipo=Aportantes | Año=${y} | Mes=${m} | Bloque=${b}`;
+  if (t === "aportaciones") return `Tipo=Aportaciones | Año=${y} | Mes=${m}`;
+
+  // ✅ Casas100 NO usa selectores visibles: toma el último filtro usado en Aportaciones
+  return `Tipo=Casas100 | Último(Aportaciones) Año=${lastAportacionesYear} | Mes=${lastAportacionesMes} | Bloque=${b}`;
+}
 function syncReporteUI(){
   const t = tipoReporteEl.value;
   const isAportantes = (t === "aportantes");
   const isAportaciones = (t === "aportaciones");
   const isCasas100 = (t === "casas100");
 
-  rowBloqueEl.style.display = (isAportantes || isCasas100) ? "" : "none";
+    rowBloqueEl.style.display = (isAportantes || isCasas100) ? "" : "none";
+
+  // ✅ Año/Mes se ocultan SOLO en Casas100
+  const showYM = !isCasas100;
+  if (rowYMEl)  rowYMEl.style.display  = showYM ? "" : "none";
+  if (rowYM2El) rowYM2El.style.display = showYM ? "" : "none";
 
   aportacionesTableWrapEl.style.display = "none";
   casas100BoxEl.style.display = "none";
@@ -1327,8 +1342,9 @@ async function generarReporte(){
   if (!gsUrl) return;
 
   const tipo = tipoReporteEl.value;
-  const year = anioAEl.value;
-  const mes = mesAEl.value;
+    // ✅ Por defecto, year/mes vienen de los selectores
+  let year = anioAEl.value;
+  let mes  = mesAEl.value;
   const bloque = bloqueAEl.value;
 
   analisisFiltroEl.textContent = filtroTextReportes();
@@ -1363,6 +1379,10 @@ async function generarReporte(){
 
     if (tipo === "aportaciones"){
       const data2 = await jsonp(gsUrl, { action: 'sumAportaciones', year, mes }, 20000);
+      // ✅ Guardar el último filtro usado en Aportaciones (para Casas100)
+      lastAportacionesYear = year;
+      lastAportacionesMes  = mes;
+      
       if (!data2 || data2.ok !== true) throw new Error((data2 && data2.error) ? data2.error : 'Respuesta inválida del WebApp');
 
       const filas2 = Number(data2.totalFilas || 0);
