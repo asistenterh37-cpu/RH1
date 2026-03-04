@@ -103,7 +103,7 @@
     }
     input[readonly]{ opacity:.92; background:rgba(15,23,48,.75); }
 
-    .hint{ font-size:14px; color:var(--muted); margin-top:8px; line-height:1; }
+    .hint{ font-size:14px; color:var(--muted); margin-top:8px; line-height:1.15; }
 
     .btnbar{ display:flex; gap:8px; flex-wrap:wrap; margin-top:8px }
     button{
@@ -162,7 +162,7 @@
     .table input{ padding:6px 9px; border-radius:10px; font-size:15px; line-height:1; }
     .table .fieldBox{ padding:4px 6px; margin:0; border-radius:12px; }
 
-    /* Nuevo bloque Plan de retiro */
+    /* Plan de retiro */
     .sectionTitle{
       margin:12px 0 8px;
       font-size:18px;
@@ -180,6 +180,46 @@
       border:1px solid var(--line);
       background: rgba(0,0,0,.15);
     }
+
+    /* Encabezado con botones a la derecha */
+    .planHeader{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      margin-bottom:6px;
+    }
+    .planHeader h2{ margin:0; }
+    .btnbar.small button{ padding:7px 10px; font-size:14px; border-radius:12px; }
+    .kbd{
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size:13px;
+      padding:2px 6px;
+      border-radius:8px;
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.05);
+      color:#d7def6;
+    }
+    details{
+      border:1px solid var(--line);
+      border-radius:14px;
+      padding:8px 10px;
+      background:rgba(0,0,0,.10);
+      margin-top:10px;
+    }
+    details summary{
+      cursor:pointer;
+      color:#d7def6;
+      font-weight:700;
+      user-select:none;
+    }
+    .formula{
+      margin-top:8px;
+      color:var(--muted);
+      font-size:14px;
+      line-height:1.25;
+    }
+    .formula b{ color:#e9eefc; }
   </style>
 </head>
 
@@ -307,10 +347,10 @@
         </div>
       </div>
 
-      <!-- NUEVO BLOQUE: Plan de retiro (2 secciones) -->
+      <!-- Plan de retiro -->
       <div class="sectionTitle">Plan de retiro</div>
       <div class="grid2">
-        <!-- Izquierda: tabla con campos -->
+        <!-- Izquierda -->
         <div class="panel plan">
           <h2>Datos para plan</h2>
 
@@ -323,7 +363,7 @@
             </thead>
             <tbody>
               <tr>
-                <td>Sueldo promedio actual</td>
+                <td>Sueldo promedio actual (mensual)</td>
                 <td class="right">
                   <div class="fieldBox"><input id="pr_sueldoPromActual" readonly></div>
                 </td>
@@ -347,7 +387,7 @@
                 </td>
               </tr>
               <tr>
-                <td><b>Tasa Interés fondo</b></td>
+                <td><b>Tasa Interés fondo</b> (anual)</td>
                 <td class="right">
                   <div class="fieldBox">
                     <input id="tasaInteresFondo" type="number" step="0.0001" value="0.05">
@@ -357,13 +397,74 @@
             </tbody>
           </table>
 
-          <div class="hint">Nota: los primeros 4 campos se copian automáticamente desde arriba; solo editas la <b>Tasa Interés fondo</b>.</div>
+          <div class="hint">
+            Nota: los primeros 4 campos se copian automáticamente desde arriba; solo editas la <b>Tasa Interés fondo</b>.
+          </div>
         </div>
 
-        <!-- Derecha: vacío por ahora -->
+        <!-- Derecha: cálculos del plan + botones -->
         <div class="panel plan">
-          <h2>&nbsp;</h2>
-          <div class="hint">Espacio reservado (lado derecho) — aquí metemos lo next cuando vos digás 😄</div>
+          <div class="planHeader">
+            <h2>Calcular aporte requerido</h2>
+            <div class="btnbar small">
+              <button id="pr_btnCalcular" title="Calcula valor inicial, % de aportación y total">Calcular</button>
+              <button class="secondary" id="pr_btnLimpiar" type="button" title="Limpia solo los resultados del plan">Limpiar</button>
+            </div>
+          </div>
+
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Concepto</th>
+                <th class="right">Valor</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><b>Valor inicial</b> (por antigüedad actual)</td>
+                <td class="right">
+                  <div class="fieldBox"><input id="pr_valorInicial" readonly></div>
+                </td>
+              </tr>
+              <tr>
+                <td><b>% de aportación</b> sobre sueldo promedio mensual</td>
+                <td class="right">
+                  <div class="fieldBox"><input id="pr_porcentajeAportacion" readonly></div>
+                </td>
+              </tr>
+              <tr>
+                <td><b>Total cálculo</b> (VI+aportes, con interés)</td>
+                <td class="right">
+                  <div class="fieldBox"><input id="pr_totalCalculo" readonly></div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="hint">
+            Objetivo: que el <span class="kbd">Total cálculo</span> sea igual a <span class="kbd">Prestaciones futuras</span>.
+            Si te sale un % negativo, es porque con solo el valor inicial ya “te pasaste” (qué bonito problema 😄).
+          </div>
+
+          <details>
+            <summary>Ver forma de cálculo (paso a paso)</summary>
+            <div class="formula">
+              Sea <b>N</b> = meses hacia adelante, <b>i</b> = tasa mensual del fondo = (tasa anual)/12, y <b>g</b> = incremento anual del sueldo.<br><br>
+
+              <b>1) Valor inicial (VI)</b><br>
+              VI = (Antigüedad actual) × (Sueldo promedio mensual actual).<br><br>
+
+              <b>2) Sueldo mensual proyectado</b><br>
+              Sueldo(m) = Sueldo₀ × (1+g)^(m/12), para m = 1..N.<br><br>
+
+              <b>3) Futuro valor (FV) a retiro</b><br>
+              FV = VI×(1+i)^N + Σ[ Aporte(m) × (1+i)^(N-m) ]<br>
+              donde Aporte(m) = p × Sueldo(m), y <b>p</b> es el porcentaje de aportación (en decimal).<br><br>
+
+              <b>4) Despeje del porcentaje p</b><br>
+              p = (PrestacionesFuturas − VI×(1+i)^N) / Σ[ Sueldo(m)×(1+i)^(N-m) ].
+            </div>
+          </details>
         </div>
       </div>
 
@@ -372,12 +473,21 @@
 
   <script>
     const $ = (id)=>document.getElementById(id)
+
     const fmtMoney=new Intl.NumberFormat("es-HN",{style:"currency",currency:"HNL"})
     const fmtNum=new Intl.NumberFormat("es-HN",{maximumFractionDigits:6})
+    const fmtPct=new Intl.NumberFormat("es-HN",{style:"percent",minimumFractionDigits:2,maximumFractionDigits:2})
 
     function toNum(v){
       const n=Number(v)
       return Number.isFinite(n)?n:0
+    }
+
+    function parseMoneyFromFormatted(str){
+      // Convierte "L 12,345.67" o similar a número
+      if(!str) return 0
+      const cleaned = String(str).replace(/[^\d.-]/g,"")
+      return toNum(cleaned)
     }
 
     function syncPlanDeRetiro(){
@@ -395,11 +505,15 @@
       const genero=($("genero").value||"").toLowerCase().trim()
       const incAnual=toNum($("incAnual").value)
 
+      // Sueldo promedio mensual actual (considerando 13avo prorrateado): sueldo*13/12
       const sueldoPromActual=sueldoActual*13/12
+
       const edadRetiro=(genero==="femenino")?60:65
       const anosAdelante=edadRetiro-edadActual
       const antiguedadEsperada=anosAdelante+antiguedad
       const antiguedadCalculo=(antiguedadEsperada>25)?27:(antiguedadEsperada+2)
+
+      // Proyección simple anual (para prestaciones)
       const factor=Math.pow(1+incAnual,anosAdelante)
       const sueldoPromFuturo=sueldoPromActual*factor
       const prestacionesFuturas=antiguedadCalculo*sueldoPromFuturo
@@ -414,6 +528,56 @@
       $("prestacionesFuturas").value=fmtMoney.format(prestacionesFuturas)
 
       syncPlanDeRetiro()
+    }
+
+    function calcPlan(){
+      // Asegura que arriba esté calculado
+      calc()
+
+      const sueldoPromMensual = parseMoneyFromFormatted($("sueldoPromActual").value) // mensual
+      const antiguedadActual = toNum($("antiguedad").value)
+      const anosAdelante = toNum($("anosAdelante").value)
+      const incAnual = toNum($("incAnual").value)
+      const tasaAnualFondo = toNum($("tasaInteresFondo").value)
+
+      const targetFV = parseMoneyFromFormatted($("prestacionesFuturas").value)
+
+      const N = Math.max(0, Math.round(anosAdelante * 12))
+      const i = tasaAnualFondo / 12
+
+      // VI: “correspondiente a la antigüedad actual”
+      // (Supuesto: prestaciones acumuladas hoy = antigüedad actual * sueldo promedio mensual actual)
+      const VI = antiguedadActual * sueldoPromMensual
+
+      // Si no hay meses hacia adelante, el plan no tiene aportes (solo VI vs target)
+      if(N === 0){
+        const total = VI
+        $("pr_valorInicial").value = fmtMoney.format(VI)
+        $("pr_porcentajeAportacion").value = fmtPct.format(0)
+        $("pr_totalCalculo").value = fmtMoney.format(total)
+        return
+      }
+
+      // Sumatoria: Σ[ Sueldo(m) * (1+i)^(N-m) ]  con sueldo creciendo por g anual (continuo mensual via exponente m/12)
+      let denom = 0
+      for(let m=1; m<=N; m++){
+        const sueldo_m = sueldoPromMensual * Math.pow(1+incAnual, m/12)
+        const fvFactor = Math.pow(1+i, N-m)
+        denom += sueldo_m * fvFactor
+      }
+
+      const fvVI = VI * Math.pow(1+i, N)
+      let p = 0
+      if(denom > 0){
+        p = (targetFV - fvVI) / denom
+      }
+
+      // Total cálculo (debería dar ~ targetFV)
+      const totalFV = fvVI + p * denom
+
+      $("pr_valorInicial").value = fmtMoney.format(VI)
+      $("pr_porcentajeAportacion").value = fmtPct.format(p)
+      $("pr_totalCalculo").value = fmtMoney.format(totalFV)
     }
 
     function clearAll(){
@@ -432,24 +596,38 @@
       $("sueldoPromFuturo").value=""
       $("prestacionesFuturas").value=""
 
-      // Plan de retiro: limpia copiados, pero deja editable (o lo limpias si querés)
+      // Plan de retiro: limpia copiados y resultados; deja tasa editable en blanco (como lo tenías)
       $("pr_sueldoPromActual").value=""
       $("pr_antiguedadActual").value=""
       $("pr_anosAdelante").value=""
       $("pr_incAnual").value=""
       $("tasaInteresFondo").value=""
+
+      $("pr_valorInicial").value=""
+      $("pr_porcentajeAportacion").value=""
+      $("pr_totalCalculo").value=""
+    }
+
+    function clearPlanOnly(){
+      $("pr_valorInicial").value=""
+      $("pr_porcentajeAportacion").value=""
+      $("pr_totalCalculo").value=""
     }
 
     $("btnCalcular").addEventListener("click",(e)=>{e.preventDefault();calc()})
     $("btnLimpiar").addEventListener("click",(e)=>{e.preventDefault();clearAll()})
 
-    // Si cambian entradas, mantenemos sincronizado el bloque plan (aunque no le des Calcular aún)
+    $("pr_btnCalcular").addEventListener("click",(e)=>{e.preventDefault();calcPlan()})
+    $("pr_btnLimpiar").addEventListener("click",(e)=>{e.preventDefault();clearPlanOnly()})
+
+    // Mantener plan sincronizado con entradas
     $("sueldoActual").addEventListener("input", syncPlanDeRetiro)
     $("antiguedad").addEventListener("input", syncPlanDeRetiro)
     $("edadActual").addEventListener("input", syncPlanDeRetiro)
     $("genero").addEventListener("change", syncPlanDeRetiro)
     $("incAnual").addEventListener("input", syncPlanDeRetiro)
 
+    // Inicial
     calc()
   </script>
 </body>
