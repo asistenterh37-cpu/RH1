@@ -254,6 +254,92 @@
       font-size: 18px;
       line-height: 1.2;
     }
+
+    /* ✅ NUEVO: “kilometraje” (tipo tacómetro) */
+    .kmWrap{
+      margin-top: 12px;
+      padding: 12px;
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,.08);
+      background: rgba(17,31,53,.35);
+    }
+    .kmTop{
+      display:flex;
+      align-items:flex-end;
+      justify-content:space-between;
+      gap: 10px;
+      flex-wrap:wrap;
+      margin-bottom: 8px;
+    }
+    .kmTitle{
+      font-weight: 900;
+      letter-spacing:.15px;
+      line-height: 1.15;
+    }
+    .kmSub{
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.2;
+      margin-top: 2px;
+    }
+    .kmRead{
+      text-align:right;
+      font-weight: 900;
+      letter-spacing:.2px;
+      line-height: 1.1;
+    }
+    .kmRead small{
+      display:block;
+      font-weight: 700;
+      color: var(--muted);
+      font-size: 14px;
+      margin-top: 4px;
+    }
+    .kmSvg{
+      width: 100%;
+      max-width: 560px;
+      margin: 0 auto;
+      display:block;
+    }
+    .kmTrack{
+      stroke: rgba(255,255,255,.12);
+      stroke-width: 12;
+      fill: none;
+      stroke-linecap: round;
+    }
+    .kmProg{
+      stroke: url(#kmGrad);
+      stroke-width: 12;
+      fill: none;
+      stroke-linecap: round;
+      stroke-dasharray: 0 9999; /* se setea por JS */
+      stroke-dashoffset: 0;
+      filter: drop-shadow(0 10px 18px rgba(0,0,0,.35));
+    }
+    .kmNeedle{
+      stroke: rgba(234,240,255,.95);
+      stroke-width: 3;
+      stroke-linecap: round;
+      transform-origin: 120px 110px; /* centro */
+      transform: rotate(-90deg);
+      transition: transform .35s ease;
+    }
+    .kmHub{
+      fill: rgba(11,18,32,.75);
+      stroke: rgba(255,255,255,.18);
+      stroke-width: 2;
+    }
+    .kmTick{
+      stroke: rgba(255,255,255,.20);
+      stroke-width: 2;
+      stroke-linecap: round;
+    }
+    .kmTickText{
+      fill: rgba(255,255,255,.55);
+      font-size: 10px;
+      font-weight: 800;
+    }
+
     .desc{
       margin-top: 10px;
       color: var(--text);
@@ -473,6 +559,53 @@
         <div class="score" id="score">0<small>puntos (máx. 24)</small></div>
         <div class="level" id="level">—</div>
       </div>
+
+      <!-- ✅ NUEVO: Gráfico “kilometraje” (tacómetro) -->
+      <div class="kmWrap" id="kmWrap">
+        <div class="kmTop">
+          <div>
+            <div class="kmTitle">Kilometraje estratégico</div>
+            <div class="kmSub">Tu avance vs. el máximo del test</div>
+          </div>
+          <div class="kmRead" id="kmRead">
+            0 / 24
+            <small>“km” simbólicos 😄</small>
+          </div>
+        </div>
+
+        <svg class="kmSvg" viewBox="0 0 240 140" aria-label="Tacómetro de avance">
+          <defs>
+            <linearGradient id="kmGrad" x1="0" y1="0" x2="240" y2="0">
+              <stop offset="0%" stop-color="rgba(106,169,255,1)"/>
+              <stop offset="100%" stop-color="rgba(123,255,204,1)"/>
+            </linearGradient>
+          </defs>
+
+          <!-- Arco base (semi-círculo) -->
+          <path id="kmPath" class="kmTrack" d="M 30 110 A 90 90 0 0 1 210 110" />
+
+          <!-- Arco progreso -->
+          <path id="kmProg" class="kmProg" d="M 30 110 A 90 90 0 0 1 210 110" />
+
+          <!-- Ticks -->
+          <line class="kmTick" x1="30" y1="110" x2="40" y2="110"/>
+          <line class="kmTick" x1="75" y1="60"  x2="82" y2="67"/>
+          <line class="kmTick" x1="120" y1="40" x2="120" y2="50"/>
+          <line class="kmTick" x1="165" y1="60" x2="158" y2="67"/>
+          <line class="kmTick" x1="210" y1="110" x2="200" y2="110"/>
+
+          <text class="kmTickText" x="26"  y="126">0</text>
+          <text class="kmTickText" x="66"  y="56">25%</text>
+          <text class="kmTickText" x="110" y="34">50%</text>
+          <text class="kmTickText" x="156" y="56">75%</text>
+          <text class="kmTickText" x="206" y="126">100%</text>
+
+          <!-- Aguja -->
+          <line id="kmNeedle" class="kmNeedle" x1="120" y1="110" x2="120" y2="52" />
+          <circle class="kmHub" cx="120" cy="110" r="8" />
+        </svg>
+      </div>
+
       <div class="desc" id="desc"></div>
       <footer>
         Sugerencia: Publicalo con <code class="inline">GitHub Pages</code> para que abra como web.
@@ -489,6 +622,13 @@
     const scoreEl = document.getElementById("score");
     const levelEl = document.getElementById("level");
     const descEl = document.getElementById("desc");
+
+    // ✅ NUEVO: elementos del “kilometraje”
+    const kmPath = document.getElementById("kmPath");
+    const kmProg = document.getElementById("kmProg");
+    const kmNeedle = document.getElementById("kmNeedle");
+    const kmRead = document.getElementById("kmRead");
+    const MAX_SCORE = 24;
 
     function getAnswers() {
       const answers = [];
@@ -522,6 +662,25 @@
       };
     }
 
+    // ✅ NUEVO: actualiza el tacómetro según puntuación
+    function updateKilometraje(total, max) {
+      const pct = Math.max(0, Math.min(1, total / max));
+
+      // Texto (lectura tipo odómetro / “km”)
+      kmRead.innerHTML = `${total} / ${max}<small>“km” simbólicos 😄</small>`;
+
+      // Aguja: de -90° (0%) a +90° (100%)
+      const deg = -90 + (pct * 180);
+      kmNeedle.style.transform = `rotate(${deg}deg)`;
+
+      // Arco progreso: stroke-dasharray basado en largo del path
+      const len = kmPath.getTotalLength();
+      kmProg.style.strokeDasharray = `${len * pct} ${len}`;
+    }
+
+    // Estado inicial del tacómetro
+    updateKilometraje(0, MAX_SCORE);
+
     btnCalc.addEventListener("click", () => {
       const answers = getAnswers();
       const missing = answers.some(v => v === null);
@@ -543,6 +702,9 @@
       levelEl.textContent = lvl.label;
       descEl.innerHTML = lvl.desc;
 
+      // ✅ NUEVO: mueve el “kilometraje”
+      updateKilometraje(total, MAX_SCORE);
+
       result.classList.add("show");
       result.scrollIntoView({ behavior: "smooth", block: "start" });
     });
@@ -551,6 +713,10 @@
       document.querySelectorAll('input[type="radio"]').forEach(r => r.checked = false);
       warn.classList.remove("show");
       result.classList.remove("show");
+
+      // ✅ NUEVO: resetea el tacómetro
+      updateKilometraje(0, MAX_SCORE);
+
       window.scrollTo({ top: 0, behavior: "smooth" });
     });
   </script>
