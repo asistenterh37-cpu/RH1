@@ -782,15 +782,22 @@
     }
 
     // =========================================================
-    // ✅ AJUSTE SEGÚN EXCEL (Hoja "Prestaciones"):
-    // - Sueldo promedio actual = Sueldo actual * 13/12
-    // - Edad retiro = IF(género=="femenino",60,65)
-    // - Antigüedad esperada = (Edad retiro - Edad actual) + Antigüedad actual
-    // - Antigüedad cálculo = IF(esperada>25,27, IF(esperada<3, esperada*2, esperada+2))
-    // - Años hacia adelante = Edad retiro - Edad actual
-    // - Factor = (1 + inc)^años_hacia_adelante
-    // - Sueldo promedio futuro = Sueldo promedio actual * Factor
-    // - Prestaciones valor futuro = Antigüedad cálculo * Sueldo promedio futuro
+    // ✅ CÁLCULO AJUSTADO EXACTO A EXCEL (Hoja "Prestaciones"):
+    //
+    // C6  Sueldo inicial (input) = sueldoActual
+    // C7  Inc % Anual (input) = incAnual
+    // C8  Años hacia adelante = Edad retiro - Edad actual
+    // C9  Factor = (1 + inc)^C8
+    // C10 Sueldo proyectado = Sueldo inicial * Factor
+    // C11 Sueldo promedio proyectado = Sueldo proyectado * 1.08333333333333  (13/12)
+    // C14 Edad retiro = IF(Genero="femenino", 60, 65)
+    // C16 Antigüedad esperada = (Edad retiro - Edad actual) + Antigüedad actual
+    // C17 Antigüedad cálculo = IF(esperada>25,27, IF(esperada<3, esperada*2, esperada+2))
+    // C18 Prestaciones valor futuro = Sueldo promedio proyectado * Antigüedad cálculo
+    //
+    // Nota UI:
+    // - "Sueldo promedio actual" se mantiene como Sueldo inicial * 13/12 (base mensual para plan)
+    // - "Sueldo promedio futuro" = Sueldo promedio proyectado (C11)
     // =========================================================
     function antiguedadCalculoExcel(antigEsperada){
       if(antigEsperada > 25) return 27;
@@ -805,14 +812,30 @@
       const genero       = ($("genero").value||"").toLowerCase().trim();
       const incAnual     = toNum($("incAnual").value);
 
+      // Sueldo promedio actual (base, mensual) = sueldoInicial * 13/12
       const sueldoPromActual = sueldoActual * 13 / 12;
-      const edadRetiro = (genero==="femenino") ? 60 : 65;
+
+      // Edad retiro (según Excel)
+      const edadRetiro = (genero === "femenino") ? 60 : 65;
+
+      // Años hacia adelante (C8)
       const anosAdelante = Math.max(0, edadRetiro - edadActual);
+
+      // Antigüedad esperada (C16)
       const antiguedadEsperada = anosAdelante + antiguedad;
+
+      // Antigüedad cálculo (C17)
       const antiguedadCalculo = antiguedadCalculoExcel(antiguedadEsperada);
+
+      // Factor (C9)
       const factor = Math.pow(1 + incAnual, anosAdelante);
-      const sueldoPromFuturo = sueldoPromActual * factor;
-      const prestacionesFuturas = antiguedadCalculo * sueldoPromFuturo;
+
+      // Sueldo proyectado (C10) y Sueldo promedio proyectado (C11)
+      const sueldoProyectado = sueldoActual * factor;
+      const sueldoPromFuturo = sueldoProyectado * 13 / 12;
+
+      // Prestaciones valor futuro (C18)
+      const prestacionesFuturas = sueldoPromFuturo * antiguedadCalculo;
 
       $("sueldoPromActual").value    = fmtMoney.format(sueldoPromActual);
       $("edadRetiro").value          = fmtNum.format(edadRetiro);
@@ -1038,11 +1061,6 @@
       o.setAttribute("aria-hidden","true");
     }
 
-    // =========================================================
-    // ✅ CAMBIO CLAVE:
-    // Para "Prestaciones vrs plan", el eje X ya NO es "Año 1..N",
-    // ahora es "Antigüedad (años)" desde Antigüedad actual hasta Antigüedad esperada.
-    // =========================================================
     function buildYearSeries(){
       calc();
       if(!lastPlan) calcPlan();
@@ -1052,7 +1070,8 @@
       const antigEsperUI = parseNumFromFormatted($("antiguedadEsperada").value);
       const yearsForward = Math.max(0, Math.round(antigEsperUI - antiguedad0));
 
-      const sueldoPromMensual = parseMoneyFromFormatted($("sueldoPromActual").value); // mensual base (año actual)
+      // sueldoPromMensual (base) ya incluye 13/12, consistente con Excel (Planretiro: C7)
+      const sueldoPromMensual = parseMoneyFromFormatted($("sueldoPromActual").value);
       const tasaAnualFondo    = toNum($("tasaInteresFondo").value);
 
       const A0 = lastPlan ? toNum(lastPlan.A0) : 0;
@@ -1065,8 +1084,9 @@
       function prestacionesAtYear(t){
         const antigEsper = antiguedad0 + t;
         const antigCal   = antiguedadCalculoExcel(antigEsper);
-        const sueldoFut  = sueldoPromMensual * Math.pow(1 + incAnual, t);
-        return Math.max(0, antigCal * sueldoFut);
+        // sueldo promedio proyectado por año (base * (1+inc)^t) — consistente con Excel (C11)
+        const sueldoPromProy  = sueldoPromMensual * Math.pow(1 + incAnual, t);
+        return Math.max(0, sueldoPromProy * antigCal);
       }
 
       const N = yearsForward * 12;
@@ -1074,7 +1094,6 @@
 
       let bal = Math.max(0, A0);
 
-      // Punto inicial: antigüedad actual
       xAntig.push(antiguedad0);
       prest.push(prestacionesAtYear(0));
       plan.push(bal);
@@ -1087,8 +1106,8 @@
         bal += aporte_m;
 
         if(m % 12 === 0){
-          const t = m/12;                 // años hacia adelante
-          xAntig.push(antiguedad0 + t);    // ✅ eje X = antigüedad
+          const t = m/12;
+          xAntig.push(antiguedad0 + t);
           prest.push(prestacionesAtYear(t));
           plan.push(bal);
         }
@@ -1171,7 +1190,6 @@
         ctx.fillText(moneyShort(val), padL - 8, yy);
       }
 
-      // X ticks
       ctx.textAlign = "center";
       ctx.textBaseline = "top";
       const span = xMax - xMin;
@@ -1183,7 +1201,6 @@
         ctx.fillText(String(t), xx, padT + plotH + 10);
       }
 
-      // ✅ etiqueta del eje X
       ctx.fillStyle = "rgba(169,180,214,.9)";
       ctx.fillText("Antigüedad (años)", padL + plotW/2, padT + plotH + 26);
 
@@ -1277,7 +1294,6 @@
       strokeSeries(seriesA, cPrest);
       strokeSeries(seriesB, cPlan);
 
-      // etiquetas flotantes
       for(let i=0;i<xVals.length;i++){
         const xx = x(xVals[i]);
         const yA = y(seriesA[i]);
