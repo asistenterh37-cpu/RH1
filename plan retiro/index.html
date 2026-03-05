@@ -33,7 +33,7 @@
       box-shadow: 0 12px 40px rgba(0,0,0,.25);
     }
 
-    /* === Header con botón Comparativo === */
+    /* === Header con botones === */
     .topHeader{
       display:flex;
       align-items:flex-start;
@@ -139,8 +139,8 @@
     }
     button.secondary{ background:rgba(255,255,255,.08); box-shadow:none }
 
-    /* ✅ Comparativo: en azul como los demás */
-    #btnComparativo{
+    /* ✅ Botones del header en azul */
+    #btnComparativo, #btnLinea{
       background:#2f6fed !important;
       box-shadow:0 10px 25px rgba(47,111,237,.22) !important;
     }
@@ -273,7 +273,7 @@
     .legTxt b{ color:var(--text); }
     .legTxt .small{ color:var(--muted); font-size:13px; display:block; margin-top:2px; }
 
-    /* === Modal flotante (Comparativo) === */
+    /* === Modal flotante (Comparativo / Línea) === */
     .overlay{
       position:fixed; inset:0;
       background:rgba(0,0,0,.55);
@@ -331,15 +331,13 @@
       box-shadow:none;
       padding:0;
     }
-    .modalBody{
-      padding:12px 14px 14px;
-    }
+    .modalBody{ padding:12px 14px 14px; }
 
     /* ✅ Scroll interno lateral (vertical) para la tabla del comparativo */
     .floatScroll{
-      max-height: 420px;        /* ajusta a gusto */
+      max-height: 420px;
       overflow-y: auto;
-      overflow-x: auto;         /* por si en pantallas pequeñas se desborda */
+      overflow-x: auto;
       border-radius:14px;
       -webkit-overflow-scrolling: touch;
     }
@@ -357,7 +355,7 @@
     .floatTable th,.floatTable td{
       padding:10px 10px;
       border-bottom:1px solid var(--line);
-      font-size:17px;          /* antes 14px */
+      font-size:17px;
       line-height:1.25;
       vertical-align:top;
     }
@@ -366,7 +364,7 @@
       color:#d7def6;
       text-align:left;
       font-weight:900;
-      position: sticky;         /* header pegajoso */
+      position: sticky;
       top: 0;
       z-index: 2;
     }
@@ -375,18 +373,16 @@
     /* ✅ Bullet por cada dimensión financiera (columna 1) */
     .floatTable td:first-child{
       position:relative;
-      padding-left: 26px; /* espacio para el bullet */
+      padding-left: 26px;
     }
     .floatTable td:first-child::before{
       content:"•";
       position:absolute;
       left:10px;
       top:12px;
-      color: rgba(169,180,214,.95); /* --muted */
+      color: rgba(169,180,214,.95);
       font-weight:900;
     }
-    /* Ajuste fino para que el bullet no se vea pegado en filas muy altas */
-    .floatTable td:first-child b{ display:inline; }
 
     .tag{
       display:inline-flex;
@@ -412,6 +408,67 @@
       .floatTable{ min-width:880px; }
       .floatScroll{ max-height: 60vh; }
     }
+
+    /* === Line chart === */
+    .lineWrap{
+      border:1px solid var(--line);
+      border-radius:14px;
+      background:rgba(0,0,0,.10);
+      padding:10px;
+    }
+    .lineTop{
+      display:flex;
+      align-items:flex-end;
+      justify-content:space-between;
+      gap:10px;
+      margin-bottom:10px;
+    }
+    .lineTitle{
+      font-weight:900;
+      color:#d7def6;
+      font-size:15px;
+      line-height:1.15;
+    }
+    .lineMeta{
+      color:var(--muted);
+      font-size:13px;
+      line-height:1.15;
+      text-align:right;
+    }
+    .lineLegend{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      margin-top:10px;
+    }
+    .legPill{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:6px 10px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,.10);
+      background:rgba(255,255,255,.04);
+      color:var(--muted);
+      font-size:13px;
+      line-height:1;
+    }
+    .lineSw{
+      width:10px;height:10px;border-radius:999px;
+      background:rgba(255,255,255,.35);
+    }
+    /* colores SOLO para la leyenda (el canvas usa los mismos valores) */
+    .swPrest{ background: var(--pie1); }
+    .swPlan{ background: var(--pie2); }
+
+    .lineCanvas{
+      width:100%;
+      height:360px;
+      display:block;
+    }
+    @media(max-width:520px){
+      .lineCanvas{ height:320px; }
+    }
   </style>
 </head>
 
@@ -419,7 +476,7 @@
   <div class="wrap">
     <div class="card">
 
-      <!-- Header + Botón Comparativo -->
+      <!-- Header + Botones -->
       <div class="topHeader">
         <div>
           <h1>Cálculo de prestaciones - Al final</h1>
@@ -428,8 +485,8 @@
           </div>
         </div>
         <div class="topActions">
-          <!-- ✅ ya NO es secondary, queda azul -->
           <button id="btnComparativo" type="button" title="Ver comparativo financiero">Comparativo</button>
+          <button id="btnLinea" type="button" title="Ver gráfico de línea: Prestaciones vs Plan">Prestaciones vrs plan</button>
         </div>
       </div>
 
@@ -714,7 +771,6 @@
       </div>
 
       <div class="modalBody">
-        <!-- ✅ Scroll interno -->
         <div class="floatScroll" aria-label="Tabla comparativa con desplazamiento">
           <table class="floatTable">
             <thead>
@@ -794,35 +850,51 @@
     </div>
   </div>
 
+  <!-- === Modal Línea: Prestaciones vs Plan === -->
+  <div class="overlay" id="lnOverlay" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-label="Prestaciones vs Plan">
+      <div class="modalHeader">
+        <div class="titleBox">
+          <div class="title">Prestaciones vrs plan</div>
+          <div class="subtitle">Comparación anual: acumulado proyectado de prestaciones vs acumulado del plan</div>
+        </div>
+        <button class="iconBtn" id="lnClose" type="button" aria-label="Cerrar">✕</button>
+      </div>
+
+      <div class="modalBody">
+        <div class="lineWrap">
+          <div class="lineTop">
+            <div class="lineTitle">Acumulado por año (0 a años de vigencia)</div>
+            <div class="lineMeta" id="lnMeta">—</div>
+          </div>
+
+          <canvas id="lineCanvas" class="lineCanvas" aria-label="Gráfico de líneas prestaciones vs plan"></canvas>
+
+          <div class="lineLegend">
+            <span class="legPill"><span class="lineSw swPrest"></span> Prestaciones (proyección)</span>
+            <span class="legPill"><span class="lineSw swPlan"></span> Plan (saldo acumulado)</span>
+          </div>
+        </div>
+
+        <div class="tag">Tip: Cierra con <b>Esc</b> o clic fuera</div>
+      </div>
+    </div>
+  </div>
+
   <script>
     /* === Barreras de seguridad (sin alertas / sin mensajes) === */
     (function(){
-      // Bloquea menú contextual (clic derecho)
       document.addEventListener("contextmenu", (e)=>{ e.preventDefault(); }, {capture:true});
-
-      // Bloquea combinaciones típicas de ver fuente / inspeccionar
       document.addEventListener("keydown", (e)=>{
         const k = (e.key || "").toLowerCase();
-        const ctrl = e.ctrlKey || e.metaKey; // meta para Mac
+        const ctrl = e.ctrlKey || e.metaKey;
         const shift = e.shiftKey;
 
-        // F12
         if (e.key === "F12") { e.preventDefault(); e.stopPropagation(); return; }
-
-        // Ctrl+U (ver código fuente)
         if (ctrl && !shift && k === "u") { e.preventDefault(); e.stopPropagation(); return; }
-
-        // Ctrl+Shift+I / J / C (DevTools)
         if (ctrl && shift && (k === "i" || k === "j" || k === "c")) { e.preventDefault(); e.stopPropagation(); return; }
-
-        // Ctrl+Shift+K (Firefox DevTools)
         if (ctrl && shift && k === "k") { e.preventDefault(); e.stopPropagation(); return; }
-
-        // Ctrl+Shift+U (Firefox: ver fuente)
         if (ctrl && shift && k === "u") { e.preventDefault(); e.stopPropagation(); return; }
-
-        // Ctrl+S (guardar página) y Ctrl+P (imprimir) opcional (suave)
-        // if (ctrl && (k === "s" || k === "p")) { e.preventDefault(); e.stopPropagation(); return; }
       }, {capture:true});
     })();
 
@@ -849,7 +921,7 @@
       return toNum(cleaned)
     }
 
-    // Guardamos el último cálculo del plan para el botón "Porción"
+    // Guardamos el último cálculo del plan para el botón "Porción" y gráfico de líneas
     let lastPlan = null
 
     function syncPlanDeRetiro(){
@@ -867,22 +939,12 @@
       const genero=($("genero").value||"").toLowerCase().trim()
       const incAnual=toNum($("incAnual").value)
 
-      // Sueldo promedio mensual actual (considerando 13avo prorrateado): sueldo*13/12
       const sueldoPromActual=sueldoActual*13/12
-
-      // Edad retiro: IF(género="femenino",60,65)
       const edadRetiro=(genero==="femenino")?60:65
-
-      // Evita proyección negativa
       const anosAdelante=Math.max(0, edadRetiro-edadActual)
-
-      // Antigüedad esperada: (Edad retiro - Edad actual) + Antigüedad actual
       const antiguedadEsperada=anosAdelante+antiguedad
-
-      // Antigüedad cálculo ( meses ): IF(AntigüedadEsperada>25,27,AntigüedadEsperada+2)
       const antiguedadCalculo = (antiguedadEsperada > 25) ? 27 : (antiguedadEsperada + 2)
 
-      // Proyección simple anual (para prestaciones)
       const factor=Math.pow(1+incAnual,anosAdelante)
       const sueldoPromFuturo=sueldoPromActual*factor
       const prestacionesFuturas=antiguedadCalculo*sueldoPromFuturo
@@ -936,13 +998,11 @@
         start = end
       }
 
-      // Donut hole
       ctx.beginPath()
       ctx.arc(cx, cy, r*0.58, 0, Math.PI*2)
       ctx.fillStyle = "rgba(11,18,32,.92)"
       ctx.fill()
 
-      // Borde suave
       ctx.beginPath()
       ctx.arc(cx, cy, r, 0, Math.PI*2)
       ctx.strokeStyle = "rgba(255,255,255,.10)"
@@ -1011,7 +1071,7 @@
         $("pr_fvAportesMensuales").value = fmtMoney.format(FV_aportes)
         $("pr_fvPlan").value = fmtMoney.format(FV_plan)
 
-        lastPlan = { FV_A0, FV_aportes, FV_plan }
+        lastPlan = { A0, p, tasaAnualFondo, incAnual, sueldoPromMensual, anosAdelante, antiguedadActual, FV_A0, FV_aportes, FV_plan }
         return
       }
 
@@ -1043,7 +1103,7 @@
       $("pr_fvAportesMensuales").value = fmtMoney.format(FV_aportes)
       $("pr_fvPlan").value = fmtMoney.format(FV_plan)
 
-      lastPlan = { FV_A0, FV_aportes, FV_plan }
+      lastPlan = { A0, p, tasaAnualFondo, incAnual, sueldoPromMensual, anosAdelante, antiguedadActual, FV_A0, FV_aportes, FV_plan }
     }
 
     function togglePorcion(){
@@ -1058,7 +1118,6 @@
         calcPlan()
       }
       if(!lastPlan) return
-
       renderPlanPie(lastPlan.FV_A0, lastPlan.FV_aportes, lastPlan.FV_plan)
     }
 
@@ -1093,6 +1152,7 @@
 
       lastPlan = null
       hidePlanPie()
+      closeLinea()
     }
 
     function clearPlanOnly(){
@@ -1104,6 +1164,8 @@
 
       lastPlan = null
       hidePlanPie()
+      // si la modal está abierta, vuelve a pintar (quedará en blanco/0)
+      if($("lnOverlay").classList.contains("show")) renderLinea(true)
     }
 
     // === Comparativo modal ===
@@ -1118,6 +1180,209 @@
       o.setAttribute("aria-hidden","true")
     }
 
+    // === Serie anual: Prestaciones (proyección) vs Plan (saldo) ===
+    function buildYearSeries(){
+      // Asegura cálculos base + plan
+      calc()
+      if(!lastPlan) calcPlan()
+
+      const anosAdelante = Math.max(0, Math.round(parseNumFromFormatted($("anosAdelante").value)))
+      const incAnual = toNum($("incAnual").value)
+      const antiguedad0 = toNum($("antiguedad").value)
+
+      const sueldoPromActual = parseMoneyFromFormatted($("sueldoPromActual").value) // mensual
+      const tasaAnualFondo = toNum($("tasaInteresFondo").value)
+
+      const A0 = lastPlan ? toNum(lastPlan.A0) : 0
+      const p = lastPlan ? toNum(lastPlan.p) : 0
+
+      const years = []
+      const prest = []
+      const plan = []
+
+      // Prestaciones: proyección anual (monto total estimado) por cada año t
+      function prestacionesAtYear(t){
+        const antigEsper = antiguedad0 + t
+        const antigCal = (antigEsper > 25) ? 27 : (antigEsper + 2)
+        const sueldo_t = sueldoPromActual * Math.pow(1 + incAnual, t)
+        return Math.max(0, antigCal * sueldo_t)
+      }
+
+      // Plan: simulación mensual y guardado al cierre de cada año
+      const N = anosAdelante * 12
+      const i = tasaAnualFondo / 12
+      let bal = Math.max(0, A0)
+
+      // año 0
+      years.push(0)
+      prest.push(prestacionesAtYear(0))
+      plan.push(bal)
+
+      for(let m=1; m<=N; m++){
+        // interés del mes
+        bal = bal * (1 + i)
+
+        // aporte del mes (crece con incAnual prorrateado)
+        const sueldo_m = sueldoPromActual * Math.pow(1 + incAnual, m/12)
+        const aporte_m = Math.max(0, p) * sueldo_m
+        bal += aporte_m
+
+        if(m % 12 === 0){
+          const t = m/12
+          years.push(t)
+          prest.push(prestacionesAtYear(t))
+          plan.push(bal)
+        }
+      }
+
+      return { years, prest, plan, anosAdelante, tasaAnualFondo, incAnual, A0, p }
+    }
+
+    // === Dibujo de línea (canvas) ===
+    function drawLineChart(canvas, years, seriesA, seriesB){
+      const ctx = canvas.getContext("2d")
+
+      // tamaño real según CSS
+      const dpr = window.devicePixelRatio || 1
+      const cssW = canvas.clientWidth || 800
+      const cssH = canvas.clientHeight || 360
+      canvas.width = Math.floor(cssW * dpr)
+      canvas.height = Math.floor(cssH * dpr)
+      ctx.setTransform(dpr,0,0,dpr,0,0)
+
+      const W = cssW, H = cssH
+      ctx.clearRect(0,0,W,H)
+
+      const padL = 56, padR = 16, padT = 16, padB = 44
+      const plotW = Math.max(10, W - padL - padR)
+      const plotH = Math.max(10, H - padT - padB)
+
+      const maxY = Math.max(1, ...seriesA, ...seriesB)
+      const minY = 0
+
+      const xMin = years[0] ?? 0
+      const xMax = years[years.length-1] ?? 1
+      const xRange = Math.max(1e-9, xMax - xMin)
+
+      const x = (t)=> padL + ((t - xMin)/xRange) * plotW
+      const y = (v)=> padT + (1 - ((v - minY)/(maxY - minY))) * plotH
+
+      // grid (5 líneas)
+      ctx.strokeStyle = "rgba(255,255,255,.08)"
+      ctx.lineWidth = 1
+      const gridN = 5
+      for(let g=0; g<=gridN; g++){
+        const yy = padT + (g/gridN)*plotH
+        ctx.beginPath()
+        ctx.moveTo(padL, yy)
+        ctx.lineTo(padL + plotW, yy)
+        ctx.stroke()
+      }
+
+      // ejes
+      ctx.strokeStyle = "rgba(255,255,255,.18)"
+      ctx.lineWidth = 1.2
+      ctx.beginPath()
+      ctx.moveTo(padL, padT)
+      ctx.lineTo(padL, padT + plotH)
+      ctx.lineTo(padL + plotW, padT + plotH)
+      ctx.stroke()
+
+      // ticks Y
+      ctx.fillStyle = "rgba(233,238,252,.85)"
+      ctx.font = "12px system-ui,-apple-system,Segoe UI,Roboto,Arial"
+      ctx.textAlign = "right"
+      ctx.textBaseline = "middle"
+
+      const moneyShort = (v)=>{
+        // abrevia (K/M) para que no se encime
+        const abs = Math.abs(v)
+        if(abs >= 1e9) return `L ${(v/1e9).toFixed(2)}B`
+        if(abs >= 1e6) return `L ${(v/1e6).toFixed(2)}M`
+        if(abs >= 1e3) return `L ${(v/1e3).toFixed(2)}K`
+        return `L ${v.toFixed(0)}`
+      }
+
+      for(let g=0; g<=gridN; g++){
+        const val = minY + (1 - g/gridN)*(maxY - minY)
+        const yy = padT + (g/gridN)*plotH
+        ctx.fillText(moneyShort(val), padL - 8, yy)
+      }
+
+      // ticks X (cada 1 año, pero limita)
+      ctx.textAlign = "center"
+      ctx.textBaseline = "top"
+      const step = (xMax <= 12) ? 1 : (xMax <= 25 ? 2 : 5)
+      for(let t=xMin; t<=xMax; t+=step){
+        const xx = x(t)
+        ctx.fillStyle = "rgba(233,238,252,.70)"
+        ctx.fillText(String(t), xx, padT + plotH + 10)
+      }
+      ctx.fillStyle = "rgba(169,180,214,.9)"
+      ctx.fillText("Año", padL + plotW/2, padT + plotH + 26)
+
+      // colores
+      const styles = getComputedStyle(document.documentElement)
+      const cPrest = styles.getPropertyValue("--pie1").trim() || "#60a5fa"
+      const cPlan  = styles.getPropertyValue("--pie2").trim() || "#34d399"
+
+      function strokeSeries(vals, color){
+        ctx.strokeStyle = color
+        ctx.lineWidth = 2.2
+        ctx.lineJoin = "round"
+        ctx.lineCap = "round"
+        ctx.beginPath()
+        for(let i=0; i<years.length; i++){
+          const xx = x(years[i])
+          const yy = y(vals[i])
+          if(i===0) ctx.moveTo(xx,yy)
+          else ctx.lineTo(xx,yy)
+        }
+        ctx.stroke()
+
+        // puntos
+        ctx.fillStyle = color
+        for(let i=0; i<years.length; i++){
+          const xx = x(years[i])
+          const yy = y(vals[i])
+          ctx.beginPath()
+          ctx.arc(xx,yy,3.2,0,Math.PI*2)
+          ctx.fill()
+        }
+      }
+
+      strokeSeries(seriesA, cPrest)
+      strokeSeries(seriesB, cPlan)
+    }
+
+    function renderLinea(silent){
+      try{
+        const data = buildYearSeries()
+        $("lnMeta").textContent =
+          `A0: ${fmtMoney.format(data.A0||0)} · % mensual: ${fmtPct.format(data.p||0)} · i anual: ${fmtPct.format(data.tasaAnualFondo||0)} · inc anual: ${fmtPct.format(data.incAnual||0)}`
+        drawLineChart($("lineCanvas"), data.years, data.prest, data.plan)
+      }catch(err){
+        if(!silent){
+          // sin mensajes: intencionalmente vacío
+        }
+      }
+    }
+
+    function openLinea(){
+      const o = $("lnOverlay")
+      o.classList.add("show")
+      o.setAttribute("aria-hidden","false")
+      renderLinea(true)
+      // repinta cuando cambia el tamaño
+      setTimeout(()=>renderLinea(true), 60)
+    }
+    function closeLinea(){
+      const o = $("lnOverlay")
+      o.classList.remove("show")
+      o.setAttribute("aria-hidden","true")
+    }
+
+    // === Eventos ===
     $("btnCalcular").addEventListener("click",(e)=>{e.preventDefault();calc()})
     $("btnLimpiar").addEventListener("click",(e)=>{e.preventDefault();clearAll()})
 
@@ -1139,8 +1404,22 @@
     $("cmpOverlay").addEventListener("click", (e)=>{
       if(e.target === $("cmpOverlay")) closeComparativo()
     })
+
+    // Línea events
+    $("btnLinea").addEventListener("click", (e)=>{ e.preventDefault(); openLinea(); })
+    $("lnClose").addEventListener("click", (e)=>{ e.preventDefault(); closeLinea(); })
+    $("lnOverlay").addEventListener("click", (e)=>{
+      if(e.target === $("lnOverlay")) closeLinea()
+    })
+    window.addEventListener("resize", ()=>{
+      if($("lnOverlay").classList.contains("show")) renderLinea(true)
+    })
+
     document.addEventListener("keydown", (e)=>{
-      if(e.key === "Escape") closeComparativo()
+      if(e.key === "Escape"){
+        closeComparativo()
+        closeLinea()
+      }
     })
 
     // Inicial
