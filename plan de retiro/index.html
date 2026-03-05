@@ -312,12 +312,15 @@
                   <div class="fieldBox"><input id="antiguedadEsperada" readonly></div>
                 </td>
               </tr>
+
+              <!-- AJUSTE: etiqueta EXACTA como Excel -->
               <tr>
-                <td>Antigüedad cálculo</td>
+                <td>Antigüedad cálculo ( meses )</td>
                 <td class="right">
                   <div class="fieldBox"><input id="antiguedadCalculo" readonly></div>
                 </td>
               </tr>
+
               <tr>
                 <td>Años hacia adelante</td>
                 <td class="right">
@@ -508,10 +511,18 @@
       // Sueldo promedio mensual actual (considerando 13avo prorrateado): sueldo*13/12
       const sueldoPromActual=sueldoActual*13/12
 
+      // Edad retiro según Excel: IF(género="femenino",60,65)
       const edadRetiro=(genero==="femenino")?60:65
-      const anosAdelante=edadRetiro-edadActual
+
+      // AJUSTE: evita proyección negativa (si ya está en edad de retiro o pasó)
+      const anosAdelante=Math.max(0, edadRetiro-edadActual)
+
+      // Antigüedad esperada: (Edad retiro - Edad actual) + Antigüedad actual
       const antiguedadEsperada=anosAdelante+antiguedad
-      const antiguedadCalculo=(antiguedadEsperada>25)?27:(antiguedadEsperada+2)
+
+      // AJUSTE CLAVE (Excel hoja Prestaciones):
+      // Antigüedad cálculo ( meses ): IF(AntigüedadEsperada>25,27,AntigüedadEsperada+2)
+      const antiguedadCalculo = (antiguedadEsperada > 25) ? 27 : (antiguedadEsperada + 2)
 
       // Proyección simple anual (para prestaciones)
       const factor=Math.pow(1+incAnual,anosAdelante)
@@ -546,10 +557,8 @@
       const i = tasaAnualFondo / 12
 
       // VI: “correspondiente a la antigüedad actual”
-      // (Supuesto: prestaciones acumuladas hoy = antigüedad actual * sueldo promedio mensual actual)
       const VI = antiguedadActual * sueldoPromMensual
 
-      // Si no hay meses hacia adelante, el plan no tiene aportes (solo VI vs target)
       if(N === 0){
         const total = VI
         $("pr_valorInicial").value = fmtMoney.format(VI)
@@ -558,7 +567,7 @@
         return
       }
 
-      // Sumatoria: Σ[ Sueldo(m) * (1+i)^(N-m) ]  con sueldo creciendo por g anual (continuo mensual via exponente m/12)
+      // Sumatoria: Σ[ Sueldo(m) * (1+i)^(N-m) ] con sueldo creciendo por g anual
       let denom = 0
       for(let m=1; m<=N; m++){
         const sueldo_m = sueldoPromMensual * Math.pow(1+incAnual, m/12)
@@ -572,7 +581,6 @@
         p = (targetFV - fvVI) / denom
       }
 
-      // Total cálculo (debería dar ~ targetFV)
       const totalFV = fvVI + p * denom
 
       $("pr_valorInicial").value = fmtMoney.format(VI)
