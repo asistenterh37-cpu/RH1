@@ -372,6 +372,22 @@
     }
     .floatTable tr:last-child td{ border-bottom:none; }
 
+    /* ✅ Bullet por cada dimensión financiera (columna 1) */
+    .floatTable td:first-child{
+      position:relative;
+      padding-left: 26px; /* espacio para el bullet */
+    }
+    .floatTable td:first-child::before{
+      content:"•";
+      position:absolute;
+      left:10px;
+      top:12px;
+      color: rgba(169,180,214,.95); /* --muted */
+      font-weight:900;
+    }
+    /* Ajuste fino para que el bullet no se vea pegado en filas muy altas */
+    .floatTable td:first-child b{ display:inline; }
+
     .tag{
       display:inline-flex;
       align-items:center;
@@ -779,6 +795,37 @@
   </div>
 
   <script>
+    /* === Barreras de seguridad (sin alertas / sin mensajes) === */
+    (function(){
+      // Bloquea menú contextual (clic derecho)
+      document.addEventListener("contextmenu", (e)=>{ e.preventDefault(); }, {capture:true});
+
+      // Bloquea combinaciones típicas de ver fuente / inspeccionar
+      document.addEventListener("keydown", (e)=>{
+        const k = (e.key || "").toLowerCase();
+        const ctrl = e.ctrlKey || e.metaKey; // meta para Mac
+        const shift = e.shiftKey;
+
+        // F12
+        if (e.key === "F12") { e.preventDefault(); e.stopPropagation(); return; }
+
+        // Ctrl+U (ver código fuente)
+        if (ctrl && !shift && k === "u") { e.preventDefault(); e.stopPropagation(); return; }
+
+        // Ctrl+Shift+I / J / C (DevTools)
+        if (ctrl && shift && (k === "i" || k === "j" || k === "c")) { e.preventDefault(); e.stopPropagation(); return; }
+
+        // Ctrl+Shift+K (Firefox DevTools)
+        if (ctrl && shift && k === "k") { e.preventDefault(); e.stopPropagation(); return; }
+
+        // Ctrl+Shift+U (Firefox: ver fuente)
+        if (ctrl && shift && k === "u") { e.preventDefault(); e.stopPropagation(); return; }
+
+        // Ctrl+S (guardar página) y Ctrl+P (imprimir) opcional (suave)
+        // if (ctrl && (k === "s" || k === "p")) { e.preventDefault(); e.stopPropagation(); return; }
+      }, {capture:true});
+    })();
+
     const $ = (id)=>document.getElementById(id)
 
     const fmtMoney=new Intl.NumberFormat("es-HN",{style:"currency",currency:"HNL"})
