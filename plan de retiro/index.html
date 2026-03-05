@@ -476,6 +476,8 @@
             <h2>Calcular aporte requerido</h2>
             <div class="btnbar small">
               <button id="pr_btnCalcular" title="Calcula aportación inicial y % mensual">Calcular</button>
+              <!-- NUEVO: botón Porción entre Calcular y Limpiar -->
+              <button class="secondary" id="pr_btnPorcion" type="button" title="Muestra/oculta el gráfico circular de porciones">Porción</button>
               <button class="secondary" id="pr_btnLimpiar" type="button" title="Limpia solo los resultados del plan">Limpiar</button>
             </div>
           </div>
@@ -522,7 +524,7 @@
             </tbody>
           </table>
 
-          <!-- === Gráfico circular (aparece/actualiza al calcular) === -->
+          <!-- === Gráfico circular (se muestra al presionar "Porción") === -->
           <div class="pieWrap" id="pieWrap" style="display:none;">
             <div class="pieHeader">
               <div>
@@ -555,7 +557,8 @@
 
           <div class="hint">
             Objetivo: que el futuro valor de <span class="kbd">Aportación inicial</span> + aportes mensuales (con interés) sea igual a
-            <span class="kbd">Prestaciones valor futuro</span>. Si el % sale negativo, significa que con la aportación inicial ya cubres el objetivo (tu yo del futuro te manda un sticker 😄).
+            <span class="kbd">Prestaciones valor futuro</span>. El botón <span class="kbd">Porción</span> muestra el gráfico circular.
+            Si el % sale negativo, significa que con la aportación inicial ya cubres el objetivo (tu yo del futuro te manda un sticker 😄).
           </div>
 
           <details>
@@ -616,6 +619,9 @@
       const cleaned = String(str).replace(/[^\d.-]/g,"")
       return toNum(cleaned)
     }
+
+    // Guardamos el último cálculo del plan para el botón "Porción"
+    let lastPlan = null
 
     function syncPlanDeRetiro(){
       $("pr_sueldoPromActual").value = $("sueldoPromActual").value || ""
@@ -702,7 +708,7 @@
         start = end
       }
 
-      // Donut hole (para que se vea más pro)
+      // Donut hole
       ctx.beginPath()
       ctx.arc(cx, cy, r*0.58, 0, Math.PI*2)
       ctx.fillStyle = "rgba(11,18,32,.92)"
@@ -731,14 +737,10 @@
       const pctA0 = (total>0) ? (a0/total) : 0
       const pctAp = (total>0) ? (ap/total) : 0
 
-      // Meta arriba derecha
       $("pieMeta").textContent = `Total: ${fmtMoney.format(total)}`
-
-      // Leyenda
       $("legA0").textContent = `${fmtPct.format(pctA0)} · ${fmtMoney.format(a0)}`
       $("legAp").textContent = `${fmtPct.format(pctAp)} · ${fmtMoney.format(ap)}`
 
-      // Pintar
       const styles = getComputedStyle(document.documentElement)
       const c1 = styles.getPropertyValue("--pie1").trim() || "#60a5fa"
       const c2 = styles.getPropertyValue("--pie2").trim() || "#34d399"
@@ -747,11 +749,9 @@
 
     function hidePlanPie(){
       $("pieWrap").style.display = "none"
-      // limpiar leyenda por si acaso
       $("pieMeta").textContent = ""
       $("legA0").textContent = "—"
       $("legAp").textContent = "—"
-      // limpiar canvas
       const c = $("pieCanvas")
       const ctx = c.getContext("2d")
       ctx.clearRect(0,0,c.width,c.height)
@@ -761,7 +761,7 @@
       // Asegura que arriba esté calculado
       calc()
 
-      const sueldoPromMensual = parseMoneyFromFormatted($("sueldoPromActual").value) // mensual
+      const sueldoPromMensual = parseMoneyFromFormatted($("sueldoPromActual").value)
       const antiguedadActual = toNum($("antiguedad").value)
       const antiguedadEsperada = parseNumFromFormatted($("antiguedadEsperada").value)
       const anosAdelante = parseNumFromFormatted($("anosAdelante").value)
@@ -787,8 +787,8 @@
         $("pr_fvAportesMensuales").value = fmtMoney.format(FV_aportes)
         $("pr_fvPlan").value = fmtMoney.format(FV_plan)
 
-        // PIE
-        renderPlanPie(FV_A0, FV_aportes, FV_plan)
+        // Guardar último cálculo (no mostramos el gráfico aquí)
+        lastPlan = { FV_A0, FV_aportes, FV_plan }
         return
       }
 
@@ -815,9 +815,9 @@
       }
 
       // 5) CONSIGNAR valores futuros
-      const FV_A0 = A0 * Math.pow(1+i, N)              // ≈ FV_pasado
-      const FV_aportes = p * denom                     // ≈ FV_futuro (puede ser negativo si p<0)
-      const FV_plan = FV_A0 + FV_aportes               // ≈ targetFV
+      const FV_A0 = A0 * Math.pow(1+i, N)
+      const FV_aportes = p * denom
+      const FV_plan = FV_A0 + FV_aportes
 
       $("pr_aportacionInicial").value = fmtMoney.format(A0)
       $("pr_porcentajeAportacion").value = fmtPct.format(p)
@@ -825,9 +825,32 @@
       $("pr_fvAportesMensuales").value = fmtMoney.format(FV_aportes)
       $("pr_fvPlan").value = fmtMoney.format(FV_plan)
 
-      // PIE: para el gráfico usamos composición “sobre el plan”.
-      // Si FV_aportes sale negativo, el gráfico mostrará 0% en esa parte (porque composición negativa no tiene sentido visual).
-      renderPlanPie(FV_A0, FV_aportes, FV_plan)
+      // Guardar último cálculo (no mostramos el gráfico hasta que presionen "Porción")
+      lastPlan = { FV_A0, FV_aportes, FV_plan }
+    }
+
+    function togglePorcion(){
+      const wrap = $("pieWrap")
+      const isVisible = wrap.style.display !== "none" && wrap.style.display !== ""
+
+      // Si está visible, lo ocultamos
+      if(isVisible){
+        hidePlanPie()
+        return
+      }
+
+      // Si no hay cálculo previo, calculamos primero
+      if(!lastPlan){
+        calcPlan()
+      }
+
+      // Si aún no hay datos, nada que mostrar
+      if(!lastPlan){
+        return
+      }
+
+      // Mostrar / renderizar
+      renderPlanPie(lastPlan.FV_A0, lastPlan.FV_aportes, lastPlan.FV_plan)
     }
 
     function clearAll(){
@@ -859,6 +882,7 @@
       $("pr_fvAportesMensuales").value=""
       $("pr_fvPlan").value=""
 
+      lastPlan = null
       hidePlanPie()
     }
 
@@ -869,6 +893,7 @@
       $("pr_fvAportesMensuales").value=""
       $("pr_fvPlan").value=""
 
+      lastPlan = null
       hidePlanPie()
     }
 
@@ -876,18 +901,19 @@
     $("btnLimpiar").addEventListener("click",(e)=>{e.preventDefault();clearAll()})
 
     $("pr_btnCalcular").addEventListener("click",(e)=>{e.preventDefault();calcPlan()})
+    $("pr_btnPorcion").addEventListener("click",(e)=>{e.preventDefault();togglePorcion()})
     $("pr_btnLimpiar").addEventListener("click",(e)=>{e.preventDefault();clearPlanOnly()})
 
     // Mantener plan sincronizado con entradas
-    $("sueldoActual").addEventListener("input", syncPlanDeRetiro)
-    $("antiguedad").addEventListener("input", syncPlanDeRetiro)
-    $("edadActual").addEventListener("input", syncPlanDeRetiro)
-    $("genero").addEventListener("change", syncPlanDeRetiro)
-    $("incAnual").addEventListener("input", syncPlanDeRetiro)
+    $("sueldoActual").addEventListener("input", ()=>{ syncPlanDeRetiro(); lastPlan=null; hidePlanPie(); })
+    $("antiguedad").addEventListener("input", ()=>{ syncPlanDeRetiro(); lastPlan=null; hidePlanPie(); })
+    $("edadActual").addEventListener("input", ()=>{ syncPlanDeRetiro(); lastPlan=null; hidePlanPie(); })
+    $("genero").addEventListener("change", ()=>{ syncPlanDeRetiro(); lastPlan=null; hidePlanPie(); })
+    $("incAnual").addEventListener("input", ()=>{ syncPlanDeRetiro(); lastPlan=null; hidePlanPie(); })
+    $("tasaInteresFondo").addEventListener("input", ()=>{ lastPlan=null; hidePlanPie(); })
 
     // Inicial
     calc()
-    // (no mostramos el pie hasta que le des "Calcular" en el plan)
     hidePlanPie()
   </script>
 </body>
