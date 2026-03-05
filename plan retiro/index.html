@@ -782,20 +782,20 @@
     }
 
     // =========================================================
-    // ✅ AJUSTE SOLICITADO (NUEVO):
-    // Prestaciones (valor futuro y por año) se calculan usando
-    // el "sueldo promedio proyectado por año" (promedio del año),
-    // no solo el sueldo al final del periodo.
-    //
-    // Regla usada:
-    // - Año 1 (t=0): sueldoProm(t)=S0
-    // - Para t>=1: sueldoProm(t)=S0 * [ (1+g)^(t-1) + (1+g)^t ] / 2
+    // ✅ AJUSTE SEGÚN EXCEL (Hoja "Prestaciones"):
+    // - Sueldo promedio actual = Sueldo actual * 13/12
+    // - Edad retiro = IF(género=="femenino",60,65)
+    // - Antigüedad esperada = (Edad retiro - Edad actual) + Antigüedad actual
+    // - Antigüedad cálculo = IF(esperada>25,27, IF(esperada<3, esperada*2, esperada+2))
+    // - Años hacia adelante = Edad retiro - Edad actual
+    // - Factor = (1 + inc)^años_hacia_adelante
+    // - Sueldo promedio futuro = Sueldo promedio actual * Factor
+    // - Prestaciones valor futuro = Antigüedad cálculo * Sueldo promedio futuro
     // =========================================================
-    function sueldoPromedioProyectadoAnual(sueldoBaseMensual, g, t){
-      if(t <= 0) return sueldoBaseMensual;
-      const a = Math.pow(1 + g, t - 1);
-      const b = Math.pow(1 + g, t);
-      return sueldoBaseMensual * (a + b) / 2;
+    function antiguedadCalculoExcel(antigEsperada){
+      if(antigEsperada > 25) return 27;
+      if(antigEsperada < 3) return antigEsperada * 2;
+      return antigEsperada + 2;
     }
 
     function calc(){
@@ -805,22 +805,28 @@
       const genero       = ($("genero").value||"").toLowerCase().trim();
       const incAnual     = toNum($("incAnual").value);
 
-      // sueldo promedio mensual actual (incluye 13vo prorrateado)
+      // Sueldo promedio mensual actual (incluye 13vo prorrateado) = C6*13/12
       const sueldoPromActual = sueldoActual * 13 / 12;
 
+      // Edad retiro = IF(género=="femenino",60,65)
       const edadRetiro = (genero==="femenino") ? 60 : 65;
+
+      // Años hacia adelante = C10 - C9
       const anosAdelante = Math.max(0, edadRetiro - edadActual);
 
+      // Antigüedad esperada = (C10 - C9) + C8
       const antiguedadEsperada = anosAdelante + antiguedad;
-      const antiguedadCalculo  = (antiguedadEsperada > 25) ? 27 : (antiguedadEsperada + 2);
 
-      // ✅ sueldo promedio proyectado del "año final" (promedio anual)
-      const sueldoPromFuturo = sueldoPromedioProyectadoAnual(sueldoPromActual, incAnual, anosAdelante);
+      // Antigüedad cálculo (según excel)
+      const antiguedadCalculo = antiguedadCalculoExcel(antiguedadEsperada);
 
-      // ✅ factor consistente con sueldo promedio proyectado anual
-      const factor = (sueldoPromActual > 0) ? (sueldoPromFuturo / sueldoPromActual) : 0;
+      // Factor = (1 + inc)^años_hacia_adelante
+      const factor = Math.pow(1 + incAnual, anosAdelante);
 
-      // ✅ prestaciones futuras usando sueldo promedio proyectado anual
+      // Sueldo promedio futuro = C7*C18
+      const sueldoPromFuturo = sueldoPromActual * factor;
+
+      // Prestaciones valor futuro = C15*C19
       const prestacionesFuturas = antiguedadCalculo * sueldoPromFuturo;
 
       $("sueldoPromActual").value    = fmtMoney.format(sueldoPromActual);
@@ -1065,13 +1071,12 @@
       const prest  = [];
       const plan   = [];
 
-      // ✅ Prestaciones por año usando "sueldo promedio proyectado del año"
+      // ✅ Prestaciones por año usando EXACTAMENTE la lógica del Excel
       function prestacionesAtYear(t){
         const antigEsper = antiguedad0 + t;
-        const antigCal   = (antigEsper > 25) ? 27 : (antigEsper + 2);
-
-        const sueldoAvgYear = sueldoPromedioProyectadoAnual(sueldoPromMensual, incAnual, t);
-        return Math.max(0, antigCal * sueldoAvgYear);
+        const antigCal   = antiguedadCalculoExcel(antigEsper);
+        const sueldoFut  = sueldoPromMensual * Math.pow(1 + incAnual, t); // sueldo_prom_futuro(t)=C7*(1+inc)^t
+        return Math.max(0, antigCal * sueldoFut);
       }
 
       const N = anosAdelante * 12;
@@ -1114,7 +1119,6 @@
     function drawLineChart(canvas, years, seriesA, seriesB){
       const ctx = canvas.getContext("2d");
 
-      // tamaño real según CSS
       const dpr = window.devicePixelRatio || 1;
       const cssW = canvas.clientWidth || 800;
       const cssH = canvas.clientHeight || 360;
@@ -1140,7 +1144,6 @@
       const x = (t)=> padL + ((t - xMin)/xRange) * plotW;
       const y = (v)=> padT + (1 - ((v - minY)/(maxY - minY))) * plotH;
 
-      // helpers de formato corto para etiquetas
       const moneyShort = (v)=>{
         const abs = Math.abs(v);
         if(abs >= 1e9) return `L ${(v/1e9).toFixed(2)}B`;
@@ -1149,7 +1152,6 @@
         return `L ${v.toFixed(0)}`;
       };
 
-      // === Fondo grid (5 líneas) ===
       ctx.strokeStyle = "rgba(255,255,255,.08)";
       ctx.lineWidth = 1;
       const gridN = 5;
@@ -1161,7 +1163,6 @@
         ctx.stroke();
       }
 
-      // ejes
       ctx.strokeStyle = "rgba(255,255,255,.18)";
       ctx.lineWidth = 1.2;
       ctx.beginPath();
@@ -1170,7 +1171,6 @@
       ctx.lineTo(padL + plotW, padT + plotH);
       ctx.stroke();
 
-      // ticks Y
       ctx.fillStyle = "rgba(233,238,252,.85)";
       ctx.font = "12px system-ui,-apple-system,Segoe UI,Roboto,Arial";
       ctx.textAlign = "right";
@@ -1181,7 +1181,6 @@
         ctx.fillText(moneyShort(val), padL - 8, yy);
       }
 
-      // ticks X
       ctx.textAlign = "center";
       ctx.textBaseline = "top";
       const span = xMax - xMin;
@@ -1196,12 +1195,10 @@
       ctx.fillStyle = "rgba(169,180,214,.9)";
       ctx.fillText("Año (Año 1 = antigüedad actual)", padL + plotW/2, padT + plotH + 26);
 
-      // colores
       const styles = getComputedStyle(document.documentElement);
       const cPrest = styles.getPropertyValue("--pie1").trim() || "#60a5fa";
       const cPlan  = styles.getPropertyValue("--pie2").trim() || "#34d399";
 
-      // ========= Etiquetas flotantes (en canvas) =========
       function roundRect(ctx, x, y, w, h, r){
         const rr = Math.min(r, w/2, h/2);
         ctx.beginPath();
@@ -1212,7 +1209,6 @@
         ctx.arcTo(x, y, x+w, y, rr);
         ctx.closePath();
       }
-
       function clamp(v, a, b){ return Math.max(a, Math.min(b, v)); }
 
       function drawValueTag(px, py, text, color, place){
@@ -1314,7 +1310,7 @@
         drawLineChart($("lineCanvas"), data.yearsX, data.prest, data.plan);
       }catch(err){
         if(!silent){
-          // sin mensajes: intencionalmente vacío
+          // intencionalmente sin mensajes
         }
       }
     }
