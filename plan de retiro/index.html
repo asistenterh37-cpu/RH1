@@ -442,6 +442,26 @@
                   <div class="fieldBox"><input id="pr_porcentajeAportacion" readonly></div>
                 </td>
               </tr>
+
+              <!-- NUEVOS CAMPOS: Valores futuros -->
+              <tr>
+                <td>Valor futuro de la <b>aportación inicial</b></td>
+                <td class="right">
+                  <div class="fieldBox"><input id="pr_fvAportacionInicial" readonly></div>
+                </td>
+              </tr>
+              <tr>
+                <td>Valor futuro del <b>% de aportaciones</b></td>
+                <td class="right">
+                  <div class="fieldBox"><input id="pr_fvAportesMensuales" readonly></div>
+                </td>
+              </tr>
+              <tr>
+                <td><b>Valor futuro del plan</b> (suma)</td>
+                <td class="right">
+                  <div class="fieldBox"><input id="pr_fvPlan" readonly></div>
+                </td>
+              </tr>
             </tbody>
           </table>
 
@@ -473,7 +493,10 @@
               FV_aportes = Σ[ p × Sueldo(m) × (1+i)^(N-m) ].<br><br>
 
               <b>5) Despeje del porcentaje p</b><br>
-              p = FV_futuro / Σ[ Sueldo(m)×(1+i)^(N-m) ].
+              p = FV_futuro / Σ[ Sueldo(m)×(1+i)^(N-m) ].<br><br>
+
+              <b>6) Consigna de valores futuros</b><br>
+              FV(A0) = A0×(1+i)^N · FV(% aportes) = p×Σ[...] · FV plan = FV(A0)+FV(% aportes)
             </div>
           </details>
         </div>
@@ -569,11 +592,19 @@
       const N = Math.max(0, Math.round(anosAdelante * 12))
       const i = tasaAnualFondo / 12
 
-      // Si no hay horizonte, no hay magia: el objetivo se cubre "hoy"
+      // Si no hay horizonte, el valor futuro = hoy
       if(N === 0){
-        // con N=0, (1+i)^0=1, aportación inicial = target (si hay esperada válida) o = target
-        $("pr_aportacionInicial").value = fmtMoney.format(targetFV)
-        $("pr_porcentajeAportacion").value = fmtPct.format(0)
+        const A0 = targetFV
+        const p = 0
+        const FV_A0 = A0
+        const FV_aportes = 0
+        const FV_plan = FV_A0 + FV_aportes
+
+        $("pr_aportacionInicial").value = fmtMoney.format(A0)
+        $("pr_porcentajeAportacion").value = fmtPct.format(p)
+        $("pr_fvAportacionInicial").value = fmtMoney.format(FV_A0)
+        $("pr_fvAportesMensuales").value = fmtMoney.format(FV_aportes)
+        $("pr_fvPlan").value = fmtMoney.format(FV_plan)
         return
       }
 
@@ -599,8 +630,16 @@
         p = FV_futuro / denom
       }
 
+      // 5) CONSIGNAR valores futuros (lo que pediste)
+      const FV_A0 = A0 * Math.pow(1+i, N)              // debería ≈ FV_pasado
+      const FV_aportes = p * denom                     // debería ≈ FV_futuro
+      const FV_plan = FV_A0 + FV_aportes               // debería ≈ targetFV
+
       $("pr_aportacionInicial").value = fmtMoney.format(A0)
       $("pr_porcentajeAportacion").value = fmtPct.format(p)
+      $("pr_fvAportacionInicial").value = fmtMoney.format(FV_A0)
+      $("pr_fvAportesMensuales").value = fmtMoney.format(FV_aportes)
+      $("pr_fvPlan").value = fmtMoney.format(FV_plan)
     }
 
     function clearAll(){
@@ -628,11 +667,17 @@
 
       $("pr_aportacionInicial").value=""
       $("pr_porcentajeAportacion").value=""
+      $("pr_fvAportacionInicial").value=""
+      $("pr_fvAportesMensuales").value=""
+      $("pr_fvPlan").value=""
     }
 
     function clearPlanOnly(){
       $("pr_aportacionInicial").value=""
       $("pr_porcentajeAportacion").value=""
+      $("pr_fvAportacionInicial").value=""
+      $("pr_fvAportesMensuales").value=""
+      $("pr_fvPlan").value=""
     }
 
     $("btnCalcular").addEventListener("click",(e)=>{e.preventDefault();calc()})
