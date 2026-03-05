@@ -313,7 +313,6 @@
                 </td>
               </tr>
 
-              <!-- NUEVO: Antigüedad cálculo ( meses ) debajo de Antigüedad esperada -->
               <tr>
                 <td>Antigüedad cálculo ( meses )</td>
                 <td class="right">
@@ -384,7 +383,6 @@
                 </td>
               </tr>
 
-              <!-- Antigüedad esperada debajo de Años hacia adelante -->
               <tr>
                 <td>Antigüedad esperada</td>
                 <td class="right">
@@ -419,7 +417,7 @@
           <div class="planHeader">
             <h2>Calcular aporte requerido</h2>
             <div class="btnbar small">
-              <button id="pr_btnCalcular" title="Calcula valor inicial, % de aportación y total">Calcular</button>
+              <button id="pr_btnCalcular" title="Calcula aportación inicial y % mensual">Calcular</button>
               <button class="secondary" id="pr_btnLimpiar" type="button" title="Limpia solo los resultados del plan">Limpiar</button>
             </div>
           </div>
@@ -433,29 +431,23 @@
             </thead>
             <tbody>
               <tr>
-                <td><b>Valor inicial</b> (por antigüedad actual)</td>
+                <td><b>Aportación inicial</b> (según antigüedad actual/esperada)</td>
                 <td class="right">
-                  <div class="fieldBox"><input id="pr_valorInicial" readonly></div>
+                  <div class="fieldBox"><input id="pr_aportacionInicial" readonly></div>
                 </td>
               </tr>
               <tr>
-                <td><b>% de aportación</b> sobre sueldo promedio mensual</td>
+                <td><b>% mensual de aportación</b> sobre sueldo promedio mensual</td>
                 <td class="right">
                   <div class="fieldBox"><input id="pr_porcentajeAportacion" readonly></div>
-                </td>
-              </tr>
-              <tr>
-                <td><b>Total cálculo</b> (VI+aportes, con interés)</td>
-                <td class="right">
-                  <div class="fieldBox"><input id="pr_totalCalculo" readonly></div>
                 </td>
               </tr>
             </tbody>
           </table>
 
           <div class="hint">
-            Objetivo: que el <span class="kbd">Total cálculo</span> sea igual a <span class="kbd">Prestaciones valor futuro</span>.
-            Si te sale un % negativo, es porque con solo el valor inicial ya “te pasaste” (qué bonito problema 😄).
+            Objetivo: que el futuro valor de <span class="kbd">Aportación inicial</span> + aportes mensuales (con interés) sea igual a
+            <span class="kbd">Prestaciones valor futuro</span>. Si el % sale negativo, significa que con la aportación inicial ya cubres el objetivo (tu yo del futuro te manda un sticker 😄).
           </div>
 
           <details>
@@ -463,18 +455,25 @@
             <div class="formula">
               Sea <b>N</b> = meses hacia adelante, <b>i</b> = tasa mensual del fondo = (tasa anual)/12, y <b>g</b> = incremento anual del sueldo.<br><br>
 
-              <b>1) Valor inicial (VI)</b><br>
-              VI = (Antigüedad actual) × (Sueldo promedio mensual actual).<br><br>
+              <b>0) Objetivo</b><br>
+              Target = <b>Prestaciones valor futuro</b>.<br><br>
 
-              <b>2) Sueldo mensual proyectado</b><br>
+              <b>1) Separación por antigüedad (servicio pasado vs futuro)</b><br>
+              Proporción pasado = Antigüedad actual / Antigüedad esperada.<br>
+              FV_pasado = Target × proporción pasado.<br>
+              FV_futuro = Target − FV_pasado.<br><br>
+
+              <b>2) Aportación inicial (hoy) para cubrir el servicio pasado</b><br>
+              A0 = FV_pasado / (1+i)^N.<br><br>
+
+              <b>3) Sueldo mensual proyectado</b><br>
               Sueldo(m) = Sueldo₀ × (1+g)^(m/12), para m = 1..N.<br><br>
 
-              <b>3) Futuro valor (FV) a retiro</b><br>
-              FV = VI×(1+i)^N + Σ[ Aporte(m) × (1+i)^(N-m) ]<br>
-              donde Aporte(m) = p × Sueldo(m), y <b>p</b> es el porcentaje de aportación (en decimal).<br><br>
+              <b>4) Aportes mensuales (como % p del sueldo)</b><br>
+              FV_aportes = Σ[ p × Sueldo(m) × (1+i)^(N-m) ].<br><br>
 
-              <b>4) Despeje del porcentaje p</b><br>
-              p = (Prestaciones valor futuro − VI×(1+i)^N) / Σ[ Sueldo(m)×(1+i)^(N-m) ].
+              <b>5) Despeje del porcentaje p</b><br>
+              p = FV_futuro / Σ[ Sueldo(m)×(1+i)^(N-m) ].
             </div>
           </details>
         </div>
@@ -496,20 +495,22 @@
     }
 
     function parseMoneyFromFormatted(str){
-      // Convierte "L 12,345.67" o similar a número
       if(!str) return 0
       const cleaned = String(str).replace(/[^\d.-]/g,"")
       return toNum(cleaned)
     }
 
+    function parseNumFromFormatted(str){
+      if(str===null || str===undefined || str==="") return 0
+      const cleaned = String(str).replace(/[^\d.-]/g,"")
+      return toNum(cleaned)
+    }
+
     function syncPlanDeRetiro(){
-      // Copia tal cual del bloque superior (Resultados/Entradas)
       $("pr_sueldoPromActual").value = $("sueldoPromActual").value || ""
       $("pr_antiguedadActual").value = $("antiguedad").value !== "" ? fmtNum.format(toNum($("antiguedad").value)) : ""
       $("pr_anosAdelante").value = $("anosAdelante").value || ""
-
       $("pr_antiguedadEsperada").value = $("antiguedadEsperada").value || ""
-
       $("pr_incAnual").value = $("incAnual").value !== "" ? fmtNum.format(toNum($("incAnual").value)) : ""
     }
 
@@ -523,10 +524,10 @@
       // Sueldo promedio mensual actual (considerando 13avo prorrateado): sueldo*13/12
       const sueldoPromActual=sueldoActual*13/12
 
-      // Edad retiro según Excel: IF(género="femenino",60,65)
+      // Edad retiro: IF(género="femenino",60,65)
       const edadRetiro=(genero==="femenino")?60:65
 
-      // AJUSTE: evita proyección negativa (si ya está en edad de retiro o pasó)
+      // Evita proyección negativa
       const anosAdelante=Math.max(0, edadRetiro-edadActual)
 
       // Antigüedad esperada: (Edad retiro - Edad actual) + Antigüedad actual
@@ -543,10 +544,7 @@
       $("sueldoPromActual").value=fmtMoney.format(sueldoPromActual)
       $("edadRetiro").value=fmtNum.format(edadRetiro)
       $("antiguedadEsperada").value=fmtNum.format(antiguedadEsperada)
-
-      // NUEVO: ahora sí se muestra Antigüedad cálculo ( meses )
       $("antiguedadCalculo").value=fmtNum.format(antiguedadCalculo)
-
       $("anosAdelante").value=fmtNum.format(anosAdelante)
       $("factor").value=fmtNum.format(factor)
       $("sueldoPromFuturo").value=fmtMoney.format(sueldoPromFuturo)
@@ -561,7 +559,8 @@
 
       const sueldoPromMensual = parseMoneyFromFormatted($("sueldoPromActual").value) // mensual
       const antiguedadActual = toNum($("antiguedad").value)
-      const anosAdelante = toNum($("anosAdelante").value)
+      const antiguedadEsperada = parseNumFromFormatted($("antiguedadEsperada").value)
+      const anosAdelante = parseNumFromFormatted($("anosAdelante").value)
       const incAnual = toNum($("incAnual").value)
       const tasaAnualFondo = toNum($("tasaInteresFondo").value)
 
@@ -570,18 +569,23 @@
       const N = Math.max(0, Math.round(anosAdelante * 12))
       const i = tasaAnualFondo / 12
 
-      // VI: “correspondiente a la antigüedad actual”
-      const VI = antiguedadActual * sueldoPromMensual
-
+      // Si no hay horizonte, no hay magia: el objetivo se cubre "hoy"
       if(N === 0){
-        const total = VI
-        $("pr_valorInicial").value = fmtMoney.format(VI)
+        // con N=0, (1+i)^0=1, aportación inicial = target (si hay esperada válida) o = target
+        $("pr_aportacionInicial").value = fmtMoney.format(targetFV)
         $("pr_porcentajeAportacion").value = fmtPct.format(0)
-        $("pr_totalCalculo").value = fmtMoney.format(total)
         return
       }
 
-      // Sumatoria: Σ[ Sueldo(m) * (1+i)^(N-m) ] con sueldo creciendo por g anual
+      // 1) Separación por antigüedad: servicio pasado vs futuro
+      const ratio = (antiguedadEsperada > 0) ? Math.max(0, Math.min(1, antiguedadActual / antiguedadEsperada)) : 0
+      const FV_pasado = targetFV * ratio
+      const FV_futuro = targetFV - FV_pasado
+
+      // 2) Aportación inicial (HOY) que crecerá a FV_pasado al retiro
+      const A0 = FV_pasado / Math.pow(1+i, N)
+
+      // 3) Denominador: Σ[ Sueldo(m) * (1+i)^(N-m) ] con sueldo creciendo por g anual
       let denom = 0
       for(let m=1; m<=N; m++){
         const sueldo_m = sueldoPromMensual * Math.pow(1+incAnual, m/12)
@@ -589,17 +593,14 @@
         denom += sueldo_m * fvFactor
       }
 
-      const fvVI = VI * Math.pow(1+i, N)
+      // 4) % mensual requerido para cubrir FV_futuro
       let p = 0
       if(denom > 0){
-        p = (targetFV - fvVI) / denom
+        p = FV_futuro / denom
       }
 
-      const totalFV = fvVI + p * denom
-
-      $("pr_valorInicial").value = fmtMoney.format(VI)
+      $("pr_aportacionInicial").value = fmtMoney.format(A0)
       $("pr_porcentajeAportacion").value = fmtPct.format(p)
-      $("pr_totalCalculo").value = fmtMoney.format(totalFV)
     }
 
     function clearAll(){
@@ -618,7 +619,6 @@
       $("sueldoPromFuturo").value=""
       $("prestacionesFuturas").value=""
 
-      // Plan de retiro: limpia copiados y resultados; deja tasa editable en blanco (como lo tenías)
       $("pr_sueldoPromActual").value=""
       $("pr_antiguedadActual").value=""
       $("pr_anosAdelante").value=""
@@ -626,15 +626,13 @@
       $("pr_incAnual").value=""
       $("tasaInteresFondo").value=""
 
-      $("pr_valorInicial").value=""
+      $("pr_aportacionInicial").value=""
       $("pr_porcentajeAportacion").value=""
-      $("pr_totalCalculo").value=""
     }
 
     function clearPlanOnly(){
-      $("pr_valorInicial").value=""
+      $("pr_aportacionInicial").value=""
       $("pr_porcentajeAportacion").value=""
-      $("pr_totalCalculo").value=""
     }
 
     $("btnCalcular").addEventListener("click",(e)=>{e.preventDefault();calc()})
