@@ -781,6 +781,23 @@
       $("pr_incAnual").value = $("incAnual").value !== "" ? fmtNum.format(toNum($("incAnual").value)) : "";
     }
 
+    // =========================================================
+    // ✅ AJUSTE SOLICITADO (NUEVO):
+    // Prestaciones (valor futuro y por año) se calculan usando
+    // el "sueldo promedio proyectado por año" (promedio del año),
+    // no solo el sueldo al final del periodo.
+    //
+    // Regla usada:
+    // - Año 1 (t=0): sueldoProm(t)=S0
+    // - Para t>=1: sueldoProm(t)=S0 * [ (1+g)^(t-1) + (1+g)^t ] / 2
+    // =========================================================
+    function sueldoPromedioProyectadoAnual(sueldoBaseMensual, g, t){
+      if(t <= 0) return sueldoBaseMensual;
+      const a = Math.pow(1 + g, t - 1);
+      const b = Math.pow(1 + g, t);
+      return sueldoBaseMensual * (a + b) / 2;
+    }
+
     function calc(){
       const sueldoActual = toNum($("sueldoActual").value);
       const antiguedad   = toNum($("antiguedad").value);
@@ -788,16 +805,22 @@
       const genero       = ($("genero").value||"").toLowerCase().trim();
       const incAnual     = toNum($("incAnual").value);
 
-      const sueldoPromActual = sueldoActual*13/12;
+      // sueldo promedio mensual actual (incluye 13vo prorrateado)
+      const sueldoPromActual = sueldoActual * 13 / 12;
+
       const edadRetiro = (genero==="femenino") ? 60 : 65;
-      const anosAdelante = Math.max(0, edadRetiro-edadActual);
+      const anosAdelante = Math.max(0, edadRetiro - edadActual);
 
       const antiguedadEsperada = anosAdelante + antiguedad;
       const antiguedadCalculo  = (antiguedadEsperada > 25) ? 27 : (antiguedadEsperada + 2);
 
-      const factor = Math.pow(1+incAnual, anosAdelante);
-      const sueldoPromFuturo = sueldoPromActual * factor;
+      // ✅ sueldo promedio proyectado del "año final" (promedio anual)
+      const sueldoPromFuturo = sueldoPromedioProyectadoAnual(sueldoPromActual, incAnual, anosAdelante);
 
+      // ✅ factor consistente con sueldo promedio proyectado anual
+      const factor = (sueldoPromActual > 0) ? (sueldoPromFuturo / sueldoPromActual) : 0;
+
+      // ✅ prestaciones futuras usando sueldo promedio proyectado anual
       const prestacionesFuturas = antiguedadCalculo * sueldoPromFuturo;
 
       $("sueldoPromActual").value    = fmtMoney.format(sueldoPromActual);
@@ -1024,14 +1047,6 @@
       o.setAttribute("aria-hidden","true");
     }
 
-    // =========================================================
-    // ✅ AJUSTE SOLICITADO (YA INCLUIDO):
-    // - Serie desde Año 1 = antigüedad actual (t=0)
-    // - Incluye valor inicial (Plan = A0) y prestaciones proyectadas desde Año 1
-    // ✅ NUEVO:
-    // - Etiquetas flotantes en los puntos (valores visibles)
-    // =========================================================
-
     function buildYearSeries(){
       calc();
       if(!lastPlan) calcPlan();
@@ -1040,7 +1055,7 @@
       const incAnual     = toNum($("incAnual").value);
       const antiguedad0  = toNum($("antiguedad").value);
 
-      const sueldoPromMensual = parseMoneyFromFormatted($("sueldoPromActual").value); // mensual
+      const sueldoPromMensual = parseMoneyFromFormatted($("sueldoPromActual").value); // mensual base (año actual)
       const tasaAnualFondo    = toNum($("tasaInteresFondo").value);
 
       const A0 = lastPlan ? toNum(lastPlan.A0) : 0;
@@ -1050,11 +1065,13 @@
       const prest  = [];
       const plan   = [];
 
+      // ✅ Prestaciones por año usando "sueldo promedio proyectado del año"
       function prestacionesAtYear(t){
         const antigEsper = antiguedad0 + t;
         const antigCal   = (antigEsper > 25) ? 27 : (antigEsper + 2);
-        const sueldo_t = sueldoPromMensual * Math.pow(1 + incAnual, t);
-        return Math.max(0, antigCal * sueldo_t);
+
+        const sueldoAvgYear = sueldoPromedioProyectadoAnual(sueldoPromMensual, incAnual, t);
+        return Math.max(0, antigCal * sueldoAvgYear);
       }
 
       const N = anosAdelante * 12;
@@ -1199,19 +1216,16 @@
       function clamp(v, a, b){ return Math.max(a, Math.min(b, v)); }
 
       function drawValueTag(px, py, text, color, place){
-        // place: "above" | "below"
         const padX = 7, padY = 4, r = 10;
         ctx.font = "12px system-ui,-apple-system,Segoe UI,Roboto,Arial";
         const tw = ctx.measureText(text).width;
         const w = tw + padX*2;
         const h = 20;
 
-        // offset (arriba para prestaciones / abajo para plan)
         const dy = (place === "below") ? 12 : -12 - h;
         let bx = px - w/2;
         let by = py + dy;
 
-        // mantener dentro del área del gráfico
         const minX = padL + 2;
         const maxX = padL + plotW - w - 2;
         const minY = padT + 2;
@@ -1219,7 +1233,6 @@
         bx = clamp(bx, minX, maxX);
         by = clamp(by, minY, maxYb);
 
-        // caja
         roundRect(ctx, bx, by, w, h, r);
         ctx.fillStyle = "rgba(11,18,32,.88)";
         ctx.fill();
@@ -1228,7 +1241,6 @@
         ctx.lineWidth = 1;
         ctx.stroke();
 
-        // mini-acento (borde superior con color de serie)
         ctx.beginPath();
         ctx.moveTo(bx+10, by+1);
         ctx.lineTo(bx+w-10, by+1);
@@ -1236,13 +1248,11 @@
         ctx.lineWidth = 2;
         ctx.stroke();
 
-        // texto
         ctx.fillStyle = "rgba(233,238,252,.92)";
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
         ctx.fillText(text, bx + w/2, by + h/2);
 
-        // conector fino al punto
         const anchorY = (place === "below") ? by : (by + h);
         ctx.beginPath();
         ctx.moveTo(px, py);
@@ -1252,7 +1262,6 @@
         ctx.stroke();
       }
 
-      // ========= Series =========
       function strokeSeries(vals, color){
         ctx.strokeStyle = color;
         ctx.lineWidth = 2.2;
@@ -1267,7 +1276,6 @@
         }
         ctx.stroke();
 
-        // puntos
         ctx.fillStyle = color;
         for(let i=0;i<years.length;i++){
           const xx = x(years[i]);
@@ -1281,15 +1289,11 @@
       strokeSeries(seriesA, cPrest);
       strokeSeries(seriesB, cPlan);
 
-      // ========= Etiquetas flotantes en cada punto =========
-      // Nota: para evitar choque visual, prestaciones arriba, plan abajo.
-      // Si quieres SOLO 1 etiqueta por año (con ambos valores), lo ajusto rápido.
       for(let i=0;i<years.length;i++){
         const xx = x(years[i]);
         const yA = y(seriesA[i]);
         const yB = y(seriesB[i]);
 
-        // alternar un poquito para que no se apilen en pantallas estrechas
         const nudge = (i % 2 === 0) ? 0 : 6;
 
         drawValueTag(xx + nudge, yA, moneyShort(seriesA[i]), cPrest, "above");
