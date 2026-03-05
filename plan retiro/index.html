@@ -139,6 +139,12 @@
     }
     button.secondary{ background:rgba(255,255,255,.08); box-shadow:none }
 
+    /* ✅ Comparativo: en azul como los demás */
+    #btnComparativo{
+      background:#2f6fed !important;
+      box-shadow:0 10px 25px rgba(47,111,237,.22) !important;
+    }
+
     .pill{
       display:inline-flex;
       gap:8px;
@@ -328,6 +334,17 @@
     .modalBody{
       padding:12px 14px 14px;
     }
+
+    /* ✅ Scroll interno lateral (vertical) para la tabla del comparativo */
+    .floatScroll{
+      max-height: 420px;        /* ajusta a gusto */
+      overflow-y: auto;
+      overflow-x: auto;         /* por si en pantallas pequeñas se desborda */
+      border-radius:14px;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    /* ✅ Texto de la tabla +3pts */
     .floatTable{
       width:100%;
       border-collapse:separate;
@@ -340,8 +357,8 @@
     .floatTable th,.floatTable td{
       padding:10px 10px;
       border-bottom:1px solid var(--line);
-      font-size:14px;
-      line-height:1.2;
+      font-size:17px;          /* antes 14px */
+      line-height:1.25;
       vertical-align:top;
     }
     .floatTable th{
@@ -349,8 +366,12 @@
       color:#d7def6;
       text-align:left;
       font-weight:900;
+      position: sticky;         /* header pegajoso */
+      top: 0;
+      z-index: 2;
     }
     .floatTable tr:last-child td{ border-bottom:none; }
+
     .tag{
       display:inline-flex;
       align-items:center;
@@ -373,6 +394,7 @@
       .colA,.colB{ width:auto; }
       .modalBody{ overflow:auto; }
       .floatTable{ min-width:880px; }
+      .floatScroll{ max-height: 60vh; }
     }
   </style>
 </head>
@@ -390,7 +412,8 @@
           </div>
         </div>
         <div class="topActions">
-          <button class="secondary" id="btnComparativo" type="button" title="Ver comparativo financiero">Comparativo</button>
+          <!-- ✅ ya NO es secondary, queda azul -->
+          <button id="btnComparativo" type="button" title="Ver comparativo financiero">Comparativo</button>
         </div>
       </div>
 
@@ -675,77 +698,80 @@
       </div>
 
       <div class="modalBody">
-        <table class="floatTable">
-          <thead>
-            <tr>
-              <th class="colDim">Dimensión financiera</th>
-              <th class="colA">Pago de prestaciones al final</th>
-              <th class="colB">Plan de retiro (prefondeo)</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td><b>Naturaleza del pasivo</b></td>
-              <td>Pasivo laboral contingente que se materializa al momento del retiro o terminación.</td>
-              <td>Pasivo laboral parcialmente financiado mediante acumulación de activos en un fondo.</td>
-            </tr>
-            <tr>
-              <td><b>Impacto en liquidez</b></td>
-              <td>Alto impacto puntual en el flujo de caja cuando ocurre la obligación.</td>
-              <td>Impacto distribuido en el tiempo mediante aportaciones periódicas.</td>
-            </tr>
-            <tr>
-              <td><b>Gestión del riesgo financiero</b></td>
-              <td>Riesgo elevado de concentración de pagos en un solo periodo.</td>
-              <td>Riesgo reducido al dispersar el costo en múltiples periodos.</td>
-            </tr>
-            <tr>
-              <td><b>Exposición a inflación salarial</b></td>
-              <td>Alta exposición: el monto final depende del salario futuro.</td>
-              <td>Parcialmente mitigada al constituir reservas anticipadamente.</td>
-            </tr>
-            <tr>
-              <td><b>Costo financiero implícito</b></td>
-              <td>No se aprovecha el rendimiento del capital en el tiempo.</td>
-              <td>El fondo genera rendimientos que contribuyen a financiar la obligación.</td>
-            </tr>
-            <tr>
-              <td><b>Previsibilidad presupuestaria</b></td>
-              <td>Baja previsibilidad; el desembolso depende del momento de salida del trabajador.</td>
-              <td>Alta previsibilidad; las aportaciones se pueden presupuestar como gasto periódico.</td>
-            </tr>
-            <tr>
-              <td><b>Impacto en resultados del ejercicio</b></td>
-              <td>Puede generar distorsión en resultados si el pago ocurre en un solo ejercicio.</td>
-              <td>Permite distribuir el costo laboral en varios ejercicios contables.</td>
-            </tr>
-            <tr>
-              <td><b>Gestión actuarial del pasivo</b></td>
-              <td>Generalmente se gestiona como provisión pasiva o contingencia.</td>
-              <td>Se gestiona mediante esquema de financiamiento del pasivo laboral.</td>
-            </tr>
-            <tr>
-              <td><b>Estructura del flujo de caja</b></td>
-              <td>Flujo de caja negativo concentrado en el evento de retiro.</td>
-              <td>Flujo de caja negativo constante pero de menor magnitud.</td>
-            </tr>
-            <tr>
-              <td><b>Disciplina financiera requerida</b></td>
-              <td>Baja; no requiere estructura de fondo ni gestión continua.</td>
-              <td>Alta; requiere disciplina de aportación y monitoreo del rendimiento.</td>
-            </tr>
-            <tr>
-              <td><b>Riesgo de mercado</b></td>
-              <td>Bajo (no depende de inversión).</td>
-              <td>Moderado; depende del rendimiento del fondo de inversión.</td>
-            </tr>
-            <tr>
-              <td><b>Sostenibilidad financiera a largo plazo</b></td>
-              <td>Puede generar presión si se acumulan salidas en periodos cercanos.</td>
-              <td>Favorece sostenibilidad al anticipar el financiamiento del pasivo.</td>
-            </tr>
-          </tbody>
-        </table>
+        <!-- ✅ Scroll interno -->
+        <div class="floatScroll" aria-label="Tabla comparativa con desplazamiento">
+          <table class="floatTable">
+            <thead>
+              <tr>
+                <th class="colDim">Dimensión financiera</th>
+                <th class="colA">Pago de prestaciones al final</th>
+                <th class="colB">Plan de retiro (prefondeo)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><b>Naturaleza del pasivo</b></td>
+                <td>Pasivo laboral contingente que se materializa al momento del retiro o terminación.</td>
+                <td>Pasivo laboral parcialmente financiado mediante acumulación de activos en un fondo.</td>
+              </tr>
+              <tr>
+                <td><b>Impacto en liquidez</b></td>
+                <td>Alto impacto puntual en el flujo de caja cuando ocurre la obligación.</td>
+                <td>Impacto distribuido en el tiempo mediante aportaciones periódicas.</td>
+              </tr>
+              <tr>
+                <td><b>Gestión del riesgo financiero</b></td>
+                <td>Riesgo elevado de concentración de pagos en un solo periodo.</td>
+                <td>Riesgo reducido al dispersar el costo en múltiples periodos.</td>
+              </tr>
+              <tr>
+                <td><b>Exposición a inflación salarial</b></td>
+                <td>Alta exposición: el monto final depende del salario futuro.</td>
+                <td>Parcialmente mitigada al constituir reservas anticipadamente.</td>
+              </tr>
+              <tr>
+                <td><b>Costo financiero implícito</b></td>
+                <td>No se aprovecha el rendimiento del capital en el tiempo.</td>
+                <td>El fondo genera rendimientos que contribuyen a financiar la obligación.</td>
+              </tr>
+              <tr>
+                <td><b>Previsibilidad presupuestaria</b></td>
+                <td>Baja previsibilidad; el desembolso depende del momento de salida del trabajador.</td>
+                <td>Alta previsibilidad; las aportaciones se pueden presupuestar como gasto periódico.</td>
+              </tr>
+              <tr>
+                <td><b>Impacto en resultados del ejercicio</b></td>
+                <td>Puede generar distorsión en resultados si el pago ocurre en un solo ejercicio.</td>
+                <td>Permite distribuir el costo laboral en varios ejercicios contables.</td>
+              </tr>
+              <tr>
+                <td><b>Gestión actuarial del pasivo</b></td>
+                <td>Generalmente se gestiona como provisión pasiva o contingencia.</td>
+                <td>Se gestiona mediante esquema de financiamiento del pasivo laboral.</td>
+              </tr>
+              <tr>
+                <td><b>Estructura del flujo de caja</b></td>
+                <td>Flujo de caja negativo concentrado en el evento de retiro.</td>
+                <td>Flujo de caja negativo constante pero de menor magnitud.</td>
+              </tr>
+              <tr>
+                <td><b>Disciplina financiera requerida</b></td>
+                <td>Baja; no requiere estructura de fondo ni gestión continua.</td>
+                <td>Alta; requiere disciplina de aportación y monitoreo del rendimiento.</td>
+              </tr>
+              <tr>
+                <td><b>Riesgo de mercado</b></td>
+                <td>Bajo (no depende de inversión).</td>
+                <td>Moderado; depende del rendimiento del fondo de inversión.</td>
+              </tr>
+              <tr>
+                <td><b>Sostenibilidad financiera a largo plazo</b></td>
+                <td>Puede generar presión si se acumulan salidas en periodos cercanos.</td>
+                <td>Favorece sostenibilidad al anticipar el financiamiento del pasivo.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
 
         <div class="tag">Tip: Cierra con <b>Esc</b> o clic fuera</div>
       </div>
