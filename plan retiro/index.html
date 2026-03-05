@@ -707,7 +707,7 @@
       <div class="modalHeader">
         <div class="titleBox">
           <div class="title">Prestaciones vrs plan</div>
-          <div class="subtitle">Se grafica desde la antigüedad actual (Año 1) hasta el final de años hacia adelante</div>
+          <div class="subtitle">Se grafica desde la <b>antigüedad actual</b> hasta el final de la <b>antigüedad esperada</b></div>
         </div>
         <button class="iconBtn" id="lnClose" type="button" aria-label="Cerrar">✕</button>
       </div>
@@ -715,7 +715,7 @@
       <div class="modalBody">
         <div class="lineWrap">
           <div class="lineTop">
-            <div class="lineTitle" id="lnTitle">Acumulado por año (Año 1 = antigüedad actual)</div>
+            <div class="lineTitle" id="lnTitle">Acumulado por antigüedad (años)</div>
             <div class="lineMeta" id="lnMeta">—</div>
           </div>
 
@@ -805,28 +805,13 @@
       const genero       = ($("genero").value||"").toLowerCase().trim();
       const incAnual     = toNum($("incAnual").value);
 
-      // Sueldo promedio mensual actual (incluye 13vo prorrateado) = C6*13/12
       const sueldoPromActual = sueldoActual * 13 / 12;
-
-      // Edad retiro = IF(género=="femenino",60,65)
       const edadRetiro = (genero==="femenino") ? 60 : 65;
-
-      // Años hacia adelante = C10 - C9
       const anosAdelante = Math.max(0, edadRetiro - edadActual);
-
-      // Antigüedad esperada = (C10 - C9) + C8
       const antiguedadEsperada = anosAdelante + antiguedad;
-
-      // Antigüedad cálculo (según excel)
       const antiguedadCalculo = antiguedadCalculoExcel(antiguedadEsperada);
-
-      // Factor = (1 + inc)^años_hacia_adelante
       const factor = Math.pow(1 + incAnual, anosAdelante);
-
-      // Sueldo promedio futuro = C7*C18
       const sueldoPromFuturo = sueldoPromActual * factor;
-
-      // Prestaciones valor futuro = C15*C19
       const prestacionesFuturas = antiguedadCalculo * sueldoPromFuturo;
 
       $("sueldoPromActual").value    = fmtMoney.format(sueldoPromActual);
@@ -1053,13 +1038,19 @@
       o.setAttribute("aria-hidden","true");
     }
 
+    // =========================================================
+    // ✅ CAMBIO CLAVE:
+    // Para "Prestaciones vrs plan", el eje X ya NO es "Año 1..N",
+    // ahora es "Antigüedad (años)" desde Antigüedad actual hasta Antigüedad esperada.
+    // =========================================================
     function buildYearSeries(){
       calc();
       if(!lastPlan) calcPlan();
 
-      const anosAdelante = Math.max(0, Math.round(parseNumFromFormatted($("anosAdelante").value)));
       const incAnual     = toNum($("incAnual").value);
       const antiguedad0  = toNum($("antiguedad").value);
+      const antigEsperUI = parseNumFromFormatted($("antiguedadEsperada").value);
+      const yearsForward = Math.max(0, Math.round(antigEsperUI - antiguedad0));
 
       const sueldoPromMensual = parseMoneyFromFormatted($("sueldoPromActual").value); // mensual base (año actual)
       const tasaAnualFondo    = toNum($("tasaInteresFondo").value);
@@ -1067,25 +1058,24 @@
       const A0 = lastPlan ? toNum(lastPlan.A0) : 0;
       const p  = lastPlan ? toNum(lastPlan.p)  : 0;
 
-      const yearsX = [];
+      const xAntig = [];
       const prest  = [];
       const plan   = [];
 
-      // ✅ Prestaciones por año usando EXACTAMENTE la lógica del Excel
       function prestacionesAtYear(t){
         const antigEsper = antiguedad0 + t;
         const antigCal   = antiguedadCalculoExcel(antigEsper);
-        const sueldoFut  = sueldoPromMensual * Math.pow(1 + incAnual, t); // sueldo_prom_futuro(t)=C7*(1+inc)^t
+        const sueldoFut  = sueldoPromMensual * Math.pow(1 + incAnual, t);
         return Math.max(0, antigCal * sueldoFut);
       }
 
-      const N = anosAdelante * 12;
+      const N = yearsForward * 12;
       const i = tasaAnualFondo / 12;
 
       let bal = Math.max(0, A0);
 
-      // Año 1 = t=0 (antigüedad actual)
-      yearsX.push(1);
+      // Punto inicial: antigüedad actual
+      xAntig.push(antiguedad0);
       prest.push(prestacionesAtYear(0));
       plan.push(bal);
 
@@ -1097,26 +1087,26 @@
         bal += aporte_m;
 
         if(m % 12 === 0){
-          const t = m/12;
-          yearsX.push(t + 1);
+          const t = m/12;                 // años hacia adelante
+          xAntig.push(antiguedad0 + t);    // ✅ eje X = antigüedad
           prest.push(prestacionesAtYear(t));
           plan.push(bal);
         }
       }
 
       return {
-        yearsX, prest, plan,
-        anosAdelante,
+        xAntig, prest, plan,
+        yearsForward,
         tasaAnualFondo,
         incAnual,
         A0,
         p,
         antiguedad0,
-        antiguedadFinal: antiguedad0 + anosAdelante
+        antiguedadEsperada: antigEsperUI
       };
     }
 
-    function drawLineChart(canvas, years, seriesA, seriesB){
+    function drawLineChart(canvas, xVals, seriesA, seriesB){
       const ctx = canvas.getContext("2d");
 
       const dpr = window.devicePixelRatio || 1;
@@ -1137,8 +1127,8 @@
       const maxY = Math.max(1, ...seriesA, ...seriesB);
       const minY = 0;
 
-      const xMin = years[0] ?? 1;
-      const xMax = years[years.length-1] ?? 2;
+      const xMin = xVals[0] ?? 0;
+      const xMax = xVals[xVals.length-1] ?? (xMin + 1);
       const xRange = Math.max(1e-9, xMax - xMin);
 
       const x = (t)=> padL + ((t - xMin)/xRange) * plotW;
@@ -1181,19 +1171,21 @@
         ctx.fillText(moneyShort(val), padL - 8, yy);
       }
 
+      // X ticks
       ctx.textAlign = "center";
       ctx.textBaseline = "top";
       const span = xMax - xMin;
       const step = (span <= 12) ? 1 : (span <= 25 ? 2 : 5);
 
-      for(let t=xMin; t<=xMax; t+=step){
+      for(let t=Math.ceil(xMin); t<=xMax; t+=step){
         const xx = x(t);
         ctx.fillStyle = "rgba(233,238,252,.70)";
         ctx.fillText(String(t), xx, padT + plotH + 10);
       }
 
+      // ✅ etiqueta del eje X
       ctx.fillStyle = "rgba(169,180,214,.9)";
-      ctx.fillText("Año (Año 1 = antigüedad actual)", padL + plotW/2, padT + plotH + 26);
+      ctx.fillText("Antigüedad (años)", padL + plotW/2, padT + plotH + 26);
 
       const styles = getComputedStyle(document.documentElement);
       const cPrest = styles.getPropertyValue("--pie1").trim() || "#60a5fa";
@@ -1212,7 +1204,7 @@
       function clamp(v, a, b){ return Math.max(a, Math.min(b, v)); }
 
       function drawValueTag(px, py, text, color, place){
-        const padX = 7, padY = 4, r = 10;
+        const padX = 7, r = 10;
         ctx.font = "12px system-ui,-apple-system,Segoe UI,Roboto,Arial";
         const tw = ctx.measureText(text).width;
         const w = tw + padX*2;
@@ -1264,8 +1256,8 @@
         ctx.lineJoin = "round";
         ctx.lineCap = "round";
         ctx.beginPath();
-        for(let i=0;i<years.length;i++){
-          const xx = x(years[i]);
+        for(let i=0;i<xVals.length;i++){
+          const xx = x(xVals[i]);
           const yy = y(vals[i]);
           if(i===0) ctx.moveTo(xx,yy);
           else ctx.lineTo(xx,yy);
@@ -1273,8 +1265,8 @@
         ctx.stroke();
 
         ctx.fillStyle = color;
-        for(let i=0;i<years.length;i++){
-          const xx = x(years[i]);
+        for(let i=0;i<xVals.length;i++){
+          const xx = x(xVals[i]);
           const yy = y(vals[i]);
           ctx.beginPath();
           ctx.arc(xx,yy,3.2,0,Math.PI*2);
@@ -1285,8 +1277,9 @@
       strokeSeries(seriesA, cPrest);
       strokeSeries(seriesB, cPlan);
 
-      for(let i=0;i<years.length;i++){
-        const xx = x(years[i]);
+      // etiquetas flotantes
+      for(let i=0;i<xVals.length;i++){
+        const xx = x(xVals[i]);
         const yA = y(seriesA[i]);
         const yB = y(seriesB[i]);
 
@@ -1301,13 +1294,14 @@
       try{
         const data = buildYearSeries();
 
-        $("lnTitle").textContent = `Acumulado por año (Año 1 = antigüedad actual) · hasta Año ${data.anosAdelante + 1}`;
+        $("lnTitle").textContent =
+          `Acumulado por antigüedad (años): ${fmtNum.format(data.antiguedad0)} → ${fmtNum.format(data.antiguedadEsperada)}`;
+
         $("lnMeta").textContent =
-          `Antigüedad: ${fmtNum.format(data.antiguedad0)} → ${fmtNum.format(data.antiguedadFinal)} · ` +
           `A0: ${fmtMoney.format(data.A0||0)} · % mensual: ${fmtPct.format(data.p||0)} · ` +
           `i anual: ${fmtPct.format(data.tasaAnualFondo||0)} · inc anual: ${fmtPct.format(data.incAnual||0)}`;
 
-        drawLineChart($("lineCanvas"), data.yearsX, data.prest, data.plan);
+        drawLineChart($("lineCanvas"), data.xAntig, data.prest, data.plan);
       }catch(err){
         if(!silent){
           // intencionalmente sin mensajes
