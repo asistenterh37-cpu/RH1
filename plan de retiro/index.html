@@ -9,6 +9,8 @@
       --bg:#0b1220; --panel:#111a2e; --panel2:#0f1730;
       --text:#e9eefc; --muted:#a9b4d6; --line:rgba(255,255,255,.08);
       --ok:#22c55e; --warn:#f59e0b;
+      --pie1:#60a5fa; /* azul */
+      --pie2:#34d399; /* verde */
     }
     *{box-sizing:border-box}
     body{
@@ -220,6 +222,62 @@
       line-height:1.25;
     }
     .formula b{ color:#e9eefc; }
+
+    /* === PIE CHART === */
+    .pieWrap{
+      margin-top:10px;
+      border:1px solid var(--line);
+      border-radius:14px;
+      background:rgba(0,0,0,.10);
+      padding:10px;
+    }
+    .pieHeader{
+      display:flex;
+      align-items:flex-end;
+      justify-content:space-between;
+      gap:10px;
+      margin-bottom:8px;
+    }
+    .pieTitle{
+      font-weight:800;
+      color:#d7def6;
+      font-size:15px;
+    }
+    .pieSub{
+      color:var(--muted);
+      font-size:13px;
+      line-height:1.15;
+    }
+    .pieGrid{
+      display:grid;
+      grid-template-columns: 150px 1fr;
+      gap:10px;
+      align-items:center;
+    }
+    @media(max-width:420px){
+      .pieGrid{ grid-template-columns:1fr; }
+    }
+    canvas{ display:block; width:150px; height:150px; }
+    .legend{
+      display:grid;
+      gap:8px;
+      align-content:start;
+    }
+    .legendItem{
+      display:flex;
+      gap:10px;
+      align-items:flex-start;
+      padding:8px 10px;
+      border-radius:12px;
+      border:1px solid rgba(255,255,255,.08);
+      background:rgba(255,255,255,.03);
+    }
+    .swatch{ width:10px; height:10px; border-radius:999px; margin-top:3px; }
+    .sw1{ background:var(--pie1); }
+    .sw2{ background:var(--pie2); }
+    .legTxt{ line-height:1.15; }
+    .legTxt b{ color:var(--text); }
+    .legTxt .small{ color:var(--muted); font-size:13px; display:block; margin-top:2px; }
   </style>
 </head>
 
@@ -443,7 +501,6 @@
                 </td>
               </tr>
 
-              <!-- NUEVOS CAMPOS: Valores futuros -->
               <tr>
                 <td>Valor futuro de la <b>aportación inicial</b></td>
                 <td class="right">
@@ -464,6 +521,37 @@
               </tr>
             </tbody>
           </table>
+
+          <!-- === Gráfico circular (aparece/actualiza al calcular) === -->
+          <div class="pieWrap" id="pieWrap" style="display:none;">
+            <div class="pieHeader">
+              <div>
+                <div class="pieTitle">Composición del Valor Futuro del plan</div>
+                <div class="pieSub">¿Qué parte viene de la aportación inicial vs. aportes mensuales?</div>
+              </div>
+              <div class="pieSub" id="pieMeta"></div>
+            </div>
+
+            <div class="pieGrid">
+              <canvas id="pieCanvas" width="150" height="150" aria-label="Gráfico circular del plan"></canvas>
+              <div class="legend">
+                <div class="legendItem">
+                  <span class="swatch sw1"></span>
+                  <div class="legTxt">
+                    <b>Aportación inicial (FV)</b>
+                    <span class="small" id="legA0">—</span>
+                  </div>
+                </div>
+                <div class="legendItem">
+                  <span class="swatch sw2"></span>
+                  <div class="legTxt">
+                    <b>% de aportaciones (FV)</b>
+                    <span class="small" id="legAp">—</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
 
           <div class="hint">
             Objetivo: que el futuro valor de <span class="kbd">Aportación inicial</span> + aportes mensuales (con interés) sea igual a
@@ -576,6 +664,99 @@
       syncPlanDeRetiro()
     }
 
+    // === PIE CHART HELPERS ===
+    function drawPie(canvas, values, colors){
+      const ctx = canvas.getContext("2d")
+      const w = canvas.width, h = canvas.height
+      const cx = w/2, cy = h/2
+      const r = Math.min(w,h)/2 - 4
+
+      ctx.clearRect(0,0,w,h)
+
+      const total = values.reduce((a,b)=>a+b,0)
+      if(!(total>0)){
+        // círculo “vacío”
+        ctx.beginPath()
+        ctx.arc(cx, cy, r, 0, Math.PI*2)
+        ctx.fillStyle = "rgba(255,255,255,.06)"
+        ctx.fill()
+        ctx.strokeStyle = "rgba(255,255,255,.10)"
+        ctx.lineWidth = 2
+        ctx.stroke()
+        return
+      }
+
+      let start = -Math.PI/2
+      for(let k=0;k<values.length;k++){
+        const v = Math.max(0, values[k])
+        const ang = (v/total) * Math.PI*2
+        const end = start + ang
+
+        ctx.beginPath()
+        ctx.moveTo(cx, cy)
+        ctx.arc(cx, cy, r, start, end)
+        ctx.closePath()
+        ctx.fillStyle = colors[k]
+        ctx.fill()
+
+        start = end
+      }
+
+      // Donut hole (para que se vea más pro)
+      ctx.beginPath()
+      ctx.arc(cx, cy, r*0.58, 0, Math.PI*2)
+      ctx.fillStyle = "rgba(11,18,32,.92)"
+      ctx.fill()
+
+      // Borde suave
+      ctx.beginPath()
+      ctx.arc(cx, cy, r, 0, Math.PI*2)
+      ctx.strokeStyle = "rgba(255,255,255,.10)"
+      ctx.lineWidth = 2
+      ctx.stroke()
+    }
+
+    function renderPlanPie(FV_A0, FV_aportes, FV_plan){
+      const wrap = $("pieWrap")
+      const canvas = $("pieCanvas")
+
+      const a0 = Math.max(0, FV_A0)
+      const ap = Math.max(0, FV_aportes)
+      const total = Math.max(0, FV_plan)
+
+      // Mostrar bloque
+      wrap.style.display = "block"
+
+      // Porcentajes (sobre FV_plan)
+      const pctA0 = (total>0) ? (a0/total) : 0
+      const pctAp = (total>0) ? (ap/total) : 0
+
+      // Meta arriba derecha
+      $("pieMeta").textContent = `Total: ${fmtMoney.format(total)}`
+
+      // Leyenda
+      $("legA0").textContent = `${fmtPct.format(pctA0)} · ${fmtMoney.format(a0)}`
+      $("legAp").textContent = `${fmtPct.format(pctAp)} · ${fmtMoney.format(ap)}`
+
+      // Pintar
+      const styles = getComputedStyle(document.documentElement)
+      const c1 = styles.getPropertyValue("--pie1").trim() || "#60a5fa"
+      const c2 = styles.getPropertyValue("--pie2").trim() || "#34d399"
+      drawPie(canvas, [a0, ap], [c1, c2])
+    }
+
+    function hidePlanPie(){
+      $("pieWrap").style.display = "none"
+      // limpiar leyenda por si acaso
+      $("pieMeta").textContent = ""
+      $("legA0").textContent = "—"
+      $("legAp").textContent = "—"
+      // limpiar canvas
+      const c = $("pieCanvas")
+      const ctx = c.getContext("2d")
+      ctx.clearRect(0,0,c.width,c.height)
+    }
+
     function calcPlan(){
       // Asegura que arriba esté calculado
       calc()
@@ -605,6 +786,9 @@
         $("pr_fvAportacionInicial").value = fmtMoney.format(FV_A0)
         $("pr_fvAportesMensuales").value = fmtMoney.format(FV_aportes)
         $("pr_fvPlan").value = fmtMoney.format(FV_plan)
+
+        // PIE
+        renderPlanPie(FV_A0, FV_aportes, FV_plan)
         return
       }
 
@@ -630,16 +814,20 @@
         p = FV_futuro / denom
       }
 
-      // 5) CONSIGNAR valores futuros (lo que pediste)
-      const FV_A0 = A0 * Math.pow(1+i, N)              // debería ≈ FV_pasado
-      const FV_aportes = p * denom                     // debería ≈ FV_futuro
-      const FV_plan = FV_A0 + FV_aportes               // debería ≈ targetFV
+      // 5) CONSIGNAR valores futuros
+      const FV_A0 = A0 * Math.pow(1+i, N)              // ≈ FV_pasado
+      const FV_aportes = p * denom                     // ≈ FV_futuro (puede ser negativo si p<0)
+      const FV_plan = FV_A0 + FV_aportes               // ≈ targetFV
 
       $("pr_aportacionInicial").value = fmtMoney.format(A0)
       $("pr_porcentajeAportacion").value = fmtPct.format(p)
       $("pr_fvAportacionInicial").value = fmtMoney.format(FV_A0)
       $("pr_fvAportesMensuales").value = fmtMoney.format(FV_aportes)
       $("pr_fvPlan").value = fmtMoney.format(FV_plan)
+
+      // PIE: para el gráfico usamos composición “sobre el plan”.
+      // Si FV_aportes sale negativo, el gráfico mostrará 0% en esa parte (porque composición negativa no tiene sentido visual).
+      renderPlanPie(FV_A0, FV_aportes, FV_plan)
     }
 
     function clearAll(){
@@ -670,6 +858,8 @@
       $("pr_fvAportacionInicial").value=""
       $("pr_fvAportesMensuales").value=""
       $("pr_fvPlan").value=""
+
+      hidePlanPie()
     }
 
     function clearPlanOnly(){
@@ -678,6 +868,8 @@
       $("pr_fvAportacionInicial").value=""
       $("pr_fvAportesMensuales").value=""
       $("pr_fvPlan").value=""
+
+      hidePlanPie()
     }
 
     $("btnCalcular").addEventListener("click",(e)=>{e.preventDefault();calc()})
@@ -695,6 +887,8 @@
 
     // Inicial
     calc()
+    // (no mostramos el pie hasta que le des "Calcular" en el plan)
+    hidePlanPie()
   </script>
 </body>
 </html>
