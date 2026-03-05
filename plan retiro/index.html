@@ -1025,15 +1025,14 @@
     }
 
     // =========================================================
-    // ✅ AJUSTE SOLICITADO:
-    // El gráfico "Prestaciones vrs plan" debe considerar:
-    // - Desde la antigüedad actual (Año 1)
-    // - Hasta el final de "años hacia adelante" (Año = añosAdelante + 1)
-    // - El Año 1 es el año que muestra la antigüedad actual
+    // ✅ AJUSTE SOLICITADO (YA INCLUIDO):
+    // - Serie desde Año 1 = antigüedad actual (t=0)
+    // - Incluye valor inicial (Plan = A0) y prestaciones proyectadas desde Año 1
+    // ✅ NUEVO:
+    // - Etiquetas flotantes en los puntos (valores visibles)
     // =========================================================
 
     function buildYearSeries(){
-      // Asegura cálculos base + plan
       calc();
       if(!lastPlan) calcPlan();
 
@@ -1047,23 +1046,17 @@
       const A0 = lastPlan ? toNum(lastPlan.A0) : 0;
       const p  = lastPlan ? toNum(lastPlan.p)  : 0;
 
-      // yearsX: eje X como Año 1..(anosAdelante+1)
       const yearsX = [];
       const prest  = [];
       const plan   = [];
 
-      // Prestaciones: proyección anual (monto total estimado) en el año t (t=0 es "hoy")
       function prestacionesAtYear(t){
         const antigEsper = antiguedad0 + t;
         const antigCal   = (antigEsper > 25) ? 27 : (antigEsper + 2);
-
-        // sueldo mensual proyectado en t años (con incAnual)
         const sueldo_t = sueldoPromMensual * Math.pow(1 + incAnual, t);
-
         return Math.max(0, antigCal * sueldo_t);
       }
 
-      // Plan: simulación mensual y guardado al cierre de cada año
       const N = anosAdelante * 12;
       const i = tasaAnualFondo / 12;
 
@@ -1075,17 +1068,15 @@
       plan.push(bal);
 
       for(let m=1; m<=N; m++){
-        // interés del mes
         bal = bal * (1 + i);
 
-        // aporte del mes (crece con incAnual prorrateado)
         const sueldo_m = sueldoPromMensual * Math.pow(1 + incAnual, m/12);
         const aporte_m = Math.max(0, p) * sueldo_m;
         bal += aporte_m;
 
         if(m % 12 === 0){
-          const t = m/12;                 // 1..anosAdelante
-          yearsX.push(t + 1);            // Año 2..(anosAdelante+1)
+          const t = m/12;
+          yearsX.push(t + 1);
           prest.push(prestacionesAtYear(t));
           plan.push(bal);
         }
@@ -1132,7 +1123,16 @@
       const x = (t)=> padL + ((t - xMin)/xRange) * plotW;
       const y = (v)=> padT + (1 - ((v - minY)/(maxY - minY))) * plotH;
 
-      // grid (5 líneas)
+      // helpers de formato corto para etiquetas
+      const moneyShort = (v)=>{
+        const abs = Math.abs(v);
+        if(abs >= 1e9) return `L ${(v/1e9).toFixed(2)}B`;
+        if(abs >= 1e6) return `L ${(v/1e6).toFixed(2)}M`;
+        if(abs >= 1e3) return `L ${(v/1e3).toFixed(2)}K`;
+        return `L ${v.toFixed(0)}`;
+      };
+
+      // === Fondo grid (5 líneas) ===
       ctx.strokeStyle = "rgba(255,255,255,.08)";
       ctx.lineWidth = 1;
       const gridN = 5;
@@ -1158,25 +1158,15 @@
       ctx.font = "12px system-ui,-apple-system,Segoe UI,Roboto,Arial";
       ctx.textAlign = "right";
       ctx.textBaseline = "middle";
-
-      const moneyShort = (v)=>{
-        const abs = Math.abs(v);
-        if(abs >= 1e9) return `L ${(v/1e9).toFixed(2)}B`;
-        if(abs >= 1e6) return `L ${(v/1e6).toFixed(2)}M`;
-        if(abs >= 1e3) return `L ${(v/1e3).toFixed(2)}K`;
-        return `L ${v.toFixed(0)}`;
-      };
-
       for(let g=0; g<=gridN; g++){
         const val = minY + (1 - g/gridN)*(maxY - minY);
         const yy = padT + (g/gridN)*plotH;
         ctx.fillText(moneyShort(val), padL - 8, yy);
       }
 
-      // ticks X (cada 1 año, pero limita)
+      // ticks X
       ctx.textAlign = "center";
       ctx.textBaseline = "top";
-
       const span = xMax - xMin;
       const step = (span <= 12) ? 1 : (span <= 25 ? 2 : 5);
 
@@ -1194,13 +1184,82 @@
       const cPrest = styles.getPropertyValue("--pie1").trim() || "#60a5fa";
       const cPlan  = styles.getPropertyValue("--pie2").trim() || "#34d399";
 
+      // ========= Etiquetas flotantes (en canvas) =========
+      function roundRect(ctx, x, y, w, h, r){
+        const rr = Math.min(r, w/2, h/2);
+        ctx.beginPath();
+        ctx.moveTo(x+rr, y);
+        ctx.arcTo(x+w, y, x+w, y+h, rr);
+        ctx.arcTo(x+w, y+h, x, y+h, rr);
+        ctx.arcTo(x, y+h, x, y, rr);
+        ctx.arcTo(x, y, x+w, y, rr);
+        ctx.closePath();
+      }
+
+      function clamp(v, a, b){ return Math.max(a, Math.min(b, v)); }
+
+      function drawValueTag(px, py, text, color, place){
+        // place: "above" | "below"
+        const padX = 7, padY = 4, r = 10;
+        ctx.font = "12px system-ui,-apple-system,Segoe UI,Roboto,Arial";
+        const tw = ctx.measureText(text).width;
+        const w = tw + padX*2;
+        const h = 20;
+
+        // offset (arriba para prestaciones / abajo para plan)
+        const dy = (place === "below") ? 12 : -12 - h;
+        let bx = px - w/2;
+        let by = py + dy;
+
+        // mantener dentro del área del gráfico
+        const minX = padL + 2;
+        const maxX = padL + plotW - w - 2;
+        const minY = padT + 2;
+        const maxYb= padT + plotH - h - 2;
+        bx = clamp(bx, minX, maxX);
+        by = clamp(by, minY, maxYb);
+
+        // caja
+        roundRect(ctx, bx, by, w, h, r);
+        ctx.fillStyle = "rgba(11,18,32,.88)";
+        ctx.fill();
+
+        ctx.strokeStyle = "rgba(255,255,255,.10)";
+        ctx.lineWidth = 1;
+        ctx.stroke();
+
+        // mini-acento (borde superior con color de serie)
+        ctx.beginPath();
+        ctx.moveTo(bx+10, by+1);
+        ctx.lineTo(bx+w-10, by+1);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // texto
+        ctx.fillStyle = "rgba(233,238,252,.92)";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(text, bx + w/2, by + h/2);
+
+        // conector fino al punto
+        const anchorY = (place === "below") ? by : (by + h);
+        ctx.beginPath();
+        ctx.moveTo(px, py);
+        ctx.lineTo(px, anchorY);
+        ctx.strokeStyle = "rgba(255,255,255,.10)";
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      }
+
+      // ========= Series =========
       function strokeSeries(vals, color){
         ctx.strokeStyle = color;
         ctx.lineWidth = 2.2;
         ctx.lineJoin = "round";
         ctx.lineCap = "round";
         ctx.beginPath();
-        for(let i=0; i<years.length; i++){
+        for(let i=0;i<years.length;i++){
           const xx = x(years[i]);
           const yy = y(vals[i]);
           if(i===0) ctx.moveTo(xx,yy);
@@ -1210,7 +1269,7 @@
 
         // puntos
         ctx.fillStyle = color;
-        for(let i=0; i<years.length; i++){
+        for(let i=0;i<years.length;i++){
           const xx = x(years[i]);
           const yy = y(vals[i]);
           ctx.beginPath();
@@ -1221,15 +1280,28 @@
 
       strokeSeries(seriesA, cPrest);
       strokeSeries(seriesB, cPlan);
+
+      // ========= Etiquetas flotantes en cada punto =========
+      // Nota: para evitar choque visual, prestaciones arriba, plan abajo.
+      // Si quieres SOLO 1 etiqueta por año (con ambos valores), lo ajusto rápido.
+      for(let i=0;i<years.length;i++){
+        const xx = x(years[i]);
+        const yA = y(seriesA[i]);
+        const yB = y(seriesB[i]);
+
+        // alternar un poquito para que no se apilen en pantallas estrechas
+        const nudge = (i % 2 === 0) ? 0 : 6;
+
+        drawValueTag(xx + nudge, yA, moneyShort(seriesA[i]), cPrest, "above");
+        drawValueTag(xx - nudge, yB, moneyShort(seriesB[i]), cPlan, "below");
+      }
     }
 
     function renderLinea(silent){
       try{
         const data = buildYearSeries();
 
-        // título dinámico (por si cambian años)
         $("lnTitle").textContent = `Acumulado por año (Año 1 = antigüedad actual) · hasta Año ${data.anosAdelante + 1}`;
-
         $("lnMeta").textContent =
           `Antigüedad: ${fmtNum.format(data.antiguedad0)} → ${fmtNum.format(data.antiguedadFinal)} · ` +
           `A0: ${fmtMoney.format(data.A0||0)} · % mensual: ${fmtPct.format(data.p||0)} · ` +
@@ -1249,7 +1321,7 @@
       o.setAttribute("aria-hidden","false");
 
       renderLinea(true);
-      setTimeout(()=>renderLinea(true), 60); // por si cambia tamaño
+      setTimeout(()=>renderLinea(true), 60);
     }
 
     function closeLinea(){
