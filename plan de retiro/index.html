@@ -313,7 +313,6 @@
                 </td>
               </tr>
 
-              <!-- AJUSTE: etiqueta EXACTA como Excel -->
               <tr>
                 <td>Antigüedad cálculo ( meses )</td>
                 <td class="right">
@@ -340,7 +339,7 @@
                 </td>
               </tr>
               <tr>
-                <td>Prestaciones futuras</td>
+                <td>Prestaciones valor futuro</td>
                 <td class="right">
                   <div class="fieldBox"><input id="prestacionesFuturas" readonly></div>
                 </td>
@@ -383,6 +382,15 @@
                   <div class="fieldBox"><input id="pr_anosAdelante" readonly></div>
                 </td>
               </tr>
+
+              <!-- NUEVO: mismo campo calculado del bloque de prestaciones -->
+              <tr>
+                <td>Antigüedad cálculo ( meses )</td>
+                <td class="right">
+                  <div class="fieldBox"><input id="pr_antiguedadCalculo" readonly></div>
+                </td>
+              </tr>
+
               <tr>
                 <td>Inc % Anual (ej: 0.05 = 5%)</td>
                 <td class="right">
@@ -401,7 +409,7 @@
           </table>
 
           <div class="hint">
-            Nota: los primeros 4 campos se copian automáticamente desde arriba; solo editas la <b>Tasa Interés fondo</b>.
+            Nota: los primeros campos se copian automáticamente desde arriba; solo editas la <b>Tasa Interés fondo</b>.
           </div>
         </div>
 
@@ -445,7 +453,7 @@
           </table>
 
           <div class="hint">
-            Objetivo: que el <span class="kbd">Total cálculo</span> sea igual a <span class="kbd">Prestaciones futuras</span>.
+            Objetivo: que el <span class="kbd">Total cálculo</span> sea igual a <span class="kbd">Prestaciones valor futuro</span>.
             Si te sale un % negativo, es porque con solo el valor inicial ya “te pasaste” (qué bonito problema 😄).
           </div>
 
@@ -465,7 +473,7 @@
               donde Aporte(m) = p × Sueldo(m), y <b>p</b> es el porcentaje de aportación (en decimal).<br><br>
 
               <b>4) Despeje del porcentaje p</b><br>
-              p = (PrestacionesFuturas − VI×(1+i)^N) / Σ[ Sueldo(m)×(1+i)^(N-m) ].
+              p = (Prestaciones valor futuro − VI×(1+i)^N) / Σ[ Sueldo(m)×(1+i)^(N-m) ].
             </div>
           </details>
         </div>
@@ -498,6 +506,10 @@
       $("pr_sueldoPromActual").value = $("sueldoPromActual").value || ""
       $("pr_antiguedadActual").value = $("antiguedad").value !== "" ? fmtNum.format(toNum($("antiguedad").value)) : ""
       $("pr_anosAdelante").value = $("anosAdelante").value || ""
+
+      // NUEVO: copia el campo calculado también al plan
+      $("pr_antiguedadCalculo").value = $("antiguedadCalculo").value || ""
+
       $("pr_incAnual").value = $("incAnual").value !== "" ? fmtNum.format(toNum($("incAnual").value)) : ""
     }
 
@@ -520,7 +532,6 @@
       // Antigüedad esperada: (Edad retiro - Edad actual) + Antigüedad actual
       const antiguedadEsperada=anosAdelante+antiguedad
 
-      // AJUSTE CLAVE (Excel hoja Prestaciones):
       // Antigüedad cálculo ( meses ): IF(AntigüedadEsperada>25,27,AntigüedadEsperada+2)
       const antiguedadCalculo = (antiguedadEsperada > 25) ? 27 : (antiguedadEsperada + 2)
 
@@ -608,6 +619,7 @@
       $("pr_sueldoPromActual").value=""
       $("pr_antiguedadActual").value=""
       $("pr_anosAdelante").value=""
+      $("pr_antiguedadCalculo").value=""
       $("pr_incAnual").value=""
       $("tasaInteresFondo").value=""
 
