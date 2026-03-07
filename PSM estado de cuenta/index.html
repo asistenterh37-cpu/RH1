@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Patronato Residencial Santa Mónica - Gestión de cuota patronal</title>
 
-  <!-- ✅ CSP corregida: agrega script.googleusercontent.com (redir. de Apps Script) -->
   <meta http-equiv="Content-Security-Policy" content="
     default-src 'self' https://script.google.com https://script.googleusercontent.com https://docs.google.com;
     img-src 'self' data:;
@@ -223,7 +222,6 @@
     table.mini th{ color:var(--muted); font-size:12px; letter-spacing:.3px; text-transform:uppercase; }
     table.mini tfoot td{ font-weight:900; border-bottom:none; }
 
-    /* ✅ NUEVO: salida Casas al 100% */
     .codesBox{
       margin-top:12px;
       border:1px solid rgba(79,124,255,.28);
@@ -306,22 +304,22 @@
       tfoot td{ border-bottom:none; padding:10px 8px; font-weight:900; }
       canvas{ height:240px; }
     }
-    /* ✅ Casas100 tabla flotante */
-#casas100Tabla td{
-  white-space:normal;
-  overflow-wrap:anywhere;
-  word-break:break-word;
-}
-#casas100Tabla tbody tr{
-  cursor:pointer;
-}
-#casas100Tabla tbody tr:hover{
-  background:rgba(79,124,255,.08);
-}
-#casas100Tabla tbody tr.selected{
-  outline:2px solid rgba(79,124,255,.55);
-  background:rgba(79,124,255,.10);
-}
+
+    #casas100Tabla td{
+      white-space:normal;
+      overflow-wrap:anywhere;
+      word-break:break-word;
+    }
+    #casas100Tabla tbody tr{
+      cursor:pointer;
+    }
+    #casas100Tabla tbody tr:hover{
+      background:rgba(79,124,255,.08);
+    }
+    #casas100Tabla tbody tr.selected{
+      outline:2px solid rgba(79,124,255,.55);
+      background:rgba(79,124,255,.10);
+    }
   </style>
 </head>
 <body>
@@ -346,7 +344,6 @@
           <span class="pill menuPill">Modo: <strong id="menuMode">Consultar</strong></span>
         </div>
 
-        <!-- ✅ 1) CONSULTAR -->
         <div class="section active" id="secConsultar">
           <div class="grid" style="margin-bottom:12px;">
             <div>
@@ -370,7 +367,8 @@
 
           <div class="row2" id="resumenConsultar">
             <div class="pill">Nombre: <strong id="nombre">—</strong></div>
-            <div class="pill">Total: <strong id="total">0.00</strong></div>
+            <div class="pill">Suma últimos 12 meses: <strong id="total">0.00</strong></div>
+            <div class="pill">Estado: <strong id="estadoCuenta12">—</strong></div>
           </div>
 
           <div id="msg" class="msg">Primero puedes “Consultar” por Código F, o “Buscar” una Referencia para luego guardar Código F y Nombre.</div>
@@ -387,13 +385,12 @@
               </thead>
               <tbody id="tbody"></tbody>
               <tfoot>
-                <tr><td colspan="4" class="right">Total</td><td class="right" id="tfootTotal">0.00</td></tr>
+                <tr><td colspan="4" class="right">Suma últimos 12 meses</td><td class="right" id="tfootTotal">0.00</td></tr>
               </tfoot>
             </table>
           </div>
         </div>
 
-        <!-- ✅ 2) REGISTRAR -->
         <div class="section" id="secRegistrar">
           <div class="grid" style="margin-bottom:12px;">
             <div>
@@ -443,7 +440,6 @@
           <div class="msg" id="msgRegistrar" style="display:none;"></div>
         </div>
 
-        <!-- ✅ 3) REPORTES -->
         <div class="section" id="secReportes">
           <div class="analysisWrap" id="analysisWrap">
             <div class="analysisTitle">
@@ -455,48 +451,46 @@
             </div>
 
             <div class="analysisGrid">
-  <div>
-    <label for="tipoReporte">Tipo de reporte</label>
-    <select id="tipoReporte">
-      <option value="aportantes">1) Aportantes</option>
-      <option value="aportaciones">2) Aportaciones</option>
-      <option value="casas100">3) Casas al 100%</option>
-    </select>
-  </div>
+              <div>
+                <label for="tipoReporte">Tipo de reporte</label>
+                <select id="tipoReporte">
+                  <option value="aportantes">1) Aportantes</option>
+                  <option value="aportaciones">2) Aportaciones</option>
+                  <option value="casas100">3) Casas al 100%</option>
+                </select>
+              </div>
 
-  <!-- ✅ Año/Mes: se usan para 1) Aportantes y 2) Aportaciones
-       🚫 Para 3) Casas al 100% NO se muestran (se toma el último Año/Mes usado en Aportaciones) -->
-  <div id="rowYM">
-    <label for="anioA">Año</label>
-    <select id="anioA">
-      <option value="Todos">Todos</option>
-      <option value="2025">2025</option>
-      <option value="2026">2026</option>
-    </select>
-  </div>
+              <div id="rowYM">
+                <label for="anioA">Año</label>
+                <select id="anioA">
+                  <option value="Todos">Todos</option>
+                  <option value="2025">2025</option>
+                  <option value="2026">2026</option>
+                </select>
+              </div>
 
-  <div id="rowYM2">
-    <label for="mesA">Mes</label>
-    <select id="mesA">
-      <option value="Todos">Todos</option>
-      <option value="Enero">Enero</option><option value="Febrero">Febrero</option><option value="Marzo">Marzo</option>
-      <option value="Abril">Abril</option><option value="Mayo">Mayo</option><option value="Junio">Junio</option>
-      <option value="Julio">Julio</option><option value="Agosto">Agosto</option><option value="Septiembre">Septiembre</option>
-      <option value="Octubre">Octubre</option><option value="Noviembre">Noviembre</option><option value="Diciembre">Diciembre</option>
-    </select>
-  </div>
+              <div id="rowYM2">
+                <label for="mesA">Mes</label>
+                <select id="mesA">
+                  <option value="Todos">Todos</option>
+                  <option value="Enero">Enero</option><option value="Febrero">Febrero</option><option value="Marzo">Marzo</option>
+                  <option value="Abril">Abril</option><option value="Mayo">Mayo</option><option value="Junio">Junio</option>
+                  <option value="Julio">Julio</option><option value="Agosto">Agosto</option><option value="Septiembre">Septiembre</option>
+                  <option value="Octubre">Octubre</option><option value="Noviembre">Noviembre</option><option value="Diciembre">Diciembre</option>
+                </select>
+              </div>
 
-  <!-- ✅ NUEVO: solo para Casas al 100% -->
-  <div id="rowCasasModo" style="display:none;">
-    <label for="casasModo">Mostrar</label>
-    <select id="casasModo">
-      <option value="todos">Todos los meses (ventana completa)</option>
-      <option value="pormes">Por mes (rolling 12 meses)</option>
-    </select>
-  </div>
+              <div id="rowCasasModo" style="display:none;">
+                <label for="casasModo">Mostrar</label>
+                <select id="casasModo">
+                  <option value="todos">Todos los meses (ventana completa)</option>
+                  <option value="pormes">Por mes (rolling 12 meses)</option>
+                </select>
+              </div>
 
-  <div><button class="btn" id="btnAnalizar" type="button">Generar</button></div>
-</div>
+              <div><button class="btn" id="btnAnalizar" type="button">Generar</button></div>
+            </div>
+
             <div class="analysisGrid" style="margin-top:10px;" id="rowBloque">
               <div>
                 <label for="bloqueA">Bloque</label>
@@ -512,51 +506,48 @@
                 <canvas id="chartCanvas"></canvas>
                 <div class="small" id="chartHint" style="margin-top:10px;"></div>
 
-               <!-- ✅ NUEVO: Casas al 100% (tabla flotante) -->
-<div class="codesBox" id="casas100Box" style="display:none;">
-  <div class="row2" style="margin-top:0; justify-content:space-between; gap:10px;">
-    <div class="small" id="casas100Meta" style="margin:0;"></div>
-    <div style="display:flex; gap:10px; flex-wrap:wrap;">
-      <button class="btn ghost" id="btnCasas100VerTabla" type="button">Ver tabla</button>
-      <button class="btn ghost" id="btnCasas100Copiar" type="button">Copiar</button>
-    </div>
-  </div>
+                <div class="codesBox" id="casas100Box" style="display:none;">
+                  <div class="row2" style="margin-top:0; justify-content:space-between; gap:10px;">
+                    <div class="small" id="casas100Meta" style="margin:0;"></div>
+                    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                      <button class="btn ghost" id="btnCasas100VerTabla" type="button">Ver tabla</button>
+                      <button class="btn ghost" id="btnCasas100Copiar" type="button">Copiar</button>
+                    </div>
+                  </div>
 
-  <!-- ✅ Resumen rápido (una fila) -->
-  <div class="codesLine" id="casas100Lines" style="margin-top:10px;"></div>
-</div>
+                  <div class="codesLine" id="casas100Lines" style="margin-top:10px;"></div>
+                </div>
 
-<!-- ✅ Overlay flotante con tabla -->
-<div class="modalOverlay" id="casas100Overlay" aria-hidden="true">
-  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="casas100Title">
-    <div class="modalHead">
-      <div class="ttl" id="casas100Title">Casas al 100% — Códigos</div>
-      <button class="btn ghost" id="btnCasas100Close" type="button">Cerrar</button>
-    </div>
+                <div class="modalOverlay" id="casas100Overlay" aria-hidden="true">
+                  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="casas100Title">
+                    <div class="modalHead">
+                      <div class="ttl" id="casas100Title">Casas al 100% — Códigos</div>
+                      <button class="btn ghost" id="btnCasas100Close" type="button">Cerrar</button>
+                    </div>
 
-    <div class="modalBody">
-      <div class="pill" style="margin-bottom:10px; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
-        Ventana: <strong id="casas100WinLabel">—</strong>
-      </div>
+                    <div class="modalBody">
+                      <div class="pill" style="margin-bottom:10px; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                        Ventana: <strong id="casas100WinLabel">—</strong>
+                      </div>
 
-      <div class="miniTableWrap" style="margin-top:0;">
-        <table class="mini" id="casas100Tabla">
-          <thead>
-            <tr>
-              <th style="width:180px;">Mes</th>
-              <th>Códigos (≥ 3600)</th>
-            </tr>
-          </thead>
-          <tbody id="casas100Tbody"></tbody>
-        </table>
-      </div>
+                      <div class="miniTableWrap" style="margin-top:0;">
+                        <table class="mini" id="casas100Tabla">
+                          <thead>
+                            <tr>
+                              <th style="width:180px;">Mes</th>
+                              <th>Códigos (≥ 3600)</th>
+                            </tr>
+                          </thead>
+                          <tbody id="casas100Tbody"></tbody>
+                        </table>
+                      </div>
 
-      <div class="small" style="margin-top:10px;">
-        Tip: “Copiar” copia el resumen (una línea con comas). En modo “Por mes” copia la línea del mes seleccionado en la tabla (si lo marcás).
-      </div>
-    </div>
-  </div>
-</div>
+                      <div class="small" style="margin-top:10px;">
+                        Tip: “Copiar” copia el resumen (una línea con comas). En modo “Por mes” copia la línea del mes seleccionado en la tabla (si lo marcás).
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
 
               <div class="miniTableWrap" id="aportacionesTableWrap" style="display:none;">
@@ -566,7 +557,7 @@
                   </thead>
                   <tbody id="aportacionesTbody"></tbody>
                   <tfoot>
-                    <tr><td class="right">Total general</td><td class="right" id="aportacionesTotalGeneral">0.00</td></tr>
+                    <tr><td class="right">Total general</td><td class="right" id="aportacionesTotalGeneral">0.0 mil</td></tr>
                   </tfoot>
                 </table>
               </div>
@@ -576,7 +567,6 @@
           <div class="msg" id="msgReportes" style="display:none;"></div>
         </div>
 
-        <!-- ✅ 4) PINS -->
         <div class="section" id="secPins">
           <div class="analysisWrap">
             <div class="analysisTitle">
@@ -634,7 +624,6 @@
     </div>
   </div>
 
-  <!-- ✅ CONFIG OCULTA -->
   <div class="modalOverlay" id="cfgOverlay" aria-hidden="true">
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="cfgTitle">
       <div class="modalHead">
@@ -672,10 +661,6 @@
   </div>
 
 <script>
-/* =========================================================================
-✅ DISUASIVO SUAVE (NO BLOQUEA LA APP)
-=========================================================================
-*/
 document.addEventListener('contextmenu', (e) => e.preventDefault(), { passive:false });
 document.addEventListener('keydown', (e) => {
   const k = (e.key || "").toLowerCase();
@@ -688,13 +673,11 @@ document.addEventListener('keydown', (e) => {
   }
 }, { capture:true });
 
-/* =========================== ✅ CONFIG + APP =========================== */
 const DEFAULT_SHEET_URL = "https://docs.google.com/spreadsheets/d/1PeFt5YUi1W5jI-sHo75E-0CHQUihADd2u4uqmHU5AK8/edit?usp=sharing";
 const DEFAULT_GS_EXEC_URL = "https://script.google.com/macros/s/AKfycbwNyc-YNIOo1cg6ZKRBovNYd7BvZKGaiuExC4v5ZbntxF_gP9VTFIhOcbZf4zu7F1IWkg/exec";
 const LS_KEY = "PRSM_GS_URL";
 const PINS_TOKEN_KEY = "PRSM_PINS_TOKEN";
 
-/* Bloques: aportantes usa 1..33 + 50/51, Casas100 usa 1..33 */
 const BLOCK_LIST_APORTANTES = (() => { const a=[]; for(let i=1;i<=33;i++) a.push(i); a.push(50,51); return a; })();
 const BLOCK_SET_APORTANTES = new Set(BLOCK_LIST_APORTANTES);
 const BLOCK_LIST_1_33 = (() => { const a=[]; for(let i=1;i<=33;i++) a.push(i); return a; })();
@@ -702,7 +685,6 @@ const BLOCK_SET_1_33 = new Set(BLOCK_LIST_1_33);
 
 const MONTHS_ES = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
 
-/* =========================== ✅ CONFIG OCULTA (modal) =========================== */
 const cfgOverlay = document.getElementById('cfgOverlay');
 const btnCfgClose = document.getElementById('btnCfgClose');
 const titleH1 = document.getElementById('titleH1');
@@ -727,7 +709,6 @@ document.addEventListener('keydown', (e) => {
 titleH1.addEventListener('dblclick', openConfig);
 if (location.hash === '#config') openConfig();
 
-/* =========================== ✅ Fuentes =========================== */
 const sheetIdEl = document.getElementById('sheetId');
 const execOkEl = document.getElementById('execOk');
 const execUrlShowEl = document.getElementById('execUrlShow');
@@ -776,7 +757,6 @@ gsUrlEl.addEventListener('input', () => {
   }, 250);
 });
 
-/* =========================== ✅ Helpers =========================== */
 const msgEl = document.getElementById('msg');
 function setMsg(text, type) {
   msgEl.textContent = text;
@@ -785,6 +765,10 @@ function setMsg(text, type) {
 function money(n){
   const x = Number(n || 0);
   return x.toLocaleString('es-HN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+function miles1(n){
+  const x = Number(n || 0) / 1000;
+  return x.toLocaleString('es-HN', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + ' mil';
 }
 function getExecUrlOrExplain(){
   const gsUrl = normalizeGsUrl(gsUrlEl.value);
@@ -824,7 +808,6 @@ function jsonp(url, params = {}, timeoutMs = 15000) {
   });
 }
 
-/* =========================== ✅ ELEMENTOS UI (Base) =========================== */
 const referenciaEl = document.getElementById('referencia');
 const btnAplicar = document.getElementById('btnAplicar');
 const btnLimpiarRegistrar = document.getElementById('btnLimpiarRegistrar');
@@ -845,6 +828,7 @@ const nombreEl = document.getElementById('nombre');
 const totalEl = document.getElementById('total');
 const tfootTotalEl = document.getElementById('tfootTotal');
 const countEl = document.getElementById('count');
+const estadoCuenta12El = document.getElementById('estadoCuenta12');
 
 const inlineEditEl = document.getElementById('inlineEdit');
 const refActivaEl = document.getElementById('refActiva');
@@ -855,25 +839,22 @@ const btnAplicarCambios = document.getElementById('btnAplicarCambios');
 
 let referenciaActiva = "";
 
-/* =========================== ✅ REPORTES UI =========================== */
 const tipoReporteEl = document.getElementById('tipoReporte');
 const reportTitleEl = document.getElementById('reportTitle');
 const anioAEl = document.getElementById('anioA');
 const mesAEl = document.getElementById('mesA');
 
-/* ✅ NUEVO: wrappers para ocultar Año/Mes en Casas100 */
 const rowYMEl = document.getElementById('rowYM');
 const rowYM2El = document.getElementById('rowYM2');
 
-/* ✅ NUEVO: recordar el último Año/Mes usado en Aportaciones */
 let lastAportacionesYear = "Todos";
 let lastAportacionesMes  = "Todos";
 
-/* ✅ NUEVO: modo Casas100 (todos vs por mes) */
 const casasModoEl = document.getElementById('casasModo');
 const rowCasasModoEl = document.getElementById('rowCasasModo');
 
-const bloqueAEl = document.getElementById('bloqueA');const rowBloqueEl = document.getElementById('rowBloque');
+const bloqueAEl = document.getElementById('bloqueA');
+const rowBloqueEl = document.getElementById('rowBloque');
 
 const btnAnalizar = document.getElementById('btnAnalizar');
 const btnLimpiarAnalisis = document.getElementById('btnLimpiarAnalisis');
@@ -886,7 +867,6 @@ const aportacionesTableWrapEl = document.getElementById('aportacionesTableWrap')
 const aportacionesTbodyEl = document.getElementById('aportacionesTbody');
 const aportacionesTotalGeneralEl = document.getElementById('aportacionesTotalGeneral');
 
-/* ✅ NUEVO: UI Casas 100% (tabla flotante) */
 const casas100BoxEl = document.getElementById('casas100Box');
 const casas100MetaEl = document.getElementById('casas100Meta');
 const casas100LinesEl = document.getElementById('casas100Lines');
@@ -899,7 +879,7 @@ const btnCasas100Close = document.getElementById('btnCasas100Close');
 const casas100WinLabel = document.getElementById('casas100WinLabel');
 const casas100Tbody = document.getElementById('casas100Tbody');
 
-let casas100SelectedText = ""; // para copiar desde tabla (modo por mes)
+let casas100SelectedText = "";
 
 function openCasas100Overlay(){
   if (!casas100Overlay) return;
@@ -923,7 +903,6 @@ async function copyTextToClipboard(txt){
     await navigator.clipboard.writeText(s);
     setMsg("Copiado ✅", "ok");
   }catch(_){
-    // fallback
     const ta = document.createElement("textarea");
     ta.value = s;
     ta.style.position = "fixed";
@@ -937,12 +916,11 @@ async function copyTextToClipboard(txt){
 }
 
 if (btnCasas100Copiar) btnCasas100Copiar.addEventListener('click', async () => {
-  // Prioriza selección de tabla si existe (modo pormes), si no, copia resumen
   const txt = (casas100SelectedText || casas100LinesEl.textContent || "").trim();
   if (!txt) return setMsg("Nada para copiar.", "bad");
   await copyTextToClipboard(txt);
 });
-/* =========================== ✅ ELEMENTOS UI (Pins) =========================== */
+
 const pinsPassEl = document.getElementById('pinsPass');
 const btnPinsEntrar = document.getElementById('btnPinsEntrar');
 const btnPinsSalir = document.getElementById('btnPinsSalir');
@@ -962,7 +940,6 @@ function setPinsMsg(text, type){
   msgPinsEl.className = 'msg' + (type ? ' ' + type : '');
 }
 
-/* =========================== ✅ MENU (Tabs) =========================== */
 const menuModeEl = document.getElementById('menuMode');
 const menuButtons = Array.from(document.querySelectorAll('.menuBtn'));
 const sections = Array.from(document.querySelectorAll('.section'));
@@ -979,7 +956,6 @@ function setActiveSection(id){
 }
 menuButtons.forEach(btn => btn.addEventListener('click', () => setActiveSection(btn.dataset.target)));
 
-/* ✅ Bloques dinámicos por tipo de reporte */
 function fillBloquesForReport(){
   const t = tipoReporteEl.value;
   const list = (t === "casas100") ? BLOCK_LIST_1_33 : BLOCK_LIST_APORTANTES;
@@ -1000,13 +976,13 @@ function fillBloquesForReport(){
 }
 fillBloquesForReport();
 
-/* =========================== ✅ UI Helpers =========================== */
 function resetVistaResultados(){
   tablaEl.style.display = 'none';
   tbodyEl.innerHTML = '';
   totalEl.textContent = '0.00';
   tfootTotalEl.textContent = '0.00';
   countEl.textContent = '0';
+  estadoCuenta12El.textContent = '—';
 }
 function hideInlineEdit(){
   inlineEditEl.style.display = 'none';
@@ -1034,7 +1010,6 @@ function showNotFound(referencia){
   refNotFoundEl.style.display = 'block';
 }
 
-/* =========================== ✅ Ping / Diagnóstico =========================== */
 async function ping(){
   const gsUrl = getExecUrlOrExplain();
   if (!gsUrl) return;
@@ -1063,7 +1038,6 @@ function resetUrl(){
   setMsg('URL reseteada. Si re-implementaste, pega la NUEVA /exec en Config (Ctrl+Shift+S).', '');
 }
 
-/* =========================== ✅ GRÁFICO (Canvas) =========================== */
 function resizeCanvasCssHeight(px){ chartCanvas.style.height = px + "px"; }
 function clearChart(msg = "Sin datos aún. Presiona “Generar”."){
   resizeCanvasCssHeight(260);
@@ -1115,7 +1089,7 @@ function drawHorizontalBarsGeneric(items, titleText, valueFormatter){
     ctx.font = "11px system-ui, -apple-system, Segoe UI, Roboto, Arial";
     ctx.textAlign = "center";
     ctx.textBaseline = "bottom";
-    ctx.fillText(String(v), x, padT - 10);
+    ctx.fillText(valueFormatter ? valueFormatter(v) : String(v), x, padT - 10);
   }
 
   ctx.fillStyle = "rgba(231,238,252,.95)";
@@ -1168,7 +1142,7 @@ function drawVerticalBarsGeneric(items, titleText, valueFormatter){
   const dpr = window.devicePixelRatio || 1;
   const w = chartCanvas.clientWidth || 760;
   const n = items.length || 0;
-  const padL = 44, padR = 18, padT = 34, padB = 58;
+  const padL = 64, padR = 18, padT = 34, padB = 58;
   const plotW = w - padL - padR;
   const plotH = 320;
   const desiredH = Math.max(300, padT + plotH + padB);
@@ -1198,12 +1172,12 @@ function drawVerticalBarsGeneric(items, titleText, valueFormatter){
     ctx.moveTo(padL, y);
     ctx.lineTo(w - padR, y);
     ctx.stroke();
-    const v = max === 0 ? 0 : Math.round(max * (i/steps));
+    const v = max === 0 ? 0 : (max * (i/steps));
     ctx.fillStyle = "rgba(159,179,217,.95)";
     ctx.font = "11px system-ui, -apple-system, Segoe UI, Roboto, Arial";
     ctx.textAlign = "right";
     ctx.textBaseline = "middle";
-    ctx.fillText(String(v), padL - 8, y);
+    ctx.fillText(valueFormatter ? valueFormatter(v) : String(Math.round(v)), padL - 8, y);
   }
 
   const gap = 6;
@@ -1243,7 +1217,6 @@ function drawVerticalBarsGeneric(items, titleText, valueFormatter){
   ctx.stroke();
 }
 
-/* =========================== ✅ Limpiezas =========================== */
 function limpiarConsultar(){
   codigoFEl.value = '';
   anioEl.value = 'Todos';
@@ -1285,8 +1258,8 @@ function limpiarReportes(){
   analisisFiltroEl.textContent = "—";
   aportacionesTableWrapEl.style.display = "none";
   aportacionesTbodyEl.innerHTML = "";
-  aportacionesTotalGeneralEl.textContent = "0.00";
-   casas100BoxEl.style.display = "none";
+  aportacionesTotalGeneralEl.textContent = "0.0 mil";
+  casas100BoxEl.style.display = "none";
   casas100MetaEl.textContent = "";
   casas100LinesEl.textContent = "";
   if (casasModoEl) casasModoEl.value = "todos";
@@ -1294,7 +1267,6 @@ function limpiarReportes(){
   clearChart();
 }
 
-/* =========================== ✅ Registrar referencia =========================== */
 async function buscarReferencia(){
   const gsUrl = getExecUrlOrExplain();
   if (!gsUrl) return;
@@ -1355,11 +1327,52 @@ async function aplicarCambios(){
   }
 }
 
-/* =========================== ✅ Estado de cuenta =========================== */
 const MONTH_ORDER = { enero:1, febrero:2, marzo:3, abril:4, mayo:5, junio:6, julio:7, agosto:8, septiembre:9, setiembre:9, octubre:10, noviembre:11, diciembre:12 };
 function normText(s){ return String(s ?? "").trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""); }
 function monthIndex(mes){ const key = normText(mes); return MONTH_ORDER[key] || 99; }
 function toYearNumber(v){ const n = parseInt(String(v ?? "").trim(), 10); return Number.isFinite(n) ? n : 9999; }
+function ymSerial(anio, mes){
+  const y = toYearNumber(anio);
+  const m = monthIndex(mes);
+  return (y * 12) + m;
+}
+function isAportacionConcepto(concepto){
+  return normText(concepto).includes("aportac");
+}
+function calcularSumaUltimos12Meses(items){
+  if (!Array.isArray(items) || !items.length){
+    return { suma:0, estado:"—", ultimoLabel:"—", ventana:"—" };
+  }
+
+  let ultimo = null;
+  for (const it of items){
+    const serial = ymSerial(it.Año, it.Mes);
+    if (!ultimo || serial > ultimo.serial){
+      ultimo = { serial, anio: toYearNumber(it.Año), mes: monthIndex(it.Mes), mesTxt: it.Mes, anioTxt: it.Año };
+    }
+  }
+
+  if (!ultimo){
+    return { suma:0, estado:"—", ultimoLabel:"—", ventana:"—" };
+  }
+
+  const minSerial = ultimo.serial - 11;
+  let suma = 0;
+
+  for (const it of items){
+    const serial = ymSerial(it.Año, it.Mes);
+    if (serial >= minSerial && serial <= ultimo.serial && isAportacionConcepto(it.Concepto)){
+      suma += Number(it.Valor || 0);
+    }
+  }
+
+  return {
+    suma,
+    estado: suma >= 3600 ? "Al día" : "En mora",
+    ultimoLabel: `${ultimo.mesTxt} ${ultimo.anioTxt}`,
+    ventana: `Últimos 12 meses hasta ${ultimo.mesTxt} ${ultimo.anioTxt}`
+  };
+}
 
 async function consultar(){
   const gsUrl = getExecUrlOrExplain();
@@ -1373,6 +1386,7 @@ async function consultar(){
   totalEl.textContent = '0.00';
   tfootTotalEl.textContent = '0.00';
   countEl.textContent = '0';
+  estadoCuenta12El.textContent = '—';
   try{
     const data = await jsonp(gsUrl, { action: 'estadoCuenta', codigof, year }, 18000);
     if (!data || data.ok !== true) throw new Error((data && data.error) ? data.error : 'Respuesta inválida del WebApp');
@@ -1384,17 +1398,23 @@ async function consultar(){
       if (ma !== mb) return ma - mb;
       return String(a.Referencia ?? "").localeCompare(String(b.Referencia ?? ""), "es");
     });
+
     nombreEl.textContent = data.nombre || '—';
-    totalEl.textContent = money(data.total);
-    tfootTotalEl.textContent = money(data.total);
     countEl.textContent = String(items.length);
 
     if (!items.length){
+      totalEl.textContent = money(0);
+      tfootTotalEl.textContent = money(0);
+      estadoCuenta12El.textContent = '—';
       setMsg('No hay movimientos para ese Código F (y año seleccionado).', 'bad');
       return;
     }
 
-    /* ✅ FIX REAL: backticks */
+    const resumen12 = calcularSumaUltimos12Meses(items);
+    totalEl.textContent = money(resumen12.suma);
+    tfootTotalEl.textContent = money(resumen12.suma);
+    estadoCuenta12El.textContent = resumen12.estado;
+
     tbodyEl.innerHTML = items.map(it => `
       <tr>
         <td class="anio">${it.Año ?? ''}</td>
@@ -1406,13 +1426,12 @@ async function consultar(){
     `).join('');
 
     tablaEl.style.display = '';
-    setMsg('Listo ✅', 'ok');
+    setMsg(`Listo ✅\n${resumen12.ventana}\nEstado: ${resumen12.estado}`, 'ok');
   }catch(err){
     setMsg('Error:\n' + err.message, 'bad');
   }
 }
 
-/* =========================== ✅ Reportes =========================== */
 function filtroTextReportes(){
   const t = tipoReporteEl.value;
   const y = anioAEl.value, m = mesAEl.value, b = bloqueAEl.value;
@@ -1423,20 +1442,19 @@ function filtroTextReportes(){
   const modo = (casasModoEl && casasModoEl.value) ? casasModoEl.value : "todos";
   return `Tipo=Casas100 | Último(Aportaciones) Año=${lastAportacionesYear} | Mes=${lastAportacionesMes} | Bloque=${b} | Modo=${modo}`;
 }
-  function syncReporteUI(){
+
+function syncReporteUI(){
   const t = tipoReporteEl.value;
   const isAportantes = (t === "aportantes");
   const isAportaciones = (t === "aportaciones");
   const isCasas100 = (t === "casas100");
 
-    rowBloqueEl.style.display = (isAportantes || isCasas100) ? "" : "none";
+  rowBloqueEl.style.display = (isAportantes || isCasas100) ? "" : "none";
 
-    // ✅ Año/Mes se ocultan SOLO en Casas100
   const showYM = !isCasas100;
   if (rowYMEl)  rowYMEl.style.display  = showYM ? "" : "none";
   if (rowYM2El) rowYM2El.style.display = showYM ? "" : "none";
 
-  // ✅ Modo Casas100: SOLO visible en Casas100
   if (rowCasasModoEl) rowCasasModoEl.style.display = isCasas100 ? "" : "none";
   if (casasModoEl && !casasModoEl.value) casasModoEl.value = "todos";
   aportacionesTableWrapEl.style.display = "none";
@@ -1450,7 +1468,7 @@ function filtroTextReportes(){
     clearChart("Aportantes: presiona “Generar”.");
   } else if (isAportaciones){
     reportTitleEl.textContent = "Reportes • 2) Aportaciones";
-    chartHintEl.innerHTML = `Aportaciones: <strong>suma de Valor por mes</strong> — <strong>Vertical Bar Chart</strong> + tabla.`;
+    chartHintEl.innerHTML = `Aportaciones: <strong>suma de Valor por mes</strong> — <strong>Vertical Bar Chart</strong> + tabla en miles.`;
     clearChart("Aportaciones: presiona “Generar”.");
   } else {
     reportTitleEl.textContent = "Reportes • 3) Casas al 100%";
@@ -1466,7 +1484,6 @@ async function generarReporte(){
   if (!gsUrl) return;
 
   const tipo = tipoReporteEl.value;
-    // ✅ Por defecto, year/mes vienen de los selectores
   let year = anioAEl.value;
   let mes  = mesAEl.value;
   const bloque = bloqueAEl.value;
@@ -1503,10 +1520,9 @@ async function generarReporte(){
 
     if (tipo === "aportaciones"){
       const data2 = await jsonp(gsUrl, { action: 'sumAportaciones', year, mes }, 20000);
-      // ✅ Guardar el último filtro usado en Aportaciones (para Casas100)
       lastAportacionesYear = year;
       lastAportacionesMes  = mes;
-      
+
       if (!data2 || data2.ok !== true) throw new Error((data2 && data2.error) ? data2.error : 'Respuesta inválida del WebApp');
 
       const filas2 = Number(data2.totalFilas || 0);
@@ -1515,25 +1531,23 @@ async function generarReporte(){
       const mesesArr = Array.isArray(data2.meses) ? data2.meses : [];
       const totalGeneral = Number(data2.totalGeneral || 0);
 
-      /* ✅ FIX REAL: backticks */
       aportacionesTbodyEl.innerHTML = mesesArr.map(x => `
         <tr>
           <td>${x.mes ?? ""}</td>
-          <td class="right">${money(x.total || 0)}</td>
+          <td class="right">${miles1(x.total || 0)}</td>
         </tr>
       `).join("");
 
-      aportacionesTotalGeneralEl.textContent = money(totalGeneral);
+      aportacionesTotalGeneralEl.textContent = miles1(totalGeneral);
       aportacionesTableWrapEl.style.display = "";
       casas100BoxEl.style.display = "none";
 
       const items2 = mesesArr.map(x => ({ label: String(x.mes ?? ""), value: Number(x.total || 0) }));
-      drawVerticalBarsGeneric(items2, "Aportaciones por Mes (Suma de Valor) — Vertical Bar Chart 2D", (v) => money(v));
+      drawVerticalBarsGeneric(items2, "Aportaciones por Mes (Suma de Valor) — Vertical Bar Chart 2D", (v) => miles1(v));
       setMsg('Listo ✅ (Aportaciones)', 'ok');
       return;
     }
 
-    /* ✅ NUEVO: 3) Casas al 100% */
     if (bloque !== "Todos"){
       const bNum = parseInt(String(bloque), 10);
       if (!BLOCK_SET_1_33.has(bNum)){
@@ -1544,95 +1558,83 @@ async function generarReporte(){
 
     const modo = (casasModoEl && casasModoEl.value) ? casasModoEl.value : "todos";
 
-// ✅ Casas100 SIEMPRE se ancla al último Año/Mes usado en Aportaciones
-year = lastAportacionesYear;
-mes  = lastAportacionesMes;
+    year = lastAportacionesYear;
+    mes  = lastAportacionesMes;
 
-const data3 = await jsonp(gsUrl, { action:'casas100', year, mes, bloque, modo }, 30000);
+    const data3 = await jsonp(gsUrl, { action:'casas100', year, mes, bloque, modo }, 30000);
     if (!data3 || data3.ok !== true) throw new Error((data3 && data3.error) ? data3.error : 'Respuesta inválida del WebApp');
 
     analisisFilasEl.textContent = String(Number(data3.totalFilas || 0));
     analisisMaxEl.textContent = String(Number(data3.maxSuma || 0));
 
-    // oculta tabla aportaciones
     aportacionesTableWrapEl.style.display = "none";
 
-   // muestra box (resumen + botones)
-casas100BoxEl.style.display = "";
-const anchor = data3.anchor ? `${data3.anchor.mes} ${data3.anchor.anio}` : "—";
-const win = data3.window ? `${data3.window.start} → ${data3.window.end}` : "—";
-casas100MetaEl.textContent = `Último mes (Aportaciones): ${anchor} | Ventana 12 meses: ${win} | Umbral: ≥ 3600`;
+    casas100BoxEl.style.display = "";
+    const anchor = data3.anchor ? `${data3.anchor.mes} ${data3.anchor.anio}` : "—";
+    const win = data3.window ? `${data3.window.start} → ${data3.window.end}` : "—";
+    casas100MetaEl.textContent = `Último mes (Aportaciones): ${anchor} | Ventana 12 meses: ${win} | Umbral: ≥ 3600`;
 
-if (casas100WinLabel) casas100WinLabel.textContent = win;
-if (casas100Tbody) casas100Tbody.innerHTML = "";
-casas100SelectedText = "";
+    if (casas100WinLabel) casas100WinLabel.textContent = win;
+    if (casas100Tbody) casas100Tbody.innerHTML = "";
+    casas100SelectedText = "";
 
-const lines = Array.isArray(data3.lines) ? data3.lines : [];
+    const lines = Array.isArray(data3.lines) ? data3.lines : [];
 
-// Si no hay líneas, mostramos vacío
-if (!lines.length){
-  casas100LinesEl.textContent = "Sin resultados para el filtro seleccionado.";
-  if (casas100Tbody){
-    casas100Tbody.innerHTML = `<tr><td>—</td><td>—</td></tr>`;
-  }
-  clearChart("Sin resultados.");
-  setMsg('Listo ✅ (Casas al 100%) — sin resultados', 'ok');
-  return;
-}
+    if (!lines.length){
+      casas100LinesEl.textContent = "Sin resultados para el filtro seleccionado.";
+      if (casas100Tbody){
+        casas100Tbody.innerHTML = `<tr><td>—</td><td>—</td></tr>`;
+      }
+      clearChart("Sin resultados.");
+      setMsg('Listo ✅ (Casas al 100%) — sin resultados', 'ok');
+      return;
+    }
 
-// ✅ Render resumen (una sola fila con comas)
-if (modo === "todos"){
-  const L = lines[0] || {};
-  const txt = (L.codigos && L.codigos.length) ? L.codigos.join(", ") : "—";
-  casas100LinesEl.textContent = txt;
-
-  // Tabla flotante: 1 fila (Ventana completa)
-  if (casas100Tbody){
-    casas100Tbody.innerHTML = `
-      <tr>
-        <td>Ventana completa</td>
-        <td>${txt}</td>
-      </tr>
-    `;
-  }
-} else {
-  // modo=pormes: resumen “compacto” (solo primera línea útil) + tabla completa
-  // Si querés resumen multi-línea, lo dejamos bonito pero compacto:
-  const first = lines[lines.length - 1] || lines[0] || {};
-  const firstTxt = (first.codigos && first.codigos.length) ? first.codigos.join(", ") : "—";
-  casas100LinesEl.textContent = `${String(first.mesLabel || "").trim()}: ${firstTxt}`;
-
-  if (casas100Tbody){
-    casas100Tbody.innerHTML = lines.map((L, i) => {
-      const mesLabel = String(L.mesLabel || "").trim() || "—";
+    if (modo === "todos"){
+      const L = lines[0] || {};
       const txt = (L.codigos && L.codigos.length) ? L.codigos.join(", ") : "—";
-      // data-text para copiar por fila
-      return `
-        <tr data-text="${txt.replace(/"/g,'&quot;')}" data-i="${i}">
-          <td>${mesLabel}</td>
-          <td>${txt}</td>
-        </tr>
-      `;
-    }).join("");
+      casas100LinesEl.textContent = txt;
 
-    // click para seleccionar fila (y preparar copia)
-    const rows = Array.from(casas100Tbody.querySelectorAll("tr"));
-    rows.forEach(tr => {
-      tr.addEventListener("click", () => {
-        rows.forEach(x => x.classList.remove("selected"));
-        tr.classList.add("selected");
-        casas100SelectedText = (tr.getAttribute("data-text") || "").trim();
-      });
-    });
-  }
-}
+      if (casas100Tbody){
+        casas100Tbody.innerHTML = `
+          <tr>
+            <td>Ventana completa</td>
+            <td>${txt}</td>
+          </tr>
+        `;
+      }
+    } else {
+      const first = lines[lines.length - 1] || lines[0] || {};
+      const firstTxt = (first.codigos && first.codigos.length) ? first.codigos.join(", ") : "—";
+      casas100LinesEl.textContent = `${String(first.mesLabel || "").trim()}: ${firstTxt}`;
 
-clearChart("Resultados listados en tabla flotante 👇");
-setMsg('Listo ✅ (Casas al 100%)', 'ok');
+      if (casas100Tbody){
+        casas100Tbody.innerHTML = lines.map((L, i) => {
+          const mesLabel = String(L.mesLabel || "").trim() || "—";
+          const txt = (L.codigos && L.codigos.length) ? L.codigos.join(", ") : "—";
+          return `
+            <tr data-text="${txt.replace(/"/g,'&quot;')}" data-i="${i}">
+              <td>${mesLabel}</td>
+              <td>${txt}</td>
+            </tr>
+          `;
+        }).join("");
 
-// ✅ Abrir automáticamente la tabla flotante cuando ya hay resultados
-openCasas100Overlay();
-return;
+        const rows = Array.from(casas100Tbody.querySelectorAll("tr"));
+        rows.forEach(tr => {
+          tr.addEventListener("click", () => {
+            rows.forEach(x => x.classList.remove("selected"));
+            tr.classList.add("selected");
+            casas100SelectedText = (tr.getAttribute("data-text") || "").trim();
+          });
+        });
+      }
+    }
+
+    clearChart("Resultados listados en tabla flotante 👇");
+    setMsg('Listo ✅ (Casas al 100%)', 'ok');
+    openCasas100Overlay();
+    return;
   }catch(err){
     setMsg('Error:\n' + err.message, 'bad');
     clearChart("Error al generar.");
@@ -1641,7 +1643,6 @@ return;
   }
 }
 
-/* =========================== ✅ Administrar Pins =========================== */
 function setPinsAccess(on){
   pinsAuthed = !!on;
   pinsAccessEl.textContent = on ? 'Autorizado' : 'Bloqueado';
@@ -1731,7 +1732,6 @@ async function pinsBuscar(){
   }
 }
 
-/* =========================== ✅ Eventos =========================== */
 btnPing.addEventListener('click', ping);
 btnDiag.addEventListener('click', diagnostico);
 btnReset.addEventListener('click', resetUrl);
@@ -1753,7 +1753,7 @@ tipoReporteEl.addEventListener('change', () => {
   analisisMaxEl.textContent = "0";
   aportacionesTableWrapEl.style.display = "none";
   aportacionesTbodyEl.innerHTML = "";
-  aportacionesTotalGeneralEl.textContent = "0.00";
+  aportacionesTotalGeneralEl.textContent = "0.0 mil";
   casas100BoxEl.style.display = "none";
   casas100MetaEl.textContent = "";
   casas100LinesEl.textContent = "";
@@ -1772,7 +1772,6 @@ btnPinsBuscar.addEventListener('click', pinsBuscar);
 pinsCodigoEl.addEventListener('keydown', (e) => { if (e.key === 'Enter') pinsBuscar(); });
 btnLimpiarPins.addEventListener('click', limpiarPins);
 
-/* ✅ Init */
 estadoAplicarEl.textContent = '—';
 hideInlineEdit();
 limpiarReportes();
