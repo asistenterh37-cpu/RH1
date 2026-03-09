@@ -695,6 +695,35 @@
         linear-gradient(180deg,#06111f 0%, #091425 45%, #08111f 100%);
     }
 
+    /* NUEVO: SCROLL INTERNO PARA PREVIEWS */
+    .app-viewport.scrollable-preview{
+      height:720px;
+      min-height:720px;
+      overflow:auto;
+      padding-right:10px;
+      scrollbar-width:thin;
+      scrollbar-color:rgba(148,163,184,.75) rgba(15,23,42,.55);
+    }
+
+    .app-viewport.scrollable-preview::-webkit-scrollbar{
+      width:10px;
+    }
+
+    .app-viewport.scrollable-preview::-webkit-scrollbar-track{
+      background:rgba(15,23,42,.55);
+      border-radius:999px;
+    }
+
+    .app-viewport.scrollable-preview::-webkit-scrollbar-thumb{
+      background:linear-gradient(180deg, rgba(148,163,184,.9), rgba(100,116,139,.9));
+      border-radius:999px;
+      border:2px solid rgba(15,23,42,.55);
+    }
+
+    .app-viewport.scrollable-preview::-webkit-scrollbar-thumb:hover{
+      background:linear-gradient(180deg, rgba(203,213,225,.95), rgba(148,163,184,.95));
+    }
+
     /* GENERIC APP HELPERS */
     .mock-app{
       min-height:680px;
@@ -1012,8 +1041,20 @@
     }
 
     /* SPECIFIC LAYOUTS */
-    .clima-grid{ display:grid; grid-template-columns:340px 1fr; gap:16px; }
-    .survey-list{ display:grid; gap:12px; max-height:520px; overflow:hidden; }
+    .clima-grid{
+      display:grid;
+      grid-template-columns:340px 1fr;
+      gap:16px;
+      align-items:start;
+    }
+
+    .survey-list{
+      display:grid;
+      gap:12px;
+      max-height:none;
+      overflow:visible;
+    }
+
     .question{
       background:rgba(15,23,42,.72);
       border:1px solid rgba(56,189,248,.08);
@@ -1033,6 +1074,7 @@
     }
 
     .question small{ color:var(--muted); font-size:12px; }
+
     .dropdown{
       background:#08111f;
       border:1px solid rgba(56,189,248,.16);
@@ -1140,6 +1182,42 @@
     .layout-app{ display:grid; grid-template-columns:250px 1fr; min-height:720px; }
     .toolbar-row{ display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:16px; }
 
+    /* DETALLES EXTRA PARA CLIMA */
+    .mini-sep{
+      height:1px;
+      background:rgba(255,255,255,.08);
+      margin:16px 0;
+    }
+
+    .status-line{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      color:#93c5fd;
+      font-size:12px;
+      margin-top:12px;
+    }
+
+    .status-dot{
+      width:12px;
+      height:12px;
+      border-radius:50%;
+      background:#22c55e;
+      box-shadow:0 0 0 4px rgba(34,197,94,.12);
+      flex-shrink:0;
+    }
+
+    .textarea.large-comment{
+      min-height:98px;
+      resize:none;
+    }
+
+    .mock-footer-status{
+      margin-top:12px;
+      color:#cbd5e1;
+      font-size:12px;
+    }
+
     /* CONTACTO */
     .contact{
       text-align:center;
@@ -1226,6 +1304,11 @@
       .app-viewport{ min-height:auto; }
       .mock-app{ min-height:auto; }
       .stat-row{ grid-template-columns:repeat(2,1fr); }
+
+      .app-viewport.scrollable-preview{
+        height:680px;
+        min-height:680px;
+      }
     }
 
     @media(max-width:768px){
@@ -1270,6 +1353,11 @@
       .pie{ width:130px; height:130px; }
       .puzzle-board{ max-width:260px; gap:5px; padding:7px; }
       .puzzle-tile{ border-radius:10px; font-size:clamp(11px, 3vw, 17px); }
+
+      .app-viewport.scrollable-preview{
+        height:620px;
+        min-height:620px;
+      }
     }
   </style>
 </head>
@@ -1376,7 +1464,7 @@
           <div>
             <h3>Valoración de puestos</h3>
             <p>
-              Asigna a un puesto, una valoración considerando un sistema de puntos, tomamndo en cuenta la descripción del puesto.  
+              Asigna a un puesto, una valoración considerando un sistema de puntos, tomamndo en cuenta la descripción del puesto.
             </p>
           </div>
           <div class="card-actions">
@@ -1500,7 +1588,9 @@
                 </div>
                 <div class="browser-badge">Pantalla inicial</div>
               </div>
-              <div class="app-viewport">
+
+              <!-- SCROLL INTERNO DENTRO DEL MARCO -->
+              <div class="app-viewport scrollable-preview">
                 <div class="mock-app">
                   <div class="mock-header">
                     <div>
@@ -1513,11 +1603,13 @@
                       <span class="mock-chip">Resumen</span>
                     </div>
                   </div>
+
                   <div class="mock-main">
                     <div class="clima-grid">
                       <div class="panel">
                         <h4>Datos demográficos</h4>
                         <p>Selecciona tus datos. Estos valores se toman del arreglo DEMOGRAPHICS.</p>
+
                         <div class="form-grid-2" style="margin-top:14px;">
                           <div class="field"><label>Género</label><div class="select">Selecciona...</div></div>
                           <div class="field"><label>Antigüedad</label><div class="select">Selecciona...</div></div>
@@ -1525,33 +1617,158 @@
                           <div class="field"><label>Departamento</label><div class="select">Selecciona...</div></div>
                           <div class="field" style="grid-column:1 / -1;"><label>Nivel</label><div class="select">Selecciona...</div></div>
                         </div>
-                        <div class="panel" style="margin-top:16px; padding:14px;">
-                          <h4 style="font-size:14px;">Escala</h4>
-                          <p>
-                            1 = Muy en desacuerdo<br>
-                            2 = En desacuerdo<br>
-                            3 = Ni de acuerdo ni en desacuerdo<br>
-                            4 = De acuerdo<br>
-                            5 = Totalmente de acuerdo
-                          </p>
+
+                        <div class="mini-sep"></div>
+
+                        <h4 style="font-size:14px;">Escala</h4>
+                        <p>
+                          1 = Muy en desacuerdo<br>
+                          2 = En desacuerdo<br>
+                          3 = Ni de acuerdo ni en desacuerdo<br>
+                          4 = De acuerdo<br>
+                          5 = Totalmente de acuerdo
+                        </p>
+
+                        <div class="status-line">
+                          <span class="status-dot"></span>
+                          <span>WebApp configurado (envío por POST).</span>
                         </div>
                       </div>
+
                       <div class="panel">
                         <h4>Encuesta</h4>
                         <p>Cada ítem se define en el arreglo ITEMS. Responde del 1 al 5.</p>
+
                         <div class="survey-list" style="margin-top:14px;">
-                          <div class="question"><div><strong>1. Mi jefe proporciona supervisión clara y consistente.</strong><small>Factor: Liderazgo / Supervisión</small></div><div><label style="font-size:12px;color:#cbd5e1;">Respuesta</label><div class="dropdown">Selecciona... <span>▾</span></div></div></div>
-                          <div class="question"><div><strong>2. La comunicación con mi jefe es abierta y efectiva.</strong><small>Factor: Comunicación / Liderazgo</small></div><div><label style="font-size:12px;color:#cbd5e1;">Respuesta</label><div class="dropdown">Selecciona... <span>▾</span></div></div></div>
-                          <div class="question"><div><strong>3. Los salarios en esta empresa son justos.</strong><small>Factor: Compensación / Equidad salarial</small></div><div><label style="font-size:12px;color:#cbd5e1;">Respuesta</label><div class="dropdown">Selecciona... <span>▾</span></div></div></div>
-                          <div class="question"><div><strong>4. Mis compañeros ayudan a crear un ambiente de trabajo positivo.</strong><small>Factor: Clima laboral / Relaciones interpersonales</small></div><div><label style="font-size:12px;color:#cbd5e1;">Respuesta</label><div class="dropdown">Selecciona... <span>▾</span></div></div></div>
-                          <div class="question"><div><strong>5. Mi jefe reconoce y valora mi trabajo.</strong><small>Factor: Reconocimiento / Liderazgo</small></div><div><label style="font-size:12px;color:#cbd5e1;">Respuesta</label><div class="dropdown">Selecciona... <span>▾</span></div></div></div>
-                          <div class="question"><div><strong>6. Mis horarios de trabajo son adecuados para mi vida personal.</strong><small>Factor: Bienestar / Organización</small></div><div><label style="font-size:12px;color:#cbd5e1;">Respuesta</label><div class="dropdown">Selecciona... <span>▾</span></div></div></div>
+                          <div class="question">
+                            <div>
+                              <strong>1. Mi jefe proporciona supervisión clara y consistente.</strong>
+                              <small>Factor: Liderazgo / Supervisión</small>
+                            </div>
+                            <div>
+                              <label style="font-size:12px;color:#cbd5e1;">Respuesta</label>
+                              <div class="dropdown">Selecciona... <span>▾</span></div>
+                            </div>
+                          </div>
+
+                          <div class="question">
+                            <div>
+                              <strong>2. La comunicación con mi jefe es abierta y efectiva.</strong>
+                              <small>Factor: Comunicación / Liderazgo</small>
+                            </div>
+                            <div>
+                              <label style="font-size:12px;color:#cbd5e1;">Respuesta</label>
+                              <div class="dropdown">Selecciona... <span>▾</span></div>
+                            </div>
+                          </div>
+
+                          <div class="question">
+                            <div>
+                              <strong>3. Los salarios en esta empresa son justos.</strong>
+                              <small>Factor: Compensación / Equidad salarial</small>
+                            </div>
+                            <div>
+                              <label style="font-size:12px;color:#cbd5e1;">Respuesta</label>
+                              <div class="dropdown">Selecciona... <span>▾</span></div>
+                            </div>
+                          </div>
+
+                          <div class="question">
+                            <div>
+                              <strong>4. Mis compañeros ayudan a crear un ambiente de trabajo positivo.</strong>
+                              <small>Factor: Clima laboral / Relaciones interpersonales</small>
+                            </div>
+                            <div>
+                              <label style="font-size:12px;color:#cbd5e1;">Respuesta</label>
+                              <div class="dropdown">Selecciona... <span>▾</span></div>
+                            </div>
+                          </div>
+
+                          <div class="question">
+                            <div>
+                              <strong>5. Mi jefe reconoce y valora mi trabajo.</strong>
+                              <small>Factor: Reconocimiento / Liderazgo</small>
+                            </div>
+                            <div>
+                              <label style="font-size:12px;color:#cbd5e1;">Respuesta</label>
+                              <div class="dropdown">Selecciona... <span>▾</span></div>
+                            </div>
+                          </div>
+
+                          <div class="question">
+                            <div>
+                              <strong>6. Mis horarios de trabajo son adecuados para mi vida personal.</strong>
+                              <small>Factor: Equilibrio vida-trabajo / Condiciones laborales</small>
+                            </div>
+                            <div>
+                              <label style="font-size:12px;color:#cbd5e1;">Respuesta</label>
+                              <div class="dropdown">Selecciona... <span>▾</span></div>
+                            </div>
+                          </div>
+
+                          <div class="question">
+                            <div>
+                              <strong>7. Mi jefe reconoce y valora mi trabajo.</strong>
+                              <small>Factor: Reconocimiento / Liderazgo</small>
+                            </div>
+                            <div>
+                              <label style="font-size:12px;color:#cbd5e1;">Respuesta</label>
+                              <div class="dropdown">Selecciona... <span>▾</span></div>
+                            </div>
+                          </div>
+
+                          <div class="question">
+                            <div>
+                              <strong>8. Siento confianza para hablar con mi jefe sobre problemas del trabajo.</strong>
+                              <small>Factor: Confianza / Comunicación con liderazgo</small>
+                            </div>
+                            <div>
+                              <label style="font-size:12px;color:#cbd5e1;">Respuesta</label>
+                              <div class="dropdown">Selecciona... <span>▾</span></div>
+                            </div>
+                          </div>
+
+                          <div class="question">
+                            <div>
+                              <strong>9. La colaboración con mis compañeros es positiva.</strong>
+                              <small>Factor: Trabajo en equipo / Colaboración</small>
+                            </div>
+                            <div>
+                              <label style="font-size:12px;color:#cbd5e1;">Respuesta</label>
+                              <div class="dropdown">Selecciona... <span>▾</span></div>
+                            </div>
+                          </div>
+
+                          <div class="question">
+                            <div>
+                              <strong>10. La colaboración con mis compañeros es positiva.</strong>
+                              <small>Factor: Trabajo en equipo / Colaboración</small>
+                            </div>
+                            <div>
+                              <label style="font-size:12px;color:#cbd5e1;">Respuesta</label>
+                              <div class="dropdown">Selecciona... <span>▾</span></div>
+                            </div>
+                          </div>
                         </div>
+
+                        <div class="field" style="margin-top:14px;">
+                          <label>Comentarios (opcional)</label>
+                          <div class="textarea large-comment">Escribe tus comentarios...</div>
+                        </div>
+
+                        <div class="btn-row">
+                          <button class="tiny-btn green" type="button">Guardar</button>
+                          <button class="tiny-btn ghost" type="button">Limpiar</button>
+                        </div>
+
+                        <div class="mock-footer-status">Estado: <strong>Listo</strong></div>
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
+              <!-- FIN SCROLL INTERNO -->
+
             </div>
           </div>
         </div>
@@ -2004,6 +2221,7 @@
           </div>
         </div>
       </div>
+
     </div>
   </section>
 
@@ -2035,6 +2253,10 @@
         target.classList.add('active');
         titleElement.textContent = title;
         viewer.classList.add('active');
+
+        const scrollableAreas = target.querySelectorAll('.scrollable-preview');
+        scrollableAreas.forEach(area => area.scrollTop = 0);
+
         setTimeout(() => {
           viewer.scrollIntoView({ behavior:'smooth', block:'start' });
         }, 120);
