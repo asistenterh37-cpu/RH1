@@ -166,9 +166,8 @@
       white-space:nowrap;
     }
 
-    .content{
+    .stack{
       display:grid;
-      grid-template-columns: 1.08fr .92fr;
       gap:20px;
     }
 
@@ -306,11 +305,7 @@
       line-height:1.5;
     }
 
-    .result-selector{
-      margin-bottom:14px;
-    }
-
-    .result-group{
+    .result-panel{
       margin-top:16px;
       border:1px solid var(--line);
       border-radius:18px;
@@ -333,15 +328,9 @@
       font-size:.98rem;
     }
 
-    .result-actions{
-      display:flex;
-      flex-wrap:wrap;
-      gap:8px;
-    }
-
     .result-body{
       padding:18px;
-      min-height:220px;
+      min-height:280px;
       white-space:pre-wrap;
       line-height:1.65;
       color:#f5f8ff;
@@ -401,10 +390,6 @@
 
     .print-only{display:none}
 
-    @media (max-width: 1180px){
-      .content{grid-template-columns:1fr}
-    }
-
     @media (max-width: 960px){
       .app{grid-template-columns:1fr}
       .sidebar{
@@ -453,7 +438,7 @@
 
       .hero,
       .card,
-      .result-group{
+      .result-panel{
         box-shadow:none !important;
         border:1px solid #d9d9d9 !important;
         background:#fff !important;
@@ -503,8 +488,9 @@
       </nav>
 
       <div class="sidebar-note">
-        Esta versión deja la lógica sensible por dentro.
-        Lo visible queda limpio, ejecutivo y listo para presentar.
+        La interfaz quedó dividida en dos bloques principales:
+        arriba capturas los datos y abajo generas el resultado.
+        Más ordenado, menos “rompecabezas corporativo”.
       </div>
     </aside>
 
@@ -513,16 +499,15 @@
         <div>
           <h2>Arquitectura organizacional</h2>
           <p>
-            Herramienta web para capturar variables del negocio y generar resultados organizacionales
-            de alto valor, como organigrama sugerido, diagnóstico, niveles jerárquicos y puestos recomendados,
-            procesados internamente con IA sin exponer la configuración sensible en pantalla.
+            Herramienta web para capturar información clave de la empresa y generar resultados
+            organizacionales ejecutivos, manteniendo la lógica sensible fuera de la vista.
           </p>
         </div>
         <div class="hero-badges">
           <span class="badge">Diseño ejecutivo</span>
-          <span class="badge">Lógica interna</span>
-          <span class="badge">PDF</span>
-          <span class="badge">Word</span>
+          <span class="badge">Bloque superior</span>
+          <span class="badge">Bloque inferior</span>
+          <span class="badge">Resultado procesado</span>
         </div>
       </section>
 
@@ -532,7 +517,8 @@
         <hr>
       </section>
 
-      <div class="content">
+      <div class="stack">
+        <!-- BLOQUE SUPERIOR -->
         <section class="card" id="datos">
           <div class="section-title">
             <span class="dot"></span>
@@ -608,13 +594,6 @@
               <label for="nivelDigitalizacion">Nivel de digitalización</label>
               <select id="nivelDigitalizacion"></select>
             </div>
-
-            <div class="field result-selector">
-              <label for="resultadoDeseado">Resultados</label>
-              <select id="resultadoDeseado">
-                <option value="">Seleccione un resultado</option>
-              </select>
-            </div>
           </div>
 
           <div class="grid-1" style="margin-top:14px;">
@@ -627,15 +606,15 @@
           <div class="mini-kpis">
             <div class="mini-kpi">
               <div class="label">Campos estratégicos</div>
-              <div class="value">14</div>
+              <div class="value">13</div>
             </div>
             <div class="mini-kpi">
-              <div class="label">Salida esperada</div>
-              <div class="value">Ejecutiva</div>
+              <div class="label">Diseño</div>
+              <div class="value">2 bloques</div>
             </div>
             <div class="mini-kpi">
-              <div class="label">Configuración</div>
-              <div class="value">Interna</div>
+              <div class="label">Procesamiento</div>
+              <div class="value">Interno</div>
             </div>
           </div>
 
@@ -644,83 +623,65 @@
           </div>
 
           <div class="footer-note">
-            Los resultados visibles se procesan sin mostrar el prompt ni la clave en la interfaz.
-            Más elegante, más seguro, menos “mira mamá, dejé la API en vitrina”.
+            Este bloque superior concentra únicamente la captura de información de la organización.
           </div>
         </section>
 
+        <!-- BLOQUE INFERIOR -->
         <section class="card" id="resultados">
           <div class="section-title">
             <span class="dot"></span>
             <h3>Resultados</h3>
           </div>
           <p class="subtitle">
-            Selecciona el tipo de resultado que deseas generar. Cada bloque puede procesarse y limpiarse de forma independiente.
+            Selecciona el resultado que deseas generar y visualízalo en el campo de salida procesada.
           </p>
 
+          <div class="grid">
+            <div class="field">
+              <label for="resultadoDeseado">Selector Resultados</label>
+              <select id="resultadoDeseado">
+                <option value="">Seleccione un resultado</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label for="resultadoVista">Resultado procesado</label>
+              <input id="resultadoVista" type="text" value="Pendiente de procesar" readonly />
+            </div>
+          </div>
+
           <div class="info-box">
-            El procesamiento usa configuración interna del sistema. Para producción real, la clave y la llamada a OpenAI deben ir por backend o función serverless.
+            El resultado seleccionado se procesa internamente y se visualiza abajo en un solo panel unificado.
+          </div>
+
+          <div class="toolbar">
+            <button class="btn-primary" id="btnProcesarResultado" type="button">Procesar</button>
+            <button class="btn-secondary" id="btnLimpiarResultado" type="button">Limpiar resultado</button>
           </div>
 
           <div class="status" id="status"></div>
 
-          <div class="result-group" id="panelOrganigrama">
+          <div class="result-panel">
             <div class="result-head">
-              <div class="result-title">Organigrama sugerido</div>
-              <div class="result-actions">
-                <button class="btn-primary" type="button" data-result="Organigrama sugerido">Procesar</button>
-                <button class="btn-secondary" type="button" data-clear="resultadoOrganigrama">Limpiar</button>
-              </div>
+              <div class="result-title" id="tituloResultadoActual">Resultado procesado</div>
             </div>
-            <div class="result-body" id="resultadoOrganigrama">Aquí aparecerá el organigrama sugerido.</div>
-          </div>
-
-          <div class="result-group" id="panelDiagnostico">
-            <div class="result-head">
-              <div class="result-title">Diagnóstico organizacional</div>
-              <div class="result-actions">
-                <button class="btn-primary" type="button" data-result="Diagnóstico organizacional">Procesar</button>
-                <button class="btn-secondary" type="button" data-clear="resultadoDiagnostico">Limpiar</button>
-              </div>
-            </div>
-            <div class="result-body" id="resultadoDiagnostico">Aquí aparecerá el diagnóstico organizacional.</div>
-          </div>
-
-          <div class="result-group" id="panelNiveles">
-            <div class="result-head">
-              <div class="result-title">Número de niveles jerárquicos</div>
-              <div class="result-actions">
-                <button class="btn-primary" type="button" data-result="Número de niveles jerárquicos">Procesar</button>
-                <button class="btn-secondary" type="button" data-clear="resultadoNiveles">Limpiar</button>
-              </div>
-            </div>
-            <div class="result-body" id="resultadoNiveles">Aquí aparecerá la recomendación del número de niveles jerárquicos.</div>
-          </div>
-
-          <div class="result-group" id="panelPuestos">
-            <div class="result-head">
-              <div class="result-title">Puestos recomendados</div>
-              <div class="result-actions">
-                <button class="btn-primary" type="button" data-result="Puestos recomendados">Procesar</button>
-                <button class="btn-secondary" type="button" data-clear="resultadoPuestos">Limpiar</button>
-              </div>
-            </div>
-            <div class="result-body" id="resultadoPuestos">Aquí aparecerán los puestos recomendados.</div>
+            <div class="result-body" id="resultadoProcesado">Aquí se visualizará el resultado procesado.</div>
           </div>
 
           <div class="toolbar screen-only" id="exportar">
             <button class="btn-success" id="btnExportWord" type="button">Exportar Word</button>
             <button class="btn-warning" id="btnExportPDF" type="button">Exportar PDF</button>
-            <button class="btn-danger" id="btnLimpiarTodoResultados" type="button">Limpiar resultados</button>
+            <button class="btn-danger" id="btnLimpiarTodo" type="button">Limpiar todo</button>
+          </div>
+
+          <div class="footer-note">
+            Este bloque inferior concentra el selector de resultados y la visualización final. Más limpio, más lógico, menos comité de botones.
           </div>
         </section>
       </div>
 
-      <!-- ==========================================================
-           CONFIGURACIÓN INTERNA OCULTA
-           Aquí va la lógica sensible. No se muestra en pantalla.
-           Puedes cambiar estos valores directamente en el código.
-           ========================================================== -->
+      <!-- CONFIGURACIÓN INTERNA OCULTA -->
       <section class="hidden-config" aria-hidden="true">
         <input type="hidden" id="openaiApiKey" value="PEGAR_AQUI_TU_API_KEY" />
         <input type="hidden" id="modelo" value="gpt-4.1-mini" />
@@ -857,29 +818,20 @@ Actúa como un consultor senior en arquitectura organizacional. Analiza la infor
       { id: "nivelEspecializacion", label: "Nivel de especialización" },
       { id: "noSucursales", label: "No. de sucursales" },
       { id: "prioridadEstrategica", label: "Prioridad estratégica del negocio" },
-      { id: "nivelDigitalizacion", label: "Nivel de digitalización" },
-      { id: "resultadoDeseado", label: "Resultados" }
+      { id: "nivelDigitalizacion", label: "Nivel de digitalización" }
     ];
 
     const resultMap = {
       "Organigrama sugerido": {
-        outputId: "resultadoOrganigrama",
-        placeholder: "Aquí aparecerá el organigrama sugerido.",
         promptId: "promptBaseOrganigrama"
       },
       "Diagnóstico organizacional": {
-        outputId: "resultadoDiagnostico",
-        placeholder: "Aquí aparecerá el diagnóstico organizacional.",
         promptId: "promptBaseDiagnostico"
       },
       "Número de niveles jerárquicos": {
-        outputId: "resultadoNiveles",
-        placeholder: "Aquí aparecerá la recomendación del número de niveles jerárquicos.",
         promptId: "promptBaseNiveles"
       },
       "Puestos recomendados": {
-        outputId: "resultadoPuestos",
-        placeholder: "Aquí aparecerán los puestos recomendados.",
         promptId: "promptBasePuestos"
       }
     };
@@ -902,7 +854,8 @@ Actúa como un consultor senior en arquitectura organizacional. Analiza la infor
       const data = {
         nombreEmpresa: document.getElementById("nombreEmpresa").value.trim(),
         pais: document.getElementById("pais").value.trim(),
-        contexto: document.getElementById("contexto").value.trim()
+        contexto: document.getElementById("contexto").value.trim(),
+        resultadoDeseado: document.getElementById("resultadoDeseado").value
       };
 
       fieldMeta.forEach(field => {
@@ -964,43 +917,40 @@ Instrucciones generales de salida:
       });
 
       Object.entries(options).forEach(([key, values]) => fillSelect(key, values));
-      clearAllResults();
+      clearResultOnly();
       setStatus("");
     }
 
-    function clearResult(outputId) {
-      const placeholders = {
-        resultadoOrganigrama: "Aquí aparecerá el organigrama sugerido.",
-        resultadoDiagnostico: "Aquí aparecerá el diagnóstico organizacional.",
-        resultadoNiveles: "Aquí aparecerá la recomendación del número de niveles jerárquicos.",
-        resultadoPuestos: "Aquí aparecerán los puestos recomendados."
-      };
-
-      const el = document.getElementById(outputId);
-      el.textContent = placeholders[outputId] || "Resultado limpio.";
+    function clearResultOnly() {
+      document.getElementById("resultadoDeseado").selectedIndex = 0;
+      document.getElementById("resultadoVista").value = "Pendiente de procesar";
+      document.getElementById("tituloResultadoActual").textContent = "Resultado procesado";
+      document.getElementById("resultadoProcesado").textContent = "Aquí se visualizará el resultado procesado.";
     }
 
-    function clearAllResults() {
-      clearResult("resultadoOrganigrama");
-      clearResult("resultadoDiagnostico");
-      clearResult("resultadoNiveles");
-      clearResult("resultadoPuestos");
-    }
-
-    async function processWithOpenAI(resultType) {
+    async function processWithOpenAI() {
+      const resultType = document.getElementById("resultadoDeseado").value;
       const apiKey = document.getElementById("openaiApiKey").value.trim();
       const model = document.getElementById("modelo").value.trim();
-      const config = resultMap[resultType];
 
+      if (!resultType) {
+        setStatus("Selecciona un resultado antes de procesar.");
+        return;
+      }
+
+      const config = resultMap[resultType];
       if (!config) {
         setStatus("No se encontró configuración para el resultado seleccionado.");
         return;
       }
 
-      const outputEl = document.getElementById(config.outputId);
       const prompt = buildPromptFor(resultType);
+      const outputEl = document.getElementById("resultadoProcesado");
+      const titleEl = document.getElementById("tituloResultadoActual");
+      const resultViewEl = document.getElementById("resultadoVista");
 
-      document.getElementById("resultadoDeseado").value = resultType;
+      titleEl.textContent = resultType;
+      resultViewEl.value = resultType;
 
       if (!apiKey || apiKey === "PEGAR_AQUI_TU_API_KEY") {
         outputEl.textContent = "Configura internamente la API Key en el código para procesar este resultado.";
@@ -1074,7 +1024,6 @@ Instrucciones generales de salida:
             body { font-family: Arial, sans-serif; color: #111; line-height: 1.5; }
             h1 { color: #17365D; font-size: 24px; }
             h2 { color: #244A7C; font-size: 18px; margin-top: 24px; }
-            h3 { color: #244A7C; font-size: 14px; margin-top: 16px; }
             table { border-collapse: collapse; width: 100%; margin-top: 10px; }
             td, th { border: 1px solid #cfcfcf; padding: 8px; vertical-align: top; }
             th { background: #eef4ff; text-align: left; }
@@ -1106,18 +1055,8 @@ Instrucciones generales de salida:
             <tr><td>Contexto adicional</td><td>${escapeHtml(data.contexto || "No especificado")}</td></tr>
           </table>
 
-          <h2>Resultados generados</h2>
-          <h3>Organigrama sugerido</h3>
-          <div class="box">${escapeHtml(document.getElementById("resultadoOrganigrama").textContent.trim())}</div>
-
-          <h3>Diagnóstico organizacional</h3>
-          <div class="box">${escapeHtml(document.getElementById("resultadoDiagnostico").textContent.trim())}</div>
-
-          <h3>Número de niveles jerárquicos</h3>
-          <div class="box">${escapeHtml(document.getElementById("resultadoNiveles").textContent.trim())}</div>
-
-          <h3>Puestos recomendados</h3>
-          <div class="box">${escapeHtml(document.getElementById("resultadoPuestos").textContent.trim())}</div>
+          <h2>Resultado procesado</h2>
+          <div class="box">${escapeHtml(document.getElementById("resultadoProcesado").textContent.trim())}</div>
         </body>
         </html>
       `;
@@ -1148,44 +1087,23 @@ Instrucciones generales de salida:
     }
 
     document.getElementById("btnLimpiarFormulario").addEventListener("click", resetForm);
+    document.getElementById("btnProcesarResultado").addEventListener("click", processWithOpenAI);
+    document.getElementById("btnLimpiarResultado").addEventListener("click", () => {
+      clearResultOnly();
+      setStatus("Resultado limpiado.");
+    });
     document.getElementById("btnExportPDF").addEventListener("click", exportToPDF);
     document.getElementById("btnExportWord").addEventListener("click", exportToWord);
-    document.getElementById("btnLimpiarTodoResultados").addEventListener("click", () => {
-      clearAllResults();
-      setStatus("Todos los resultados fueron limpiados.");
-    });
-
-    document.querySelectorAll("[data-result]").forEach(btn => {
-      btn.addEventListener("click", () => {
-        const resultType = btn.getAttribute("data-result");
-        processWithOpenAI(resultType);
-      });
-    });
-
-    document.querySelectorAll("[data-clear]").forEach(btn => {
-      btn.addEventListener("click", () => {
-        const outputId = btn.getAttribute("data-clear");
-        clearResult(outputId);
-        setStatus("Resultado limpiado.");
-      });
+    document.getElementById("btnLimpiarTodo").addEventListener("click", () => {
+      resetForm();
+      clearResultOnly();
+      setStatus("Formulario y resultado limpiados.");
     });
 
     document.getElementById("resultadoDeseado").addEventListener("change", (e) => {
       const selected = e.target.value;
-      if (!selected) return;
-
-      const panelIdMap = {
-        "Organigrama sugerido": "panelOrganigrama",
-        "Diagnóstico organizacional": "panelDiagnostico",
-        "Número de niveles jerárquicos": "panelNiveles",
-        "Puestos recomendados": "panelPuestos"
-      };
-
-      const panelId = panelIdMap[selected];
-      if (panelId) {
-        const panel = document.getElementById(panelId);
-        panel.scrollIntoView({ behavior: "smooth", block: "start" });
-      }
+      document.getElementById("resultadoVista").value = selected || "Pendiente de procesar";
+      document.getElementById("tituloResultadoActual").textContent = selected || "Resultado procesado";
     });
   </script>
 </body>
