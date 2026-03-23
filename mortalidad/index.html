@@ -16,6 +16,8 @@
       --accent2:#56b2ff;
       --border:rgba(255,255,255,.10);
       --shadow:0 20px 45px rgba(0,0,0,.30);
+      --ok:#8fd3ff;
+      --warn:#ffd58f;
     }
 
     *{
@@ -151,6 +153,17 @@
       box-shadow:0 16px 30px rgba(45,140,255,.35);
     }
 
+    .btn-secondary{
+      background:rgba(255,255,255,.05);
+      color:#dcecff;
+      border:1px solid rgba(255,255,255,.12);
+    }
+
+    .btn-secondary:hover{
+      transform:translateY(-2px);
+      background:rgba(255,255,255,.08);
+    }
+
     .note{
       color:#aebed3;
       font-size:1.20rem;
@@ -166,9 +179,13 @@
 
     .loading{
       display:none;
-      margin-top:14px;
+      margin-top:16px;
       color:#d8ebff;
       font-size:1.08rem;
+      padding:12px 14px;
+      border-radius:12px;
+      background:rgba(86,178,255,.08);
+      border:1px solid rgba(86,178,255,.18);
     }
 
     .fallback-box{
@@ -191,6 +208,19 @@
 
     .fallback-box a:hover{
       text-decoration:underline;
+    }
+
+    .hint{
+      margin-top:14px;
+      color:var(--warn);
+      font-size:1rem;
+      line-height:1.65;
+    }
+
+    code{
+      background:rgba(255,255,255,.07);
+      padding:2px 6px;
+      border-radius:6px;
     }
 
     @media (max-width: 768px){
@@ -256,14 +286,16 @@
       </div>
 
       <div class="actions">
-        <a
-          href="https://script.google.com/macros/s/AKfycbxMgTFqxFS8FtXIC6YVv1Vmu0B-aUDz55MOFG3OH2Iq-w2ZhhaMEULiOwOFuftA4WeCMw/exec"
-          class="btn btn-primary"
-          id="btnAnalisis"
-          target="_self"
-          rel="noopener noreferrer"
-        >
+        <button type="button" class="btn btn-primary" id="btnAnalisis">
           Análisis
+        </button>
+
+        <a
+          id="btnDirecto"
+          class="btn btn-secondary"
+          href="#"
+        >
+          Abrir enlace directo
         </a>
 
         <span class="note">
@@ -276,18 +308,15 @@
       </div>
 
       <div class="fallback-box" id="fallbackBox">
-        No se pudo abrir automáticamente el módulo.
+        No se pudo redirigir automáticamente.
         <br><br>
-        Prueba este enlace directo:
+        Usa este enlace directo:
         <br><br>
-        <a
-          id="linkAnalisis"
-          href="https://script.google.com/macros/s/AKfycbxMgTFqxFS8FtXIC6YVv1Vmu0B-aUDz55MOFG3OH2Iq-w2ZhhaMEULiOwOFuftA4WeCMw/exec"
-          target="_self"
-          rel="noopener noreferrer"
-        >
-          Abrir análisis
-        </a>
+        <a id="linkAnalisis" href="#" target="_blank" rel="noopener noreferrer">Abrir análisis</a>
+        <div class="hint">
+          Si este enlace tampoco abre el sistema, el problema ya no es el HTML: debes volver a desplegar el Web App en Apps Script como
+          <code>Ejecutar como: Yo</code> y <code>Acceso: Cualquiera</code>, usando la URL de implementación que termina en <code>/exec</code>.
+        </div>
       </div>
 
       <footer>
@@ -300,23 +329,41 @@
     const ANALISIS_URL = "https://script.google.com/macros/s/AKfycbxMgTFqxFS8FtXIC6YVv1Vmu0B-aUDz55MOFG3OH2Iq-w2ZhhaMEULiOwOFuftA4WeCMw/exec";
 
     const btnAnalisis = document.getElementById("btnAnalisis");
+    const btnDirecto = document.getElementById("btnDirecto");
     const loadingMsg = document.getElementById("loadingMsg");
     const fallbackBox = document.getElementById("fallbackBox");
     const linkAnalisis = document.getElementById("linkAnalisis");
 
+    btnDirecto.href = ANALISIS_URL;
+    btnDirecto.target = "_blank";
+    btnDirecto.rel = "noopener noreferrer";
+
     linkAnalisis.href = ANALISIS_URL;
 
-    btnAnalisis.addEventListener("click", function () {
+    function openAnalisis() {
       loadingMsg.style.display = "block";
       fallbackBox.style.display = "none";
 
-      setTimeout(() => {
-        loadingMsg.style.display = "none";
-      }, 1500);
-    });
+      try {
+        // Intento principal: misma pestaña
+        window.location.assign(ANALISIS_URL);
 
-    window.addEventListener("error", function () {
-      fallbackBox.style.display = "block";
+        // Si en unos segundos no salió, muestra fallback
+        setTimeout(() => {
+          loadingMsg.style.display = "none";
+          fallbackBox.style.display = "block";
+        }, 2500);
+
+      } catch (error) {
+        loadingMsg.style.display = "none";
+        fallbackBox.style.display = "block";
+        console.error("Error al abrir análisis:", error);
+      }
+    }
+
+    btnAnalisis.addEventListener("click", openAnalisis);
+
+    window.addEventListener("pageshow", () => {
       loadingMsg.style.display = "none";
     });
   </script>
@@ -324,8 +371,10 @@
   <noscript>
     <div style="margin-top:20px;text-align:center;">
       <a
-        href="https://script.google.com/macros/s/AKfycbxMgTFqxFS8FtXIC6YVv1Vmu0B-aUDz55MOFG3OH2Iq-w2ZhhaMEULiOwOFuftA4WeCMw/exec"
+        href="https://script.google.com/macros/s/AKfycbx67m9k_Z8nXwYd_lIDSY78lCMemGgIiYhlJ20NX5pGlY8akZMISaSnTfPWh8sOCgl0/exec"
         style="color:#56b2ff;font-size:1.1rem;"
+        target="_blank"
+        rel="noopener noreferrer"
       >
         Abrir análisis
       </a>
