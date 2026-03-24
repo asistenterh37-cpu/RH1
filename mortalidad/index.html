@@ -1,53 +1,344 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
-  <base target="_top">
-  <meta charset="UTF-8">
-  <title>Mortalidad</title>
-</head>
-
-<body>
-
-<h1>Portada Mortalidad</h1>
-
-<button onclick="irAnalisis()">Ir a Análisis</button>
-
-<script>
-
-  // 🔴 URL QUE VIENE DEL GS
-  let ANALYSIS_URL = '';
-
-  // 🔴 🔴 🔴 PEGA AQUÍ TU URL REAL DE DEPLOY
-  const ANALYSIS_URL_FALLBACK = "https://script.google.com/macros/s/AKfycbxuD8JRoy-YxFcTilRxx_xaec3VNJVYKzJoPVgGvwBUSmbsbJqbpE7bvyoVdEgOr8Yq4Q/exec";
-
-
-  function irAnalisis() {
-    const url = ANALYSIS_URL || ANALYSIS_URL_FALLBACK;
-
-    if (!url) {
-      alert("No hay URL de análisis configurada");
-      return;
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Plataforma Analítica SEPOL</title>
+  <meta
+    name="description"
+    content="Sistema integral de inteligencia de datos orientado al análisis de muertes por causas externas registradas en SEPOL."
+  />
+  <style>
+    :root{
+      --bg-1:#081120;
+      --bg-2:#0f1f3a;
+      --card:#0f172aee;
+      --card-border:rgba(148, 163, 184, 0.18);
+      --text:#e5eefc;
+      --muted:#b7c5db;
+      --accent:#22c55e;
+      --accent-hover:#16a34a;
+      --accent-2:#38bdf8;
+      --shadow:0 20px 60px rgba(0,0,0,.35);
+      --radius:22px;
+      --maxw:1100px;
     }
 
-    // 🔥 REDIRECCIÓN SEGURA
-    window.top.location.href = url;
-  }
+    *{
+      box-sizing:border-box;
+    }
 
+    html{
+      scroll-behavior:smooth;
+    }
 
-  // 🔴 CARGA AUTOMÁTICA DESDE GS
-  function cargar() {
-    google.script.run
-      .withSuccessHandler(res => {
-        if (res && res.urls && res.urls.analysisUrl) {
-          ANALYSIS_URL = res.urls.analysisUrl;
+    body{
+      margin:0;
+      font-family:Arial, Helvetica, sans-serif;
+      color:var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(56,189,248,.16), transparent 28%),
+        radial-gradient(circle at top right, rgba(34,197,94,.12), transparent 24%),
+        linear-gradient(135deg, var(--bg-1), var(--bg-2));
+      min-height:100vh;
+    }
+
+    .page{
+      width:100%;
+      padding:32px 20px 48px;
+    }
+
+    .container{
+      max-width:var(--maxw);
+      margin:0 auto;
+    }
+
+    .hero{
+      background:var(--card);
+      border:1px solid var(--card-border);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      overflow:hidden;
+      backdrop-filter: blur(10px);
+    }
+
+    .hero-top{
+      padding:38px 34px 22px;
+      border-bottom:1px solid rgba(148,163,184,.14);
+      background:
+        linear-gradient(135deg, rgba(56,189,248,.10), rgba(34,197,94,.06));
+    }
+
+    .badge{
+      display:inline-block;
+      padding:8px 14px;
+      border-radius:999px;
+      background:rgba(56,189,248,.12);
+      border:1px solid rgba(56,189,248,.28);
+      color:#d9f2ff;
+      font-size:13px;
+      font-weight:700;
+      letter-spacing:.2px;
+      margin-bottom:16px;
+    }
+
+    h1{
+      margin:0 0 10px;
+      font-size:clamp(28px, 4vw, 42px);
+      line-height:1.1;
+      font-weight:800;
+    }
+
+    .subtitle{
+      margin:0;
+      color:var(--muted);
+      font-size:16px;
+      line-height:1.65;
+      max-width:900px;
+    }
+
+    .content{
+      padding:30px 34px 34px;
+    }
+
+    .content p{
+      margin:0 0 22px;
+      color:var(--text);
+      font-size:17px;
+      line-height:1.9;
+      text-align:justify;
+    }
+
+    .content p:last-of-type{
+      margin-bottom:0;
+    }
+
+    .divider{
+      height:1px;
+      background:linear-gradient(
+        to right,
+        transparent,
+        rgba(148,163,184,.28),
+        transparent
+      );
+      margin:28px 0;
+    }
+
+    .cta-box{
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      gap:14px;
+      padding:8px 0 2px;
+      text-align:center;
+    }
+
+    .cta-text{
+      margin:0;
+      color:var(--muted);
+      font-size:15px;
+      line-height:1.6;
+      max-width:760px;
+    }
+
+    .btn{
+      appearance:none;
+      border:none;
+      outline:none;
+      text-decoration:none;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:10px;
+      min-width:260px;
+      padding:16px 26px;
+      border-radius:14px;
+      background:linear-gradient(135deg, var(--accent), var(--accent-hover));
+      color:#fff;
+      font-size:16px;
+      font-weight:800;
+      cursor:pointer;
+      box-shadow:0 12px 30px rgba(34,197,94,.28);
+      transition:transform .18s ease, box-shadow .18s ease, filter .18s ease;
+    }
+
+    .btn:hover{
+      transform:translateY(-2px);
+      box-shadow:0 18px 34px rgba(34,197,94,.34);
+      filter:brightness(1.03);
+    }
+
+    .btn:active{
+      transform:translateY(0);
+    }
+
+    .btn-secondary{
+      background:transparent;
+      color:#dbeafe;
+      border:1px solid rgba(148,163,184,.28);
+      box-shadow:none;
+      min-width:auto;
+      padding:12px 18px;
+      font-size:14px;
+      font-weight:700;
+    }
+
+    .actions{
+      display:flex;
+      flex-wrap:wrap;
+      justify-content:center;
+      gap:12px;
+      margin-top:6px;
+    }
+
+    .footnote{
+      margin-top:8px;
+      color:#93a7c3;
+      font-size:13px;
+      line-height:1.6;
+    }
+
+    .icon{
+      font-size:18px;
+      line-height:1;
+    }
+
+    @media (max-width: 768px){
+      .page{
+        padding:18px 14px 28px;
+      }
+
+      .hero-top,
+      .content{
+        padding-left:20px;
+        padding-right:20px;
+      }
+
+      .content p{
+        font-size:16px;
+        line-height:1.8;
+        text-align:left;
+      }
+
+      .btn{
+        width:100%;
+        min-width:unset;
+      }
+
+      .actions{
+        flex-direction:column;
+      }
+
+      .btn-secondary{
+        width:100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <section class="container">
+      <article class="hero">
+        <div class="hero-top">
+          <div class="badge">Sistema Analítico SEPOL</div>
+          <h1>Plataforma integral de inteligencia de datos</h1>
+          <p class="subtitle">
+            Entorno analítico orientado al análisis de muertes por causas externas,
+            con visualización interactiva, análisis estadístico e inteligencia artificial.
+          </p>
+        </div>
+
+        <div class="content">
+          <p>
+            Esta herramienta es un sistema integral de inteligencia de datos orientado al análisis de muertes por causas externas, registradas en el Sistema estadístico policial en línea (SEPOL), diseñado para transformar información operativa en conocimiento estratégico. Su enfoque combina visualización interactiva, análisis estadístico y capacidades de inteligencia artificial, permitiendo a los usuarios comprender de forma clara y rápida los patrones detrás de los eventos registrados. Más que un tablero tradicional, funciona como un entorno analítico completo que facilita la toma de decisiones informadas en contextos de seguridad y gestión pública.
+          </p>
+
+          <p>
+            El sistema permite explorar los datos desde múltiples perspectivas mediante gráficos dinámicos que interactúan entre sí, lo que habilita un análisis cruzado en tiempo real. Esta funcionalidad facilita identificar tendencias, concentraciones geográficas y comportamientos específicos según variables como sexo, edad, ubicación, mecanismo o momento del evento. La capacidad de segmentación avanzada permite construir escenarios analíticos personalizados sin necesidad de herramientas adicionales, aumentando significativamente la profundidad del análisis.
+          </p>
+
+          <p>
+            Adicionalmente, la herramienta incorpora módulos especializados que agregan valor estratégico, como la detección de patrones de ocurrencia y la construcción de perfiles. Estos módulos permiten identificar combinaciones críticas de variables —como ubicación, día y hora— así como caracterizar grupos predominantes, lo que resulta clave para detectar zonas de riesgo, poblaciones vulnerables y dinámicas recurrentes. Esta información es fundamental para diseñar intervenciones más precisas y efectivas.
+          </p>
+
+          <p>
+            Otro componente relevante es la consolidación estructurada de datos, que permite generar tablas ejecutivas y visualizar tanto patrones como históricos de incidencias. Esta funcionalidad facilita el seguimiento temporal y el análisis comparativo, aportando una visión integral del comportamiento de los eventos. Además, el sistema incluye un módulo de captura de información mediante formulario, lo que permite alimentar la base de datos de manera estructurada y mantener actualizado el análisis.
+          </p>
+
+          <p>
+            Un diferenciador clave de la herramienta es la integración de inteligencia artificial, que automatiza la generación de informes analíticos completos. A partir de los datos procesados, el sistema produce interpretaciones, conclusiones, recomendaciones y proyecciones futuras, incluyendo estimaciones estadísticas desagregadas por ubicación. Esto reduce significativamente el tiempo de análisis y eleva el nivel técnico de los resultados, permitiendo pasar de la descripción de datos a la predicción de escenarios.
+          </p>
+
+          <p>
+            En conjunto, la herramienta representa una solución robusta que fortalece la toma de decisiones basada en datos, mejora la eficiencia operativa y permite una gestión más proactiva del riesgo. Su diseño modular y su capacidad analítica la posicionan como un sistema escalable con alto potencial de aplicación en distintos contextos institucionales. En términos estratégicos, convierte grandes volúmenes de datos en información accionable, facilitando la planificación, la prevención y la asignación eficiente de recursos.
+          </p>
+
+          <div class="divider"></div>
+
+          <div class="cta-box">
+            <p class="cta-text">
+              Presiona el botón para abrir la aplicación analítica desplegada en Google Apps Script.
+            </p>
+
+            <div class="actions">
+              <button
+                class="btn"
+                id="openAppBtn"
+                type="button"
+                onclick="openApp()"
+              >
+                <span class="icon">🚀</span>
+                Abrir aplicación
+              </button>
+
+              <a
+                class="btn btn-secondary"
+                href="https://script.google.com/macros/s/AKfycbzFFNQkEuxr0T1K8tXds3QpN-NCBQ3rhtYTij8uX8N8lLY2VFVc9H-oot2j1fcfuWOD4g/exec"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Abrir enlace directo
+              </a>
+            </div>
+
+            <p class="footnote">
+              La apertura se realiza en una pestaña nueva para evitar bloqueos del navegador o restricciones de incrustación. Básicamente: menos drama, más funcionamiento.
+            </p>
+          </div>
+        </div>
+      </article>
+    </section>
+  </main>
+
+  <script>
+    const APP_URL = "https://script.google.com/macros/s/AKfycbzFFNQkEuxr0T1K8tXds3QpN-NCBQ3rhtYTij8uX8N8lLY2VFVc9H-oot2j1fcfuWOD4g/exec";
+
+    function openApp() {
+      try {
+        const newWindow = window.open(APP_URL, "_blank", "noopener,noreferrer");
+
+        if (!newWindow || newWindow.closed || typeof newWindow.closed === "undefined") {
+          window.location.href = APP_URL;
         }
-      })
-      .bootstrapAnalisisForClient();
-  }
+      } catch (error) {
+        window.location.href = APP_URL;
+      }
+    }
+  </script>
 
-  cargar();
-
-</script>
-
+  <noscript>
+    <div style="padding:16px; text-align:center; color:white; background:#0f172a;">
+      JavaScript está deshabilitado. Abre la aplicación aquí:
+      <a
+        href="https://script.google.com/macros/s/AKfycbzFFNQkEuxr0T1K8tXds3QpN-NCBQ3rhtYTij8uX8N8lLY2VFVc9H-oot2j1fcfuWOD4g/exec"
+        target="_blank"
+        rel="noopener noreferrer"
+        style="color:#38bdf8;"
+      >
+        Ir a la aplicación
+      </a>
+    </div>
+  </noscript>
 </body>
 </html>
