@@ -735,18 +735,36 @@
       padding:12px 14px;
     }
 
-    .gps-row{
-      display:flex;
-      gap:10px;
-      align-items:center;
-      flex-wrap:wrap;
-    }
+   .gps-row{
+  display:flex;
+  gap:10px;
+  align-items:center;
+  flex-wrap:wrap;
+}
 
-    .gps-row .filter-input{
-      flex:1;
-      min-width:180px;
-    }
+.gps-row .filter-input{
+  flex:1;
+  min-width:180px;
+}
 
+.url-row{
+  display:flex;
+  gap:10px;
+  align-items:center;
+  flex-wrap:wrap;
+  margin-top:12px;
+}
+
+.url-row .filter-input{
+  flex:1;
+  min-width:260px;
+}
+
+.url-actions{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+}
     .mobile-form-title{
       display:none;
       font-size:16px;
@@ -4369,6 +4387,132 @@ function updateFormularioDays() {
   }
 }
 
+function loadGeneratedWebAppUrl() {
+  const input = document.getElementById('formScriptUrl');
+  const note = document.getElementById('formNote');
+
+  if (!input) return;
+
+  if (typeof google === 'undefined' || !google.script || !google.script.run) {
+    if (note) {
+      note.innerHTML = 'No fue posible obtener la URL del Web App porque la interfaz no está corriendo dentro de Apps Script.';
+    }
+    return;
+  }
+
+  google.script.run
+    .withSuccessHandler(function(url) {
+      input.value = url || '';
+      if (note) {
+        note.innerHTML = 'La URL publicada del <strong>Web App</strong> fue cargada correctamente.';
+      }
+    })
+    .withFailureHandler(function(err) {
+      if (note) {
+        note.innerHTML = 'No se pudo obtener la URL del Web App: ' + (err && err.message ? err.message : err);
+      }
+    })
+    .getWebAppUrl();
+}
+
+function copyWebAppUrl() {
+  const input = document.getElementById('formScriptUrl');
+  const note = document.getElementById('formNote');
+  if (!input || !input.value) return;
+
+  navigator.clipboard.writeText(input.value).then(function() {
+    if (note) {
+      note.innerHTML = 'La URL del <strong>Web App</strong> fue copiada al portapapeles.';
+    }
+  }).catch(function() {
+    if (note) {
+      note.innerHTML = 'No se pudo copiar la URL automáticamente.';
+    }
+  });
+}
+
+function buildFormularioPayload() {
+  return {
+    departamento: getValue('formDepartamento'),
+    municipio: getValue('formMunicipio'),
+    formaFallecimiento: getValue('formForma'),
+    mecanismoUtilizado: getValue('formMecanismo'),
+    sexo: getValue('formSexo'),
+    estadoCivil: getValue('formEstadoCivil'),
+    rangoEdad: getValue('formRangoEdad'),
+    ocupacion: getValue('formOcupacion'),
+    anio: getValue('formAnio'),
+    mes: getValue('formMes'),
+    dia: getValue('formDia'),
+    hora: getValue('formHora'),
+    ubicacion: getValue('formUbicacion'),
+    webAppUrl: getValue('formScriptUrl')
+  };
+}
+
+function validateFormularioPayload(payload) {
+  const required = [
+    { key: 'departamento', label: 'Departamento' },
+    { key: 'municipio', label: 'Municipio' },
+    { key: 'formaFallecimiento', label: 'Forma de fallecimiento' },
+    { key: 'sexo', label: 'Sexo' },
+    { key: 'anio', label: 'Año' },
+    { key: 'mes', label: 'Mes' },
+    { key: 'dia', label: 'Día' }
+  ];
+
+  const missing = required
+    .filter(item => !String(payload[item.key] || '').trim())
+    .map(item => item.label);
+
+  return {
+    ok: missing.length === 0,
+    missing
+  };
+}
+
+function submitFormulario() {
+  const note = document.getElementById('formNote');
+  const payload = buildFormularioPayload();
+  const validation = validateFormularioPayload(payload);
+
+  if (!validation.ok) {
+    if (note) {
+      note.innerHTML = 'Completa los campos obligatorios: <strong>' + validation.missing.join(', ') + '</strong>.';
+    }
+    return;
+  }
+
+  if (typeof google === 'undefined' || !google.script || !google.script.run) {
+    if (note) {
+      note.innerHTML = 'El formulario no puede guardarse porque no se está ejecutando dentro de Apps Script.';
+    }
+    return;
+  }
+
+  if (note) {
+    note.innerHTML = 'Guardando registro...';
+  }
+
+  google.script.run
+    .withSuccessHandler(function(res) {
+      if (res && res.ok) {
+        if (note) {
+          note.innerHTML = res.message || 'Registro guardado correctamente.';
+        }
+      } else {
+        if (note) {
+          note.innerHTML = (res && res.message) ? res.message : 'No fue posible guardar el registro.';
+        }
+      }
+    })
+    .withFailureHandler(function(err) {
+      if (note) {
+        note.innerHTML = 'Error al guardar el formulario: ' + (err && err.message ? err.message : err);
+      }
+    })
+    .guardarFormulario(payload);
+}
 
 function initFormulario() {
   const formScreen = document.getElementById('formScreen');
@@ -4424,10 +4568,12 @@ function initFormulario() {
   const ubicacionInput = document.getElementById('formUbicacion');
   if (ubicacionInput) ubicacionInput.value = currentValues.ubicacion || '';
 
-  const note = document.getElementById('formNote');
+ const note = document.getElementById('formNote');
 if (note) {
-  note.innerHTML = 'Ficha de incidencia desplegada con la estructura definida en la hoja <strong>Menu</strong> del archivo adjunto.';
+  note.innerHTML = 'Ficha de incidencia desplegada. Ya puedes capturar datos y guardar el registro en Google Sheets.';
 }
+
+loadGeneratedWebAppUrl();
 
   formScreen.classList.add('active');
 }
