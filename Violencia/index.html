@@ -949,12 +949,7 @@
   <button class="secondary" onclick="toggleHelp()">Ver ayuda</button>
 </div>
 
-<div class="interaction-panel" style="margin-bottom:18px;">
-  <div class="panel-title">Conexión con Apps Script</div>
-  <div class="panel-subtitle">
-    Pega aquí la URL del Web App desplegado en Apps Script. Desde esta URL el HTML en GitHub cargará los datos, guardará el formulario y ejecutará el análisis IA.
-  </div>
-
+<!-- Bloque de conexión ocultado intencionalmente -->
   <div class="url-row">
     <input
     <input
@@ -1711,7 +1706,10 @@
   let EXCLUDED_FIELDS = [];
   let FILTER_STATE = {};
   let CHART_INSTANCES = {};
-  let WEB_APP_URL = normalizeWebAppUrl(localStorage.getItem('WEB_APP_URL') || '');
+  let WEB_APP_URL = normalizeWebAppUrl(
+  localStorage.getItem('WEB_APP_URL') ||
+  'https://script.google.com/macros/s/AKfycbw38h2SROHbh8LQB0mrw9I47z8z7Z9806u1DdL5cZJEvC4SiknDaJp84jR3eQzhqJ9q/exec'
+);
 let YTD_CHART_INSTANCE = null;
 let LAST_MOUSE_POS = { x: 0, y: 0 };
 let INDEPENDENT_SELECTION = [];
@@ -1907,22 +1905,18 @@ window.addEventListener('resize', function() {
 });
 
   function init() {
-  const input = document.getElementById('webAppUrlInput');
+  WEB_APP_URL = normalizeWebAppUrl(
+    WEB_APP_URL ||
+    'https://script.google.com/macros/s/AKfycbw38h2SROHbh8LQB0mrw9I47z8z7Z9806u1DdL5cZJEvC4SiknDaJp84jR3eQzhqJ9q/exec'
+  );
 
-  if (input) {
-    input.value = WEB_APP_URL || 'https://script.google.com/macros/s/AKfycbw38h2SROHbh8LQB0mrw9I47z8z7Z9806u1DdL5cZJEvC4SiknDaJp84jR3eQzhqJ9q/exec';
-  }
-
-  WEB_APP_URL = normalizeWebAppUrl((input && input.value) || WEB_APP_URL || '');
   if (WEB_APP_URL) {
     localStorage.setItem('WEB_APP_URL', WEB_APP_URL);
-    setWebAppStatus('URL del Web App detectada. Cargando datos iniciales...');
     loadDashboardFromWebApp();
     return;
   }
 
   loadData({ headers: [], rows: [], dimensions: [], valueField: 'Frecuencia', excluded: [] });
-  setWebAppStatus('Pega la URL del Web App y luego presiona “Cargar datos”.', true);
 }
 function loadData(payload) {
 
@@ -2003,10 +1997,7 @@ document.addEventListener('DOMContentLoaded', function () {
 });
   
   function setWebAppStatus(message, isError) {
-  const box = document.getElementById('webAppStatus');
-  if (!box) return;
-  box.textContent = message || '';
-  box.style.color = isError ? '#fca5a5' : '#94a3b8';
+  return;
 }
 
 function saveWebAppUrl(showMessage = true) {
