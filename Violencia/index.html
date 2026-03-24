@@ -957,12 +957,15 @@
 
   <div class="url-row">
     <input
-      id="webAppUrlInput"
-      class="filter-input"
-      type="text"
-      placeholder="https://script.google.com/macros/s/AKfycbw38h2SROHbh8LQB0mrw9I47z8z7Z9806u1DdL5cZJEvC4SiknDaJp84jR3eQzhqJ9q/exec"
-      autocomplete="off"
-    >
+    <input
+  id="webAppUrlInput"
+  class="filter-input"
+  type="url"
+  value="https://script.google.com/macros/s/AKfycbw38h2SROHbh8LQB0mrw9I47z8z7Z9806u1DdL5cZJEvC4SiknDaJp84jR3eQzhqJ9q/exec"
+  placeholder="https://script.google.com/macros/s/AKfycbw38h2SROHbh8LQB0mrw9I47z8z7Z9806u1DdL5cZJEvC4SiknDaJp84jR3eQzhqJ9q/exec"
+  autocomplete="off"
+  spellcheck="false"
+>
     <div class="url-actions">
       <button type="button" class="secondary" onclick="saveWebAppUrl()">Guardar URL</button>
       <button type="button" class="purple" onclick="testWebAppConnection()">Probar conexión</button>
@@ -1907,19 +1910,20 @@ window.addEventListener('resize', function() {
   const input = document.getElementById('webAppUrlInput');
 
   if (input) {
-    input.value = WEB_APP_URL || '';
+    input.value = WEB_APP_URL || 'https://script.google.com/macros/s/AKfycbw38h2SROHbh8LQB0mrw9I47z8z7Z9806u1DdL5cZJEvC4SiknDaJp84jR3eQzhqJ9q/exec';
   }
 
+  WEB_APP_URL = normalizeWebAppUrl((input && input.value) || WEB_APP_URL || '');
   if (WEB_APP_URL) {
+    localStorage.setItem('WEB_APP_URL', WEB_APP_URL);
     setWebAppStatus('URL del Web App detectada. Cargando datos iniciales...');
     loadDashboardFromWebApp();
     return;
   }
 
-  loadData({ headers: [], rows: [], dimensions: [], valueField: 'No', excluded: [] });
+  loadData({ headers: [], rows: [], dimensions: [], valueField: 'Frecuencia', excluded: [] });
   setWebAppStatus('Pega la URL del Web App y luego presiona “Cargar datos”.', true);
 }
-
 function loadData(payload) {
 
     
@@ -1981,44 +1985,99 @@ function getWebAppUrl() {
   return finalUrl;
 }
 
-function setWebAppStatus(message, isError) {
+document.addEventListener('DOMContentLoaded', function () {
+  const input = document.getElementById('webAppUrlInput');
+  if (!input) return;
+
+  const savedUrl = localStorage.getItem('WEB_APP_URL');
+  if (savedUrl && !input.value) {
+    input.value = savedUrl;
+  }
+
+  input.addEventListener('change', function () {
+    const clean = normalizeWebAppUrl(input.value);
+    if (clean) {
+      WEB_APP_URL = clean;
+    }
+  });
+});
+  
+  function setWebAppStatus(message, isError) {
   const box = document.getElementById('webAppStatus');
   if (!box) return;
   box.textContent = message || '';
-  box.style.color = isError ? '#fca5a5' : '';
+  box.style.color = isError ? '#fca5a5' : '#94a3b8';
 }
 
-function saveWebAppUrl() {
+function saveWebAppUrl(showMessage = true) {
   const input = document.getElementById('webAppUrlInput');
-  if (!input) return;
+  if (!input) return false;
 
   const url = normalizeWebAppUrl(input.value);
   if (!url) {
     setWebAppStatus('Debes pegar una URL válida del Web App.', true);
-    return;
+    return false;
   }
 
   WEB_APP_URL = url;
   localStorage.setItem('WEB_APP_URL', WEB_APP_URL);
   input.value = WEB_APP_URL;
-  setWebAppStatus('URL guardada correctamente.');
+
+  if (showMessage) {
+    setWebAppStatus('URL guardada correctamente.');
+  }
+  return true;
 }
 
-async function apiGet(action) {
+async function safeReadJson(response) {
+  const raw = await response.text();
+
+  if (!raw || !raw.trim()) {
+    throw new Error('El Web App respondió vacío.');
+  }
+
+  try {
+    return JSON.parse(raw);
+  } catch (e) {
+    throw new Error('La respuesta del Web App no es JSON válido. Revisa el Apps Script o los permisos del despliegue.');
+  }
+}
+
+async function apiGet(action, extraParams = {}) {
   const baseUrl = getWebAppUrl();
   if (!baseUrl) {
     throw new Error('No se ha configurado la URL del Web App.');
   }
 
-  const url = `${baseUrl}?action=${encodeURIComponent(action)}`;
-  const response = await fetch(url, {
-    method: 'GET'
+  const urlObj = new URL(baseUrl);
+  urlObj.searchParams.set('action', action);
+  urlObj.searchParams.set('_ts', Date.now().toString());
+
+  Object.keys(extraParams || {}).forEach(key => {
+    if (extraParams[key] !== undefined && extraParams[key] !== null) {
+      urlObj.searchParams.set(key, String(extraParams[key]));
+    }
   });
 
-  const data = await response.json();
-  if (!data.ok) {
+  const response = await fetch(urlObj.toString(), {
+    method: 'GET',
+    redirect: 'follow',
+    cache: 'no-store',
+    headers: {
+      'Accept': 'application/json,text/plain,*/*'
+    }
+  });
+
+  if (!response.ok) {
+    throw new Error(`Error HTTP ${response.status} al consultar el Web App.`);
+  }
+
+  const data = await safeReadJson(response);
+
+  if (data && data.ok === false) {
     throw new Error(data.message || 'Error en la respuesta GET del Web App.');
   }
+
   return data;
 }
 
@@ -2030,8 +2089,11 @@ async function apiPost(action, payload) {
 
   const response = await fetch(baseUrl, {
     method: 'POST',
+    redirect: 'follow',
+    cache: 'no-store',
     headers: {
-      'Content-Type': 'text/plain;charset=utf-8'
+      'Content-Type': 'text/plain;charset=utf-8',
+      'Accept': 'application/json,text/plain,*/*'
     },
     body: JSON.stringify({
       action: action,
@@ -2039,19 +2101,45 @@ async function apiPost(action, payload) {
     })
   });
 
-  const data = await response.json();
-  if (!data.ok) {
+  if (!response.ok) {
+    throw new Error(`Error HTTP ${response.status} al enviar datos al Web App.`);
+  }
+
+  const data = await safeReadJson(response);
+
+  if (data && data.ok === false) {
     throw new Error(data.message || 'Error en la respuesta POST del Web App.');
   }
+
   return data;
+}
+
+function resolveDashboardPayload(result) {
+  if (!result) return null;
+
+  if (result.data && typeof result.data === 'object') {
+    return result.data;
+  }
+
+  if (Array.isArray(result.rows) || Array.isArray(result.headers) || Array.isArray(result.dimensions)) {
+    return result;
+  }
+
+  return null;
 }
 
 async function testWebAppConnection() {
   try {
-    saveWebAppUrl();
+    const saved = saveWebAppUrl(false);
+    if (!saved) return;
+
+    setWebAppStatus('Probando conexión con Apps Script...');
     const result = await apiGet('meta');
+    const sheetName = result.sheetName || result.hoja || result.sheet || 'No identificada';
+    const spreadsheetId = result.spreadsheetId || result.spreadsheet || '';
+
     setWebAppStatus(
-      `Conexión correcta. Hoja: ${result.sheetName || ''} | Spreadsheet ID: ${result.spreadsheetId || ''}`
+      `Conexión correcta. Hoja: ${sheetName}${spreadsheetId ? ' | Spreadsheet ID: ' + spreadsheetId : ''}`
     );
   } catch (error) {
     setWebAppStatus(error.message || 'No fue posible conectar con el Web App.', true);
@@ -2060,37 +2148,41 @@ async function testWebAppConnection() {
 
 async function loadDashboardFromWebApp() {
   try {
-    setWebAppStatus('Cargando datos...');
-    const result = await apiGet('dashboard');
+    const saved = saveWebAppUrl(false);
+    if (!saved) return;
 
-    if (!result || !result.data) {
-      throw new Error('La API no devolvió datos del dashboard.');
+    document.getElementById('loading').style.display = 'block';
+    setWebAppStatus('Cargando datos desde Apps Script...');
+
+    const result = await apiGet('dashboard');
+    const payload = resolveDashboardPayload(result);
+
+    if (!payload) {
+      throw new Error('La API no devolvió un objeto válido para el dashboard.');
     }
 
-    hydrateDashboardData(result.data);
-    setWebAppStatus('Datos cargados correctamente desde Apps Script.');
+    loadData({
+      headers: Array.isArray(payload.headers) ? payload.headers : [],
+      rows: Array.isArray(payload.rows) ? payload.rows : [],
+      dimensions: Array.isArray(payload.dimensions) ? payload.dimensions : [],
+      valueField: payload.valueField || 'Frecuencia',
+      excluded: Array.isArray(payload.excluded) ? payload.excluded : []
+    });
+
+    MASTER_HEADERS = Array.isArray(payload.headers) ? payload.headers : [];
+    EXCLUDED_FIELDS = Array.isArray(payload.excluded) ? payload.excluded : [];
+
+    if (!MASTER_DATA.length) {
+      setWebAppStatus('Conexión correcta, pero la hoja no devolvió registros para el dashboard.', true);
+      return;
+    }
+
+    setWebAppStatus(`Datos cargados correctamente. Registros recibidos: ${MASTER_DATA.length}`);
   } catch (error) {
+    document.getElementById('loading').style.display = 'none';
     setWebAppStatus(error.message || 'Error al cargar los datos.', true);
   }
 }
-
-function hydrateDashboardData(apiData) {
-  MASTER_HEADERS = Array.isArray(apiData.headers) ? apiData.headers : [];
-  MASTER_DATA = Array.isArray(apiData.rows) ? apiData.rows : [];
-  DIMENSIONS = Array.isArray(apiData.dimensions) ? apiData.dimensions : [];
-  VALUE_FIELD = apiData.valueField || 'No';
-  EXCLUDED_FIELDS = Array.isArray(apiData.excluded) ? apiData.excluded : [];
-
-  ACTIVE_DIMENSIONS = [...DIMENSIONS];
-  FILTER_STATE = {};
-  ACTIVE_DIMENSIONS.forEach(dim => {
-    FILTER_STATE[dim] = ALL_LABEL;
-  });
-
-  renderIndependentLists();
-  renderAll();
-}
-  
 function showScreen(screenId) {
   const screens = document.querySelectorAll('.screen');
   screens.forEach(screen => {
