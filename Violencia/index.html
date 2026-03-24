@@ -4474,46 +4474,35 @@ function validateFormularioPayload(payload) {
 function submitFormulario() {
   const note = document.getElementById('formNote');
   const payload = buildFormularioPayload();
-  const validation = validateFormularioPayload(payload);
 
-  if (!validation.ok) {
-    if (note) {
-      note.innerHTML = 'Completa los campos obligatorios: <strong>' + validation.missing.join(', ') + '</strong>.';
-    }
+  const url = document.getElementById('formScriptUrl').value;
+
+  if (!url) {
+    note.innerHTML = 'https://script.google.com/macros/s/AKfycbxy-uShN5EbpxdGIAHrmKQg1inSNJ47cbo6-TI6X62bi2ugaeIrCqBLJGcuEDLh5AgW/exec';
     return;
   }
 
-  if (typeof google === 'undefined' || !google.script || !google.script.run) {
-    if (note) {
-      note.innerHTML = 'El formulario no puede guardarse porque no se está ejecutando dentro de Apps Script.';
+  note.innerHTML = 'Guardando registro...';
+
+  fetch(url, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+    headers: {
+      'Content-Type': 'application/json'
     }
-    return;
-  }
-
-  if (note) {
-    note.innerHTML = 'Guardando registro...';
-  }
-
-  google.script.run
-    .withSuccessHandler(function(res) {
-      if (res && res.ok) {
-        if (note) {
-          note.innerHTML = res.message || 'Registro guardado correctamente.';
-        }
-      } else {
-        if (note) {
-          note.innerHTML = (res && res.message) ? res.message : 'No fue posible guardar el registro.';
-        }
-      }
-    })
-    .withFailureHandler(function(err) {
-      if (note) {
-        note.innerHTML = 'Error al guardar el formulario: ' + (err && err.message ? err.message : err);
-      }
-    })
-    .guardarFormulario(payload);
+  })
+  .then(res => res.json())
+  .then(data => {
+    if (data.ok) {
+      note.innerHTML = data.message || 'Registro guardado correctamente.';
+    } else {
+      note.innerHTML = data.message || 'Error al guardar.';
+    }
+  })
+  .catch(err => {
+    note.innerHTML = 'Error de conexión con Apps Script.';
+  });
 }
-
 function initFormulario() {
   const formScreen = document.getElementById('formScreen');
   if (!formScreen) return;
