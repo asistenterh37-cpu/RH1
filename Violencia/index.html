@@ -960,7 +960,7 @@
       id="webAppUrlInput"
       class="filter-input"
       type="text"
-      placeholder="Pega aquí la URL .../exec"
+      placeholder="https://script.google.com/macros/s/AKfycbw38h2SROHbh8LQB0mrw9I47z8z7Z9806u1DdL5cZJEvC4SiknDaJp84jR3eQzhqJ9q/exec"
       autocomplete="off"
     >
     <div class="url-actions">
@@ -1700,12 +1700,15 @@
   google.charts.load('current', { packages: ['corechart'] });
   google.charts.setOnLoadCallback(init);
 
+  let MASTER_HEADERS = [];
   let MASTER_DATA = [];
   let DIMENSIONS = [];
   let ACTIVE_DIMENSIONS = [];
   let VALUE_FIELD = '';
+  let EXCLUDED_FIELDS = [];
   let FILTER_STATE = {};
   let CHART_INSTANCES = {};
+  let WEB_APP_URL = normalizeWebAppUrl(localStorage.getItem('WEB_APP_URL') || '');
 let YTD_CHART_INSTANCE = null;
 let LAST_MOUSE_POS = { x: 0, y: 0 };
 let INDEPENDENT_SELECTION = [];
@@ -1901,20 +1904,25 @@ window.addEventListener('resize', function() {
 });
 
   function init() {
-    if (typeof google !== 'undefined' && google.script && google.script.run) {
-      google.script.run
-        .withSuccessHandler(loadData)
-        .withFailureHandler(err => {
-          document.getElementById('loading').innerHTML = 'Error: ' + (err && err.message ? err.message : err);
-          initFormulario();
-        })
-        .getDashboardData();
-    } else {
-      loadData({ rows: [], dimensions: [], valueField: 'Frecuencia' });
-    }
+  const input = document.getElementById('webAppUrlInput');
+
+  if (input) {
+    input.value = WEB_APP_URL || '';
   }
 
-    function loadData(payload) {
+  if (WEB_APP_URL) {
+    setWebAppStatus('URL del Web App detectada. Cargando datos iniciales...');
+    loadDashboardFromWebApp();
+    return;
+  }
+
+  loadData({ headers: [], rows: [], dimensions: [], valueField: 'No', excluded: [] });
+  setWebAppStatus('Pega la URL del Web App y luego presiona “Cargar datos”.', true);
+}
+
+function loadData(payload) {
+
+    
     MASTER_DATA = payload.rows || [];
     DIMENSIONS = payload.dimensions || [];
     VALUE_FIELD = payload.valueField || 'Frecuencia';
@@ -4542,29 +4550,24 @@ function loadGeneratedWebAppUrl() {
 
   if (!input) return;
 
-  if (typeof google === 'undefined' || !google.script || !google.script.run) {
+  const url = getWebAppUrl();
+
+  if (!url) {
+    input.value = '';
     if (note) {
-      note.innerHTML = 'No fue posible obtener la URL del Web App porque la interfaz no está corriendo dentro de Apps Script.';
+      note.innerHTML = 'Primero debes pegar y guardar la URL del <strong>Web App</strong> en la parte superior.';
     }
     return;
   }
 
-  google.script.run
-    .withSuccessHandler(function(url) {
-      input.value = url || '';
-      if (note) {
-        note.innerHTML = 'La URL publicada del <strong>Web App</strong> fue cargada correctamente.';
-      }
-    })
-    .withFailureHandler(function(err) {
-      if (note) {
-        note.innerHTML = 'No se pudo obtener la URL del Web App: ' + (err && err.message ? err.message : err);
-      }
-    })
-    .getWebAppUrl();
+  input.value = url;
+
+  if (note) {
+    note.innerHTML = 'La URL del <strong>Web App</strong> fue cargada desde la configuración actual.';
+  }
 }
 
-function copyWebAppUrl() {
+  function copyWebAppUrl() {
   const input = document.getElementById('formScriptUrl');
   const note = document.getElementById('formNote');
   if (!input || !input.value) return;
@@ -4620,39 +4623,40 @@ function validateFormularioPayload(payload) {
   };
 }
 
-function submitFormulario() {
+async function submitFormulario() {
   const note = document.getElementById('formNote');
   const payload = buildFormularioPayload();
+  const validation = validateFormularioPayload(payload);
 
-  const url = document.getElementById('formScriptUrl').value;
-
-  if (!url) {
-    note.innerHTML = 'https://script.google.com/macros/s/AKfycbwiA6c6nXU-LLgfzwW9HNwXgrGKiNHgjULvOkWn1g1F-yJ5abSfTTbFvXuDuicu6mHo/exec';
+  if (!validation.ok) {
+    note.innerHTML = 'Completa los campos obligatorios: <strong>' + validation.missing.join(', ') + '</strong>.';
     return;
+  }
+
+  const url = getWebAppUrl();
+  if (!url) {
+    note.innerHTML = 'Primero debes pegar y guardar la URL del <strong>Web App</strong> en la parte superior.';
+    return;
+  }
+
+  payload.webAppUrl = url;
+  const formUrlInput = document.getElementById('formScriptUrl');
+  if (formUrlInput) {
+    formUrlInput.value = url;
   }
 
   note.innerHTML = 'Guardando registro...';
 
-  fetch(url, {
-    method: 'POST',
-    body: JSON.stringify(payload),
-    headers: {
-      'Content-Type': 'application/json'
-    }
-  })
-  .then(res => res.json())
-  .then(data => {
-    if (data.ok) {
-      note.innerHTML = data.message || 'Registro guardado correctamente.';
-    } else {
-      note.innerHTML = data.message || 'Error al guardar.';
-    }
-  })
-  .catch(err => {
-    note.innerHTML = 'Error de conexión con Apps Script.';
-  });
+  try {
+    const response = await apiPost('saveForm', payload);
+    note.innerHTML = response.message || 'Registro guardado correctamente.';
+    await loadDashboardFromWebApp();
+  } catch (err) {
+    note.innerHTML = err && err.message ? err.message : 'Error de conexión con Apps Script.';
+  }
 }
-function initFormulario() {
+  
+  function initFormulario() {
   const formScreen = document.getElementById('formScreen');
   if (!formScreen) return;
 
@@ -5986,7 +5990,7 @@ function getDominantWeekdayFromMap(dayMap) {
   return rows[0] ? rows[0].day : 'Sin Dato';
 }
 
-function processAIAnalysis() {
+async function processAIAnalysis() {
   const payload = buildAIPayloadFromDataTable();
 
   if (!payload) {
@@ -5995,47 +5999,47 @@ function processAIAnalysis() {
     return;
   }
 
+  const url = getWebAppUrl();
+  if (!url) {
+    setAIBusyState(false, 'Primero configura la URL del Web App.');
+    return;
+  }
+
   refreshAIPreviewFromLastData();
   setAIBusyState(true, 'Generando análisis IA...');
 
   const fallbackResult = buildLocalAIResult(payload);
 
-  if (typeof google !== 'undefined' && google.script && google.script.run && typeof google.script.run.generateAIAnalysis === 'function') {
-    google.script.run
-      .withSuccessHandler(function(response) {
-        const safeResponse = normalizeAIResponse(response, payload);
-        renderAIReport(safeResponse);
-        setAIBusyState(false, 'Análisis IA generado correctamente.');
-      })
-      .withFailureHandler(function(err) {
-        console.error('Error al generar análisis IA en servidor:', err);
-        renderAIReport(fallbackResult);
-        setAIBusyState(false, 'No se pudo obtener respuesta del servidor. Se generó un análisis local de respaldo.');
-      })
-      .generateAIAnalysis(payload);
-    return;
+  try {
+    const response = await apiPost('generateAI', payload);
+    const safeResponse = normalizeAIResponse(response, payload);
+    renderAIReport(safeResponse);
+    setAIBusyState(false, 'Análisis IA generado correctamente.');
+  } catch (err) {
+    console.error('Error al generar análisis IA en servidor:', err);
+    renderAIReport(fallbackResult);
+    setAIBusyState(false, (err && err.message ? err.message : 'No se pudo obtener respuesta del servidor.') + ' Se generó un análisis local de respaldo.');
   }
-
-  renderAIReport(fallbackResult);
-  setAIBusyState(false, 'Análisis IA generado localmente.');
 }
 
-function normalizeAIResponse(response, payload) {
+  function normalizeAIResponse(response, payload) {
   const fallback = buildLocalAIResult(payload);
+  const source = response && response.data && typeof response.data === 'object'
+    ? response.data
+    : response;
 
-  if (!response || typeof response !== 'object') {
+  if (!source || typeof source !== 'object') {
     return fallback;
   }
 
   return {
-    analisis: response.analisis || fallback.analisis,
-    conclusiones: response.conclusiones || fallback.conclusiones,
-    recomendaciones: response.recomendaciones || fallback.recomendaciones,
-    proyeccion: response.proyeccion || fallback.proyeccion,
-    projectionMeta: LAST_AI_UI_STATE.projectionMeta || fallback.projectionMeta || {}
+    analisis: source.analisis || fallback.analisis,
+    conclusiones: source.conclusiones || fallback.conclusiones,
+    recomendaciones: source.recomendaciones || fallback.recomendaciones,
+    proyeccion: source.proyeccion || fallback.proyeccion,
+    projectionMeta: source.projectionMeta || LAST_AI_UI_STATE.projectionMeta || fallback.projectionMeta || {}
   };
 }
-
 function buildLocalAIResult(payload) {
   const resumen = payload.resumen || {};
   const filtros = payload.filtros || {};
