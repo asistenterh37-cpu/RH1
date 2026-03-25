@@ -1922,8 +1922,6 @@ window.addEventListener('resize', function() {
   loadData({ headers: [], rows: [], dimensions: [], valueField: 'Frecuencia', excluded: [] });
 }
 function loadData(payload) {
-
-    
     MASTER_DATA = payload.rows || [];
     DIMENSIONS = payload.dimensions || [];
     VALUE_FIELD = payload.valueField || 'Frecuencia';
@@ -1948,17 +1946,14 @@ function loadData(payload) {
     initDatosModule();
 
     renderAll();
-  
+
     setTimeout(() => {
       const descriptiveScreen = document.getElementById('descriptiveScreen');
       if (descriptiveScreen && descriptiveScreen.classList.contains('active')) {
         renderAll();
       }
     }, 100);
-
-    document.getElementById('loading').style.display = 'none';
-  }
-
+}
   function buildActiveDimensions() {
     const dims = [...DIMENSIONS];
     if (!dims.some(d => normalize(d) === normalize(VIRTUAL_YEAR_MONTH_FIELD)) && canBuildVirtualYearMonth()) {
@@ -1989,6 +1984,19 @@ function getWebAppUrl() {
   return finalUrl;
 }
 
+function withTimeout(promise, ms, message) {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      reject(new Error(message || 'La operación excedió el tiempo de espera.'));
+    }, ms);
+
+    Promise.resolve(promise)
+      .then(resolve)
+      .catch(reject)
+      .finally(() => clearTimeout(timer));
+  });
+}
+  
 document.addEventListener('DOMContentLoaded', function () {
   const input = document.getElementById('webAppUrlInput');
   if (!input) return;
@@ -2148,14 +2156,21 @@ async function testWebAppConnection() {
 }
 
 async function loadDashboardFromWebApp() {
+  const loadingEl = document.getElementById('loading');
+
   try {
     const saved = saveWebAppUrl(false);
-    if (!saved) return;
 
-    document.getElementById('loading').style.display = 'block';
+    if (!saved) {
+      if (loadingEl) loadingEl.style.display = 'none';
+      setWebAppStatus('No hay una URL válida del Web App configurada.', true);
+      return;
+    }
+
+    if (loadingEl) loadingEl.style.display = 'block';
     setWebAppStatus('Cargando datos desde Apps Script...');
 
-    const result = await apiGet('dashboard');
+    const result = await withTimeout(apiGet('dashboard'), 20000, 'La carga de datos tardó demasiado. Verifica el Web App.');
     const payload = resolveDashboardPayload(result);
 
     if (!payload) {
@@ -2180,11 +2195,12 @@ async function loadDashboardFromWebApp() {
 
     setWebAppStatus(`Datos cargados correctamente. Registros recibidos: ${MASTER_DATA.length}`);
   } catch (error) {
-    document.getElementById('loading').style.display = 'none';
     setWebAppStatus(error.message || 'Error al cargar los datos.', true);
+  } finally {
+    if (loadingEl) loadingEl.style.display = 'none';
   }
 }
-function showScreen(screenId) {
+  function showScreen(screenId) {
   const screens = document.querySelectorAll('.screen');
   screens.forEach(screen => {
     screen.classList.remove('active');
