@@ -1246,7 +1246,6 @@
 
 <div id="webAppStatus" class="status-note" style="display:none;"></div>
 </div>
-
 <div class="menu-row">
   <button type="button" onclick="showScreen('homeScreen')">Inicio</button>
   <button type="button" onclick="showScreen('descriptiveScreen')">Perfil descriptivo</button>
@@ -1254,8 +1253,8 @@
   <button type="button" onclick="showScreen('occurrenceScreen')">Patrón de ocurrencias</button>
   <button type="button" onclick="showScreen('profilesScreen')">Perfiles</button>
   <button type="button" onclick="showScreen('dataScreen')">Datos</button>
-    <button type="button" onclick="openAIScreen()">Análisis IA</button>
-  <button type="button" onclick="openFormularioScreen()">Formulario</button>
+  <button type="button" onclick="showScreen('aiScreen')">Análisis IA</button>
+  <button type="button" onclick="showScreen('formScreen')">Formulario</button>
 </div>
 <div class="summary">
   <div class="card">
@@ -2482,13 +2481,13 @@ async function loadDashboardFromWebApp() {
     setTimeout(() => renderAll(), 60);
   }
 
-  if (screenId === 'formScreen') {
+    if (screenId === 'formScreen') {
     setTimeout(() => {
       initFormulario();
 
       const formNote = document.getElementById('formNote');
       if (formNote) {
-        formNote.innerHTML = 'Se muestra el <strong>formulario ya parametrizado</strong> con sus campos y catálogos cargados.';
+        formNote.innerHTML = 'Se despliega el <strong>formulario ya parametrizado</strong> con sus campos, catálogos y opciones listas para captura.';
       }
 
       const firstVisibleField =
@@ -2503,52 +2502,25 @@ async function loadDashboardFromWebApp() {
       }
     }, 60);
   }
-
-  if (screenId === 'aiScreen') {
+    if (screenId === 'aiScreen') {
     setTimeout(() => {
-      refreshAIPreviewFromLastData();
-
       const status = document.getElementById('aiStatus');
       const payload = buildAIPayloadFromDataTable();
 
+      refreshAIPreviewFromLastData();
+
       if (payload) {
-        status.textContent = 'Se muestra el reporte ya parametrizado con la información consolidada desde Datos.';
+        status.textContent = 'Se muestra el reporte o informe ya parametrizado con la información consolidada desde Datos.';
+        document.getElementById('aiInputPreview').innerHTML = buildAIPreviewHtml(payload);
       } else {
         status.textContent = 'Primero genera la tabla en Datos para mostrar el reporte parametrizado.';
+        document.getElementById('aiInputPreview').innerHTML = 'Aún no se ha preparado información desde la sección <strong>Datos</strong>.';
       }
     }, 60);
   }
-
-  setTimeout(() => {
-    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }, 60);
-}
-
-function openAIScreen() {
-  showScreen('aiScreen');
-
-  setTimeout(() => {
-    const payload = buildAIPayloadFromDataTable();
-
-    if (payload) {
-      refreshAIPreviewFromLastData();
-    }
-  }, 80);
-}
-
-function openFormularioScreen() {
-  showScreen('formScreen');
-
-  setTimeout(() => {
-    initFormulario();
-
-    const formNote = document.getElementById('formNote');
-    if (formNote) {
-      formNote.innerHTML = 'Se despliega el <strong>formulario ya parametrizado</strong> y listo para captura.';
-    }
-  }, 80);
-}
-
+    
+/* Funciones eliminadas porque ahora el menú usa directamente showScreen('aiScreen')
+   y showScreen('formScreen'), donde ya está toda la lógica del contenido parametrizado. */
 function forceRenderFormulario() {
   const formScreen = document.getElementById('formScreen');
   if (!formScreen) return;
