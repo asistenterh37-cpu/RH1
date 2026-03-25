@@ -1254,7 +1254,7 @@
   <button type="button" onclick="showScreen('occurrenceScreen')">Patrón de ocurrencias</button>
   <button type="button" onclick="showScreen('profilesScreen')">Perfiles</button>
   <button type="button" onclick="showScreen('dataScreen')">Datos</button>
-  <button type="button" onclick="showScreen('aiScreen')">Análisis IA</button>
+    <button type="button" onclick="openAIScreen()">Análisis IA</button>
   <button type="button" onclick="openFormularioScreen()">Formulario</button>
 </div>
 <div class="summary">
@@ -1873,6 +1873,10 @@
     </select>
   </div>
 
+<div id="formNote" class="form-note">
+  Se mostrará aquí el estado del formulario parametrizado.
+</div>
+     
   <div class="filter-box">
     <label class="filter-label" for="formMunicipio">Municipio</label>
     <select id="formMunicipio" class="filter-select">
@@ -2474,22 +2478,19 @@ async function loadDashboardFromWebApp() {
 
   hideFloatingTag();
 
-  if (screenId === 'formScreen') {
-    initFormulario();
-  }
-
   if (screenId === 'descriptiveScreen') {
     setTimeout(() => renderAll(), 60);
   }
 
-  if (screenId === 'aiScreen') {
-    setTimeout(() => refreshAIPreviewFromLastData(), 60);
-  }
+  if (screenId === 'formScreen') {
+    setTimeout(() => {
+      initFormulario();
 
-  setTimeout(() => {
-    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      const formNote = document.getElementById('formNote');
+      if (formNote) {
+        formNote.innerHTML = 'Se muestra el <strong>formulario ya parametrizado</strong> con sus campos y catálogos cargados.';
+      }
 
-    if (screenId === 'formScreen') {
       const firstVisibleField =
         document.getElementById('formDepartamento') ||
         document.getElementById('formForma') ||
@@ -2500,12 +2501,52 @@ async function loadDashboardFromWebApp() {
           firstVisibleField.focus();
         } catch (e) {}
       }
-    }
+    }, 60);
+  }
+
+  if (screenId === 'aiScreen') {
+    setTimeout(() => {
+      refreshAIPreviewFromLastData();
+
+      const status = document.getElementById('aiStatus');
+      const payload = buildAIPayloadFromDataTable();
+
+      if (payload) {
+        status.textContent = 'Se muestra el reporte ya parametrizado con la información consolidada desde Datos.';
+      } else {
+        status.textContent = 'Primero genera la tabla en Datos para mostrar el reporte parametrizado.';
+      }
+    }, 60);
+  }
+
+  setTimeout(() => {
+    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }, 60);
+}
+
+function openAIScreen() {
+  showScreen('aiScreen');
+
+  setTimeout(() => {
+    const payload = buildAIPayloadFromDataTable();
+
+    if (payload) {
+      refreshAIPreviewFromLastData();
+    }
+  }, 80);
 }
 
 function openFormularioScreen() {
   showScreen('formScreen');
+
+  setTimeout(() => {
+    initFormulario();
+
+    const formNote = document.getElementById('formNote');
+    if (formNote) {
+      formNote.innerHTML = 'Se despliega el <strong>formulario ya parametrizado</strong> y listo para captura.';
+    }
+  }, 80);
 }
 
 function forceRenderFormulario() {
