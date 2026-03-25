@@ -439,11 +439,26 @@
     }
 
     .loading{
-      text-align:center;
-      padding:60px 20px;
-      color:#cbd5e1;
-      font-size:18px;
-    }
+  display:none;
+  position:fixed;
+  top:20px;
+  left:50%;
+  transform:translateX(-50%);
+  z-index:999999;
+  background:rgba(11,18,32,.96);
+  color:#e2e8f0;
+  border:1px solid var(--border);
+  border-radius:14px;
+  padding:14px 22px;
+  font-size:16px;
+  font-weight:700;
+  box-shadow:0 12px 30px rgba(0,0,0,.35);
+  backdrop-filter:blur(6px);
+}
+
+.loading.show{
+  display:block;
+}
 
     .status-note{
       margin-top:10px;
@@ -1693,7 +1708,7 @@
   </div>
 </div>
 
-<div id="loading" class="loading">Cargando datos...</div>
+<div id="loading" class="loading" aria-live="polite" aria-hidden="true">Cargando datos...</div>
 
 <div id="floatingTag" class="floating-tag"></div>
 
@@ -1907,20 +1922,40 @@ window.addEventListener('resize', function() {
   }
 });
 
-  function init() {
-  WEB_APP_URL = normalizeWebAppUrl(
-    WEB_APP_URL ||
-    'https://script.google.com/macros/s/AKfycbw38h2SROHbh8LQB0mrw9I47z8z7Z9806u1DdL5cZJEvC4SiknDaJp84jR3eQzhqJ9q/exec'
-  );
+function setLoadingState(show, message) {
+  const loadingEl = document.getElementById('loading');
+  if (!loadingEl) return;
 
-  if (WEB_APP_URL) {
-    localStorage.setItem('WEB_APP_URL', WEB_APP_URL);
-    loadDashboardFromWebApp();
-    return;
+  if (message) {
+    loadingEl.textContent = message;
   }
 
-  loadData({ headers: [], rows: [], dimensions: [], valueField: 'Frecuencia', excluded: [] });
+  loadingEl.classList.toggle('show', !!show);
+  loadingEl.setAttribute('aria-hidden', show ? 'false' : 'true');
 }
+
+function init() {
+  try {
+    WEB_APP_URL = normalizeWebAppUrl(
+      WEB_APP_URL ||
+      'https://script.google.com/macros/s/AKfycbw38h2SROHbh8LQB0mrw9I47z8z7Z9806u1DdL5cZJEvC4SiknDaJp84jR3eQzhqJ9q/exec'
+    );
+
+    if (WEB_APP_URL) {
+      localStorage.setItem('WEB_APP_URL', WEB_APP_URL);
+      loadDashboardFromWebApp();
+      return;
+    }
+
+    setLoadingState(false);
+    loadData({ headers: [], rows: [], dimensions: [], valueField: 'Frecuencia', excluded: [] });
+  } catch (error) {
+    setLoadingState(false);
+    setWebAppStatus(error.message || 'Ocurrió un error al inicializar la aplicación.', true);
+    loadData({ headers: [], rows: [], dimensions: [], valueField: 'Frecuencia', excluded: [] });
+  }
+}
+  
 function loadData(payload) {
     MASTER_DATA = payload.rows || [];
     DIMENSIONS = payload.dimensions || [];
@@ -1998,6 +2033,7 @@ function withTimeout(promise, ms, message) {
 }
   
 document.addEventListener('DOMContentLoaded', function () {
+    setLoadingState(false);
   const input = document.getElementById('webAppUrlInput');
   if (!input) return;
 
@@ -2156,21 +2192,24 @@ async function testWebAppConnection() {
 }
 
 async function loadDashboardFromWebApp() {
-  const loadingEl = document.getElementById('loading');
-
   try {
     const saved = saveWebAppUrl(false);
 
     if (!saved) {
-      if (loadingEl) loadingEl.style.display = 'none';
+      setLoadingState(false);
       setWebAppStatus('No hay una URL válida del Web App configurada.', true);
       return;
     }
 
-    if (loadingEl) loadingEl.style.display = 'block';
+    setLoadingState(true, 'Cargando datos...');
     setWebAppStatus('Cargando datos desde Apps Script...');
 
-    const result = await withTimeout(apiGet('dashboard'), 20000, 'La carga de datos tardó demasiado. Verifica el Web App.');
+    const result = await withTimeout(
+      apiGet('dashboard'),
+      20000,
+      'La carga de datos tardó demasiado. Verifica el Web App.'
+    );
+
     const payload = resolveDashboardPayload(result);
 
     if (!payload) {
@@ -2197,9 +2236,10 @@ async function loadDashboardFromWebApp() {
   } catch (error) {
     setWebAppStatus(error.message || 'Error al cargar los datos.', true);
   } finally {
-    if (loadingEl) loadingEl.style.display = 'none';
+    setLoadingState(false);
   }
 }
+  
   function showScreen(screenId) {
   const screens = document.querySelectorAll('.screen');
   screens.forEach(screen => {
