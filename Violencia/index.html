@@ -429,11 +429,40 @@
     }
 
     .loading{
-      text-align:center;
-      padding:60px 20px;
-      color:#cbd5e1;
-      font-size:18px;
-    }
+  position:fixed;
+  top:18px;
+  left:50%;
+  transform:translateX(-50%);
+  z-index:100000;
+  display:none;
+  padding:12px 22px;
+  border-radius:999px;
+  background:rgba(15,23,42,.96);
+  border:1px solid rgba(56,189,248,.45);
+  color:#f8fafc;
+  font-size:18px;
+  font-weight:700;
+  letter-spacing:.2px;
+  text-align:center;
+  box-shadow:0 10px 26px rgba(0,0,0,.28);
+  backdrop-filter:blur(8px);
+}
+
+.loading.show{
+  display:block;
+  animation:fadeSlideDown .25s ease;
+}
+
+@keyframes fadeSlideDown{
+  from{
+    opacity:0;
+    transform:translate(-50%,-8px);
+  }
+  to{
+    opacity:1;
+    transform:translate(-50%,0);
+  }
+}
 
     .status-note{
       margin-top:10px;
@@ -1826,7 +1855,7 @@
   </div>
 </div>
 
-<div id="loading" class="loading">Cargando datos...</div>
+<div id="loading" class="loading" aria-live="polite">Cargando datos</div>
 
 <div id="floatingTag" class="floating-tag"></div>
 
@@ -2040,6 +2069,19 @@ window.addEventListener('resize', function() {
   }
 });
 
+function showLoadingMessage(text = 'Cargando datos') {
+  const loadingEl = document.getElementById('loading');
+  if (!loadingEl) return;
+  loadingEl.textContent = text;
+  loadingEl.classList.add('show');
+}
+
+function hideLoadingMessage() {
+  const loadingEl = document.getElementById('loading');
+  if (!loadingEl) return;
+  loadingEl.classList.remove('show');
+}
+  
   function init() {
   WEB_APP_URL = normalizeWebAppUrl(
     WEB_APP_URL ||
@@ -2074,7 +2116,7 @@ function loadData(payload) {
     initDatosModule();
 
     renderAll();
-
+    hideLoadingMessage();
     setTimeout(() => {
       const descriptiveScreen = document.getElementById('descriptiveScreen');
       if (descriptiveScreen && descriptiveScreen.classList.contains('active')) {
@@ -2278,7 +2320,7 @@ async function loadDashboardFromWebApp() {
     const saved = saveWebAppUrl(false);
     if (!saved) return;
 
-    document.getElementById('loading').style.display = 'block';
+    showLoadingMessage('Cargando datos');
     setWebAppStatus('Cargando datos desde Apps Script...');
 
     const result = await apiGet('dashboard');
@@ -2300,17 +2342,18 @@ async function loadDashboardFromWebApp() {
     EXCLUDED_FIELDS = Array.isArray(payload.excluded) ? payload.excluded : [];
 
     if (!MASTER_DATA.length) {
+      hideLoadingMessage();
       setWebAppStatus('Conexión correcta, pero la hoja no devolvió registros para el dashboard.', true);
       return;
     }
 
     setWebAppStatus(`Datos cargados correctamente. Registros recibidos: ${MASTER_DATA.length}`);
   } catch (error) {
-    document.getElementById('loading').style.display = 'none';
+    hideLoadingMessage();
     setWebAppStatus(error.message || 'Error al cargar los datos.', true);
   }
 }
-function showScreen(screenId) {
+  function showScreen(screenId) {
   const screens = document.querySelectorAll('.screen');
   screens.forEach(screen => {
     screen.classList.remove('active');
