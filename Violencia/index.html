@@ -878,6 +878,47 @@
   font-size:12px;
 }
 
+.forecast-accordion{
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+}
+
+.forecast-accordion-item{
+  border:1px solid var(--border);
+  border-radius:14px;
+  overflow:hidden;
+  background:#0b1220;
+}
+
+.forecast-accordion-toggle{
+  width:100%;
+  text-align:left;
+  padding:14px 16px;
+  border:none;
+  cursor:pointer;
+  font-size:15px;
+  font-weight:700;
+  color:#fff;
+  background:linear-gradient(135deg,#1e293b,#0f172a);
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+}
+
+.forecast-accordion-toggle.active{
+  background:linear-gradient(135deg,#ec4899,#be185d);
+}
+
+.forecast-accordion-content{
+  display:none;
+  padding:14px;
+}
+
+.forecast-accordion-content.open{
+  display:block;
+}
+      
    @media (max-width: 700px){
   .wrap{ padding:12px; }
   .title{ font-size:22px; }
@@ -942,8 +983,7 @@
 <div>
   <div class="title">Muertes por causas externas</div>
   <div class="subtitle source-highlight"><strong>Fuente: Sistema Estadistico Policial en Linea ( SEPOL)</strong></div>
-  <div class="subtitle">Exploración descriptiva, segmentación, ocurrencias, perfiles y análisis IA</div>
-</div>
+ <div class="subtitle">Exploración descriptiva, segmentación, ocurrencias, perfiles y pronóstico estadístico</div>
       <div class="actions">
   <button class="danger" onclick="resetFilters()">Limpiar filtros</button>
   <button class="secondary" onclick="toggleHelp()">Ver ayuda</button>
@@ -977,7 +1017,7 @@
   <button type="button" onclick="showScreen('occurrenceScreen')">Patrón de ocurrencias</button>
   <button type="button" onclick="showScreen('profilesScreen')">Perfiles</button>
   <button type="button" onclick="showScreen('dataScreen')">Datos</button>
-  <button type="button" onclick="showScreen('aiScreen')">Análisis IA</button>
+  <button type="button" onclick="showScreen('forecastScreen')">Pronóstico</button>
   <button type="button" onclick="openFormularioScreen()">Formulario</button>
 </div>
 <div class="summary">
@@ -1015,7 +1055,7 @@
       Selecciona uno de los módulos superiores para visualizar el contenido:
       <strong>Perfil descriptivo</strong>, <strong>Segmentación cruzada</strong>,
       <strong>Patrón de ocurrencias</strong>, <strong>Perfiles</strong>,
-      <strong>Datos</strong>, <strong>Análisis IA</strong> o <strong>Formulario</strong>.
+      <strong>Datos</strong>, <strong>Pronóstico</strong> o <strong>Formulario</strong>.
     </div>
   </div>
 
@@ -1476,111 +1516,180 @@
 </div>
 </div>
 
-<!-- ANÁLISIS IA -->
-<div id="aiScreen" class="screen">
+<!-- PRONÓSTICO -->
+<div id="forecastScreen" class="screen">
   <div class="section-actions">
     <button class="dark" onclick="showScreen('homeScreen')">Volver</button>
   </div>
 
   <div class="interaction-panel">
-    <div class="panel-title">Análisis IA</div>
+    <div class="panel-title">Pronóstico</div>
     <div class="panel-subtitle">
-      Este módulo genera un informe automático a partir de la información ya consolidada en la sección <strong>Datos</strong>.
+      Este módulo genera una proyección de incidencias para el <strong>mes siguiente</strong>,
+      utilizando la información visible en <strong>Datos</strong>.
       <br><br>
-      El informe devolverá exactamente:
-      <strong>Análisis e interpretación</strong>,
-      <strong>Conclusiones</strong>,
-      <strong>Recomendaciones</strong> y
-      <strong>Proyección</strong>.
+      El análisis se organiza por niveles:
+      <strong>Forma de fallecimientos</strong>,
+      <strong>Departamento</strong>,
+      <strong>Municipio</strong> y
+      <strong>No (pronóstico)</strong>.
       <br><br>
-      La sección <strong>Proyección</strong> incorporará una proyección estadística diaria de la
-      <strong>Forma de fallecimiento</strong> seleccionada para el <strong>siguiente mes</strong>,
-      desagregada por <strong>Departamento</strong> y <strong>Municipio</strong>.
-      <br><br>
-      <strong>Importante:</strong> primero debes generar la tabla en <strong>Datos</strong>.
-      Luego, desde aquí, presiona <strong>Generar análisis IA</strong>.
+      La proyección debe calcularse con un método estadístico apropiado para series temporales
+      de conteos, priorizando la tendencia reciente y usando un mecanismo de respaldo cuando la
+      serie histórica sea insuficiente.
+    </div>
+
+    <div class="builder-filters">
+      <div class="filter-box">
+        <label class="filter-label" for="forecastForma">Forma de fallecimientos</label>
+        <select id="forecastForma" class="filter-select">
+          <option value="Todos">Todos</option>
+          <option value="Accidental">Accidental</option>
+          <option value="Accidente de tránsito">Accidente de tránsito</option>
+          <option value="Homicidio">Homicidio</option>
+          <option value="Suicidio">Suicidio</option>
+        </select>
+      </div>
+
+      <div class="filter-box">
+        <label class="filter-label" for="forecastDepartamento">Departamento</label>
+        <select id="forecastDepartamento" class="filter-select" onchange="updateForecastMunicipios()">
+          <option value="Todos">Todos</option>
+        </select>
+      </div>
+
+      <div class="filter-box">
+        <label class="filter-label" for="forecastMunicipio">Municipio</label>
+        <select id="forecastMunicipio" class="filter-select">
+          <option value="Todos">Todos</option>
+        </select>
+      </div>
+
+      <div class="filter-box">
+        <label class="filter-label" for="forecastTopN">No (pronóstico)</label>
+        <select id="forecastTopN" class="filter-select">
+          <option value="1">1</option>
+          <option value="2">2</option>
+          <option value="3">3</option>
+          <option value="4">4</option>
+          <option value="5" selected>5</option>
+          <option value="6">6</option>
+          <option value="7">7</option>
+          <option value="8">8</option>
+          <option value="9">9</option>
+          <option value="10">10</option>
+          <option value="11">11</option>
+          <option value="12">12</option>
+          <option value="13">13</option>
+          <option value="14">14</option>
+          <option value="15">15</option>
+        </select>
+      </div>
     </div>
 
     <div class="independent-actions">
-      <button class="pink" id="btnGenerateAI" onclick="processAIAnalysis()">Generar análisis IA</button>
-      <button class="warning" onclick="clearAIAnalysis()">Limpiar</button>
+      <button class="pink" id="btnGenerateForecast" onclick="processForecastAnalysis()">Generar pronóstico</button>
+      <button class="warning" onclick="clearForecastAnalysis()">Limpiar</button>
     </div>
 
-    <div id="aiStatus" class="status-note"></div>
+    <div id="forecastStatus" class="status-note"></div>
 
-    <div class="card" style="margin-top:16px;">
-      <div class="metric-title">Resumen enviado a IA</div>
-      <div id="aiInputPreview" style="font-size:14px; line-height:1.7; color:#e2e8f0;">
-        Aún no se ha preparado información desde la sección Datos.
+    <div class="forecast-accordion" style="margin-top:18px;">
+      <div class="forecast-accordion-item">
+        <button class="forecast-accordion-toggle active" type="button" onclick="toggleForecastAccordion(this, 'forecastNivelForma')">
+          Nivel 1: Forma de fallecimientos
+        </button>
+        <div id="forecastNivelForma" class="forecast-accordion-content open">
+          <div class="data-table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Forma de fallecimiento</th>
+                  <th>Mes proyectado</th>
+                  <th>Incidencias proyectadas</th>
+                  <th>Método</th>
+                </tr>
+              </thead>
+              <tbody id="forecastFormaBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="forecast-accordion-item">
+        <button class="forecast-accordion-toggle" type="button" onclick="toggleForecastAccordion(this, 'forecastNivelDepartamento')">
+          Nivel 2: Departamento
+        </button>
+        <div id="forecastNivelDepartamento" class="forecast-accordion-content">
+          <div class="data-table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Forma de fallecimiento</th>
+                  <th>Departamento</th>
+                  <th>Mes proyectado</th>
+                  <th>Incidencias proyectadas</th>
+                  <th>Método</th>
+                </tr>
+              </thead>
+              <tbody id="forecastDepartamentoBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="forecast-accordion-item">
+        <button class="forecast-accordion-toggle" type="button" onclick="toggleForecastAccordion(this, 'forecastNivelMunicipio')">
+          Nivel 3: Municipio
+        </button>
+        <div id="forecastNivelMunicipio" class="forecast-accordion-content">
+          <div class="data-table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Forma de fallecimiento</th>
+                  <th>Departamento</th>
+                  <th>Municipio</th>
+                  <th>Mes proyectado</th>
+                  <th>Incidencias proyectadas</th>
+                  <th>Método</th>
+                </tr>
+              </thead>
+              <tbody id="forecastMunicipioBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="forecast-accordion-item">
+        <button class="forecast-accordion-toggle" type="button" onclick="toggleForecastAccordion(this, 'forecastNivelResumen')">
+          Nivel 4: No (pronóstico)
+        </button>
+        <div id="forecastNivelResumen" class="forecast-accordion-content">
+          <div class="data-table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Ranking</th>
+                  <th>Forma de fallecimiento</th>
+                  <th>Departamento</th>
+                  <th>Municipio</th>
+                  <th>Mes proyectado</th>
+                  <th>Incidencias proyectadas</th>
+                  <th>Método</th>
+                </tr>
+              </thead>
+              <tbody id="forecastTopBody"></tbody>
+            </table>
+          </div>
+          <div id="forecastCaption" class="data-caption"></div>
+        </div>
       </div>
     </div>
-
-    <div id="aiResultCard" class="card" style="margin-top:16px; display:none;">
-      <div class="metric-title">Informe IA</div>
-
-<div style="margin-top:8px;">
-  <div style="font-size:18px; font-weight:700; margin-bottom:8px;">Análisis e interpretación</div>
-  <div id="aiAnalisisText" style="font-size:15px; line-height:1; color:#e2e8f0; white-space:pre-wrap;"></div>
-</div>
-
-<div style="margin-top:18px;">
-  <div style="font-size:18px; font-weight:700; margin-bottom:8px;">Conclusiones</div>
-  <div id="aiConclusionesText" style="font-size:15px; line-height:1; color:#e2e8f0; white-space:pre-wrap;"></div>
-</div>
-
-<div style="margin-top:18px;">
-  <div style="font-size:18px; font-weight:700; margin-bottom:8px;">Recomendaciones</div>
-  <div id="aiRecomendacionesText" style="font-size:15px; line-height:1; color:#e2e8f0; white-space:pre-wrap;"></div>
-</div>
-
-<div style="margin-top:18px;">
-  <div style="font-size:18px; font-weight:700; margin-bottom:8px;">Proyección</div>
-  <div id="aiProyeccionText" style="font-size:15px; line-height:1; color:#e2e8f0; white-space:pre-wrap;"></div>
-</div>
-
-<div id="aiProjectionTableContainer" style="margin-top:18px; display:none;">
-  <div style="font-size:18px; font-weight:700; margin-bottom:10px;">Detalle proyectado del siguiente mes</div>
-  <div class="data-table-wrap">
-    <table class="data-table">
-      <thead>
-        <tr>
-          <th>Fecha</th>
-          <th>Día semana</th>
-          <th>Departamento</th>
-          <th>Municipio</th>
-          <th>Proyección</th>
-        </tr>
-      </thead>
-      <tbody id="aiProjectionTableBody"></tbody>
-    </table>
-  </div>
-  <div id="aiProjectionCaption" class="data-caption"></div>
-</div>
-
-<div id="aiProjectionChartContainer" class="independent-chart-card" style="margin-top:18px; display:none;">
-  <div class="independent-chart-header">
-    <div class="independent-chart-title" id="aiProjectionChartTitle">Frecuencia proyectada acumulada por departamento</div>
-    <div class="independent-chart-subtitle" id="aiProjectionChartSubtitle"></div>
-    <div class="independent-chart-hint" id="aiProjectionChartHint">
-      Primer nivel: departamentos. Haz clic sobre una barra para ver sus municipios. Pasa el cursor sobre la barra para ver día de semana dominante y frecuencia.
-    </div>
-  </div>
-  <div class="independent-actions" style="justify-content:flex-start; margin-top:10px; margin-bottom:10px;">
-    <button id="aiProjectionChartBackBtn" class="dark" style="display:none;" onclick="backAIProjectionChart()">Volver a departamentos</button>
-  </div>
-  <div class="independentChartOuter">
-    <div id="aiProjectionChartScroll" class="independentChartViewport">
-      <div id="aiProjectionChartStage" class="independentChartStage">
-        <div id="aiProjectionChart" class="independentChart"></div>
-      </div>
-    </div>
   </div>
 </div>
-</div>
-</div>
-</div>
 
-<!-- FORMULARIO -->
+      <!-- FORMULARIO -->
 
 <!-- FORMULARIO -->
 <div id="formScreen" class="screen">
@@ -1693,6 +1802,19 @@
   google.charts.load('current', { packages: ['corechart'] });
   google.charts.setOnLoadCallback(init);
 
+  function toggleForecastAccordion(button, contentId) {
+  const content = document.getElementById(contentId);
+  if (!content) return;
+
+  const isOpen = content.classList.contains('open');
+  document.querySelectorAll('.forecast-accordion-content').forEach(el => el.classList.remove('open'));
+  document.querySelectorAll('.forecast-accordion-toggle').forEach(el => el.classList.remove('active'));
+
+  if (!isOpen) {
+    content.classList.add('open');
+    button.classList.add('active');
+  }
+}
   let MASTER_HEADERS = [];
   let MASTER_DATA = [];
   let DIMENSIONS = [];
@@ -1714,6 +1836,14 @@ let INDEPENDENT_SELECTION = [];
   let LAST_DATA_TABLE_RESULT = null;
   let DATA_FILTERS_BOUND = false;
 
+let LAST_FORECAST_RESULT = {
+  forma: [],
+  departamento: [],
+  municipio: [],
+  top: [],
+  meta: {}
+};
+  
   const DATA_STORAGE_KEY = 'dashboard_datos_table_v2';
   const ALL_LABEL = '__ALL__';
   const HIDE_CATEGORY_LABELS = true;
@@ -1790,6 +1920,25 @@ let INDEPENDENT_SELECTION = [];
     meses: []
   };
 
+function updateForecastMunicipios() {
+  const depSelect = document.getElementById('forecastDepartamento');
+  const munSelect = document.getElementById('forecastMunicipio');
+  if (!depSelect || !munSelect) return;
+
+  const departamento = depSelect.value || 'Todos';
+  const municipios = departamento === 'Todos'
+    ? []
+    : (MENU_OPTIONS.municipiosPorDepartamento[departamento] || []);
+
+  munSelect.innerHTML = '<option value="Todos">Todos</option>';
+  municipios.forEach(m => {
+    const opt = document.createElement('option');
+    opt.value = m;
+    opt.textContent = m;
+    munSelect.appendChild(opt);
+  });
+}
+  
   const PIE_COLORS = [
     '#38bdf8','#22c55e','#f59e0b','#ef4444','#a855f7',
     '#14b8a6','#eab308','#f97316','#6366f1','#ec4899',
@@ -6222,6 +6371,237 @@ function clearAIAnalysis() {
   setAIBusyState(false, '');
   const payload = buildAIPayloadFromDataTable();
   document.getElementById('aiInputPreview').innerHTML = payload ? buildAIPreviewHtml(payload) : 'Aún no se ha preparado información desde la sección <strong>Datos</strong>.';
+}
+
+  function getForecastMethodLabel(seriesLength) {
+  return seriesLength >= 6 ? 'Suavización exponencial con tendencia' : 'Promedio móvil ponderado';
+}
+
+function processForecastAnalysis() {
+  const status = document.getElementById('forecastStatus');
+  const forma = document.getElementById('forecastForma')?.value || 'Todos';
+  const departamento = document.getElementById('forecastDepartamento')?.value || 'Todos';
+  const municipio = document.getElementById('forecastMunicipio')?.value || 'Todos';
+  const topN = Number(document.getElementById('forecastTopN')?.value || 5);
+
+  if (!Array.isArray(MASTER_DATA) || !MASTER_DATA.length) {
+    status.textContent = 'No hay datos cargados para generar el pronóstico.';
+    return;
+  }
+
+  status.textContent = 'Procesando pronóstico del siguiente mes...';
+
+  const resultado = buildForecastProjection({
+    forma,
+    departamento,
+    municipio,
+    topN
+  });
+
+  LAST_FORECAST_RESULT = resultado;
+  renderForecastTables(resultado);
+  status.textContent = 'Pronóstico generado correctamente.';
+}
+
+function clearForecastAnalysis() {
+  document.getElementById('forecastStatus').textContent = 'Pronóstico limpiado.';
+  ['forecastFormaBody','forecastDepartamentoBody','forecastMunicipioBody','forecastTopBody']
+    .forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.innerHTML = '';
+    });
+
+  const caption = document.getElementById('forecastCaption');
+  if (caption) caption.innerHTML = '';
+
+  LAST_FORECAST_RESULT = { forma: [], departamento: [], municipio: [], top: [], meta: {} };
+}
+
+function buildForecastProjection(filters) {
+  const rows = Array.isArray(MASTER_DATA) ? MASTER_DATA.slice() : [];
+  const headers = Array.isArray(MASTER_HEADERS) ? MASTER_HEADERS : [];
+
+  const idxForma = headers.indexOf('Forma de fallecimiento');
+  const idxDepartamento = headers.indexOf('Departamento');
+  const idxMunicipio = headers.indexOf('Municipio');
+  const idxAnio = headers.indexOf('Año');
+  const idxMes = headers.indexOf('Mes');
+  const idxFreq = headers.indexOf('Frecuencia');
+
+  const filtered = rows.filter(r => {
+    const okForma = filters.forma === 'Todos' || String(r[idxForma] || '') === filters.forma;
+    const okDep = filters.departamento === 'Todos' || String(r[idxDepartamento] || '') === filters.departamento;
+    const okMun = filters.municipio === 'Todos' || String(r[idxMunicipio] || '') === filters.municipio;
+    return okForma && okDep && okMun;
+  });
+
+  const grouped = new Map();
+
+  filtered.forEach(r => {
+    const forma = String(r[idxForma] || 'No definido');
+    const dep = String(r[idxDepartamento] || 'No definido');
+    const mun = String(r[idxMunicipio] || 'No definido');
+    const anio = Number(r[idxAnio] || 0);
+    const mes = String(r[idxMes] || '');
+    const freq = Number(r[idxFreq] || 1);
+
+    const key = [forma, dep, mun].join('|||');
+    if (!grouped.has(key)) grouped.set(key, []);
+    grouped.get(key).push({ anio, mes, freq });
+  });
+
+  const formaAgg = new Map();
+  const depAgg = new Map();
+  const munAgg = [];
+
+  grouped.forEach((serie, key) => {
+    const [forma, dep, mun] = key.split('|||');
+    const proyectado = forecastNextMonthValue(serie);
+    const metodo = getForecastMethodLabel(serie.length);
+    const mesProyectado = getNextProjectedMonthLabel(serie);
+
+    const regMun = {
+      forma,
+      departamento: dep,
+      municipio: mun,
+      mesProyectado,
+      incidencias: proyectado,
+      metodo
+    };
+
+    munAgg.push(regMun);
+
+    const keyForma = forma;
+    if (!formaAgg.has(keyForma)) {
+      formaAgg.set(keyForma, { forma, mesProyectado, incidencias: 0, metodo });
+    }
+    formaAgg.get(keyForma).incidencias += proyectado;
+
+    const keyDep = [forma, dep].join('|||');
+    if (!depAgg.has(keyDep)) {
+      depAgg.set(keyDep, { forma, departamento: dep, mesProyectado, incidencias: 0, metodo });
+    }
+    depAgg.get(keyDep).incidencias += proyectado;
+  });
+
+  const formaRows = Array.from(formaAgg.values()).sort((a,b) => b.incidencias - a.incidencias);
+  const depRows = Array.from(depAgg.values()).sort((a,b) => b.incidencias - a.incidencias);
+  const munRows = munAgg.sort((a,b) => b.incidencias - a.incidencias);
+  const topRows = munRows.slice(0, filters.topN).map((item, i) => ({ ranking: i + 1, ...item }));
+
+  return {
+    forma: formaRows,
+    departamento: depRows,
+    municipio: munRows,
+    top: topRows,
+    meta: {
+      filtros: filters,
+      totalSeries: grouped.size
+    }
+  };
+}
+
+function forecastNextMonthValue(series) {
+  if (!Array.isArray(series) || !series.length) return 0;
+
+  const values = series
+    .map(x => Number(x.freq || 0))
+    .filter(v => Number.isFinite(v));
+
+  if (!values.length) return 0;
+
+  if (values.length >= 6) {
+    let level = values[0];
+    let trend = values[1] ? values[1] - values[0] : 0;
+    const alpha = 0.45;
+    const beta = 0.25;
+
+    for (let i = 1; i < values.length; i++) {
+      const value = values[i];
+      const prevLevel = level;
+      level = alpha * value + (1 - alpha) * (level + trend);
+      trend = beta * (level - prevLevel) + (1 - beta) * trend;
+    }
+
+    return Math.max(0, Math.round(level + trend));
+  }
+
+  const recent = values.slice(-3);
+  const weights = recent.length === 1 ? [1] : recent.length === 2 ? [0.4, 0.6] : [0.2, 0.3, 0.5];
+  const weighted = recent.reduce((acc, v, i) => acc + v * weights[i], 0);
+  return Math.max(0, Math.round(weighted));
+}
+
+function getNextProjectedMonthLabel(series) {
+  if (!Array.isArray(series) || !series.length) return 'Siguiente mes';
+
+  const last = series[series.length - 1];
+  const anio = Number(last.anio || 0);
+  const mesNombre = String(last.mes || '').toLowerCase().trim();
+  const mesNum = MONTH_INDEX[mesNombre] || 12;
+
+  let nextMonth = mesNum + 1;
+  let nextYear = anio || new Date().getFullYear();
+
+  if (nextMonth > 12) {
+    nextMonth = 1;
+    nextYear += 1;
+  }
+
+  return `${MONTH_NAME_BY_INDEX[nextMonth] || 'Mes'} ${nextYear}`;
+}
+
+function renderForecastTables(result) {
+  fillForecastTable('forecastFormaBody', result.forma, row => `
+    <td>${escapeHtml(row.forma || '')}</td>
+    <td>${escapeHtml(row.mesProyectado || '')}</td>
+    <td>${formatNumber(row.incidencias || 0)}</td>
+    <td>${escapeHtml(row.metodo || '')}</td>
+  `);
+
+  fillForecastTable('forecastDepartamentoBody', result.departamento, row => `
+    <td>${escapeHtml(row.forma || '')}</td>
+    <td>${escapeHtml(row.departamento || '')}</td>
+    <td>${escapeHtml(row.mesProyectado || '')}</td>
+    <td>${formatNumber(row.incidencias || 0)}</td>
+    <td>${escapeHtml(row.metodo || '')}</td>
+  `);
+
+  fillForecastTable('forecastMunicipioBody', result.municipio, row => `
+    <td>${escapeHtml(row.forma || '')}</td>
+    <td>${escapeHtml(row.departamento || '')}</td>
+    <td>${escapeHtml(row.municipio || '')}</td>
+    <td>${escapeHtml(row.mesProyectado || '')}</td>
+    <td>${formatNumber(row.incidencias || 0)}</td>
+    <td>${escapeHtml(row.metodo || '')}</td>
+  `);
+
+  fillForecastTable('forecastTopBody', result.top, row => `
+    <td>${formatNumber(row.ranking || 0)}</td>
+    <td>${escapeHtml(row.forma || '')}</td>
+    <td>${escapeHtml(row.departamento || '')}</td>
+    <td>${escapeHtml(row.municipio || '')}</td>
+    <td>${escapeHtml(row.mesProyectado || '')}</td>
+    <td>${formatNumber(row.incidencias || 0)}</td>
+    <td>${escapeHtml(row.metodo || '')}</td>
+  `);
+
+  const caption = document.getElementById('forecastCaption');
+  if (caption) {
+    caption.innerHTML = `Series analizadas: <strong>${formatNumber(result.meta.totalSeries || 0)}</strong>. Pronóstico generado para el siguiente mes con enfoque de tendencia reciente.`;
+  }
+}
+
+function fillForecastTable(tbodyId, rows, rowTemplate) {
+  const tbody = document.getElementById(tbodyId);
+  if (!tbody) return;
+  tbody.innerHTML = '';
+
+  (rows || []).forEach(row => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = rowTemplate(row);
+    tbody.appendChild(tr);
+  });
 }
 </script>
 </body>
