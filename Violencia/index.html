@@ -6403,7 +6403,35 @@ function clearAIAnalysis() {
   function getForecastMethodLabel(seriesLength) {
   return seriesLength >= 6 ? 'Suavización exponencial con tendencia' : 'Promedio móvil ponderado';
 }
- function processForecastAnalysis() {
+function setForecastBusyState(isBusy, message) {
+  const status = document.getElementById('forecastStatus');
+  const btn = document.getElementById('btnGenerateForecast');
+
+  if (status && typeof message === 'string') {
+    status.textContent = message;
+  }
+
+  if (btn) {
+    btn.disabled = !!isBusy;
+    btn.textContent = isBusy ? 'Generando pronóstico...' : 'Generar pronóstico';
+  }
+}
+function setForecastBusyState(isBusy, message) {
+  const status = document.getElementById('forecastStatus');
+  const btn = document.getElementById('btnGenerateForecast');
+
+  if (status && typeof message === 'string') {
+    status.textContent = message;
+  }
+
+  if (btn) {
+    btn.disabled = !!isBusy;
+    btn.textContent = isBusy ? 'Generando pronóstico...' : 'Generar pronóstico';
+  }
+}
+
+
+function processForecastAnalysis() {
   const status = document.getElementById('forecastStatus');
   const departamento = document.getElementById('forecastDepartamento')?.value || 'Todos';
   const municipio = document.getElementById('forecastMunicipio')?.value || 'Todos';
@@ -6411,28 +6439,40 @@ function clearAIAnalysis() {
   syncForecastFormaWithData();
 
   if (!Array.isArray(MASTER_DATA) || !MASTER_DATA.length) {
-    status.textContent = 'No hay datos cargados para generar el pronóstico.';
+    if (status) status.textContent = 'No hay datos cargados para generar el pronóstico.';
     return;
   }
 
   const forma = document.getElementById('dataForma')?.value || 'Todos';
   const anio = document.getElementById('dataAnio')?.value || 'Todos';
 
-  status.textContent = 'Procesando pronóstico con base en la sección Datos...';
+  setForecastBusyState(true, 'Procesando pronóstico con base en la sección Datos...');
 
-  const resultado = buildForecastProjectionFromDatos({
-    forma,
-    anio,
-    departamento,
-    municipio
-  });
+  window.setTimeout(() => {
+    try {
+      const resultado = buildForecastProjectionFromDatos({
+        forma,
+        anio,
+        departamento,
+        municipio
+      });
 
-  LAST_FORECAST_RESULT = resultado;
-  renderForecastTable(resultado);
+      LAST_FORECAST_RESULT = resultado;
+      renderForecastTable(resultado);
 
-  status.textContent = (resultado.rows || []).length
-    ? 'Pronóstico generado correctamente con base en los datos filtrados en Datos.'
-    : (resultado.meta?.mensaje || 'No se encontraron series válidas para los filtros seleccionados.');
+      setForecastBusyState(
+        false,
+        (resultado.rows || []).length
+          ? 'Pronóstico generado correctamente con base en los datos filtrados en Datos.'
+          : (resultado.meta?.mensaje || 'No se encontraron series válidas para los filtros seleccionados.')
+      );
+    } catch (error) {
+      console.error('Error al generar pronóstico:', error);
+      LAST_FORECAST_RESULT = { rows: [], meta: {} };
+      renderForecastTable({ rows: [], meta: { mensaje: 'Ocurrió un error al generar el pronóstico.' } });
+      setForecastBusyState(false, 'Ocurrió un error al generar el pronóstico.');
+    }
+  }, 30);
 }
 
 function clearForecastAnalysis() {
@@ -6441,7 +6481,6 @@ function clearForecastAnalysis() {
   const caption = document.getElementById('forecastCaption');
   const container = document.getElementById('forecastTableContainer');
 
-  if (status) status.textContent = 'Pronóstico limpiado.';
   if (body) body.innerHTML = '';
   if (caption) caption.innerHTML = '';
   if (container) container.style.display = 'none';
@@ -6456,8 +6495,9 @@ function clearForecastAnalysis() {
   syncForecastFormaWithData();
 
   LAST_FORECAST_RESULT = { rows: [], meta: {} };
+  setForecastBusyState(false, 'Pronóstico limpiado.');
 }
-
+  
 function buildForecastProjectionFromDatos(filters) {
   const forma = filters.forma || 'Todos';
   const anio = filters.anio || 'Todos';
