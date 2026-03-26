@@ -6416,62 +6416,81 @@ function setForecastBusyState(isBusy, message) {
 }
 
 function processForecastAnalysis() {
-  const status = document.getElementById('forecastStatus');
-  const departamento = document.getElementById('forecastDepartamento')?.value || 'Todos';
-  const municipio = document.getElementById('forecastMunicipio')?.value || 'Todos';
+  const statusEl = document.getElementById('forecastStatus');
+  const tbody = document.getElementById('forecastResultsBody');
+  const container = document.getElementById('forecastTableContainer');
 
-  syncForecastFormaWithData();
+  statusEl.textContent = 'Procesando pronóstico...';
+  tbody.innerHTML = '';
+  container.style.display = 'none';
 
-  if (!Array.isArray(MASTER_DATA) || !MASTER_DATA.length) {
-    if (status) status.textContent = 'No hay datos cargados para generar el pronóstico.';
+  if (!LAST_DATA_TABLE_RESULT || !LAST_DATA_TABLE_RESULT.historial) {
+    statusEl.textContent = 'No hay datos suficientes para pronóstico.';
     return;
   }
 
-  const forma = document.getElementById('dataForma')?.value || 'Todos';
-  const anio = document.getElementById('dataAnio')?.value || 'Todos';
+  const dep = document.getElementById('forecastDepartamento').value;
+  const mun = document.getElementById('forecastMunicipio').value;
 
-  setForecastBusyState(true, 'Procesando pronóstico con base en la sección Datos...');
+  let data = LAST_DATA_TABLE_RESULT.historial;
 
-  try {
-    const resultado = buildForecastProjectionFromDatos({
-      forma,
-      anio,
-      departamento,
-      municipio
-    });
+  // 🔹 Filtrar
+  data = data.filter(r => {
+    if (dep !== 'Todos' && r.Departamento !== dep) return false;
+    if (mun !== 'Todos' && r.Municipio !== mun) return false;
+    return true;
+  });
 
-    LAST_FORECAST_RESULT = resultado;
-    renderForecastTable(resultado);
-
-    const totalProyectado = Number(resultado?.meta?.totalProyectado || 0);
-    setForecastBusyState(
-      false,
-      totalProyectado > 0
-        ? 'Pronóstico generado correctamente con base en los datos filtrados en Datos.'
-        : (resultado?.meta?.mensaje || 'Pronóstico generado. No se identificó tendencia suficiente; se muestran valores 0.')
-    );
-  } catch (error) {
-    console.error('Error al generar pronóstico:', error);
-
-    const resultado = {
-      rows: [{
-        departamento,
-        municipio,
-        incidencias: 0
-      }],
-      meta: {
-        filtros: { forma, anio, departamento, municipio },
-        totalProyectado: 0,
-        mensaje: 'Ocurrió un error al generar el pronóstico.'
-      }
-    };
-
-    LAST_FORECAST_RESULT = resultado;
-    renderForecastTable(resultado);
-    setForecastBusyState(false, 'Ocurrió un error al generar el pronóstico.');
+  if (data.length < 3) {
+    statusEl.textContent = 'Histórico insuficiente (mínimo 3 meses).';
+    return;
   }
-}
 
+  // 🔹 Agrupar por Año-Mes
+  const serie = {};
+  data.forEach(r => {
+    const key = r.Año + '-' + r.Mes;
+    serie[key] = (serie[key] || 0) + 1;
+  });
+
+  // 🔹 Ordenar cronológicamente
+  const keys = Object.keys(serie).sort((a,b) => {
+    const [aY,aM] = a.split('-').map(Number);
+    const [bY,bM] = b.split('-').map(Number);
+    return aY !== bY ? aY - bY : aM - bM;
+  });
+
+  const y = keys.map(k => serie[k]);
+  const x = y.map((_,i) => i + 1);
+
+  // 🔹 Regresión lineal
+  const n = x.length;
+  const sumX = x.reduce((a,b)=>a+b,0);
+  const sumY = y.reduce((a,b)=>a+b,0);
+  const sumXY = x.reduce((a,_,i)=>a + x[i]*y[i],0);
+  const sumX2 = x.reduce((a,b)=>a + b*b,0);
+
+  const m = (n*sumXY - sumX*sumY) / (n*sumX2 - sumX*sumX);
+  const b = (sumY - m*sumX) / n;
+
+  // 🔹 Próximo mes
+  const nextX = n + 1;
+  let forecast = Math.round(m * nextX + b);
+
+  if (forecast < 0 || !isFinite(forecast)) forecast = 0;
+
+  // 🔹 Pintar resultado
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td>${dep}</td>
+    <td>${mun}</td>
+    <td>${forecast}</td>
+  `;
+  tbody.appendChild(tr);
+
+  container.style.display = 'block';
+  statusEl.textContent = 'Pronóstico generado correctamente.';
+}
 function clearForecastAnalysis() {
   const body = document.getElementById('forecastResultsBody');
   const caption = document.getElementById('forecastCaption');
