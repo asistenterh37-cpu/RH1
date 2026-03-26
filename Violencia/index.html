@@ -451,12 +451,15 @@
       font-size:12px;
     }
 
-    .builder-filters{
-      display:grid;
-      grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
-      gap:14px;
-      margin-bottom:16px;
-    }
+    .forecast-builder-3{
+  grid-template-columns:repeat(3, minmax(240px, 1fr));
+}
+
+@media (max-width: 900px){
+  .forecast-builder-3{
+    grid-template-columns:1fr;
+  }
+}
 
     .filter-box{
       background:#0b1220;
@@ -789,33 +792,14 @@
       .independentChartViewport{ min-height:400px; max-height:540px; }
     }
 
-
-
-    @media (max-width: 820px){
-      .menu-row{
-        grid-template-columns:1fr;
-      }
-
-      .home-panel,
-      .home-description,
-      .interaction-panel,
-      .chart-card,
-      .card{
-
-
-
-        padding:16px;
-      }
-
-      .home-description-text{
-        font-size:21px;
-        line-height:1.75;
-        text-align:left;
-      }
 @media (max-width: 1200px){
   .topbar{
     flex-direction:column;
     align-items:stretch;
+  }
+
+  .topbar > div{
+    width:100%;
   }
 
   .actions{
@@ -829,6 +813,12 @@
   .menu-row{
     grid-template-columns:repeat(4, minmax(140px, 1fr));
     gap:8px;
+    width:100%;
+  }
+
+  .summary{
+    grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+    width:100%;
   }
 
   .menu-row button{
@@ -836,8 +826,34 @@
     padding:7px 6px;
   }
 }
-      
-.data-table-wrap{
+
+@media (max-width: 820px){
+  .menu-row{
+    grid-template-columns:1fr;
+    width:100%;
+  }
+
+  .summary{
+    grid-template-columns:1fr;
+    width:100%;
+  }
+
+  .home-panel,
+  .home-description,
+  .interaction-panel,
+  .chart-card,
+  .card{
+    padding:16px;
+  }
+
+  .home-description-text{
+    font-size:21px;
+    line-height:1.75;
+    text-align:left;
+  }
+}
+
+.data-table-wrap{    
   margin-top:16px;
   overflow:auto;
   border:1px solid var(--border);
@@ -1008,6 +1024,7 @@
 </div>
 
 <div id="webAppStatus" class="status-note" style="display:none;"></div>
+</div>
 </div>
 
 <div class="menu-row">
@@ -1525,23 +1542,19 @@
   <div class="interaction-panel">
     <div class="panel-title">Pronóstico</div>
     <div class="panel-subtitle">
-      Este módulo genera una proyección de incidencias para el <strong>mes siguiente</strong>,
-      utilizando la información visible en <strong>Datos</strong>.
-      <br><br>
-      El análisis se organiza por niveles:
-      <strong>Forma de fallecimientos</strong>,
-      <strong>Departamento</strong>,
-      <strong>Municipio</strong> y
-      <strong>No (pronóstico)</strong>.
-      <br><br>
-      La proyección debe calcularse con un método estadístico apropiado para series temporales
-      de conteos, priorizando la tendencia reciente y usando un mecanismo de respaldo cuando la
-      serie histórica sea insuficiente.
+      Selecciona los filtros de <strong>Forma de fallecimiento</strong>,
+      <strong>Departamento</strong> y <strong>Municipio</strong>.
+      El sistema proyectará las incidencias del <strong>mes siguiente al último mes registrado</strong>
+      en la tabla de <strong>Incidencias</strong>, usando un método híbrido:
+      <strong>Holt lineal</strong> para series con tendencia,
+      <strong>Croston-SBA</strong> para series intermitentes y
+      <strong>promedio móvil ponderado</strong> como respaldo.
+      Cuando no exista tendencia suficiente o la serie sea 0, el resultado será <strong>0</strong>.
     </div>
 
-    <div class="builder-filters">
+    <div class="builder-filters forecast-builder-3">
       <div class="filter-box">
-        <label class="filter-label" for="forecastForma">Forma de fallecimientos</label>
+        <label class="filter-label" for="forecastForma">Forma de fallecimiento</label>
         <select id="forecastForma" class="filter-select">
           <option value="Todos">Todos</option>
           <option value="Accidental">Accidental</option>
@@ -1564,27 +1577,6 @@
           <option value="Todos">Todos</option>
         </select>
       </div>
-
-      <div class="filter-box">
-        <label class="filter-label" for="forecastTopN">No (pronóstico)</label>
-        <select id="forecastTopN" class="filter-select">
-          <option value="1">1</option>
-          <option value="2">2</option>
-          <option value="3">3</option>
-          <option value="4">4</option>
-          <option value="5" selected>5</option>
-          <option value="6">6</option>
-          <option value="7">7</option>
-          <option value="8">8</option>
-          <option value="9">9</option>
-          <option value="10">10</option>
-          <option value="11">11</option>
-          <option value="12">12</option>
-          <option value="13">13</option>
-          <option value="14">14</option>
-          <option value="15">15</option>
-        </select>
-      </div>
     </div>
 
     <div class="independent-actions">
@@ -1594,101 +1586,29 @@
 
     <div id="forecastStatus" class="status-note"></div>
 
-    <div class="forecast-accordion" style="margin-top:18px;">
-      <div class="forecast-accordion-item">
-        <button class="forecast-accordion-toggle active" type="button" onclick="toggleForecastAccordion(this, 'forecastNivelForma')">
-          Nivel 1: Forma de fallecimientos
-        </button>
-        <div id="forecastNivelForma" class="forecast-accordion-content open">
-          <div class="data-table-wrap">
-            <table class="data-table">
-              <thead>
-                <tr>
-                  <th>Forma de fallecimiento</th>
-                  <th>Mes proyectado</th>
-                  <th>Incidencias proyectadas</th>
-                  <th>Método</th>
-                </tr>
-              </thead>
-              <tbody id="forecastFormaBody"></tbody>
-            </table>
-          </div>
-        </div>
+    <div id="forecastTableContainer" style="display:none; margin-top:18px;">
+      <div class="data-table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Forma de fallecimiento</th>
+              <th>Departamento</th>
+              <th>Municipio</th>
+              <th>Último mes observado</th>
+              <th>Mes proyectado</th>
+              <th>Incidencias proyectadas</th>
+              <th>Método</th>
+            </tr>
+          </thead>          
+<tbody id="forecastResultsBody"></tbody>
+        </table>
       </div>
-
-      <div class="forecast-accordion-item">
-        <button class="forecast-accordion-toggle" type="button" onclick="toggleForecastAccordion(this, 'forecastNivelDepartamento')">
-          Nivel 2: Departamento
-        </button>
-        <div id="forecastNivelDepartamento" class="forecast-accordion-content">
-          <div class="data-table-wrap">
-            <table class="data-table">
-              <thead>
-                <tr>
-                  <th>Forma de fallecimiento</th>
-                  <th>Departamento</th>
-                  <th>Mes proyectado</th>
-                  <th>Incidencias proyectadas</th>
-                  <th>Método</th>
-                </tr>
-              </thead>
-              <tbody id="forecastDepartamentoBody"></tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-
-      <div class="forecast-accordion-item">
-        <button class="forecast-accordion-toggle" type="button" onclick="toggleForecastAccordion(this, 'forecastNivelMunicipio')">
-          Nivel 3: Municipio
-        </button>
-        <div id="forecastNivelMunicipio" class="forecast-accordion-content">
-          <div class="data-table-wrap">
-            <table class="data-table">
-              <thead>
-                <tr>
-                  <th>Forma de fallecimiento</th>
-                  <th>Departamento</th>
-                  <th>Municipio</th>
-                  <th>Mes proyectado</th>
-                  <th>Incidencias proyectadas</th>
-                  <th>Método</th>
-                </tr>
-              </thead>
-              <tbody id="forecastMunicipioBody"></tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-
-      <div class="forecast-accordion-item">
-        <button class="forecast-accordion-toggle" type="button" onclick="toggleForecastAccordion(this, 'forecastNivelResumen')">
-          Nivel 4: No (pronóstico)
-        </button>
-        <div id="forecastNivelResumen" class="forecast-accordion-content">
-          <div class="data-table-wrap">
-            <table class="data-table">
-              <thead>
-                <tr>
-                  <th>Ranking</th>
-                  <th>Forma de fallecimiento</th>
-                  <th>Departamento</th>
-                  <th>Municipio</th>
-                  <th>Mes proyectado</th>
-                  <th>Incidencias proyectadas</th>
-                  <th>Método</th>
-                </tr>
-              </thead>
-              <tbody id="forecastTopBody"></tbody>
-            </table>
-          </div>
-          <div id="forecastCaption" class="data-caption"></div>
-        </div>
-      </div>
+      <div id="forecastCaption" class="data-caption"></div>
     </div>
   </div>
 </div>
 
+      <!-- FORMULARIO -->
       <!-- FORMULARIO -->
 
 <!-- FORMULARIO -->
@@ -1938,7 +1858,32 @@ function updateForecastMunicipios() {
     munSelect.appendChild(opt);
   });
 }
-  
+
+  function initForecastSelectors() {
+  const formaSelect = document.getElementById('forecastForma');
+  const depSelect = document.getElementById('forecastDepartamento');
+  const munSelect = document.getElementById('forecastMunicipio');
+
+  if (!formaSelect || !depSelect || !munSelect) return;
+
+  const currentDep = depSelect.value || 'Todos';
+  const currentMun = munSelect.value || 'Todos';
+
+  depSelect.innerHTML = '<option value="Todos">Todos</option>';
+  (MENU_OPTIONS.departamentos || []).forEach(dep => {
+    const opt = document.createElement('option');
+    opt.value = dep;
+    opt.textContent = dep;
+    depSelect.appendChild(opt);
+  });
+
+  depSelect.value = (MENU_OPTIONS.departamentos || []).includes(currentDep) ? currentDep : 'Todos';
+  updateForecastMunicipios();
+
+  const municipiosActuales = Array.from(munSelect.options).map(opt => opt.value);
+  munSelect.value = municipiosActuales.includes(currentMun) ? currentMun : 'Todos';
+}
+
   const PIE_COLORS = [
     '#38bdf8','#22c55e','#f59e0b','#ef4444','#a855f7',
     '#14b8a6','#eab308','#f97316','#6366f1','#ec4899',
@@ -2088,6 +2033,7 @@ function loadData(payload) {
     initFormulario();
     initDatosModule();
 
+   initForecastSelectors();
     renderAll();
   
     setTimeout(() => {
@@ -6376,13 +6322,11 @@ function clearAIAnalysis() {
   function getForecastMethodLabel(seriesLength) {
   return seriesLength >= 6 ? 'Suavización exponencial con tendencia' : 'Promedio móvil ponderado';
 }
-
 function processForecastAnalysis() {
   const status = document.getElementById('forecastStatus');
   const forma = document.getElementById('forecastForma')?.value || 'Todos';
   const departamento = document.getElementById('forecastDepartamento')?.value || 'Todos';
   const municipio = document.getElementById('forecastMunicipio')?.value || 'Todos';
-  const topN = Number(document.getElementById('forecastTopN')?.value || 5);
 
   if (!Array.isArray(MASTER_DATA) || !MASTER_DATA.length) {
     status.textContent = 'No hay datos cargados para generar el pronóstico.';
@@ -6394,32 +6338,42 @@ function processForecastAnalysis() {
   const resultado = buildForecastProjection({
     forma,
     departamento,
-    municipio,
-    topN
+    municipio
   });
 
   LAST_FORECAST_RESULT = resultado;
-  renderForecastTables(resultado);
-  status.textContent = 'Pronóstico generado correctamente.';
+  renderForecastTable(resultado);
+  status.textContent = resultado.rows.length
+    ? 'Pronóstico generado correctamente.'
+    : 'No se encontraron series válidas para los filtros seleccionados.';
 }
 
 function clearForecastAnalysis() {
-  document.getElementById('forecastStatus').textContent = 'Pronóstico limpiado.';
-  ['forecastFormaBody','forecastDepartamentoBody','forecastMunicipioBody','forecastTopBody']
-    .forEach(id => {
-      const el = document.getElementById(id);
-      if (el) el.innerHTML = '';
-    });
-
+  const status = document.getElementById('forecastStatus');
+  const body = document.getElementById('forecastResultsBody');
   const caption = document.getElementById('forecastCaption');
-  if (caption) caption.innerHTML = '';
+  const container = document.getElementById('forecastTableContainer');
 
-  LAST_FORECAST_RESULT = { forma: [], departamento: [], municipio: [], top: [], meta: {} };
+  if (status) status.textContent = 'Pronóstico limpiado.';
+  if (body) body.innerHTML = '';
+  if (caption) caption.innerHTML = '';
+  if (container) container.style.display = 'none';
+
+  const forma = document.getElementById('forecastForma');
+  const dep = document.getElementById('forecastDepartamento');
+  const mun = document.getElementById('forecastMunicipio');
+
+  if (forma) forma.value = 'Todos';
+  if (dep) dep.value = 'Todos';
+  updateForecastMunicipios();
+  if (mun) mun.value = 'Todos';
+
+  LAST_FORECAST_RESULT = { rows: [], meta: {} };
 }
 
 function buildForecastProjection(filters) {
-  const rows = Array.isArray(MASTER_DATA) ? MASTER_DATA.slice() : [];
   const headers = Array.isArray(MASTER_HEADERS) ? MASTER_HEADERS : [];
+  const rows = Array.isArray(MASTER_DATA) ? MASTER_DATA.slice() : [];
 
   const idxForma = headers.indexOf('Forma de fallecimiento');
   const idxDepartamento = headers.indexOf('Departamento');
@@ -6427,6 +6381,17 @@ function buildForecastProjection(filters) {
   const idxAnio = headers.indexOf('Año');
   const idxMes = headers.indexOf('Mes');
   const idxFreq = headers.indexOf('Frecuencia');
+
+  if ([idxForma, idxDepartamento, idxMunicipio, idxAnio, idxMes].some(idx => idx === -1)) {
+    return {
+      rows: [],
+      meta: {
+        filtros: filters,
+        totalSeries: 0,
+        mensaje: 'No se localizaron todos los campos requeridos para el pronóstico.'
+      }
+    };
+  }
 
   const filtered = rows.filter(r => {
     const okForma = filters.forma === 'Todos' || String(r[idxForma] || '') === filters.forma;
@@ -6438,62 +6403,56 @@ function buildForecastProjection(filters) {
   const grouped = new Map();
 
   filtered.forEach(r => {
-    const forma = String(r[idxForma] || 'No definido');
-    const dep = String(r[idxDepartamento] || 'No definido');
-    const mun = String(r[idxMunicipio] || 'No definido');
+    const forma = String(r[idxForma] || 'No definido').trim() || 'No definido';
+    const dep = String(r[idxDepartamento] || 'No definido').trim() || 'No definido';
+    const mun = String(r[idxMunicipio] || 'No definido').trim() || 'No definido';
     const anio = Number(r[idxAnio] || 0);
-    const mes = String(r[idxMes] || '');
-    const freq = Number(r[idxFreq] || 1);
+    const mesRaw = r[idxMes];
+    const mesNum = getMonthNumber(mesRaw);
+    const freq = idxFreq === -1 ? 1 : Number(r[idxFreq] || 0);
+
+    if (!anio || !mesNum) return;
 
     const key = [forma, dep, mun].join('|||');
-    if (!grouped.has(key)) grouped.set(key, []);
-    grouped.get(key).push({ anio, mes, freq });
+    if (!grouped.has(key)) {
+      grouped.set(key, []);
+    }
+
+    grouped.get(key).push({
+      anio,
+      mes: mesNum,
+      freq: Number.isFinite(freq) ? freq : 0
+    });
   });
 
-  const formaAgg = new Map();
-  const depAgg = new Map();
-  const munAgg = [];
+  const resultRows = [];
 
-  grouped.forEach((serie, key) => {
-    const [forma, dep, mun] = key.split('|||');
-    const proyectado = forecastNextMonthValue(serie);
-    const metodo = getForecastMethodLabel(serie.length);
-    const mesProyectado = getNextProjectedMonthLabel(serie);
+  grouped.forEach((points, key) => {
+    const [forma, departamento, municipio] = key.split('|||');
+    const serieMensual = buildCompleteMonthlySeries(points);
+    const forecast = forecastNextMonthValue(serieMensual.values);
 
-    const regMun = {
+    resultRows.push({
       forma,
-      departamento: dep,
-      municipio: mun,
-      mesProyectado,
-      incidencias: proyectado,
-      metodo
-    };
-
-    munAgg.push(regMun);
-
-    const keyForma = forma;
-    if (!formaAgg.has(keyForma)) {
-      formaAgg.set(keyForma, { forma, mesProyectado, incidencias: 0, metodo });
-    }
-    formaAgg.get(keyForma).incidencias += proyectado;
-
-    const keyDep = [forma, dep].join('|||');
-    if (!depAgg.has(keyDep)) {
-      depAgg.set(keyDep, { forma, departamento: dep, mesProyectado, incidencias: 0, metodo });
-    }
-    depAgg.get(keyDep).incidencias += proyectado;
+      departamento,
+      municipio,
+      ultimoMesObservado: formatYearMonthLabel(serieMensual.lastYear, serieMensual.lastMonth),
+      mesProyectado: formatYearMonthLabel(serieMensual.nextYear, serieMensual.nextMonth),
+      incidencias: forecast.value,
+      metodo: forecast.method,
+      score: forecast.value
+    });
   });
 
-  const formaRows = Array.from(formaAgg.values()).sort((a,b) => b.incidencias - a.incidencias);
-  const depRows = Array.from(depAgg.values()).sort((a,b) => b.incidencias - a.incidencias);
-  const munRows = munAgg.sort((a,b) => b.incidencias - a.incidencias);
-  const topRows = munRows.slice(0, filters.topN).map((item, i) => ({ ranking: i + 1, ...item }));
+  resultRows.sort((a, b) => {
+    if (b.score !== a.score) return b.score - a.score;
+    if (a.forma !== b.forma) return a.forma.localeCompare(b.forma, 'es');
+    if (a.departamento !== b.departamento) return a.departamento.localeCompare(b.departamento, 'es');
+    return a.municipio.localeCompare(b.municipio, 'es');
+  });
 
   return {
-    forma: formaRows,
-    departamento: depRows,
-    municipio: munRows,
-    top: topRows,
+    rows: resultRows,
     meta: {
       filtros: filters,
       totalSeries: grouped.size
@@ -6501,108 +6460,242 @@ function buildForecastProjection(filters) {
   };
 }
 
-function forecastNextMonthValue(series) {
-  if (!Array.isArray(series) || !series.length) return 0;
+function getMonthNumber(value) {
+  if (value == null || value === '') return 0;
 
-  const values = series
-    .map(x => Number(x.freq || 0))
-    .filter(v => Number.isFinite(v));
-
-  if (!values.length) return 0;
-
-  if (values.length >= 6) {
-    let level = values[0];
-    let trend = values[1] ? values[1] - values[0] : 0;
-    const alpha = 0.45;
-    const beta = 0.25;
-
-    for (let i = 1; i < values.length; i++) {
-      const value = values[i];
-      const prevLevel = level;
-      level = alpha * value + (1 - alpha) * (level + trend);
-      trend = beta * (level - prevLevel) + (1 - beta) * trend;
-    }
-
-    return Math.max(0, Math.round(level + trend));
+  if (typeof value === 'number') {
+    const n = Math.round(value);
+    return n >= 1 && n <= 12 ? n : 0;
   }
 
-  const recent = values.slice(-3);
-  const weights = recent.length === 1 ? [1] : recent.length === 2 ? [0.4, 0.6] : [0.2, 0.3, 0.5];
-  const weighted = recent.reduce((acc, v, i) => acc + v * weights[i], 0);
-  return Math.max(0, Math.round(weighted));
+  const txt = String(value).trim().toLowerCase();
+  const mapping = {
+    'enero': 1, 'febrero': 2, 'marzo': 3, 'abril': 4, 'mayo': 5, 'junio': 6,
+    'julio': 7, 'agosto': 8, 'septiembre': 9, 'setiembre': 9, 'octubre': 10,
+    'noviembre': 11, 'diciembre': 12
+  };
+
+  if (mapping[txt]) return mapping[txt];
+
+  const parsed = Number(txt);
+  return parsed >= 1 && parsed <= 12 ? parsed : 0;
 }
 
-function getNextProjectedMonthLabel(series) {
-  if (!Array.isArray(series) || !series.length) return 'Siguiente mes';
+function buildCompleteMonthlySeries(points) {
+  const monthly = new Map();
 
-  const last = series[series.length - 1];
-  const anio = Number(last.anio || 0);
-  const mesNombre = String(last.mes || '').toLowerCase().trim();
-  const mesNum = MONTH_INDEX[mesNombre] || 12;
+  points.forEach(p => {
+    const key = `${p.anio}-${String(p.mes).padStart(2, '0')}`;
+    monthly.set(key, (monthly.get(key) || 0) + Number(p.freq || 0));
+  });
 
-  let nextMonth = mesNum + 1;
-  let nextYear = anio || new Date().getFullYear();
+  const sortedKeys = Array.from(monthly.keys()).sort();
+  if (!sortedKeys.length) {
+    const now = new Date();
+    return {
+      values: [],
+      lastYear: now.getFullYear(),
+      lastMonth: now.getMonth() + 1,
+      nextYear: now.getMonth() === 11 ? now.getFullYear() + 1 : now.getFullYear(),
+      nextMonth: now.getMonth() === 11 ? 1 : now.getMonth() + 2
+    };
+  }
 
+  const [startYear, startMonth] = sortedKeys[0].split('-').map(Number);
+  const [endYear, endMonth] = sortedKeys[sortedKeys.length - 1].split('-').map(Number);
+
+  const values = [];
+  let y = startYear;
+  let m = startMonth;
+
+  while (y < endYear || (y === endYear && m <= endMonth)) {
+    const key = `${y}-${String(m).padStart(2, '0')}`;
+    values.push(monthly.get(key) || 0);
+
+    m += 1;
+    if (m > 12) {
+      m = 1;
+      y += 1;
+    }
+  }
+
+  let nextYear = endYear;
+  let nextMonth = endMonth + 1;
   if (nextMonth > 12) {
     nextMonth = 1;
     nextYear += 1;
   }
 
-  return `${MONTH_NAME_BY_INDEX[nextMonth] || 'Mes'} ${nextYear}`;
+  return {
+    values,
+    lastYear: endYear,
+    lastMonth: endMonth,
+    nextYear,
+    nextMonth
+  };
 }
 
-function renderForecastTables(result) {
-  fillForecastTable('forecastFormaBody', result.forma, row => `
-    <td>${escapeHtml(row.forma || '')}</td>
-    <td>${escapeHtml(row.mesProyectado || '')}</td>
-    <td>${formatNumber(row.incidencias || 0)}</td>
-    <td>${escapeHtml(row.metodo || '')}</td>
-  `);
+function forecastNextMonthValue(values) {
+  const clean = (Array.isArray(values) ? values : [])
+    .map(v => Number(v || 0))
+    .filter(v => Number.isFinite(v) && v >= 0);
 
-  fillForecastTable('forecastDepartamentoBody', result.departamento, row => `
-    <td>${escapeHtml(row.forma || '')}</td>
-    <td>${escapeHtml(row.departamento || '')}</td>
-    <td>${escapeHtml(row.mesProyectado || '')}</td>
-    <td>${formatNumber(row.incidencias || 0)}</td>
-    <td>${escapeHtml(row.metodo || '')}</td>
-  `);
-
-  fillForecastTable('forecastMunicipioBody', result.municipio, row => `
-    <td>${escapeHtml(row.forma || '')}</td>
-    <td>${escapeHtml(row.departamento || '')}</td>
-    <td>${escapeHtml(row.municipio || '')}</td>
-    <td>${escapeHtml(row.mesProyectado || '')}</td>
-    <td>${formatNumber(row.incidencias || 0)}</td>
-    <td>${escapeHtml(row.metodo || '')}</td>
-  `);
-
-  fillForecastTable('forecastTopBody', result.top, row => `
-    <td>${formatNumber(row.ranking || 0)}</td>
-    <td>${escapeHtml(row.forma || '')}</td>
-    <td>${escapeHtml(row.departamento || '')}</td>
-    <td>${escapeHtml(row.municipio || '')}</td>
-    <td>${escapeHtml(row.mesProyectado || '')}</td>
-    <td>${formatNumber(row.incidencias || 0)}</td>
-    <td>${escapeHtml(row.metodo || '')}</td>
-  `);
-
-  const caption = document.getElementById('forecastCaption');
-  if (caption) {
-    caption.innerHTML = `Series analizadas: <strong>${formatNumber(result.meta.totalSeries || 0)}</strong>. Pronóstico generado para el siguiente mes con enfoque de tendencia reciente.`;
+  if (!clean.length) {
+    return { value: 0, method: 'Sin datos' };
   }
+
+  const positives = clean.filter(v => v > 0).length;
+  const allZero = clean.every(v => v === 0);
+  const last3 = clean.slice(-3);
+  const last3Sum = last3.reduce((a, b) => a + b, 0);
+  const mean = clean.reduce((a, b) => a + b, 0) / clean.length;
+
+  if (allZero || positives === 0 || last3Sum === 0) {
+    return { value: 0, method: 'Sin tendencia / serie en cero' };
+  }
+
+  if (clean.length < 3 || positives < 2) {
+    return { value: 0, method: 'Serie insuficiente' };
+  }
+
+  const intermittenceRatio = clean.filter(v => v === 0).length / clean.length;
+  const trendStrength = calculateTrendStrength(clean);
+
+  if (intermittenceRatio >= 0.40 && clean.length >= 4) {
+    const croston = crostonSBA(clean, 0.25);
+    return {
+      value: croston > 0 ? Math.max(0, Math.round(croston)) : 0,
+      method: croston > 0 ? 'Croston-SBA' : 'Sin tendencia / serie intermitente'
+    };
+  }
+
+  if (clean.length >= 6 && Math.abs(trendStrength) >= 0.35) {
+    const holt = holtLinearForecast(clean, 0.45, 0.25);
+    return {
+      value: holt > 0 ? Math.max(0, Math.round(holt)) : 0,
+      method: holt > 0 ? 'Holt lineal' : 'Sin tendencia relevante'
+    };
+  }
+
+  const wma = weightedMovingAverage(clean);
+  return {
+    value: wma > 0 ? Math.max(0, Math.round(wma)) : 0,
+    method: wma > 0 ? 'Promedio móvil ponderado' : 'Sin tendencia relevante'
+  };
 }
 
-function fillForecastTable(tbodyId, rows, rowTemplate) {
-  const tbody = document.getElementById(tbodyId);
-  if (!tbody) return;
+function calculateTrendStrength(values) {
+  const n = values.length;
+  if (n < 3) return 0;
+
+  const xs = Array.from({ length: n }, (_, i) => i + 1);
+  const meanX = xs.reduce((a, b) => a + b, 0) / n;
+  const meanY = values.reduce((a, b) => a + b, 0) / n;
+
+  let num = 0;
+  let denX = 0;
+  let denY = 0;
+
+  for (let i = 0; i < n; i++) {
+    const dx = xs[i] - meanX;
+    const dy = values[i] - meanY;
+    num += dx * dy;
+    denX += dx * dx;
+    denY += dy * dy;
+  }
+
+  if (!denX || !denY) return 0;
+  return num / Math.sqrt(denX * denY);
+}
+
+function holtLinearForecast(values, alpha = 0.45, beta = 0.25) {
+  if (!Array.isArray(values) || values.length < 2) return 0;
+
+  let level = values[0];
+  let trend = values[1] - values[0];
+
+  for (let i = 1; i < values.length; i++) {
+    const actual = values[i];
+    const prevLevel = level;
+    level = alpha * actual + (1 - alpha) * (level + trend);
+    trend = beta * (level - prevLevel) + (1 - beta) * trend;
+  }
+
+  return level + trend;
+}
+
+function crostonSBA(values, alpha = 0.25) {
+  let demand = 0;
+  let interval = 0;
+  let lastDemandIndex = -1;
+  let initialized = false;
+
+  for (let i = 0; i < values.length; i++) {
+    const v = Number(values[i] || 0);
+    if (v > 0) {
+      if (!initialized) {
+        demand = v;
+        interval = i + 1;
+        initialized = true;
+      } else {
+        const gap = i - lastDemandIndex;
+        demand = demand + alpha * (v - demand);
+        interval = interval + alpha * (gap - interval);
+      }
+      lastDemandIndex = i;
+    }
+  }
+
+  if (!initialized || interval <= 0) return 0;
+  return (1 - alpha / 2) * (demand / interval);
+}
+
+function weightedMovingAverage(values) {
+  const recent = values.slice(-3);
+  if (!recent.length) return 0;
+
+  if (recent.length === 1) return recent[0];
+  if (recent.length === 2) return recent[0] * 0.40 + recent[1] * 0.60;
+
+  return recent[0] * 0.20 + recent[1] * 0.30 + recent[2] * 0.50;
+}
+
+function formatYearMonthLabel(year, month) {
+  return `${MONTH_NAME_BY_INDEX[month] || 'Mes'} ${year}`;
+}
+
+function renderForecastTable(result) {
+  const tbody = document.getElementById('forecastResultsBody');
+  const caption = document.getElementById('forecastCaption');
+  const container = document.getElementById('forecastTableContainer');
+
+  if (!tbody || !container) return;
+
   tbody.innerHTML = '';
 
-  (rows || []).forEach(row => {
+  (result.rows || []).forEach(row => {
     const tr = document.createElement('tr');
-    tr.innerHTML = rowTemplate(row);
+    tr.innerHTML = `
+      <td>${escapeHtml(row.forma || '')}</td>
+      <td>${escapeHtml(row.departamento || '')}</td>
+      <td>${escapeHtml(row.municipio || '')}</td>
+      <td>${escapeHtml(row.ultimoMesObservado || '')}</td>
+      <td>${escapeHtml(row.mesProyectado || '')}</td>
+      <td>${formatNumber(row.incidencias || 0)}</td>
+      <td>${escapeHtml(row.metodo || '')}</td>
+    `;
     tbody.appendChild(tr);
   });
+
+  container.style.display = (result.rows || []).length ? 'block' : 'none';
+
+  if (caption) {
+    caption.innerHTML = (result.rows || []).length
+      ? `Series analizadas: <strong>${formatNumber(result.meta.totalSeries || 0)}</strong>. El pronóstico corresponde al mes inmediatamente posterior al último período observado en incidencias.`
+      : 'No se generaron resultados con los filtros seleccionados.';
+  }
 }
+  
 </script>
 </body>
 </html>
