@@ -6403,12 +6403,13 @@ function clearAIAnalysis() {
   const payload = buildAIPayloadFromDataTable();
   document.getElementById('aiInputPreview').innerHTML = payload ? buildAIPreviewHtml(payload) : 'Aún no se ha preparado información desde la sección <strong>Datos</strong>.';
 }
-  function getForecastMethodLabel(seriesLength) {
-  return seriesLength >= 3
-    ? 'Promedio móvil ponderado'
-    : 'Proyección mínima';
+function getForecastMethodLabel(seriesLength) {
+  if (seriesLength >= 14) return 'Serie diaria ponderada';
+  if (seriesLength >= 7) return 'Promedio diario reciente';
+  if (seriesLength >= 2) return 'Promedio simple diario';
+  return 'Histórico insuficiente';
 }
-
+  
 function setForecastBusyState(isBusy, message) {
   const status = document.getElementById('forecastStatus');
   const btn = document.getElementById('btnGenerateForecast');
@@ -6450,9 +6451,10 @@ function processForecastAnalysis() {
     renderForecastTable(result);
 
     const total = Number(result?.meta?.totalProyectado || 0);
-    const mensaje = result?.meta?.mensaje
-      || (total > 0 ? 'Pronóstico generado correctamente.' : 'No se identificó tendencia suficiente; el valor proyectado es 0.');
-
+        const mensaje = result?.meta?.mensaje
+      || (total > 0
+        ? `Pronóstico generado correctamente considerando año, mes y día registrados.`
+        : 'No se identificó tendencia diaria suficiente; el valor proyectado es 0.');
     setForecastBusyState(false, mensaje);
   } catch (error) {
     console.error('Error en processForecastAnalysis:', error);
@@ -6488,58 +6490,50 @@ function buildForecastProjectionFromDatos(filters) {
   const departamento = filters?.departamento || 'Todos';
   const municipio = filters?.municipio || 'Todos';
 
-  const depField = findRealBaseField('Departamento');
-  const munField = findRealBaseField('Municipio');
-  const anioField = findRealBaseField('Año');
-  const mesField = findRealBaseField('Mes');
-
-  if (!depField || !munField || !anioField || !mesField) {
+  if (!Array.isArray(DATA_ROWS) || !DATA_ROWS.length) {
     return {
       rows: [],
       meta: {
         filtros: { forma, anio, departamento, municipio },
         totalProyectado: 0,
         totalGrupos: 0,
-        mensaje: 'No se localizaron los campos requeridos para generar el pronóstico.'
-      }
-    };
-  }
-
-  let baseRows = getRowsForDataModule(forma, anio);
-
-  if (!baseRows.length) {
-    return {
-      rows: [],
-      meta: {
-        filtros: { forma, anio, departamento, municipio },
-        totalProyectado: 0,
-        totalGrupos: 0,
-        mensaje: 'No hay datos en la sección Datos para los filtros seleccionados.'
+        ultimaFechaObservada: '',
+        periodoProyectado: '',
+        metodo: getForecastMethodLabel(0),
+        mensaje: 'No hay datos cargados en la tabla Datos.'
       }
     };
   }
 
   const grouped = new Map();
-  let globalMaxYear = 0;
-  let globalMaxMonth = 0;
+  let globalMaxDate = null;
 
-  baseRows.forEach(row => {
-    const depValue = formatCell(row[depField]) || 'No definido';
-    const munValue = formatCell(row[munField]) || 'No definido';
+  DATA_ROWS.forEach(row => {
+    if (!row || typeof row !== 'object') return;
 
-    const okDep = departamento === 'Todos' || normalize(depValue) === normalize(departamento);
-    const okMun = municipio === 'Todos' || normalize(munValue) === normalize(municipio);
+    const formaValue = getFieldValueFromRow(row, 'Forma de fallecimiento');
+    const depValue = getFieldValueFromRow(row, 'Departamento');
+    const munValue = getFieldValueFromRow(row, 'Municipio');
+    const yearValue = getFieldValueFromRow(row, 'Año');
+    const monthValue = getFieldValueFromRow(row, 'Mes');
+    const dayValue = getFieldValueFromRow(row, 'Dia');
 
-    if (!okDep || !okMun) return;
+    if (forma !== 'Todos' && String(formaValue || '').trim() !== String(forma).trim()) return;
+    if (departamento !== 'Todos' && String(depValue || '').trim() !== String(departamento).trim()) return;
+    if (municipio !== 'Todos' && String(munValue || '').trim() !== String(municipio).trim()) return;
+    if (anio !== 'Todos' && String(yearValue || '').trim() !== String(anio).trim()) return;
 
-    const y = Number(formatCell(row[anioField]));
-    const m = monthToNumber(row[mesField]);
+    const y = Number(yearValue || 0);
+    const m = monthToNumber(monthValue);
+    const d = Number(dayValue || 0);
 
-    if (!y || !m) return;
+    if (!y || !m || !d) return;
 
-    if (y > globalMaxYear || (y === globalMaxYear && m > globalMaxMonth)) {
-      globalMaxYear = y;
-      globalMaxMonth = m;
+    const currentDate = new Date(y, m - 1, d);
+    if (Number.isNaN(currentDate.getTime())) return;
+
+    if (!globalMaxDate || currentDate > globalMaxDate) {
+      globalMaxDate = currentDate;
     }
 
     const groupKey = `${depValue}|||${munValue}`;
@@ -6547,30 +6541,30 @@ function buildForecastProjectionFromDatos(filters) {
       grouped.set(groupKey, {
         departamento: depValue,
         municipio: munValue,
-        monthlyMap: new Map()
+        dailyMap: new Map()
       });
     }
 
     const group = grouped.get(groupKey);
-    const ymKey = `${y}-${String(m).padStart(2, '0')}`;
-    group.monthlyMap.set(ymKey, (group.monthlyMap.get(ymKey) || 0) + 1);
+    const dateKey = formatDateKey(currentDate);
+    group.dailyMap.set(dateKey, (group.dailyMap.get(dateKey) || 0) + 1);
   });
 
   const resultRows = [];
 
   grouped.forEach(group => {
-    const monthlySeries = Array.from(group.monthlyMap.entries())
-      .map(([key, value]) => ({ key, value }))
-      .sort((a, b) => a.key.localeCompare(b.key));
+    const dailySeries = buildContinuousDailySeries(group.dailyMap);
 
-    const projectedValue = monthlySeries.length
-      ? projectNextMonth(monthlySeries.map(x => Number(x.value || 0)))
+    const projectedValue = dailySeries.length
+      ? projectNextPeriodFromDailySeries(dailySeries)
       : 0;
 
     resultRows.push({
       departamento: group.departamento,
       municipio: group.municipio,
-      incidencias: projectedValue
+      incidencias: projectedValue,
+      historialDias: dailySeries.length,
+      metodo: getForecastMethodLabel(dailySeries.length)
     });
   });
 
@@ -6582,8 +6576,8 @@ function buildForecastProjectionFromDatos(filters) {
 
   const totalProyectado = resultRows.reduce((acc, row) => acc + Number(row.incidencias || 0), 0);
 
-  const nextMonth = globalMaxMonth === 12 ? 1 : (globalMaxMonth + 1);
-  const nextYear = globalMaxMonth === 12 ? (globalMaxYear + 1) : globalMaxYear;
+  const nextDate = globalMaxDate ? new Date(globalMaxDate) : null;
+  if (nextDate) nextDate.setDate(nextDate.getDate() + 1);
 
   return {
     rows: resultRows,
@@ -6591,38 +6585,47 @@ function buildForecastProjectionFromDatos(filters) {
       filtros: { forma, anio, departamento, municipio },
       totalProyectado,
       totalGrupos: resultRows.length,
-      ultimoMesObservado: globalMaxYear && globalMaxMonth
-        ? `${globalMaxYear}-${String(globalMaxMonth).padStart(2, '0')}`
-        : '',
-      mesProyectado: globalMaxYear && globalMaxMonth
-        ? formatYearMonthLabel(nextYear, nextMonth)
-        : '',
-      metodo: getForecastMethodLabel(3),
+      ultimaFechaObservada: globalMaxDate ? formatDateKey(globalMaxDate) : '',
+      periodoProyectado: nextDate ? formatDateKey(nextDate) + ' en adelante' : '',
+      metodo: 'Serie diaria con continuidad temporal',
       mensaje: resultRows.length
         ? ''
         : 'No hay histórico suficiente en Datos para el filtro territorial seleccionado.'
     }
   };
 }
-function projectNextMonth(values) {
-  const clean = (Array.isArray(values) ? values : [])
-    .map(v => Number(v || 0))
-    .filter(v => Number.isFinite(v) && v >= 0);
+  
+function projectNextPeriodFromDailySeries(series) {
+  const clean = (Array.isArray(series) ? series : [])
+    .map(item => ({
+      date: item?.date instanceof Date ? item.date : new Date(item?.date),
+      value: Number(item?.value || 0)
+    }))
+    .filter(item => item.date instanceof Date && !Number.isNaN(item.date.getTime()) && Number.isFinite(item.value) && item.value >= 0);
 
   if (!clean.length) return 0;
-  if (clean.length === 1) return Math.round(clean[0]);
-  if (clean.length === 2) return Math.max(0, Math.round((clean[0] * 0.4) + (clean[1] * 0.6)));
+  if (clean.length === 1) return 0;
 
-  const last3 = clean.slice(-3);
-  const weighted = (last3[0] * 0.2) + (last3[1] * 0.3) + (last3[2] * 0.5);
+  const values = clean.map(item => item.value);
 
-  const trend = clean.length >= 4
-    ? ((clean[clean.length - 1] - clean[clean.length - 2]) * 0.35)
-    : 0;
+  if (values.length < 7) {
+    const avg = values.reduce((a, b) => a + b, 0) / values.length;
+    return Math.max(0, Math.round(avg * 30));
+  }
 
-  return Math.max(0, Math.round(weighted + trend));
+  const last7 = values.slice(-7);
+  const last14 = values.slice(-14);
+
+  const avg7 = last7.reduce((a, b) => a + b, 0) / last7.length;
+  const avg14 = last14.reduce((a, b) => a + b, 0) / last14.length;
+
+  const trend = avg7 - avg14;
+  const adjustedDailyRate = Math.max(0, avg7 + (trend * 0.35));
+
+  // Proyecta el siguiente bloque de 30 días
+  return Math.max(0, Math.round(adjustedDailyRate * 30));
 }
-
+  
 function monthToNumber(value) {
   const raw = String(value || '').trim();
   if (!raw) return 0;
@@ -6654,6 +6657,44 @@ function monthToNumber(value) {
   return months[key] || 0;
 }
 
+function formatDateKey(date) {
+  if (!(date instanceof Date) || Number.isNaN(date.getTime())) return '';
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+function buildContinuousDailySeries(dailyMap) {
+  const entries = Array.from((dailyMap instanceof Map ? dailyMap : new Map()).entries())
+    .map(([key, value]) => ({
+      key,
+      value: Number(value || 0)
+    }))
+    .filter(item => /^\d{4}-\d{2}-\d{2}$/.test(item.key))
+    .sort((a, b) => a.key.localeCompare(b.key));
+
+  if (!entries.length) return [];
+
+  const start = new Date(entries[0].key + 'T00:00:00');
+  const end = new Date(entries[entries.length - 1].key + 'T00:00:00');
+  const sourceMap = new Map(entries.map(item => [item.key, item.value]));
+
+  const result = [];
+  const cursor = new Date(start);
+
+  while (cursor <= end) {
+    const key = formatDateKey(cursor);
+    result.push({
+      date: new Date(cursor),
+      value: sourceMap.get(key) || 0
+    });
+    cursor.setDate(cursor.getDate() + 1);
+  }
+
+  return result;
+}
+  
 function formatYearMonthLabel(year, month) {
   const monthNames = [
     'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
