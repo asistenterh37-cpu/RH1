@@ -477,8 +477,8 @@
   max-width:100%;
 }
 
-.forecast-builder-3{
-  grid-template-columns:repeat(3, minmax(220px, 1fr));
+.forecast-builder-4{
+  grid-template-columns:repeat(4, minmax(220px, 1fr));
 }
 
 @media (max-width: 1200px){
@@ -486,7 +486,7 @@
     grid-template-columns:repeat(3, minmax(220px, 1fr));
   }
 
-  .forecast-builder-3{
+  .forecast-builder-4{
     grid-template-columns:repeat(3, minmax(220px, 1fr));
   }
 }
@@ -496,18 +496,17 @@
     grid-template-columns:repeat(2, minmax(220px, 1fr));
   }
 
-  .forecast-builder-3{
+  .forecast-builder-4{
     grid-template-columns:repeat(2, minmax(220px, 1fr));
   }
 }
 
 @media (max-width: 700px){
   .builder-filters,
-  .forecast-builder-3{
+  .forecast-builder-4{
     grid-template-columns:1fr;
   }
 }
-
     .filter-box{
       background:#0b1220;
       border:1px solid var(--border);
@@ -1612,8 +1611,8 @@
       El resultado corresponde al <strong>siguiente mes completo</strong> posterior al último mes registrado en la tabla de <strong>Datos &gt; Incidencias</strong>.
       Cuando no exista tendencia suficiente o el histórico sea nulo, el valor proyectado será <strong>0</strong>.
     </div>
-    <div class="builder-filters forecast-builder-3">
-            <div class="filter-box">
+    <div class="builder-filters forecast-builder-4">
+      <div class="filter-box">
         <label class="filter-label" for="forecastForma">Forma de fallecimiento</label>
         <select id="forecastForma" class="filter-select" disabled>
           <option value="Todos">Todos</option>
@@ -1640,8 +1639,20 @@
           <option value="Todos">Todos</option>
         </select>
       </div>
-    </div>
 
+      <div class="filter-box">
+        <label class="filter-label" for="forecastDias">Días pronóstico</label>
+        <input
+          id="forecastDias"
+          class="filter-input"
+          type="number"
+          min="1"
+          step="1"
+          value="30"
+          placeholder="Ingrese cantidad de días"
+        >
+      </div>
+    </div>
     <div class="independent-actions">
       <button class="pink" id="btnGenerateForecast" onclick="processForecastAnalysis()">Generar pronóstico</button>
       <button class="warning" onclick="clearForecastAnalysis()">Limpiar</button>
@@ -6429,11 +6440,18 @@ function processForecastAnalysis() {
   const dataAnioEl = document.getElementById('dataAnio');
   const depEl = document.getElementById('forecastDepartamento');
   const munEl = document.getElementById('forecastMunicipio');
+  const diasEl = document.getElementById('forecastDias');
 
   const forma = dataFormaEl ? (dataFormaEl.value || 'Todos') : 'Todos';
   const anio = dataAnioEl ? (dataAnioEl.value || 'Todos') : 'Todos';
   const departamento = depEl ? (depEl.value || 'Todos') : 'Todos';
   const municipio = munEl ? (munEl.value || 'Todos') : 'Todos';
+
+  let diasPronostico = diasEl ? parseInt(diasEl.value, 10) : 30;
+  if (isNaN(diasPronostico) || diasPronostico < 1) {
+    diasPronostico = 30;
+    if (diasEl) diasEl.value = '30';
+  }
 
   setForecastBusyState(true, 'Procesando pronóstico...');
 
@@ -6444,17 +6462,19 @@ function processForecastAnalysis() {
       forma,
       anio,
       departamento,
-      municipio
+      municipio,
+      diasPronostico
     });
 
     LAST_FORECAST_RESULT = result;
     renderForecastTable(result);
 
     const total = Number(result?.meta?.totalProyectado || 0);
-        const mensaje = result?.meta?.mensaje
+    const mensaje = result?.meta?.mensaje
       || (total > 0
-        ? `Pronóstico generado correctamente considerando año, mes y día registrados.`
-        : 'No se identificó tendencia diaria suficiente; el valor proyectado es 0.');
+        ? `Pronóstico generado correctamente para ${diasPronostico} día(s).`
+        : 'No se identificó tendencia suficiente; el valor proyectado es 0.');
+
     setForecastBusyState(false, mensaje);
   } catch (error) {
     console.error('Error en processForecastAnalysis:', error);
@@ -6462,7 +6482,7 @@ function processForecastAnalysis() {
     setForecastBusyState(false, 'Ocurrió un error al generar el pronóstico.');
   }
 }
-  function clearForecastAnalysis() {
+function clearForecastAnalysis() {
   const body = document.getElementById('forecastResultsBody');
   const caption = document.getElementById('forecastCaption');
   const container = document.getElementById('forecastTableContainer');
@@ -6473,28 +6493,31 @@ function processForecastAnalysis() {
 
   const dep = document.getElementById('forecastDepartamento');
   const mun = document.getElementById('forecastMunicipio');
+  const dias = document.getElementById('forecastDias');
 
   if (dep) dep.value = 'Todos';
   updateForecastMunicipios();
   if (mun) mun.value = 'Todos';
+  if (dias) dias.value = '30';
 
   syncForecastFormaWithData();
 
   LAST_FORECAST_RESULT = { rows: [], meta: {} };
   setForecastBusyState(false, 'Pronóstico limpiado.');
 }
-
+  
 function buildForecastProjectionFromDatos(filters) {
   const forma = filters?.forma || 'Todos';
   const anio = filters?.anio || 'Todos';
   const departamento = filters?.departamento || 'Todos';
   const municipio = filters?.municipio || 'Todos';
+  const diasPronostico = Math.max(1, parseInt(filters?.diasPronostico, 10) || 30);
 
   if (!Array.isArray(DATA_ROWS) || !DATA_ROWS.length) {
     return {
       rows: [],
-      meta: {
-        filtros: { forma, anio, departamento, municipio },
+    meta: {
+  filtros: { forma, anio, departamento, municipio, diasPronostico },
         totalProyectado: 0,
         totalGrupos: 0,
         ultimaFechaObservada: '',
@@ -6559,13 +6582,14 @@ function buildForecastProjectionFromDatos(filters) {
       ? projectNextPeriodFromDailySeries(dailySeries)
       : 0;
 
-    resultRows.push({
-      departamento: group.departamento,
-      municipio: group.municipio,
-      incidencias: projectedValue,
-      historialDias: dailySeries.length,
-      metodo: getForecastMethodLabel(dailySeries.length)
-    });
+  const diasDelMesBase = 30;
+const projectedByDays = Math.max(0, Math.round((projectedValue / diasDelMesBase) * diasPronostico));
+
+resultRows.push({
+  departamento: group.departamento,
+  municipio: group.municipio,
+  incidencias: projectedByDays
+});
   });
 
   resultRows.sort((a, b) => {
@@ -6717,6 +6741,8 @@ function renderForecastTable(result) {
   const rows = Array.isArray(result?.rows) ? result.rows : [];
   const totalProyectado = Number(result?.meta?.totalProyectado || 0);
   const totalGrupos = Number(result?.meta?.totalGrupos || rows.length || 0);
+
+  const diasPronostico = Number(result?.meta?.filtros?.diasPronostico || 30);
 
   tbody.innerHTML = '';
 
