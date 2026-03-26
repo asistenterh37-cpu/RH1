@@ -1653,16 +1653,12 @@
       <div class="data-table-wrap">
         <table class="data-table">
           <thead>
-            <tr>
-              <th>Forma de fallecimiento</th>
-              <th>Departamento</th>
-              <th>Municipio</th>
-              <th>Último mes observado</th>
-              <th>Mes proyectado</th>
-              <th>Incidencias proyectadas</th>
-              <th>Método</th>
-            </tr>
-          </thead>          
+  <tr>
+    <th>Departamento</th>
+    <th>Municipio</th>
+    <th>Incidencias proyectadas</th>
+  </tr>
+</thead>
 <tbody id="forecastResultsBody"></tbody>
         </table>
       </div>
@@ -6438,18 +6434,38 @@ function processForecastAnalysis() {
   setForecastBusyState(true, 'Procesando pronóstico con base en la sección Datos...');
 
   try {
-    const resultado = buildForecastProjectionFromDatos({
+    const resultadoBase = buildForecastProjectionFromDatos({
       forma,
       anio,
       departamento,
       municipio
     });
 
+    const filas = Array.isArray(resultadoBase?.rows) ? resultadoBase.rows : [];
+
+    const resultado = {
+      rows: filas.map(row => ({
+        departamento: row?.departamento || 'Todos',
+        municipio: row?.municipio || 'Todos',
+        incidencias: Number(row?.incidencias || 0)
+      })),
+      meta: {
+        filtros: {
+          forma,
+          anio,
+          departamento,
+          municipio
+        },
+        totalProyectado: Number(resultadoBase?.meta?.totalProyectado || 0),
+        mensaje: resultadoBase?.meta?.mensaje || ''
+      }
+    };
+
     LAST_FORECAST_RESULT = resultado;
     renderForecastTable(resultado);
 
-    const totalFilas = Array.isArray(resultado?.rows) ? resultado.rows.length : 0;
-    const totalProyectado = Number(resultado?.meta?.totalProyectado || 0);
+    const totalFilas = resultado.rows.length;
+    const totalProyectado = Number(resultado.meta.totalProyectado || 0);
 
     if (totalFilas > 0) {
       setForecastBusyState(
@@ -6461,33 +6477,31 @@ function processForecastAnalysis() {
     } else {
       setForecastBusyState(
         false,
-        resultado?.meta?.mensaje || 'No se encontraron series válidas para los filtros seleccionados.'
+        resultado.meta.mensaje || 'No se encontraron datos para el pronóstico.'
       );
     }
   } catch (error) {
     console.error('Error al generar pronóstico:', error);
-    LAST_FORECAST_RESULT = { rows: [], meta: {} };
-    renderForecastTable({
+
+    const resultado = {
       rows: [{
-        forma,
         departamento,
         municipio,
-        ultimoMesObservado: '',
-        mesProyectado: '',
-        incidencias: 0,
-        metodo: 'No disponible por error',
-        score: 0
+        incidencias: 0
       }],
       meta: {
         filtros: { forma, anio, departamento, municipio },
         totalProyectado: 0,
         mensaje: 'Ocurrió un error al generar el pronóstico.'
       }
-    });
+    };
+
+    LAST_FORECAST_RESULT = resultado;
+    renderForecastTable(resultado);
     setForecastBusyState(false, 'Ocurrió un error al generar el pronóstico.');
   }
 }
-function clearForecastAnalysis() {
+  function clearForecastAnalysis() {
   const status = document.getElementById('forecastStatus');
   const body = document.getElementById('forecastResultsBody');
   const caption = document.getElementById('forecastCaption');
@@ -6740,26 +6754,18 @@ function renderForecastTable(result) {
   if (!rows.length) {
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td>${escapeHtml(result?.meta?.filtros?.forma || 'Todos')}</td>
       <td>${escapeHtml(result?.meta?.filtros?.departamento || 'Todos')}</td>
       <td>${escapeHtml(result?.meta?.filtros?.municipio || 'Todos')}</td>
-      <td>${escapeHtml(formatMonthLabelFromIso(result?.meta?.fechaUltimaObservacion || ''))}</td>
-      <td>${escapeHtml(result?.meta?.mesProyectado || '')}</td>
       <td>0</td>
-      <td>${escapeHtml(result?.meta?.metodo || 'Sin histórico suficiente')}</td>
     `;
     tbody.appendChild(tr);
   } else {
     rows.forEach(row => {
       const tr = document.createElement('tr');
       tr.innerHTML = `
-        <td>${escapeHtml(row.forma || '')}</td>
-        <td>${escapeHtml(row.departamento || '')}</td>
-        <td>${escapeHtml(row.municipio || '')}</td>
-        <td>${escapeHtml(row.ultimoMesObservado || '')}</td>
-        <td>${escapeHtml(row.mesProyectado || '')}</td>
-        <td>${formatNumber(row.incidencias || 0)}</td>
-        <td>${escapeHtml(row.metodo || '')}</td>
+        <td>${escapeHtml(row.departamento || 'Todos')}</td>
+        <td>${escapeHtml(row.municipio || 'Todos')}</td>
+        <td>${formatNumber(Number(row.incidencias || 0))}</td>
       `;
       tbody.appendChild(tr);
     });
@@ -6769,9 +6775,10 @@ function renderForecastTable(result) {
 
   if (caption) {
     caption.innerHTML =
-      `Base utilizada: <strong>Datos</strong> | Forma: <strong>${escapeHtml(result?.meta?.filtros?.forma || 'Todos')}</strong> | Año: <strong>${escapeHtml(result?.meta?.filtros?.anio || 'Todos')}</strong> | Último mes observado: <strong>${escapeHtml(formatMonthLabelFromIso(result?.meta?.fechaUltimaObservacion || ''))}</strong> | Mes proyectado: <strong>${escapeHtml(result?.meta?.mesProyectado || '')}</strong> | Total proyectado: <strong>${formatNumber(result?.meta?.totalProyectado || 0)}</strong> | ${escapeHtml(result?.meta?.mensaje || 'Pronóstico generado correctamente.')}`;
+      `Base utilizada: <strong>Datos</strong> | Forma: <strong>${escapeHtml(result?.meta?.filtros?.forma || 'Todos')}</strong> | Año: <strong>${escapeHtml(result?.meta?.filtros?.anio || 'Todos')}</strong> | Total proyectado: <strong>${formatNumber(result?.meta?.totalProyectado || 0)}</strong> | ${escapeHtml(result?.meta?.mensaje || 'Pronóstico generado correctamente.')}`;
   }
 }
+  
 </script>
 </body>
 </html>
