@@ -6438,7 +6438,7 @@ function setForecastBusyState(isBusy, message) {
   }
 }
 
-function processForecastAnalysis() {
+  function processForecastAnalysis() {
   const dataFormaEl = document.getElementById('dataForma');
   const dataAnioEl = document.getElementById('dataAnio');
   const depEl = document.getElementById('forecastDepartamento');
@@ -6456,12 +6456,12 @@ function processForecastAnalysis() {
     if (diasEl) diasEl.value = '30';
   }
 
-  setForecastBusyState(true, 'Procesando pronóstico con Regresión Binomial Negativa...');
+  setForecastBusyState(true, 'Generando pronóstico...');
 
   try {
     syncForecastFormaWithData();
 
-    let result = buildForecastProjectionFromDatos({
+    const result = buildForecastProjectionFromDatos({
       forma,
       anio,
       departamento,
@@ -6469,55 +6469,15 @@ function processForecastAnalysis() {
       diasPronostico
     });
 
-    if (!result || typeof result !== 'object') {
-      result = {};
-    }
-
-    if (!Array.isArray(result.rows)) {
-      result.rows = [];
-    }
-
-    if (!result.meta || typeof result.meta !== 'object') {
-      result.meta = {};
-    }
-
-    if (!result.meta.filtros || typeof result.meta.filtros !== 'object') {
-      result.meta.filtros = {};
-    }
-
-    result.meta.filtros.forma = forma;
-    result.meta.filtros.anio = anio;
-    result.meta.filtros.departamento = departamento;
-    result.meta.filtros.municipio = municipio;
-    result.meta.filtros.diasPronostico = diasPronostico;
-
-    result.rows = result.rows.map(row => ({
-      departamento: row?.departamento || departamento || 'Todos',
-      municipio: row?.municipio || municipio || 'Todos',
-      incidencias: Number(row?.incidencias || row?.proyectado || row?.total || 0)
-    }));
-
-    result.meta.totalGrupos = Number(result.meta.totalGrupos || result.rows.length || 0);
-    result.meta.totalProyectado = Number(
-      result.meta.totalProyectado ||
-      result.rows.reduce((sum, row) => sum + Number(row.incidencias || 0), 0)
-    );
-
-    if (!result.meta.metodo) {
-      result.meta.metodo = 'Regresión Binomial Negativa con variables de calendario, rezagos y agregación jerárquica departamento–municipio';
-    }
-
-    console.log('Resultado bruto del pronóstico:', result);
     LAST_FORECAST_RESULT = result;
     renderForecastTable(result);
 
-    const total = Number(result.meta.totalProyectado || 0);
-    const mensaje = result.meta.mensaje ||
-      (result.rows.length
-        ? `Pronóstico generado correctamente para ${diasPronostico} día(s).`
-        : `Pronóstico generado sin filas históricas suficientes; se muestra la estructura base para ${diasPronostico} día(s).`);
+    const rows = Array.isArray(result?.rows) ? result.rows : [];
+    const msg = rows.length
+      ? `Pronóstico generado correctamente para ${diasPronostico} día(s).`
+      : 'No se encontró histórico suficiente para el filtro seleccionado. Se muestra tabla base.';
 
-    setForecastBusyState(false, mensaje);
+    setForecastBusyState(false, msg);
   } catch (error) {
     console.error('Error en processForecastAnalysis:', error);
 
@@ -6533,16 +6493,16 @@ function processForecastAnalysis() {
         totalGrupos: 1,
         ultimaFechaObservada: 'Sin dato',
         periodoProyectado: 'Sin dato',
-        metodo: 'Regresión Binomial Negativa con variables de calendario, rezagos y agregación jerárquica departamento–municipio',
-        mensaje: 'Se generó una tabla base porque ocurrió un error en el cálculo del pronóstico.'
+        metodo: 'Regresión Binomial Negativa con variables de calendario, rezagos y agregación jerárquica departamento–municipio'
       }
     };
 
     LAST_FORECAST_RESULT = fallbackResult;
     renderForecastTable(fallbackResult);
-    setForecastBusyState(false, 'Se mostró una tabla base del pronóstico; revisa la consola para el detalle del error.');
+    setForecastBusyState(false, 'Se generó una tabla base por un error en el cálculo. Revisa la consola.');
   }
 }
+
 function clearForecastAnalysis() {
   const body = document.getElementById('forecastResultsBody');
   const caption = document.getElementById('forecastCaption');
@@ -6562,11 +6522,10 @@ function clearForecastAnalysis() {
   if (dias) dias.value = '30';
 
   syncForecastFormaWithData();
-
   LAST_FORECAST_RESULT = { rows: [], meta: {} };
   setForecastBusyState(false, 'Pronóstico limpiado.');
 }
-  
+
 function buildForecastProjectionFromDatos(filters) {
   const forma = filters?.forma || 'Todos';
   const anio = filters?.anio || 'Todos';
@@ -6574,48 +6533,41 @@ function buildForecastProjectionFromDatos(filters) {
   const municipio = filters?.municipio || 'Todos';
   const diasPronostico = Math.max(1, parseInt(filters?.diasPronostico, 10) || 30);
 
-  const baseRows = getRowsForDataModule(forma, anio);
-
-  if (!Array.isArray(baseRows) || !baseRows.length) {
-    return {
-      rows: [],
-      meta: {
-        filtros: { forma, anio, departamento, municipio, diasPronostico },
-        totalProyectado: 0,
-        totalGrupos: 0,
-        ultimaFechaObservada: '',
-        periodoProyectado: '',
-        metodo: 'Regresión Binomial Negativa con variables de calendario, rezagos y agregación jerárquica departamento–municipio',
-        mensaje: 'No hay datos cargados en la sección Datos para construir el pronóstico.'
-      }
-    };
-  }
-
   const depField = findRealBaseField('Departamento');
   const munField = findRealBaseField('Municipio');
   const yearField = findRealBaseField('Año');
   const monthField = findRealBaseField('Mes');
   const dayField = findRealBaseField('Dia');
+  const formaField = findRealBaseField('Forma de fallecimiento');
 
   if (!depField || !munField || !yearField || !monthField || !dayField) {
     return {
-      rows: [],
+      rows: [{
+        departamento: departamento === 'Todos' ? 'Todos' : departamento,
+        municipio: municipio === 'Todos' ? 'Todos' : municipio,
+        incidencias: 0
+      }],
       meta: {
         filtros: { forma, anio, departamento, municipio, diasPronostico },
         totalProyectado: 0,
-        totalGrupos: 0,
-        ultimaFechaObservada: '',
-        periodoProyectado: '',
-        metodo: 'Regresión Binomial Negativa con variables de calendario, rezagos y agregación jerárquica departamento–municipio',
-        mensaje: 'Faltan campos requeridos (Año, Mes, Dia, Departamento o Municipio) para calcular el pronóstico.'
+        totalGrupos: 1,
+        ultimaFechaObservada: 'Sin dato',
+        periodoProyectado: 'Sin dato',
+        metodo: 'Regresión Binomial Negativa con variables de calendario, rezagos y agregación jerárquica departamento–municipio'
       }
     };
   }
 
-  const filteredRows = baseRows.filter(row => {
+  const sourceRows = Array.isArray(MASTER_DATA) ? MASTER_DATA.slice() : [];
+
+  const filteredRows = sourceRows.filter(row => {
     const depValue = formatCell(row[depField]);
     const munValue = formatCell(row[munField]);
+    const yearValue = String(formatCell(row[yearField]));
+    const formaValue = formaField ? formatCell(row[formaField]) : '';
 
+    if (forma !== 'Todos' && formaField && normalize(formaValue) !== normalize(forma)) return false;
+    if (anio !== 'Todos' && normalize(yearValue) !== normalize(String(anio))) return false;
     if (departamento !== 'Todos' && normalize(depValue) !== normalize(departamento)) return false;
     if (municipio !== 'Todos' && normalize(munValue) !== normalize(municipio)) return false;
 
@@ -6624,103 +6576,93 @@ function buildForecastProjectionFromDatos(filters) {
 
   if (!filteredRows.length) {
     return {
-      rows: [],
+      rows: [{
+        departamento: departamento === 'Todos' ? 'Todos' : departamento,
+        municipio: municipio === 'Todos' ? 'Todos' : municipio,
+        incidencias: 0
+      }],
       meta: {
         filtros: { forma, anio, departamento, municipio, diasPronostico },
         totalProyectado: 0,
-        totalGrupos: 0,
-        ultimaFechaObservada: '',
-        periodoProyectado: '',
-        metodo: 'Regresión Binomial Negativa con variables de calendario, rezagos y agregación jerárquica departamento–municipio',
-        mensaje: 'No hay histórico suficiente para el filtro territorial seleccionado.'
+        totalGrupos: 1,
+        ultimaFechaObservada: 'Sin dato',
+        periodoProyectado: 'Sin dato',
+        metodo: 'Regresión Binomial Negativa con variables de calendario, rezagos y agregación jerárquica departamento–municipio'
       }
     };
   }
 
-  const municipalGroups = new Map();
-  const departmentGroups = new Map();
+  const groups = new Map();
   let globalMaxDate = null;
 
   filteredRows.forEach(row => {
-    const depValue = formatCell(row[depField]) || 'No definido';
-    const munValue = formatCell(row[munField]) || 'No definido';
+    const dep = formatCell(row[depField]) || 'No definido';
+    const mun = formatCell(row[munField]) || 'No definido';
 
-    const y = Number(formatCell(row[yearField]) || 0);
-    const m = monthToNumber(row[monthField]);
-    const d = Number(formatCell(row[dayField]) || 0);
+    const y = parseInt(formatCell(row[yearField]), 10);
+    const m = parseInt(formatCell(row[monthField]), 10);
+    const d = parseInt(formatCell(row[dayField]), 10);
 
     if (!y || !m || !d) return;
 
-    const currentDate = new Date(y, m - 1, d);
-    if (Number.isNaN(currentDate.getTime())) return;
+    const dt = new Date(y, m - 1, d);
+    if (Number.isNaN(dt.getTime())) return;
 
-    const dateKey = formatDateKey(currentDate);
-    const freq = Math.max(1, Number(num(row[VALUE_FIELD]) || 1));
+    if (!globalMaxDate || dt > globalMaxDate) globalMaxDate = new Date(dt);
 
-    if (!globalMaxDate || currentDate > globalMaxDate) {
-      globalMaxDate = new Date(currentDate);
-    }
-
-    const munKey = `${depValue}|||${munValue}`;
-    if (!municipalGroups.has(munKey)) {
-      municipalGroups.set(munKey, {
-        departamento: depValue,
-        municipio: munValue,
-        dailyMap: new Map()
+    const key = `${dep}||${mun}`;
+    if (!groups.has(key)) {
+      groups.set(key, {
+        departamento: dep,
+        municipio: mun,
+        fechas: new Map()
       });
     }
-    const munGroup = municipalGroups.get(munKey);
-    munGroup.dailyMap.set(dateKey, (munGroup.dailyMap.get(dateKey) || 0) + freq);
 
-    if (!departmentGroups.has(depValue)) {
-      departmentGroups.set(depValue, {
-        departamento: depValue,
-        dailyMap: new Map()
-      });
-    }
-    const depGroup = departmentGroups.get(depValue);
-    depGroup.dailyMap.set(dateKey, (depGroup.dailyMap.get(dateKey) || 0) + freq);
+    const dateKey = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    const group = groups.get(key);
+    group.fechas.set(dateKey, (group.fechas.get(dateKey) || 0) + 1);
   });
 
   const resultRows = [];
 
-  municipalGroups.forEach(group => {
-    const municipalSeries = buildContinuousDailySeries(group.dailyMap);
-    const departmentSeries = buildContinuousDailySeries(
-      departmentGroups.get(group.departamento)?.dailyMap || new Map()
-    );
+  groups.forEach(group => {
+    const orderedDates = Array.from(group.fechas.entries())
+      .map(([dateKey, value]) => ({
+        date: new Date(dateKey + 'T00:00:00'),
+        value: Number(value || 0)
+      }))
+      .filter(item => !Number.isNaN(item.date.getTime()))
+      .sort((a, b) => a.date - b.date);
 
-    const municipalForecast = forecastNegativeBinomialDaily(municipalSeries, diasPronostico);
-    const departmentForecast = forecastNegativeBinomialDaily(departmentSeries, diasPronostico);
+    let proyectado = 0;
 
-    const municipalTotal = Number(municipalForecast.total || 0);
-    const departmentTotal = Number(departmentForecast.total || 0);
-
-    const municipalStrength = Math.min(1, municipalSeries.length / 120);
-    const deptPerMunicipioFallback = Math.max(
-      0,
-      departmentTotal / Math.max(1, countMunicipiosInDepartment(municipalGroups, group.departamento))
-    );
-
-    const blendedForecast = Math.max(
-      0,
-      Math.round((municipalTotal * municipalStrength) + (deptPerMunicipioFallback * (1 - municipalStrength)))
-    );
+    if (orderedDates.length >= 15 && typeof forecastNegativeBinomialDaily === 'function') {
+      const nb = forecastNegativeBinomialDaily(orderedDates, diasPronostico);
+      proyectado = Math.max(0, Math.round(Number(nb?.total || 0)));
+    } else if (orderedDates.length >= 7) {
+      const recent = orderedDates.slice(-7);
+      const avg = recent.reduce((acc, item) => acc + Number(item.value || 0), 0) / recent.length;
+      proyectado = Math.max(0, Math.round(avg * diasPronostico));
+    } else {
+      const avg = orderedDates.reduce((acc, item) => acc + Number(item.value || 0), 0) / orderedDates.length;
+      proyectado = Math.max(0, Math.round(avg * diasPronostico));
+    }
 
     resultRows.push({
       departamento: group.departamento,
       municipio: group.municipio,
-      incidencias: blendedForecast
+      incidencias: proyectado
     });
   });
 
   resultRows.sort((a, b) => {
-    const depCmp = String(a.departamento).localeCompare(String(b.departamento), 'es', { sensitivity: 'base' });
-    if (depCmp !== 0) return depCmp;
-    return String(a.municipio).localeCompare(String(b.municipio), 'es', { sensitivity: 'base' });
+    if (b.incidencias !== a.incidencias) return b.incidencias - a.incidencias;
+    if (a.departamento !== b.departamento) return a.departamento.localeCompare(b.departamento, 'es');
+    return a.municipio.localeCompare(b.municipio, 'es');
   });
 
-  const totalProyectado = resultRows.reduce((acc, row) => acc + Number(row.incidencias || 0), 0);
+  const totalProyectado = resultRows.reduce((sum, row) => sum + Number(row.incidencias || 0), 0);
 
   const startForecastDate = globalMaxDate ? new Date(globalMaxDate) : null;
   if (startForecastDate) startForecastDate.setDate(startForecastDate.getDate() + 1);
@@ -6734,208 +6676,16 @@ function buildForecastProjectionFromDatos(filters) {
       filtros: { forma, anio, departamento, municipio, diasPronostico },
       totalProyectado,
       totalGrupos: resultRows.length,
-      ultimaFechaObservada: globalMaxDate ? formatDateKey(globalMaxDate) : '',
+      ultimaFechaObservada: globalMaxDate ? formatDateKey(globalMaxDate) : 'Sin dato',
       periodoProyectado: (startForecastDate && endForecastDate)
         ? `${formatDateKey(startForecastDate)} a ${formatDateKey(endForecastDate)}`
-        : '',
-      metodo: 'Regresión Binomial Negativa con variables de calendario, rezagos y agregación jerárquica departamento–municipio',
-      mensaje: resultRows.length
-        ? ''
-        : 'No hay histórico suficiente en Datos para el filtro territorial seleccionado.'
+        : 'Sin dato',
+      metodo: 'Regresión Binomial Negativa con variables de calendario, rezagos y agregación jerárquica departamento–municipio'
     }
   };
 }
 
-function countMunicipiosInDepartment(groupsMap, departamento) {
-  let total = 0;
-  groupsMap.forEach(group => {
-    if (normalize(group.departamento) === normalize(departamento)) total += 1;
-  });
-  return total;
-}
-
-function forecastNegativeBinomialDaily(series, horizonDays) {
-  const cleanSeries = Array.isArray(series) ? series.filter(item =>
-    item &&
-    item.date instanceof Date &&
-    !Number.isNaN(item.date.getTime()) &&
-    Number.isFinite(Number(item.value || 0)) &&
-    Number(item.value || 0) >= 0
-  ) : [];
-
-  if (!cleanSeries.length) {
-    return { total: 0, forecast: [], alpha: 1 };
-  }
-
-  if (cleanSeries.length < 15) {
-    const avg = cleanSeries.reduce((acc, item) => acc + Number(item.value || 0), 0) / cleanSeries.length;
-    const fallback = Math.max(0, Math.round(avg * horizonDays));
-    return { total: fallback, forecast: [], alpha: 1 };
-  }
-
-  const values = cleanSeries.map(item => Number(item.value || 0));
-  const mean = values.reduce((a, b) => a + b, 0) / values.length;
-  const variance = values.reduce((acc, v) => acc + Math.pow(v - mean, 2), 0) / Math.max(1, values.length - 1);
-  const alpha = Math.max(0.05, mean > 0 ? ((variance - mean) / Math.max(mean * mean, 1e-6)) : 1);
-
-  const maxLag = 7;
-  const trainingRows = [];
-
-  for (let t = maxLag; t < cleanSeries.length; t++) {
-    const current = cleanSeries[t];
-    const y = Number(current.value || 0);
-    const lag1 = Number(cleanSeries[t - 1]?.value || 0);
-    const lag7 = Number(cleanSeries[t - 7]?.value || 0);
-
-    trainingRows.push({
-      y,
-      x: buildCalendarFeatureVector(current.date, t, lag1, lag7)
-    });
-  }
-
-  if (trainingRows.length < 8) {
-    const avg = cleanSeries.slice(-Math.min(14, cleanSeries.length))
-      .reduce((acc, item) => acc + Number(item.value || 0), 0) / Math.min(14, cleanSeries.length);
-    const fallback = Math.max(0, Math.round(avg * horizonDays));
-    return { total: fallback, forecast: [], alpha };
-  }
-
-  const X = trainingRows.map(row => row.x);
-  const y = trainingRows.map(row => row.y);
-  const beta = fitNegativeBinomialIRLS(X, y, alpha, 16, 0.15);
-
-  const simulated = cleanSeries.map(item => ({
-    date: new Date(item.date),
-    value: Number(item.value || 0)
-  }));
-
-  const forecast = [];
-  let total = 0;
-
-  for (let h = 0; h < horizonDays; h++) {
-    const nextDate = new Date(simulated[simulated.length - 1].date);
-    nextDate.setDate(nextDate.getDate() + 1);
-
-    const lag1 = Number(simulated[simulated.length - 1]?.value || 0);
-    const lag7 = Number(simulated[simulated.length - 7]?.value || 0);
-    const featureVector = buildCalendarFeatureVector(nextDate, simulated.length, lag1, lag7);
-
-    const eta = dotProduct(featureVector, beta);
-    const mu = Math.max(0, Math.exp(Math.min(20, Math.max(-20, eta))));
-    const yhat = Math.max(0, Math.round(mu));
-
-    forecast.push({ date: new Date(nextDate), value: yhat });
-    simulated.push({ date: new Date(nextDate), value: yhat });
-    total += yhat;
-  }
-
-  return { total, forecast, alpha, beta };
-}
-
-function buildCalendarFeatureVector(date, trendIndex, lag1, lag7) {
-  const dow = date.getDay();      // 0 domingo ... 6 sábado
-  const month = date.getMonth();  // 0 ... 11
-
-  const vector = [
-    1,
-    trendIndex + 1,
-    Math.log1p(Math.max(0, lag1)),
-    Math.log1p(Math.max(0, lag7))
-  ];
-
-  for (let i = 1; i <= 6; i++) vector.push(dow === i ? 1 : 0);
-  for (let i = 1; i <= 11; i++) vector.push(month === i ? 1 : 0);
-
-  return vector;
-}
-
-function fitNegativeBinomialIRLS(X, y, alpha, maxIter, ridgeLambda) {
-  const n = X.length;
-  const p = X[0].length;
-  let beta = new Array(p).fill(0);
-
-  for (let iter = 0; iter < maxIter; iter++) {
-    const eta = X.map(row => dotProduct(row, beta));
-    const mu = eta.map(v => Math.max(1e-6, Math.exp(Math.min(20, Math.max(-20, v)))));
-    const w = mu.map(m => m / (1 + alpha * m));
-    const z = y.map((yi, i) => eta[i] + ((yi - mu[i]) / Math.max(mu[i], 1e-6)));
-
-    const XtWX = Array.from({ length: p }, () => new Array(p).fill(0));
-    const XtWz = new Array(p).fill(0);
-
-    for (let i = 0; i < n; i++) {
-      for (let a = 0; a < p; a++) {
-        XtWz[a] += X[i][a] * w[i] * z[i];
-        for (let b = 0; b < p; b++) {
-          XtWX[a][b] += X[i][a] * w[i] * X[i][b];
-        }
-      }
-    }
-
-    for (let d = 0; d < p; d++) {
-      XtWX[d][d] += ridgeLambda;
-    }
-
-    beta = solveLinearSystem(XtWX, XtWz);
-  }
-
-  return beta;
-}
-
-function solveLinearSystem(A, b) {
-  const n = A.length;
-  const M = A.map((row, i) => [...row, b[i]]);
-
-  for (let k = 0; k < n; k++) {
-    let maxRow = k;
-    for (let i = k + 1; i < n; i++) {
-      if (Math.abs(M[i][k]) > Math.abs(M[maxRow][k])) maxRow = i;
-    }
-
-    if (maxRow !== k) {
-      const tmp = M[k];
-      M[k] = M[maxRow];
-      M[maxRow] = tmp;
-    }
-
-    const pivot = Math.abs(M[k][k]) < 1e-10 ? 1e-10 : M[k][k];
-
-    for (let j = k; j <= n; j++) {
-      M[k][j] = M[k][j] / pivot;
-    }
-
-    for (let i = 0; i < n; i++) {
-      if (i === k) continue;
-      const factor = M[i][k];
-      for (let j = k; j <= n; j++) {
-        M[i][j] -= factor * M[k][j];
-      }
-    }
-  }
-
-  return M.map(row => row[n]);
-}
-
-function dotProduct(a, b) {
-  let sum = 0;
-  for (let i = 0; i < a.length; i++) sum += Number(a[i] || 0) * Number(b[i] || 0);
-  return sum;
-}
-
-function formatYearMonthLabel(year, month) {
-  const monthNames = [
-    'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
-  ];
-
-  const y = Number(year || 0);
-  const m = Number(month || 0);
-
-  if (!y || !m || m < 1 || m > 12) return '';
-  return `${monthNames[m - 1]} ${y}`;
-}
-  function renderForecastTable(result) {
-  console.log('renderForecastTable() result:', result);
+function renderForecastTable(result) {
   const tbody = document.getElementById('forecastResultsBody');
   const caption = document.getElementById('forecastCaption');
   const container = document.getElementById('forecastTableContainer');
@@ -6950,21 +6700,12 @@ function formatYearMonthLabel(year, month) {
   const diasPronostico = Number(filtros.diasPronostico || 30);
 
   const rows = Array.isArray(result?.rows)
-    ? result.rows
-        .map(row => ({
-          departamento: row?.departamento || filtros.departamento || 'Todos',
-          municipio: row?.municipio || filtros.municipio || 'Todos',
-          incidencias: Number(row?.incidencias || row?.proyectado || row?.total || 0)
-        }))
-        .filter(row => row.departamento || row.municipio)
+    ? result.rows.map(row => ({
+        departamento: row?.departamento || filtros.departamento || 'Todos',
+        municipio: row?.municipio || filtros.municipio || 'Todos',
+        incidencias: Number(row?.incidencias || 0)
+      }))
     : [];
-
-  const totalProyectado = Number(
-    meta.totalProyectado ||
-    rows.reduce((sum, row) => sum + Number(row.incidencias || 0), 0)
-  );
-
-  const totalGrupos = Number(meta.totalGrupos || rows.length || 0);
 
   tbody.innerHTML = '';
 
@@ -6973,7 +6714,7 @@ function formatYearMonthLabel(year, month) {
     tr.innerHTML = `
       <td>${escapeHtml(filtros.departamento || 'Todos')}</td>
       <td>${escapeHtml(filtros.municipio || 'Todos')}</td>
-      <td>${formatNumber(0)}</td>
+      <td>0</td>
     `;
     tbody.appendChild(tr);
   } else {
@@ -6982,23 +6723,25 @@ function formatYearMonthLabel(year, month) {
       tr.innerHTML = `
         <td>${escapeHtml(row.departamento || 'No definido')}</td>
         <td>${escapeHtml(row.municipio || 'No definido')}</td>
-        <td>${formatNumber(Number(row.incidencias || 0))}</td>
+        <td>${formatNumber(row.incidencias)}</td>
       `;
       tbody.appendChild(tr);
     });
   }
+
+  const totalProyectado = rows.reduce((sum, row) => sum + Number(row.incidencias || 0), 0);
 
   caption.innerHTML = `
     <strong>Método:</strong> ${escapeHtml(meta.metodo || 'Regresión Binomial Negativa')}<br>
     <strong>Horizonte:</strong> ${formatNumber(diasPronostico)} día(s)<br>
     <strong>Última fecha observada:</strong> ${escapeHtml(meta.ultimaFechaObservada || 'Sin dato')}<br>
     <strong>Período proyectado:</strong> ${escapeHtml(meta.periodoProyectado || 'Sin dato')}<br>
-    <strong>Total grupos:</strong> ${formatNumber(totalGrupos)} |
+    <strong>Total grupos:</strong> ${formatNumber(rows.length)} |
     <strong>Total incidencias proyectadas:</strong> ${formatNumber(totalProyectado)}
   `;
 
   container.style.display = 'block';
 }
-</script>
+  </script>
 </body>
 </html>
