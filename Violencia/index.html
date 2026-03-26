@@ -6399,10 +6399,12 @@ function clearAIAnalysis() {
   const payload = buildAIPayloadFromDataTable();
   document.getElementById('aiInputPreview').innerHTML = payload ? buildAIPreviewHtml(payload) : 'Aún no se ha preparado información desde la sección <strong>Datos</strong>.';
 }
-
-  function getForecastMethodLabel(seriesLength) {
-  return seriesLength >= 6 ? 'Suavización exponencial con tendencia' : 'Promedio móvil ponderado';
+function getForecastMethodLabel(seriesLength) {
+  return seriesLength >= 6
+    ? 'Suavización exponencial con tendencia'
+    : 'Promedio móvil ponderado';
 }
+
 function setForecastBusyState(isBusy, message) {
   const status = document.getElementById('forecastStatus');
   const btn = document.getElementById('btnGenerateForecast');
@@ -6416,20 +6418,7 @@ function setForecastBusyState(isBusy, message) {
     btn.textContent = isBusy ? 'Generando pronóstico...' : 'Generar pronóstico';
   }
 }
-function setForecastBusyState(isBusy, message) {
-  const status = document.getElementById('forecastStatus');
-  const btn = document.getElementById('btnGenerateForecast');
-
-  if (status && typeof message === 'string') {
-    status.textContent = message;
-  }
-
-  if (btn) {
-    btn.disabled = !!isBusy;
-    btn.textContent = isBusy ? 'Generando pronóstico...' : 'Generar pronóstico';
-  }
-}
-
+  
 
 function processForecastAnalysis() {
   const status = document.getElementById('forecastStatus');
@@ -6448,33 +6437,56 @@ function processForecastAnalysis() {
 
   setForecastBusyState(true, 'Procesando pronóstico con base en la sección Datos...');
 
-  window.setTimeout(() => {
-    try {
-      const resultado = buildForecastProjectionFromDatos({
-        forma,
-        anio,
-        departamento,
-        municipio
-      });
+  try {
+    const resultado = buildForecastProjectionFromDatos({
+      forma,
+      anio,
+      departamento,
+      municipio
+    });
 
-      LAST_FORECAST_RESULT = resultado;
-      renderForecastTable(resultado);
+    LAST_FORECAST_RESULT = resultado;
+    renderForecastTable(resultado);
 
+    const totalFilas = Array.isArray(resultado?.rows) ? resultado.rows.length : 0;
+    const totalProyectado = Number(resultado?.meta?.totalProyectado || 0);
+
+    if (totalFilas > 0) {
       setForecastBusyState(
         false,
-        (resultado.rows || []).length
+        totalProyectado > 0
           ? 'Pronóstico generado correctamente con base en los datos filtrados en Datos.'
-          : (resultado.meta?.mensaje || 'No se encontraron series válidas para los filtros seleccionados.')
+          : 'Pronóstico generado. No se identificó tendencia suficiente; se muestran valores 0.'
       );
-    } catch (error) {
-      console.error('Error al generar pronóstico:', error);
-      LAST_FORECAST_RESULT = { rows: [], meta: {} };
-      renderForecastTable({ rows: [], meta: { mensaje: 'Ocurrió un error al generar el pronóstico.' } });
-      setForecastBusyState(false, 'Ocurrió un error al generar el pronóstico.');
+    } else {
+      setForecastBusyState(
+        false,
+        resultado?.meta?.mensaje || 'No se encontraron series válidas para los filtros seleccionados.'
+      );
     }
-  }, 30);
+  } catch (error) {
+    console.error('Error al generar pronóstico:', error);
+    LAST_FORECAST_RESULT = { rows: [], meta: {} };
+    renderForecastTable({
+      rows: [{
+        forma,
+        departamento,
+        municipio,
+        ultimoMesObservado: '',
+        mesProyectado: '',
+        incidencias: 0,
+        metodo: 'No disponible por error',
+        score: 0
+      }],
+      meta: {
+        filtros: { forma, anio, departamento, municipio },
+        totalProyectado: 0,
+        mensaje: 'Ocurrió un error al generar el pronóstico.'
+      }
+    });
+    setForecastBusyState(false, 'Ocurrió un error al generar el pronóstico.');
+  }
 }
-
 function clearForecastAnalysis() {
   const status = document.getElementById('forecastStatus');
   const body = document.getElementById('forecastResultsBody');
@@ -6497,6 +6509,55 @@ function clearForecastAnalysis() {
   LAST_FORECAST_RESULT = { rows: [], meta: {} };
   setForecastBusyState(false, 'Pronóstico limpiado.');
 }
+
+function buildForecastFallbackRows(filters, projectionFull) {
+  const forma = filters?.forma || 'Todos';
+  const departamento = filters?.departamento || 'Todos';
+  const municipio = filters?.municipio || 'Todos';
+
+  const rows = [];
+
+  if (departamento !== 'Todos' && municipio !== 'Todos') {
+    rows.push({
+      forma,
+      departamento,
+      municipio,
+      ultimoMesObservado: formatMonthLabelFromIso(projectionFull?.fechaUltimaObservacion || ''),
+      mesProyectado: projectionFull?.mesProyectado || '',
+      incidencias: 0,
+      metodo: projectionFull?.metodo || 'Proyección basada en histórico filtrado',
+      score: 0
+    });
+    return rows;
+  }
+
+  if (departamento !== 'Todos' && municipio === 'Todos') {
+    rows.push({
+      forma,
+      departamento,
+      municipio: 'Todos',
+      ultimoMesObservado: formatMonthLabelFromIso(projectionFull?.fechaUltimaObservacion || ''),
+      mesProyectado: projectionFull?.mesProyectado || '',
+      incidencias: 0,
+      metodo: projectionFull?.metodo || 'Proyección basada en histórico filtrado',
+      score: 0
+    });
+    return rows;
+  }
+
+  rows.push({
+    forma,
+    departamento: 'Todos',
+    municipio: 'Todos',
+    ultimoMesObservado: formatMonthLabelFromIso(projectionFull?.fechaUltimaObservacion || ''),
+    mesProyectado: projectionFull?.mesProyectado || '',
+    incidencias: 0,
+    metodo: projectionFull?.metodo || 'Proyección basada en histórico filtrado',
+    score: 0
+  });
+
+  return rows;
+}
   
 function buildForecastProjectionFromDatos(filters) {
   const forma = filters.forma || 'Todos';
@@ -6509,10 +6570,20 @@ function buildForecastProjectionFromDatos(filters) {
 
   if (!depField || !munField) {
     return {
-      rows: [],
+      rows: [{
+        forma,
+        departamento,
+        municipio,
+        ultimoMesObservado: '',
+        mesProyectado: '',
+        incidencias: 0,
+        metodo: 'No disponible',
+        score: 0
+      }],
       meta: {
         filtros: { forma, anio, departamento, municipio },
-        totalSeries: 0,
+        totalSeries: 1,
+        totalProyectado: 0,
         mensaje: 'No se localizaron los campos Departamento y Municipio para generar el pronóstico.'
       }
     };
@@ -6522,10 +6593,20 @@ function buildForecastProjectionFromDatos(filters) {
 
   if (!rows.length) {
     return {
-      rows: [],
+      rows: [{
+        forma,
+        departamento,
+        municipio,
+        ultimoMesObservado: '',
+        mesProyectado: '',
+        incidencias: 0,
+        metodo: 'Sin histórico',
+        score: 0
+      }],
       meta: {
         filtros: { forma, anio, departamento, municipio },
-        totalSeries: 0,
+        totalSeries: 1,
+        totalProyectado: 0,
         mensaje: 'No hay datos en la sección Datos para los filtros seleccionados.'
       }
     };
@@ -6543,10 +6624,20 @@ function buildForecastProjectionFromDatos(filters) {
 
   if (!rows.length) {
     return {
-      rows: [],
+      rows: [{
+        forma,
+        departamento,
+        municipio,
+        ultimoMesObservado: '',
+        mesProyectado: '',
+        incidencias: 0,
+        metodo: 'Sin histórico',
+        score: 0
+      }],
       meta: {
         filtros: { forma, anio, departamento, municipio },
-        totalSeries: 0,
+        totalSeries: 1,
+        totalProyectado: 0,
         mensaje: 'No hay histórico suficiente en Datos para ese Departamento/Municipio.'
       }
     };
@@ -6561,10 +6652,16 @@ function buildForecastProjectionFromDatos(filters) {
 
   if (!projectionFull || !projectionFull.disponible) {
     return {
-      rows: [],
+      rows: buildForecastFallbackRows(filters, projectionFull),
       meta: {
         filtros: { forma, anio, departamento, municipio },
-        totalSeries: 0,
+        totalSeries: 1,
+        fechaUltimaObservacion: projectionFull?.fechaUltimaObservacion || '',
+        mesProyectado: projectionFull?.mesProyectado || '',
+        totalProyectado: 0,
+        diasBaseObservados: Number(projectionFull?.diasBaseObservados || 0),
+        diasConIncidencia: Number(projectionFull?.diasConIncidencia || 0),
+        metodo: projectionFull?.metodo || 'Proyección basada en histórico filtrado',
         mensaje: projectionFull?.motivo || 'No fue posible construir la proyección.'
       }
     };
@@ -6573,7 +6670,16 @@ function buildForecastProjectionFromDatos(filters) {
   const ultimoMesObservado = formatMonthLabelFromIso(projectionFull.fechaUltimaObservacion);
   const mesProyectado = projectionFull.mesProyectado || '';
 
-  const resumenRows = Array.isArray(projectionFull.resumen) ? projectionFull.resumen : [];
+  let resumenRows = Array.isArray(projectionFull.resumen) ? projectionFull.resumen : [];
+
+  if (!resumenRows.length) {
+    resumenRows = buildForecastFallbackRows(filters, projectionFull).map(item => ({
+      departamento: item.departamento,
+      municipio: item.municipio,
+      totalProyectado: 0
+    }));
+  }
+
   const outputRows = resumenRows.map(item => ({
     forma,
     departamento: item.departamento || 'Sin Dato',
@@ -6604,11 +6710,12 @@ function buildForecastProjectionFromDatos(filters) {
       diasBaseObservados: Number(projectionFull.diasBaseObservados || 0),
       diasConIncidencia: Number(projectionFull.diasConIncidencia || 0),
       metodo: projectionFull.metodo || '',
-      mensaje: ''
+      mensaje: Number(projectionFull.totalProyectado || 0) <= 0
+        ? 'No se identificó tendencia suficiente; el valor proyectado es 0.'
+        : ''
     }
   };
 }
-
 function formatMonthLabelFromIso(isoDate) {
   if (!isoDate) return '';
   const parts = String(isoDate).split('-');
@@ -6620,7 +6727,6 @@ function formatMonthLabelFromIso(isoDate) {
   if (!year || !month) return isoDate;
   return formatYearMonthLabel(year, month);
 }
-
 function renderForecastTable(result) {
   const tbody = document.getElementById('forecastResultsBody');
   const caption = document.getElementById('forecastCaption');
@@ -6628,30 +6734,44 @@ function renderForecastTable(result) {
 
   if (!tbody || !container) return;
 
+  const rows = Array.isArray(result?.rows) ? result.rows : [];
   tbody.innerHTML = '';
 
-  (result.rows || []).forEach(row => {
+  if (!rows.length) {
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td>${escapeHtml(row.forma || '')}</td>
-      <td>${escapeHtml(row.departamento || '')}</td>
-      <td>${escapeHtml(row.municipio || '')}</td>
-      <td>${escapeHtml(row.ultimoMesObservado || '')}</td>
-      <td>${escapeHtml(row.mesProyectado || '')}</td>
-      <td>${formatNumber(row.incidencias || 0)}</td>
-      <td>${escapeHtml(row.metodo || '')}</td>
+      <td>${escapeHtml(result?.meta?.filtros?.forma || 'Todos')}</td>
+      <td>${escapeHtml(result?.meta?.filtros?.departamento || 'Todos')}</td>
+      <td>${escapeHtml(result?.meta?.filtros?.municipio || 'Todos')}</td>
+      <td>${escapeHtml(formatMonthLabelFromIso(result?.meta?.fechaUltimaObservacion || ''))}</td>
+      <td>${escapeHtml(result?.meta?.mesProyectado || '')}</td>
+      <td>0</td>
+      <td>${escapeHtml(result?.meta?.metodo || 'Sin histórico suficiente')}</td>
     `;
     tbody.appendChild(tr);
-  });
+  } else {
+    rows.forEach(row => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${escapeHtml(row.forma || '')}</td>
+        <td>${escapeHtml(row.departamento || '')}</td>
+        <td>${escapeHtml(row.municipio || '')}</td>
+        <td>${escapeHtml(row.ultimoMesObservado || '')}</td>
+        <td>${escapeHtml(row.mesProyectado || '')}</td>
+        <td>${formatNumber(row.incidencias || 0)}</td>
+        <td>${escapeHtml(row.metodo || '')}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
 
-  container.style.display = (result.rows || []).length ? 'block' : 'none';
+  container.style.display = 'block';
 
   if (caption) {
-    caption.innerHTML = (result.rows || []).length
-      ? `Base utilizada: <strong>Datos</strong> | Forma: <strong>${escapeHtml(result.meta?.filtros?.forma || 'Todos')}</strong> | Año: <strong>${escapeHtml(result.meta?.filtros?.anio || 'Todos')}</strong> | Último mes observado: <strong>${escapeHtml(formatMonthLabelFromIso(result.meta?.fechaUltimaObservacion || ''))}</strong> | Mes proyectado: <strong>${escapeHtml(result.meta?.mesProyectado || '')}</strong> | Total proyectado: <strong>${formatNumber(result.meta?.totalProyectado || 0)}</strong>.`
-      : (result.meta?.mensaje || 'No se generaron resultados con los filtros seleccionados.');
+    caption.innerHTML =
+      `Base utilizada: <strong>Datos</strong> | Forma: <strong>${escapeHtml(result?.meta?.filtros?.forma || 'Todos')}</strong> | Año: <strong>${escapeHtml(result?.meta?.filtros?.anio || 'Todos')}</strong> | Último mes observado: <strong>${escapeHtml(formatMonthLabelFromIso(result?.meta?.fechaUltimaObservacion || ''))}</strong> | Mes proyectado: <strong>${escapeHtml(result?.meta?.mesProyectado || '')}</strong> | Total proyectado: <strong>${formatNumber(result?.meta?.totalProyectado || 0)}</strong> | ${escapeHtml(result?.meta?.mensaje || 'Pronóstico generado correctamente.')}`;
   }
-} 
+}
 </script>
 </body>
 </html>
