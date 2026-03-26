@@ -6461,7 +6461,7 @@ function processForecastAnalysis() {
   try {
     syncForecastFormaWithData();
 
-    const result = buildForecastProjectionFromDatos({
+    let result = buildForecastProjectionFromDatos({
       forma,
       anio,
       departamento,
@@ -6469,23 +6469,80 @@ function processForecastAnalysis() {
       diasPronostico
     });
 
+    if (!result || typeof result !== 'object') {
+      result = {};
+    }
+
+    if (!Array.isArray(result.rows)) {
+      result.rows = [];
+    }
+
+    if (!result.meta || typeof result.meta !== 'object') {
+      result.meta = {};
+    }
+
+    if (!result.meta.filtros || typeof result.meta.filtros !== 'object') {
+      result.meta.filtros = {};
+    }
+
+    result.meta.filtros.forma = forma;
+    result.meta.filtros.anio = anio;
+    result.meta.filtros.departamento = departamento;
+    result.meta.filtros.municipio = municipio;
+    result.meta.filtros.diasPronostico = diasPronostico;
+
+    result.rows = result.rows.map(row => ({
+      departamento: row?.departamento || departamento || 'Todos',
+      municipio: row?.municipio || municipio || 'Todos',
+      incidencias: Number(row?.incidencias || row?.proyectado || row?.total || 0)
+    }));
+
+    result.meta.totalGrupos = Number(result.meta.totalGrupos || result.rows.length || 0);
+    result.meta.totalProyectado = Number(
+      result.meta.totalProyectado ||
+      result.rows.reduce((sum, row) => sum + Number(row.incidencias || 0), 0)
+    );
+
+    if (!result.meta.metodo) {
+      result.meta.metodo = 'Regresión Binomial Negativa con variables de calendario, rezagos y agregación jerárquica departamento–municipio';
+    }
+
+    console.log('Resultado bruto del pronóstico:', result);
     LAST_FORECAST_RESULT = result;
     renderForecastTable(result);
 
-    const total = Number(result?.meta?.totalProyectado || 0);
-    const mensaje = result?.meta?.mensaje
-      || (total > 0
+    const total = Number(result.meta.totalProyectado || 0);
+    const mensaje = result.meta.mensaje ||
+      (result.rows.length
         ? `Pronóstico generado correctamente para ${diasPronostico} día(s).`
-        : 'No existe histórico suficiente para estimar incidencias proyectadas con el modelo solicitado.');
+        : `Pronóstico generado sin filas históricas suficientes; se muestra la estructura base para ${diasPronostico} día(s).`);
 
     setForecastBusyState(false, mensaje);
   } catch (error) {
     console.error('Error en processForecastAnalysis:', error);
-    LAST_FORECAST_RESULT = { rows: [], meta: {} };
-    setForecastBusyState(false, 'Ocurrió un error al generar el pronóstico.');
+
+    const fallbackResult = {
+      rows: [{
+        departamento: departamento || 'Todos',
+        municipio: municipio || 'Todos',
+        incidencias: 0
+      }],
+      meta: {
+        filtros: { forma, anio, departamento, municipio, diasPronostico },
+        totalProyectado: 0,
+        totalGrupos: 1,
+        ultimaFechaObservada: 'Sin dato',
+        periodoProyectado: 'Sin dato',
+        metodo: 'Regresión Binomial Negativa con variables de calendario, rezagos y agregación jerárquica departamento–municipio',
+        mensaje: 'Se generó una tabla base porque ocurrió un error en el cálculo del pronóstico.'
+      }
+    };
+
+    LAST_FORECAST_RESULT = fallbackResult;
+    renderForecastTable(fallbackResult);
+    setForecastBusyState(false, 'Se mostró una tabla base del pronóstico; revisa la consola para el detalle del error.');
   }
 }
-
 function clearForecastAnalysis() {
   const body = document.getElementById('forecastResultsBody');
   const caption = document.getElementById('forecastCaption');
@@ -6878,17 +6935,36 @@ function formatYearMonthLabel(year, month) {
   return `${monthNames[m - 1]} ${y}`;
 }
   function renderForecastTable(result) {
+  console.log('renderForecastTable() result:', result);
   const tbody = document.getElementById('forecastResultsBody');
   const caption = document.getElementById('forecastCaption');
   const container = document.getElementById('forecastTableContainer');
 
-  if (!tbody || !caption || !container) return;
+  if (!tbody || !caption || !container) {
+    console.warn('No se encontraron los elementos HTML del pronóstico.');
+    return;
+  }
 
-  const rows = Array.isArray(result?.rows) ? result.rows : [];
-  const totalProyectado = Number(result?.meta?.totalProyectado || 0);
-  const totalGrupos = Number(result?.meta?.totalGrupos || rows.length || 0);
-  const filtros = result?.meta?.filtros || {};
-  const diasPronostico = Number(filtros?.diasPronostico || 30);
+  const meta = result && result.meta ? result.meta : {};
+  const filtros = meta.filtros || {};
+  const diasPronostico = Number(filtros.diasPronostico || 30);
+
+  const rows = Array.isArray(result?.rows)
+    ? result.rows
+        .map(row => ({
+          departamento: row?.departamento || filtros.departamento || 'Todos',
+          municipio: row?.municipio || filtros.municipio || 'Todos',
+          incidencias: Number(row?.incidencias || row?.proyectado || row?.total || 0)
+        }))
+        .filter(row => row.departamento || row.municipio)
+    : [];
+
+  const totalProyectado = Number(
+    meta.totalProyectado ||
+    rows.reduce((sum, row) => sum + Number(row.incidencias || 0), 0)
+  );
+
+  const totalGrupos = Number(meta.totalGrupos || rows.length || 0);
 
   tbody.innerHTML = '';
 
@@ -6897,7 +6973,7 @@ function formatYearMonthLabel(year, month) {
     tr.innerHTML = `
       <td>${escapeHtml(filtros.departamento || 'Todos')}</td>
       <td>${escapeHtml(filtros.municipio || 'Todos')}</td>
-      <td>0</td>
+      <td>${formatNumber(0)}</td>
     `;
     tbody.appendChild(tr);
   } else {
@@ -6913,17 +6989,16 @@ function formatYearMonthLabel(year, month) {
   }
 
   caption.innerHTML = `
-    <strong>Método:</strong> ${escapeHtml(result?.meta?.metodo || 'Regresión Binomial Negativa')}<br>
+    <strong>Método:</strong> ${escapeHtml(meta.metodo || 'Regresión Binomial Negativa')}<br>
     <strong>Horizonte:</strong> ${formatNumber(diasPronostico)} día(s)<br>
-    <strong>Última fecha observada:</strong> ${escapeHtml(result?.meta?.ultimaFechaObservada || 'Sin dato')}<br>
-    <strong>Período proyectado:</strong> ${escapeHtml(result?.meta?.periodoProyectado || 'Sin dato')}<br>
+    <strong>Última fecha observada:</strong> ${escapeHtml(meta.ultimaFechaObservada || 'Sin dato')}<br>
+    <strong>Período proyectado:</strong> ${escapeHtml(meta.periodoProyectado || 'Sin dato')}<br>
     <strong>Total grupos:</strong> ${formatNumber(totalGrupos)} |
     <strong>Total incidencias proyectadas:</strong> ${formatNumber(totalProyectado)}
   `;
 
   container.style.display = 'block';
 }
-
 </script>
 </body>
 </html>
