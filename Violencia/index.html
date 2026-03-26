@@ -2374,6 +2374,14 @@ function showScreen(screenId) {
     setTimeout(() => refreshAIPreviewFromLastData(), 60);
   }
 
+  if (screenId === 'forecastScreen') {
+    setTimeout(() => {
+      initForecastSelectors();
+      syncForecastFromDataState();
+      processForecastAnalysis();
+    }, 60);
+  }
+
   setTimeout(() => {
     target.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
@@ -2391,7 +2399,7 @@ function showScreen(screenId) {
     }
   }, 60);
 }
-
+  
 function openFormularioScreen() {
   const formScreen = document.getElementById('formScreen');
   if (!formScreen) return;
@@ -6487,122 +6495,115 @@ function buildForecastProjectionFromDatos(filters) {
 
   if (!depField || !munField || !anioField || !mesField) {
     return {
-      rows: [{
-        departamento,
-        municipio,
-        incidencias: 0
-      }],
+      rows: [],
       meta: {
         filtros: { forma, anio, departamento, municipio },
         totalProyectado: 0,
+        totalGrupos: 0,
         mensaje: 'No se localizaron los campos requeridos para generar el pronóstico.'
       }
     };
   }
 
-  let rows = getRowsForDataModule(forma, anio);
+  let baseRows = getRowsForDataModule(forma, anio);
 
-  if (!rows.length) {
+  if (!baseRows.length) {
     return {
-      rows: [{
-        departamento,
-        municipio,
-        incidencias: 0
-      }],
+      rows: [],
       meta: {
         filtros: { forma, anio, departamento, municipio },
         totalProyectado: 0,
+        totalGrupos: 0,
         mensaje: 'No hay datos en la sección Datos para los filtros seleccionados.'
       }
     };
   }
 
-  rows = rows.filter(row => {
-    const depValue = formatCell(row[depField]);
-    const munValue = formatCell(row[munField]);
+  const grouped = new Map();
+  let globalMaxYear = 0;
+  let globalMaxMonth = 0;
+
+  baseRows.forEach(row => {
+    const depValue = formatCell(row[depField]) || 'No definido';
+    const munValue = formatCell(row[munField]) || 'No definido';
 
     const okDep = departamento === 'Todos' || normalize(depValue) === normalize(departamento);
     const okMun = municipio === 'Todos' || normalize(munValue) === normalize(municipio);
 
-    return okDep && okMun;
-  });
+    if (!okDep || !okMun) return;
 
-  if (!rows.length) {
-    return {
-      rows: [{
-        departamento,
-        municipio,
-        incidencias: 0
-      }],
-      meta: {
-        filtros: { forma, anio, departamento, municipio },
-        totalProyectado: 0,
-        mensaje: 'No hay histórico suficiente en Datos para ese Departamento/Municipio.'
-      }
-    };
-  }
-
-  const monthlyMap = new Map();
-  let maxYear = 0;
-  let maxMonth = 0;
-
-  rows.forEach(row => {
     const y = Number(formatCell(row[anioField]));
     const m = monthToNumber(row[mesField]);
 
     if (!y || !m) return;
 
-    const key = `${y}-${String(m).padStart(2, '0')}`;
-    monthlyMap.set(key, (monthlyMap.get(key) || 0) + 1);
-
-    if (y > maxYear || (y === maxYear && m > maxMonth)) {
-      maxYear = y;
-      maxMonth = m;
+    if (y > globalMaxYear || (y === globalMaxYear && m > globalMaxMonth)) {
+      globalMaxYear = y;
+      globalMaxMonth = m;
     }
+
+    const groupKey = `${depValue}|||${munValue}`;
+    if (!grouped.has(groupKey)) {
+      grouped.set(groupKey, {
+        departamento: depValue,
+        municipio: munValue,
+        monthlyMap: new Map()
+      });
+    }
+
+    const group = grouped.get(groupKey);
+    const ymKey = `${y}-${String(m).padStart(2, '0')}`;
+    group.monthlyMap.set(ymKey, (group.monthlyMap.get(ymKey) || 0) + 1);
   });
 
-  const monthlySeries = Array.from(monthlyMap.entries())
-    .map(([key, value]) => ({ key, value }))
-    .sort((a, b) => a.key.localeCompare(b.key));
+  const resultRows = [];
 
-  if (!monthlySeries.length || !maxYear || !maxMonth) {
-    return {
-      rows: [{
-        departamento,
-        municipio,
-        incidencias: 0
-      }],
-      meta: {
-        filtros: { forma, anio, departamento, municipio },
-        totalProyectado: 0,
-        mensaje: 'No fue posible construir la serie histórica mensual.'
-      }
-    };
-  }
+  grouped.forEach(group => {
+    const monthlySeries = Array.from(group.monthlyMap.entries())
+      .map(([key, value]) => ({ key, value }))
+      .sort((a, b) => a.key.localeCompare(b.key));
 
-  const projectedValue = projectNextMonth(monthlySeries.map(x => Number(x.value || 0)));
-  const nextMonth = maxMonth === 12 ? 1 : (maxMonth + 1);
-  const nextYear = maxMonth === 12 ? (maxYear + 1) : maxYear;
+    const projectedValue = monthlySeries.length
+      ? projectNextMonth(monthlySeries.map(x => Number(x.value || 0)))
+      : 0;
+
+    resultRows.push({
+      departamento: group.departamento,
+      municipio: group.municipio,
+      incidencias: projectedValue
+    });
+  });
+
+  resultRows.sort((a, b) => {
+    const depCmp = String(a.departamento).localeCompare(String(b.departamento), 'es');
+    if (depCmp !== 0) return depCmp;
+    return String(a.municipio).localeCompare(String(b.municipio), 'es');
+  });
+
+  const totalProyectado = resultRows.reduce((acc, row) => acc + Number(row.incidencias || 0), 0);
+
+  const nextMonth = globalMaxMonth === 12 ? 1 : (globalMaxMonth + 1);
+  const nextYear = globalMaxMonth === 12 ? (globalMaxYear + 1) : globalMaxYear;
 
   return {
-    rows: [{
-      departamento,
-      municipio,
-      incidencias: projectedValue
-    }],
+    rows: resultRows,
     meta: {
       filtros: { forma, anio, departamento, municipio },
-      totalProyectado: projectedValue,
-      ultimoMesObservado: `${maxYear}-${String(maxMonth).padStart(2, '0')}`,
-      mesProyectado: formatYearMonthLabel(nextYear, nextMonth),
-      metodo: getForecastMethodLabel(monthlySeries.length),
-      mensaje: projectedValue <= 0
-        ? 'No se identificó tendencia suficiente; el valor proyectado es 0.'
-        : ''
+      totalProyectado,
+      totalGrupos: resultRows.length,
+      ultimoMesObservado: globalMaxYear && globalMaxMonth
+        ? `${globalMaxYear}-${String(globalMaxMonth).padStart(2, '0')}`
+        : '',
+      mesProyectado: globalMaxYear && globalMaxMonth
+        ? formatYearMonthLabel(nextYear, nextMonth)
+        : '',
+      metodo: getForecastMethodLabel(3),
+      mensaje: resultRows.length
+        ? ''
+        : 'No hay histórico suficiente en Datos para el filtro territorial seleccionado.'
     }
   };
 }
-
 function projectNextMonth(values) {
   const clean = (Array.isArray(values) ? values : [])
     .map(v => Number(v || 0))
@@ -6665,7 +6666,6 @@ function formatYearMonthLabel(year, month) {
   if (!y || !m || m < 1 || m > 12) return '';
   return `${monthNames[m - 1]} ${y}`;
 }
-  
 function renderForecastTable(result) {
   const tbody = document.getElementById('forecastResultsBody');
   const caption = document.getElementById('forecastCaption');
@@ -6674,6 +6674,9 @@ function renderForecastTable(result) {
   if (!tbody || !container) return;
 
   const rows = Array.isArray(result?.rows) ? result.rows : [];
+  const totalProyectado = Number(result?.meta?.totalProyectado || 0);
+  const totalGrupos = Number(result?.meta?.totalGrupos || rows.length || 0);
+
   tbody.innerHTML = '';
 
   if (!rows.length) {
@@ -6688,21 +6691,29 @@ function renderForecastTable(result) {
     rows.forEach(row => {
       const tr = document.createElement('tr');
       tr.innerHTML = `
-        <td>${escapeHtml(row.departamento || 'Todos')}</td>
-        <td>${escapeHtml(row.municipio || 'Todos')}</td>
+        <td>${escapeHtml(row.departamento || 'No definido')}</td>
+        <td>${escapeHtml(row.municipio || 'No definido')}</td>
         <td>${formatNumber(Number(row.incidencias || 0))}</td>
       `;
       tbody.appendChild(tr);
     });
+
+    const totalRow = document.createElement('tr');
+    totalRow.innerHTML = `
+      <td colspan="2" style="font-weight:700; background:rgba(34,197,94,.12);">TOTAL PROYECTADO</td>
+      <td style="font-weight:700; background:rgba(34,197,94,.12);">${formatNumber(totalProyectado)}</td>
+    `;
+    tbody.appendChild(totalRow);
   }
 
   container.style.display = 'block';
 
   if (caption) {
     caption.innerHTML =
-      `Base utilizada: <strong>Datos</strong> | Forma: <strong>${escapeHtml(result?.meta?.filtros?.forma || 'Todos')}</strong> | Año: <strong>${escapeHtml(result?.meta?.filtros?.anio || 'Todos')}</strong> | Mes proyectado: <strong>${escapeHtml(result?.meta?.mesProyectado || '')}</strong> | Total proyectado: <strong>${formatNumber(result?.meta?.totalProyectado || 0)}</strong> | ${escapeHtml(result?.meta?.mensaje || 'Pronóstico generado correctamente.')}`;
+      `Base utilizada: <strong>Datos</strong> | Forma: <strong>${escapeHtml(result?.meta?.filtros?.forma || 'Todos')}</strong> | Año: <strong>${escapeHtml(result?.meta?.filtros?.anio || 'Todos')}</strong> | Departamento: <strong>${escapeHtml(result?.meta?.filtros?.departamento || 'Todos')}</strong> | Municipio: <strong>${escapeHtml(result?.meta?.filtros?.municipio || 'Todos')}</strong> | Mes proyectado: <strong>${escapeHtml(result?.meta?.mesProyectado || '')}</strong> | Grupos proyectados: <strong>${formatNumber(totalGrupos)}</strong> | Suma total proyectada: <strong>${formatNumber(totalProyectado)}</strong>${result?.meta?.mensaje ? ' | ' + escapeHtml(result.meta.mensaje) : ''}`;
   }
 }
+  
 </script>
 </body>
 </html>
