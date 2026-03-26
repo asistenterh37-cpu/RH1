@@ -6416,82 +6416,43 @@ function setForecastBusyState(isBusy, message) {
 }
 
 function processForecastAnalysis() {
-  const statusEl = document.getElementById('forecastStatus');
-  const tbody = document.getElementById('forecastResultsBody');
-  const container = document.getElementById('forecastTableContainer');
+  const dataFormaEl = document.getElementById('dataForma');
+  const dataAnioEl = document.getElementById('dataAnio');
+  const depEl = document.getElementById('forecastDepartamento');
+  const munEl = document.getElementById('forecastMunicipio');
 
-  statusEl.textContent = 'Procesando pronóstico...';
-  tbody.innerHTML = '';
-  container.style.display = 'none';
+  const forma = dataFormaEl ? (dataFormaEl.value || 'Todos') : 'Todos';
+  const anio = dataAnioEl ? (dataAnioEl.value || 'Todos') : 'Todos';
+  const departamento = depEl ? (depEl.value || 'Todos') : 'Todos';
+  const municipio = munEl ? (munEl.value || 'Todos') : 'Todos';
 
-  if (!LAST_DATA_TABLE_RESULT || !LAST_DATA_TABLE_RESULT.historial) {
-    statusEl.textContent = 'No hay datos suficientes para pronóstico.';
-    return;
+  setForecastBusyState(true, 'Procesando pronóstico...');
+
+  try {
+    syncForecastFormaWithData();
+
+    const result = buildForecastProjectionFromDatos({
+      forma,
+      anio,
+      departamento,
+      municipio
+    });
+
+    LAST_FORECAST_RESULT = result;
+    renderForecastTable(result);
+
+    const total = Number(result?.meta?.totalProyectado || 0);
+    const mensaje = result?.meta?.mensaje
+      || (total > 0 ? 'Pronóstico generado correctamente.' : 'No se identificó tendencia suficiente; el valor proyectado es 0.');
+
+    setForecastBusyState(false, mensaje);
+  } catch (error) {
+    console.error('Error en processForecastAnalysis:', error);
+    LAST_FORECAST_RESULT = { rows: [], meta: {} };
+    setForecastBusyState(false, 'Ocurrió un error al generar el pronóstico.');
   }
-
-  const dep = document.getElementById('forecastDepartamento').value;
-  const mun = document.getElementById('forecastMunicipio').value;
-
-  let data = LAST_DATA_TABLE_RESULT.historial;
-
-  // 🔹 Filtrar
-  data = data.filter(r => {
-    if (dep !== 'Todos' && r.Departamento !== dep) return false;
-    if (mun !== 'Todos' && r.Municipio !== mun) return false;
-    return true;
-  });
-
-  if (data.length < 3) {
-    statusEl.textContent = 'Histórico insuficiente (mínimo 3 meses).';
-    return;
-  }
-
-  // 🔹 Agrupar por Año-Mes
-  const serie = {};
-  data.forEach(r => {
-    const key = r.Año + '-' + r.Mes;
-    serie[key] = (serie[key] || 0) + 1;
-  });
-
-  // 🔹 Ordenar cronológicamente
-  const keys = Object.keys(serie).sort((a,b) => {
-    const [aY,aM] = a.split('-').map(Number);
-    const [bY,bM] = b.split('-').map(Number);
-    return aY !== bY ? aY - bY : aM - bM;
-  });
-
-  const y = keys.map(k => serie[k]);
-  const x = y.map((_,i) => i + 1);
-
-  // 🔹 Regresión lineal
-  const n = x.length;
-  const sumX = x.reduce((a,b)=>a+b,0);
-  const sumY = y.reduce((a,b)=>a+b,0);
-  const sumXY = x.reduce((a,_,i)=>a + x[i]*y[i],0);
-  const sumX2 = x.reduce((a,b)=>a + b*b,0);
-
-  const m = (n*sumXY - sumX*sumY) / (n*sumX2 - sumX*sumX);
-  const b = (sumY - m*sumX) / n;
-
-  // 🔹 Próximo mes
-  const nextX = n + 1;
-  let forecast = Math.round(m * nextX + b);
-
-  if (forecast < 0 || !isFinite(forecast)) forecast = 0;
-
-  // 🔹 Pintar resultado
-  const tr = document.createElement('tr');
-  tr.innerHTML = `
-    <td>${dep}</td>
-    <td>${mun}</td>
-    <td>${forecast}</td>
-  `;
-  tbody.appendChild(tr);
-
-  container.style.display = 'block';
-  statusEl.textContent = 'Pronóstico generado correctamente.';
 }
-function clearForecastAnalysis() {
+  function clearForecastAnalysis() {
   const body = document.getElementById('forecastResultsBody');
   const caption = document.getElementById('forecastCaption');
   const container = document.getElementById('forecastTableContainer');
@@ -6692,6 +6653,19 @@ function monthToNumber(value) {
   return months[key] || 0;
 }
 
+function formatYearMonthLabel(year, month) {
+  const monthNames = [
+    'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+  ];
+
+  const y = Number(year || 0);
+  const m = Number(month || 0);
+
+  if (!y || !m || m < 1 || m > 12) return '';
+  return `${monthNames[m - 1]} ${y}`;
+}
+  
 function renderForecastTable(result) {
   const tbody = document.getElementById('forecastResultsBody');
   const caption = document.getElementById('forecastCaption');
