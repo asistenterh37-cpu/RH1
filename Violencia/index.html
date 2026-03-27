@@ -1669,12 +1669,12 @@
     <div id="forecastTableContainer" style="display:none; margin-top:18px;">
       <div class="data-table-wrap">
         <table class="data-table">
-          <thead>
+         <thead>
   <tr>
     <th>Departamento</th>
     <th>Municipio</th>
-    <th>Incidencias proyectadas - Promedio ponderado</th>
-    <th>Incidencias proyectadas - Suavizamiento exponencial</th>
+    <th>Promedio ponderado</th>
+    <th>Suavizamiento exponencial</th>
   </tr>
 </thead>
 <tbody id="forecastResultsBody"></tbody>
@@ -6540,7 +6540,8 @@ function buildForecastProjectionFromDatos(filters) {
         filtros: filters,
         totalGrupos: 0,
         ultimaFechaObservada: 'Sin dato',
-        metodo: 'Promedio ponderado y suavizamiento exponencial'
+        metodo: 'Promedio ponderado y suavizamiento exponencial',
+        diasPronostico
       }
     };
   }
@@ -6555,7 +6556,9 @@ function buildForecastProjectionFromDatos(filters) {
     const dia = toInt(row[dayField]);
     const formaRow = formaField ? safeCell(row[formaField]) : '';
 
-    if (!anio || !mes || !dia) return false;
+    const fecha = buildIsoDate(anio, mes, dia);
+    if (!fecha) return false;
+    if (!dep || !mun) return false;
     if (forma !== 'Todos' && formaRow !== forma) return false;
     if (departamentoFiltro !== 'Todos' && dep !== departamentoFiltro) return false;
     if (municipioFiltro !== 'Todos' && mun !== municipioFiltro) return false;
@@ -6571,11 +6574,12 @@ function buildForecastProjectionFromDatos(filters) {
     const anio = toInt(row[yearField]);
     const mes = monthToNumber(row[monthField]);
     const dia = toInt(row[dayField]);
-
     const fecha = buildIsoDate(anio, mes, dia);
+
     if (!fecha) return;
 
     const key = `${dep}||${mun}`;
+
     if (!grouped[key]) {
       grouped[key] = {
         departamento: dep,
@@ -6607,13 +6611,22 @@ function buildForecastProjectionFromDatos(filters) {
     const serieCompleta = buildContinuousSeries(primeraFecha, ultimaFecha, dailyMap);
     if (!serieCompleta.length) return;
 
-    const valores = serieCompleta.map(item => item.value);
+    const valores = serieCompleta.map(item => Number(item.value || 0));
+
+    if (!valores.length) return;
 
     const promedioPonderadoDiario = weightedMovingAverage(valores);
     const suavizamientoDiario = exponentialSmoothingForecast(valores, 0.35);
 
-    const proyectadoPromedioPonderado = Math.max(0, Math.round(promedioPonderadoDiario * diasPronostico));
-    const proyectadoSuavizamiento = Math.max(0, Math.round(suavizamientoDiario * diasPronostico));
+    const proyectadoPromedioPonderado = Math.max(
+      0,
+      Math.round(promedioPonderadoDiario * diasPronostico)
+    );
+
+    const proyectadoSuavizamiento = Math.max(
+      0,
+      Math.round(suavizamientoDiario * diasPronostico)
+    );
 
     resultRows.push({
       departamento: group.departamento,
@@ -6626,9 +6639,13 @@ function buildForecastProjectionFromDatos(filters) {
   });
 
   resultRows.sort((a, b) => {
-    const totalA = (b.promedioPonderado + b.suavizamientoExponencial) - (a.promedioPonderado + a.suavizamientoExponencial);
-    if (totalA !== 0) return totalA;
-    if (a.departamento !== b.departamento) return a.departamento.localeCompare(b.departamento, 'es');
+    const totalA = Number(a.promedioPonderado || 0) + Number(a.suavizamientoExponencial || 0);
+    const totalB = Number(b.promedioPonderado || 0) + Number(b.suavizamientoExponencial || 0);
+
+    if (totalB !== totalA) return totalB - totalA;
+    if (a.departamento !== b.departamento) {
+      return a.departamento.localeCompare(b.departamento, 'es');
+    }
     return a.municipio.localeCompare(b.municipio, 'es');
   });
 
@@ -6668,7 +6685,8 @@ function renderForecastTable(result) {
       </tr>
     `;
     caption.innerHTML = `
-      Método: <strong>${meta.metodo || 'Promedio ponderado y suavizamiento exponencial'}</strong>.
+      Método: <strong>${meta.metodo || 'Promedio ponderado y suavizamiento exponencial'}</strong> |
+      Horizonte: <strong>${formatNumber(meta.diasPronostico || 0)} día(s)</strong>
     `;
     container.style.display = 'block';
     return;
@@ -6687,7 +6705,7 @@ function renderForecastTable(result) {
     Método: <strong>${meta.metodo || 'Promedio ponderado y suavizamiento exponencial'}</strong> |
     Horizonte: <strong>${formatNumber(meta.diasPronostico || 0)} día(s)</strong> |
     Última fecha observada: <strong>${escapeHtml(meta.ultimaFechaObservada || 'Sin dato')}</strong> |
-    Grupos proyectados: <strong>${formatNumber(meta.totalGrupos || 0)}</strong>
+    Municipios proyectados: <strong>${formatNumber(meta.totalGrupos || 0)}</strong>
   `;
 
   container.style.display = 'block';
@@ -6780,11 +6798,23 @@ function monthToNumber(value) {
 
 function buildIsoDate(anio, mes, dia) {
   if (!anio || !mes || !dia) return null;
+  if (!isValidCalendarDate(anio, mes, dia)) return null;
+
   const mm = String(mes).padStart(2, '0');
   const dd = String(dia).padStart(2, '0');
   return `${anio}-${mm}-${dd}`;
 }
 
+function isValidCalendarDate(anio, mes, dia) {
+  if (!anio || !mes || !dia) return false;
+  const fecha = new Date(anio, mes - 1, dia);
+  return (
+    fecha.getFullYear() === anio &&
+    fecha.getMonth() === (mes - 1) &&
+    fecha.getDate() === dia
+  );
+}
+  
 function isoToDate(iso) {
   if (!iso || !/^\d{4}-\d{2}-\d{2}$/.test(iso)) return null;
   const [y, m, d] = iso.split('-').map(Number);
