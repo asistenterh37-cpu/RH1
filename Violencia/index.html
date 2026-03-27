@@ -943,7 +943,7 @@
 .forecast-accordion{
   display:flex;
   flex-direction:column;
-  gap:12px;
+  gap:17px;
 }
 
 .forecast-accordion-item{
@@ -6730,7 +6730,7 @@ function buildForecastProjectionFromDatos(filters) {
     }
   };
 }
-  function renderForecastTable(result) {
+function renderForecastTable(result) {
   const body = document.getElementById('forecastResultsBody');
   const caption = document.getElementById('forecastCaption');
   const container = document.getElementById('forecastTableContainer');
@@ -6750,7 +6750,8 @@ function buildForecastProjectionFromDatos(filters) {
     `;
     caption.innerHTML = `
       Método: <strong>${meta.metodo || 'Promedio diario por municipio x días pronóstico'}</strong> |
-      Horizonte: <strong>${formatNumber(meta.diasPronostico || 0)} día(s)</strong>
+      Horizonte: <strong>${formatNumber(meta.diasPronostico || 0)} día(s)</strong> |
+      Total: <strong>0</strong>
     `;
     container.style.display = 'block';
     return;
@@ -6764,15 +6765,21 @@ function buildForecastProjectionFromDatos(filters) {
     </tr>
   `).join('');
 
+  const totalPronosticado = rows.reduce((acc, item) => {
+    return acc + Number(item.incidenciasPronosticadas || 0);
+  }, 0);
+
   caption.innerHTML = `
     Método: <strong>${meta.metodo || 'Promedio diario por municipio x días pronóstico'}</strong> |
     Horizonte: <strong>${formatNumber(meta.diasPronostico || 0)} día(s)</strong> |
     Última fecha observada: <strong>${escapeHtml(meta.ultimaFechaObservada || 'Sin dato')}</strong> |
-    Municipios proyectados: <strong>${formatNumber(meta.totalGrupos || 0)}</strong>
+    Municipios proyectados: <strong>${formatNumber(meta.totalGrupos || 0)}</strong> |
+    Total: <strong>${formatNumber(totalPronosticado)}</strong>
   `;
 
   container.style.display = 'block';
 }
+  
 function buildContinuousSeries(startIso, endIso, dailyMap) {
   const out = [];
   const start = isoToDate(startIso);
