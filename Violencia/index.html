@@ -1601,22 +1601,20 @@
   <div class="interaction-panel">
     <div class="panel-title">Pronóstico</div>
        <div class="panel-subtitle">
-  El pronóstico se calcula <strong>únicamente con base en los datos históricos disponibles</strong> para la combinación de
-  <strong>Departamento</strong> y <strong>Municipio</strong>, considerando la fecha real de cada incidencia
-  (<strong>Año, Mes y Día</strong>).
+  El pronóstico se calcula <strong>únicamente con base en la tabla Incidencias generada en el módulo Datos</strong>.
+  Para cada combinación de <strong>Departamento</strong> y <strong>Municipio</strong>, el sistema:
+  <br><br>
+  1. <strong>Suma o cuenta</strong> las incidencias visibles en esa tabla.<br>
+  2. Identifica la <strong>fecha inicial más antigua</strong> y la <strong>fecha final más reciente</strong> usando
+  <strong>Año, Mes y Día</strong>.<br>
+  3. Calcula los <strong>días transcurridos</strong> entre ambas fechas.<br>
+  4. Obtiene el <strong>promedio diario</strong> = incidencias / días transcurridos.<br>
+  5. Multiplica ese promedio por <strong>Días pronóstico</strong>.
   <br><br>
   La <strong>Forma de fallecimiento</strong> se sincroniza automáticamente con la selección hecha en <strong>Datos</strong>.
-  El horizonte de proyección se determina con el campo <strong>Días pronóstico</strong>.
-  <br><br>
-  Se estiman las incidencias proyectadas mediante <strong>dos métodos</strong>:
-  <strong>Promedio ponderado</strong> y <strong>Suavizamiento exponencial</strong>.
-  Ambos resultados se muestran en <strong>columnas separadas</strong> para facilitar la comparación.
-  <br><br>
   La tabla final despliega:
-  <strong>Departamento</strong>, <strong>Municipio</strong>,
-  <strong>Incidencias proyectadas - Promedio ponderado</strong> e
-  <strong>Incidencias proyectadas - Suavizamiento exponencial</strong>.
-</div> 
+  <strong>Departamento</strong>, <strong>Municipio</strong> e <strong>Incidencias pronosticadas</strong>.
+</div>
     <div class="builder-filters forecast-builder-4">
       <div class="filter-box">
         <label class="filter-label" for="forecastForma">Forma de fallecimiento</label>
@@ -1670,11 +1668,11 @@
       <div class="data-table-wrap">
         <table class="data-table">
          <thead>
+ <thead>
   <tr>
     <th>Departamento</th>
     <th>Municipio</th>
-    <th>Promedio ponderado</th>
-    <th>Suavizamiento exponencial</th>
+    <th>Incidencias pronosticadas</th>
   </tr>
 </thead>
 <tbody id="forecastResultsBody"></tbody>
@@ -6456,18 +6454,13 @@ function setForecastBusyState(isBusy, message) {
     // Fuerza a que la tabla Incidencias de Datos quede actualizada antes del pronóstico
     processDataTable();
 
-  processDataTable();
-
-  const historyBody = document.getElementById('dataHistoryBody');
-  if (!historyBody || !historyBody.querySelector('tr')) {
-    const status = document.getElementById('forecastStatus');
-    if (status) {
-      status.textContent = 'No hay incidencias visibles en la tabla Datos para calcular el pronóstico.';
+    const historyBody = document.getElementById('dataHistoryBody');
+    if (!historyBody || !historyBody.querySelector('tr')) {
+      setForecastBusyState(false, 'No hay incidencias visibles en la tabla Datos para calcular el pronóstico.');
+      renderForecastTable({ rows: [], meta: { totalRegistrosBase: 0, totalGrupos: 0, diasPronostico: 0 } });
+      return;
     }
-    renderForecastTable({ rows: [], meta: { totalRegistrosBase: 0, totalGrupos: 0 } });
-    return;
-  }
-    
+
     const filters = getForecastFiltersFromUI();
     const result = buildForecastProjectionFromDatos(filters);
 
@@ -6656,11 +6649,16 @@ function buildForecastProjectionFromDatos(filters) {
       grouped[key] = {
         departamento: dep,
         municipio: mun,
-        dailyMap: {}
+        totalIncidencias: 0,
+        primeraFecha: fecha,
+        ultimaFecha: fecha
       };
     }
 
-    grouped[key].dailyMap[fecha] = (grouped[key].dailyMap[fecha] || 0) + 1;
+    grouped[key].totalIncidencias += 1;
+
+    if (fecha < grouped[key].primeraFecha) grouped[key].primeraFecha = fecha;
+    if (fecha > grouped[key].ultimaFecha) grouped[key].ultimaFecha = fecha;
 
     if (!ultimaFechaGlobal || fecha > ultimaFechaGlobal) {
       ultimaFechaGlobal = fecha;
@@ -6671,38 +6669,32 @@ function buildForecastProjectionFromDatos(filters) {
 
   Object.keys(grouped).forEach(key => {
     const group = grouped[key];
-    const dailyMap = group.dailyMap || {};
-    const fechas = Object.keys(dailyMap).sort();
+    const fechaInicio = isoToDate(group.primeraFecha);
+    const fechaFin = isoToDate(group.ultimaFecha);
 
-    if (!fechas.length) return;
+    if (!fechaInicio || !fechaFin) return;
 
-    const primeraFecha = fechas[0];
-    const ultimaFecha = fechas[fechas.length - 1];
-    const serieCompleta = buildContinuousSeries(primeraFecha, ultimaFecha, dailyMap);
-
-    if (!serieCompleta.length) return;
-
-    const valores = serieCompleta.map(item => Number(item.value || 0));
-    if (!valores.length) return;
-
-    const promedioPonderadoDiario = weightedMovingAverage(valores);
-    const suavizamientoDiario = exponentialSmoothingForecast(valores, 0.35);
+    const diffMs = fechaFin.getTime() - fechaInicio.getTime();
+    const diasTranscurridos = Math.max(1, Math.floor(diffMs / 86400000) + 1);
+    const promedioDiario = group.totalIncidencias / diasTranscurridos;
+    const incidenciasPronosticadas = Math.max(0, Math.round(promedioDiario * diasPronostico));
 
     resultRows.push({
       departamento: group.departamento,
       municipio: group.municipio,
-      promedioPonderado: Math.max(0, Math.round(promedioPonderadoDiario * diasPronostico)),
-      suavizamientoExponencial: Math.max(0, Math.round(suavizamientoDiario * diasPronostico)),
-      ultimaFechaObservada: ultimaFecha,
-      observacionesHistoricas: valores.length
+      incidenciasPronosticadas,
+      promedioDiario,
+      totalIncidencias: group.totalIncidencias,
+      primeraFecha: group.primeraFecha,
+      ultimaFecha: group.ultimaFecha,
+      diasTranscurridos
     });
   });
 
   resultRows.sort((a, b) => {
-    const totalA = Number(a.promedioPonderado || 0) + Number(a.suavizamientoExponencial || 0);
-    const totalB = Number(b.promedioPonderado || 0) + Number(b.suavizamientoExponencial || 0);
-
-    if (totalB !== totalA) return totalB - totalA;
+    if (Number(b.incidenciasPronosticadas || 0) !== Number(a.incidenciasPronosticadas || 0)) {
+      return Number(b.incidenciasPronosticadas || 0) - Number(a.incidenciasPronosticadas || 0);
+    }
     if (a.departamento !== b.departamento) return a.departamento.localeCompare(b.departamento, 'es');
     return a.municipio.localeCompare(b.municipio, 'es');
   });
@@ -6720,12 +6712,13 @@ function buildForecastProjectionFromDatos(filters) {
       totalGrupos: resultRows.length,
       totalRegistrosBase: filtered.length,
       ultimaFechaObservada: ultimaFechaGlobal || 'Sin dato',
-      metodo: 'Promedio ponderado y suavizamiento exponencial',
+      metodo: 'Promedio diario por municipio x días pronóstico',
       origen: 'dataHistoryBody',
       diasPronostico
     }
   };
 }
+
   function renderForecastTable(result) {
   const body = document.getElementById('forecastResultsBody');
   const caption = document.getElementById('forecastCaption');
@@ -6741,11 +6734,11 @@ function buildForecastProjectionFromDatos(filters) {
   if (!rows.length) {
     body.innerHTML = `
       <tr>
-        <td colspan="4">No hay histórico suficiente para calcular el pronóstico con los filtros seleccionados.</td>
+        <td colspan="3">No hay histórico suficiente para calcular el pronóstico con los filtros seleccionados.</td>
       </tr>
     `;
     caption.innerHTML = `
-      Método: <strong>${meta.metodo || 'Promedio ponderado y suavizamiento exponencial'}</strong> |
+      Método: <strong>${meta.metodo || 'Promedio diario por municipio x días pronóstico'}</strong> |
       Horizonte: <strong>${formatNumber(meta.diasPronostico || 0)} día(s)</strong>
     `;
     container.style.display = 'block';
@@ -6756,13 +6749,12 @@ function buildForecastProjectionFromDatos(filters) {
     <tr>
       <td>${escapeHtml(item.departamento)}</td>
       <td>${escapeHtml(item.municipio)}</td>
-      <td>${formatNumber(item.promedioPonderado || 0)}</td>
-      <td>${formatNumber(item.suavizamientoExponencial || 0)}</td>
+      <td>${formatNumber(item.incidenciasPronosticadas || 0)}</td>
     </tr>
   `).join('');
 
   caption.innerHTML = `
-    Método: <strong>${meta.metodo || 'Promedio ponderado y suavizamiento exponencial'}</strong> |
+    Método: <strong>${meta.metodo || 'Promedio diario por municipio x días pronóstico'}</strong> |
     Horizonte: <strong>${formatNumber(meta.diasPronostico || 0)} día(s)</strong> |
     Última fecha observada: <strong>${escapeHtml(meta.ultimaFechaObservada || 'Sin dato')}</strong> |
     Municipios proyectados: <strong>${formatNumber(meta.totalGrupos || 0)}</strong>
@@ -6770,7 +6762,6 @@ function buildForecastProjectionFromDatos(filters) {
 
   container.style.display = 'block';
 }
-
 function buildContinuousSeries(startIso, endIso, dailyMap) {
   const out = [];
   const start = isoToDate(startIso);
