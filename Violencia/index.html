@@ -6456,6 +6456,18 @@ function setForecastBusyState(isBusy, message) {
     // Fuerza a que la tabla Incidencias de Datos quede actualizada antes del pronóstico
     processDataTable();
 
+  processDataTable();
+
+  const historyBody = document.getElementById('dataHistoryBody');
+  if (!historyBody || !historyBody.querySelector('tr')) {
+    const status = document.getElementById('forecastStatus');
+    if (status) {
+      status.textContent = 'No hay incidencias visibles en la tabla Datos para calcular el pronóstico.';
+    }
+    renderForecastTable({ rows: [], meta: { totalRegistrosBase: 0, totalGrupos: 0 } });
+    return;
+  }
+    
     const filters = getForecastFiltersFromUI();
     const result = buildForecastProjectionFromDatos(filters);
 
@@ -6587,6 +6599,30 @@ function getForecastFiltersFromUI() {
   };
 }
   
+function getForecastSourceRowsFromDataHistoryBody() {
+  const tbody = document.getElementById('dataHistoryBody');
+  if (!tbody) return [];
+
+  return Array.from(tbody.querySelectorAll('tr')).map(tr => {
+    const cells = Array.from(tr.querySelectorAll('td')).map(td => safeCell(td.textContent));
+    return {
+      anio: cells[0] || '',
+      mes: cells[1] || '',
+      dia: cells[2] || '',
+      diaSemana: cells[3] || '',
+      hora: cells[4] || '',
+      departamento: cells[5] || '',
+      municipio: cells[6] || ''
+    };
+  }).filter(row =>
+    row.anio &&
+    row.mes &&
+    row.dia &&
+    row.departamento &&
+    row.municipio
+  );
+}
+
 function buildForecastProjectionFromDatos(filters) {
   const forma = filters?.forma || 'Todos';
   const departamentoFiltro = filters?.departamento || 'Todos';
@@ -6594,49 +6630,22 @@ function buildForecastProjectionFromDatos(filters) {
   const diasPronostico = Math.max(1, parseInt(filters?.diasPronostico, 10) || 30);
   const anioDatos = filters?.anioDatos || 'Todos';
 
-  const depField = findRealBaseField('Departamento');
-  const munField = findRealBaseField('Municipio');
-  const yearField = findRealBaseField('Año');
-  const monthField = findRealBaseField('Mes');
-  const dayField = findRealBaseField('Dia');
-
-  if (!depField || !munField || !yearField || !monthField || !dayField) {
-    return {
-      rows: [],
-      meta: {
-        filtros: {
-          forma,
-          anioDatos,
-          departamento: departamentoFiltro,
-          municipio: municipioFiltro,
-          diasPronostico
-        },
-        totalGrupos: 0,
-        totalRegistrosBase: 0,
-        ultimaFechaObservada: 'Sin dato',
-        metodo: 'Promedio ponderado y suavizamiento exponencial',
-        origen: 'Incidencias de Datos',
-        diasPronostico
-      }
-    };
-  }
-
-  const filtered = getForecastSourceRowsFromDatos({
-    forma,
-    anio: anioDatos,
-    departamento: departamentoFiltro,
-    municipio: municipioFiltro
+  const filtered = getForecastSourceRowsFromDataHistoryBody().filter(row => {
+    if (anioDatos !== 'Todos' && String(row.anio) !== String(anioDatos)) return false;
+    if (departamentoFiltro !== 'Todos' && row.departamento !== departamentoFiltro) return false;
+    if (municipioFiltro !== 'Todos' && row.municipio !== municipioFiltro) return false;
+    return true;
   });
 
   const grouped = {};
   let ultimaFechaGlobal = null;
 
   filtered.forEach(row => {
-    const dep = safeCell(row[depField]) || 'Sin dato';
-    const mun = safeCell(row[munField]) || 'Sin dato';
-    const anio = toInt(row[yearField]);
-    const mes = monthToNumber(row[monthField]);
-    const dia = toInt(row[dayField]);
+    const dep = safeCell(row.departamento) || 'Sin dato';
+    const mun = safeCell(row.municipio) || 'Sin dato';
+    const anio = toInt(row.anio);
+    const mes = monthToNumber(row.mes);
+    const dia = toInt(row.dia);
     const fecha = buildIsoDate(anio, mes, dia);
 
     if (!fecha) return;
@@ -6712,12 +6721,12 @@ function buildForecastProjectionFromDatos(filters) {
       totalRegistrosBase: filtered.length,
       ultimaFechaObservada: ultimaFechaGlobal || 'Sin dato',
       metodo: 'Promedio ponderado y suavizamiento exponencial',
-      origen: 'Incidencias de Datos',
+      origen: 'dataHistoryBody',
       diasPronostico
     }
   };
 }
-function renderForecastTable(result) {
+  function renderForecastTable(result) {
   const body = document.getElementById('forecastResultsBody');
   const caption = document.getElementById('forecastCaption');
   const container = document.getElementById('forecastTableContainer');
