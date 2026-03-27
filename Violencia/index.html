@@ -2187,7 +2187,12 @@ document.addEventListener('DOMContentLoaded', function () {
 });
   
   function setWebAppStatus(message, isError) {
-  return;
+  const el = document.getElementById('webAppStatus');
+  if (!el) return;
+
+  el.style.display = message ? 'block' : 'none';
+  el.textContent = message || '';
+  el.style.color = isError ? '#fca5a5' : '#94a3b8';
 }
 
 function saveWebAppUrl(showMessage = true) {
@@ -2347,6 +2352,31 @@ async function loadDashboardFromWebApp() {
       rows: Array.isArray(payload.rows) ? payload.rows : [],
       dimensions: Array.isArray(payload.dimensions) ? payload.dimensions : [],
       valueField: payload.valueField || 'Frecuencia',
+      async function loadDashboardFromWebApp() {
+  const loadingEl = document.getElementById('loading');
+
+  try {
+    const saved = saveWebAppUrl(false);
+    if (!saved) {
+      if (loadingEl) loadingEl.style.display = 'none';
+      return;
+    }
+
+    if (loadingEl) loadingEl.style.display = 'block';
+    setWebAppStatus('Cargando datos desde Apps Script...');
+
+    const result = await apiGet('dashboard');
+    const payload = resolveDashboardPayload(result);
+
+    if (!payload) {
+      throw new Error('La API no devolvió un objeto válido para el dashboard.');
+    }
+
+    loadData({
+      headers: Array.isArray(payload.headers) ? payload.headers : [],
+      rows: Array.isArray(payload.rows) ? payload.rows : [],
+      dimensions: Array.isArray(payload.dimensions) ? payload.dimensions : [],
+      valueField: payload.valueField || 'Frecuencia',
       excluded: Array.isArray(payload.excluded) ? payload.excluded : []
     });
 
@@ -2360,8 +2390,9 @@ async function loadDashboardFromWebApp() {
 
     setWebAppStatus(`Datos cargados correctamente. Registros recibidos: ${MASTER_DATA.length}`);
   } catch (error) {
-    document.getElementById('loading').style.display = 'none';
     setWebAppStatus(error.message || 'Error al cargar los datos.', true);
+  } finally {
+    if (loadingEl) loadingEl.style.display = 'none';
   }
 }
 function showScreen(screenId) {
@@ -4634,6 +4665,47 @@ function isYTDPlaceholderField(field) {
     } else {
       history.forEach(item => {
         const tr = document.createElement('tr');
+       function renderDataTable(result) {
+    const container = document.getElementById('dataTableContainer');
+    const body = document.getElementById('dataTableBody');
+    const caption = document.getElementById('dataCaption');
+    const historyBody = document.getElementById('dataHistoryBody');
+    const historyCaption = document.getElementById('dataHistoryCaption');
+
+    const occurrences = result.occurrences || [];
+    const profiles = result.profiles || [];
+    const variables = result.variables || [];
+    const requestedHistoryCount = Math.max(1, parseInt(result?.filtros?.historyCount, 10) || 10);
+    const history = (result.history || []).slice(0, requestedHistoryCount);
+    const maxRows = Math.max(occurrences.length, profiles.length, variables.length, 1);
+
+    body.innerHTML = '';
+    historyBody.innerHTML = '';
+
+    for (let i = 0; i < maxRows; i++) {
+      const occ = occurrences[i];
+      const prof = profiles[i];
+      const vari = variables[i];
+
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${occ ? escapeHtml(occ.key) : ''}</td>
+        <td>${occ ? formatNumber(occ.value) : ''}</td>
+        <td>${prof ? escapeHtml(prof.key) : ''}</td>
+        <td>${prof ? formatNumber(prof.value) : ''}</td>
+        <td>${vari ? escapeHtml(vari.label) : ''}</td>
+        <td>${vari ? formatNumber(vari.value) : ''}</td>
+      `;
+      body.appendChild(tr);
+    }
+
+    if (!history.length) {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td colspan="7" style="text-align:center; color:#94a3b8; font-style:italic;">No hay registros históricos para mostrar.</td>`;
+      historyBody.appendChild(tr);
+    } else {
+      history.forEach(item => {
+        const tr = document.createElement('tr');
         tr.innerHTML = `
           <td>${escapeHtml(item.anio)}</td>
           <td>${escapeHtml(item.mes)}</td>
@@ -4646,6 +4718,11 @@ function isYTDPlaceholderField(field) {
         historyBody.appendChild(tr);
       });
     }
+
+    container.style.display = 'block';
+    caption.innerHTML = `<strong>Filtros aplicados:</strong> Forma de fallecimiento = ${escapeHtml(result.filtros.forma)}, Año = ${escapeHtml(result.filtros.anio)}, No = ${formatNumber(result.filtros.topN)}.`;
+    historyCaption.innerHTML = `<strong>Registros historial mostrados:</strong> ${formatNumber(history.length)} ordenados del más reciente al menos reciente.`;
+  }
 
     container.style.display = 'block';
     caption.innerHTML = `<strong>Filtros aplicados:</strong> Forma de fallecimiento = ${escapeHtml(result.filtros.forma)}, Año = ${escapeHtml(result.filtros.anio)}, No = ${formatNumber(result.filtros.topN)}.`;
