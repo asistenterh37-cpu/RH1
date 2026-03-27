@@ -6443,58 +6443,37 @@ function setForecastBusyState(isBusy, message) {
 }
 
   function processForecastAnalysis() {
-  const formaEl = document.getElementById('forecastForma');
-  const depEl = document.getElementById('forecastDepartamento');
-  const munEl = document.getElementById('forecastMunicipio');
-  const diasEl = document.getElementById('forecastDias');
+  const filters = getForecastFiltersFromUI();
 
-  const forma = formaEl ? (formaEl.value || 'Todos') : 'Todos';
-  const departamento = depEl ? (depEl.value || 'Todos') : 'Todos';
-  const municipio = munEl ? (munEl.value || 'Todos') : 'Todos';
-
-  let diasPronostico = diasEl ? parseInt(diasEl.value, 10) : 30;
-  if (isNaN(diasPronostico) || diasPronostico < 1) {
-    diasPronostico = 30;
-    if (diasEl) diasEl.value = '30';
+  if (!Array.isArray(MASTER_DATA) || !MASTER_DATA.length) {
+    setForecastBusyState(false, 'No hay datos cargados para calcular el pronóstico.');
+    return;
   }
 
-  setForecastBusyState(true, 'Generando pronóstico...');
+  setForecastBusyState(true, 'Calculando pronóstico con la misma base de Incidencias mostrada en Datos...');
 
   try {
     syncForecastFormaWithData();
 
-    const result = buildForecastProjectionFromDatos({
-      forma,
-      departamento,
-      municipio,
-      diasPronostico
-    });
-
+    const result = buildForecastProjectionFromDatos(filters);
     LAST_FORECAST_RESULT = result;
     renderForecastTable(result);
 
-    const rows = Array.isArray(result?.rows) ? result.rows : [];
-    const msg = rows.length
-      ? `Pronóstico generado correctamente para ${diasPronostico} día(s).`
-      : 'No se encontró histórico suficiente para el filtro seleccionado.';
+    const totalGrupos = Number(result?.meta?.totalGrupos || 0);
+    const totalRegistrosBase = Number(result?.meta?.totalRegistrosBase || 0);
 
-    setForecastBusyState(false, msg);
+    if (!totalGrupos) {
+      setForecastBusyState(false, 'No se encontraron incidencias válidas en Datos para generar el pronóstico.');
+      return;
+    }
+
+    setForecastBusyState(
+      false,
+      `Pronóstico generado correctamente. Base utilizada: ${formatNumber(totalRegistrosBase)} incidencias históricas agrupadas en ${formatNumber(totalGrupos)} municipio(s).`
+    );
   } catch (error) {
-    console.error('Error en processForecastAnalysis:', error);
-
-    const fallbackResult = {
-      rows: [],
-      meta: {
-        filtros: { forma, departamento, municipio, diasPronostico },
-        totalGrupos: 0,
-        ultimaFechaObservada: 'Sin dato',
-        metodo: 'Promedio ponderado y suavizamiento exponencial'
-      }
-    };
-
-    LAST_FORECAST_RESULT = fallbackResult;
-    renderForecastTable(fallbackResult);
-    setForecastBusyState(false, 'Ocurrió un error al calcular el pronóstico. Revisa la consola.');
+    console.error('Error al generar pronóstico:', error);
+    setForecastBusyState(false, 'Ocurrió un error al generar el pronóstico.');
   }
 }
 function clearForecastAnalysis() {
@@ -6520,11 +6499,11 @@ function clearForecastAnalysis() {
   setForecastBusyState(false, 'Pronóstico limpiado.');
 }
 
-function buildForecastProjectionFromDatos(filters) {
+function getForecastSourceRowsFromDatos(filters) {
   const forma = filters?.forma || 'Todos';
+  const anioFiltro = filters?.anio || 'Todos';
   const departamentoFiltro = filters?.departamento || 'Todos';
   const municipioFiltro = filters?.municipio || 'Todos';
-  const diasPronostico = Math.max(1, parseInt(filters?.diasPronostico, 10) || 30);
 
   const depField = findRealBaseField('Departamento');
   const munField = findRealBaseField('Municipio');
@@ -6534,21 +6513,12 @@ function buildForecastProjectionFromDatos(filters) {
   const formaField = findRealBaseField('Forma de fallecimiento');
 
   if (!depField || !munField || !yearField || !monthField || !dayField) {
-    return {
-      rows: [],
-      meta: {
-        filtros: filters,
-        totalGrupos: 0,
-        ultimaFechaObservada: 'Sin dato',
-        metodo: 'Promedio ponderado y suavizamiento exponencial',
-        diasPronostico
-      }
-    };
+    return [];
   }
 
   const rows = Array.isArray(MASTER_DATA) ? MASTER_DATA.slice() : [];
 
-  const filtered = rows.filter(row => {
+  return rows.filter(row => {
     const dep = safeCell(row[depField]);
     const mun = safeCell(row[munField]);
     const anio = toInt(row[yearField]);
@@ -6557,16 +6527,77 @@ function buildForecastProjectionFromDatos(filters) {
     const formaRow = formaField ? safeCell(row[formaField]) : '';
 
     const fecha = buildIsoDate(anio, mes, dia);
+
     if (!fecha) return false;
     if (!dep || !mun) return false;
     if (forma !== 'Todos' && formaRow !== forma) return false;
+    if (anioFiltro !== 'Todos' && String(anio) !== String(anioFiltro)) return false;
     if (departamentoFiltro !== 'Todos' && dep !== departamentoFiltro) return false;
     if (municipioFiltro !== 'Todos' && mun !== municipioFiltro) return false;
 
     return true;
   });
+}
+
+function getForecastFiltersFromUI() {
+  const formaEl = document.getElementById('forecastForma');
+  const depEl = document.getElementById('forecastDepartamento');
+  const munEl = document.getElementById('forecastMunicipio');
+  const diasEl = document.getElementById('forecastDias');
+  const dataAnioEl = document.getElementById('dataAnio');
+
+  return {
+    forma: formaEl ? (formaEl.value || 'Todos') : 'Todos',
+    anioDatos: dataAnioEl ? (dataAnioEl.value || 'Todos') : 'Todos',
+    departamento: depEl ? (depEl.value || 'Todos') : 'Todos',
+    municipio: munEl ? (munEl.value || 'Todos') : 'Todos',
+    diasPronostico: Math.max(1, parseInt(diasEl ? diasEl.value : '30', 10) || 30)
+  };
+}
+  
+function buildForecastProjectionFromDatos(filters) {
+  const forma = filters?.forma || 'Todos';
+  const departamentoFiltro = filters?.departamento || 'Todos';
+  const municipioFiltro = filters?.municipio || 'Todos';
+  const diasPronostico = Math.max(1, parseInt(filters?.diasPronostico, 10) || 30);
+  const anioDatos = filters?.anioDatos || 'Todos';
+
+  const depField = findRealBaseField('Departamento');
+  const munField = findRealBaseField('Municipio');
+  const yearField = findRealBaseField('Año');
+  const monthField = findRealBaseField('Mes');
+  const dayField = findRealBaseField('Dia');
+
+  if (!depField || !munField || !yearField || !monthField || !dayField) {
+    return {
+      rows: [],
+      meta: {
+        filtros: {
+          forma,
+          anioDatos,
+          departamento: departamentoFiltro,
+          municipio: municipioFiltro,
+          diasPronostico
+        },
+        totalGrupos: 0,
+        totalRegistrosBase: 0,
+        ultimaFechaObservada: 'Sin dato',
+        metodo: 'Promedio ponderado y suavizamiento exponencial',
+        origen: 'Incidencias de Datos',
+        diasPronostico
+      }
+    };
+  }
+
+  const filtered = getForecastSourceRowsFromDatos({
+    forma,
+    anio: anioDatos,
+    departamento: departamentoFiltro,
+    municipio: municipioFiltro
+  });
 
   const grouped = {};
+  let ultimaFechaGlobal = null;
 
   filtered.forEach(row => {
     const dep = safeCell(row[depField]) || 'Sin dato';
@@ -6589,10 +6620,13 @@ function buildForecastProjectionFromDatos(filters) {
     }
 
     grouped[key].dailyMap[fecha] = (grouped[key].dailyMap[fecha] || 0) + 1;
+
+    if (!ultimaFechaGlobal || fecha > ultimaFechaGlobal) {
+      ultimaFechaGlobal = fecha;
+    }
   });
 
   const resultRows = [];
-  let ultimaFechaGlobal = null;
 
   Object.keys(grouped).forEach(key => {
     const group = grouped[key];
@@ -6603,36 +6637,21 @@ function buildForecastProjectionFromDatos(filters) {
 
     const primeraFecha = fechas[0];
     const ultimaFecha = fechas[fechas.length - 1];
-
-    if (!ultimaFechaGlobal || ultimaFecha > ultimaFechaGlobal) {
-      ultimaFechaGlobal = ultimaFecha;
-    }
-
     const serieCompleta = buildContinuousSeries(primeraFecha, ultimaFecha, dailyMap);
+
     if (!serieCompleta.length) return;
 
     const valores = serieCompleta.map(item => Number(item.value || 0));
-
     if (!valores.length) return;
 
     const promedioPonderadoDiario = weightedMovingAverage(valores);
     const suavizamientoDiario = exponentialSmoothingForecast(valores, 0.35);
 
-    const proyectadoPromedioPonderado = Math.max(
-      0,
-      Math.round(promedioPonderadoDiario * diasPronostico)
-    );
-
-    const proyectadoSuavizamiento = Math.max(
-      0,
-      Math.round(suavizamientoDiario * diasPronostico)
-    );
-
     resultRows.push({
       departamento: group.departamento,
       municipio: group.municipio,
-      promedioPonderado: proyectadoPromedioPonderado,
-      suavizamientoExponencial: proyectadoSuavizamiento,
+      promedioPonderado: Math.max(0, Math.round(promedioPonderadoDiario * diasPronostico)),
+      suavizamientoExponencial: Math.max(0, Math.round(suavizamientoDiario * diasPronostico)),
       ultimaFechaObservada: ultimaFecha,
       observacionesHistoricas: valores.length
     });
@@ -6643,9 +6662,7 @@ function buildForecastProjectionFromDatos(filters) {
     const totalB = Number(b.promedioPonderado || 0) + Number(b.suavizamientoExponencial || 0);
 
     if (totalB !== totalA) return totalB - totalA;
-    if (a.departamento !== b.departamento) {
-      return a.departamento.localeCompare(b.departamento, 'es');
-    }
+    if (a.departamento !== b.departamento) return a.departamento.localeCompare(b.departamento, 'es');
     return a.municipio.localeCompare(b.municipio, 'es');
   });
 
@@ -6654,18 +6671,20 @@ function buildForecastProjectionFromDatos(filters) {
     meta: {
       filtros: {
         forma,
+        anioDatos,
         departamento: departamentoFiltro,
         municipio: municipioFiltro,
         diasPronostico
       },
       totalGrupos: resultRows.length,
+      totalRegistrosBase: filtered.length,
       ultimaFechaObservada: ultimaFechaGlobal || 'Sin dato',
       metodo: 'Promedio ponderado y suavizamiento exponencial',
+      origen: 'Incidencias de Datos',
       diasPronostico
     }
   };
 }
-
 function renderForecastTable(result) {
   const body = document.getElementById('forecastResultsBody');
   const caption = document.getElementById('forecastCaption');
