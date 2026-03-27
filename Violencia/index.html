@@ -1467,16 +1467,17 @@
 
   <div class="interaction-panel">
     <div class="panel-title">Datos</div>
-    <div class="panel-subtitle">
-      Genera una tabla consolidada con los <strong>Patrones de ocurrencia</strong>,
-      <strong>Perfiles</strong> y las <strong>variables con mayor frecuencia</strong>
-      dentro de los gráficos, según la <strong>Forma de fallecimiento</strong>,
-      <strong>Año</strong> y el <strong>No</strong> seleccionado.
-      <br><br>
-      Adicionalmente, puedes indicar la cantidad de <strong>Registros historial</strong>
-      para mostrar debajo una tabla cronológica con los casos más recientes a los menos recientes:
-      <strong>Año, Mes, Dia, Dia semana, Hora, Departamento y Municipio</strong>.
-    </div>
+   <div class="panel-subtitle">
+  Genera una tabla consolidada con los <strong>Patrones de ocurrencia</strong>,
+  <strong>Perfiles</strong> y las <strong>variables con mayor frecuencia</strong>
+  dentro de los gráficos, según la <strong>Forma de fallecimiento</strong>,
+  <strong>Año</strong> y el <strong>No</strong> seleccionado.
+  <br><br>
+  Adicionalmente, puedes indicar la cantidad de <strong>Registros historial</strong>
+  para mostrar debajo una tabla cronológica con el <strong>número exacto de incidencias solicitadas</strong>,
+  desde la más reciente hasta la menos reciente:
+  <strong>Año, Mes, Dia, Dia semana, Hora, Departamento y Municipio</strong>.
+</div>
 
     <div class="builder-filters">
       <div class="filter-box">
@@ -4494,23 +4495,50 @@ function isYTDPlaceholderField(field) {
           _index: index
         };
         return item;
-      })
-      .sort((a, b) => {
-        if (b._sortKey !== a._sortKey) return b._sortKey - a._sortKey;
-        return a._index - b._index;
-      })
-      .slice(0, historyCount)
-      .map(item => ({
-        anio: item.anio,
-        mes: item.mes,
-        dia: item.dia,
-        diaSemana: item.diaSemana,
-        hora: item.hora,
-        departamento: item.departamento,
-        municipio: item.municipio,
-        frecuencia: item.frecuencia
-      }));
-  }
+   function aggregateRecentHistoryRows(rows, historyCount) {
+  const anioField = findRealBaseField('Año');
+  const mesField = findRealBaseField('Mes');
+  const diaField = findRealBaseField('Dia');
+  const diaSemanaField = findRealBaseField('Dia semana');
+  const horaField = findRealBaseField('Hora');
+  const depField = findRealBaseField('Departamento');
+  const munField = findRealBaseField('Municipio');
+
+  const expanded = [];
+
+  rows
+    .map((row, index) => ({
+      anio: anioField ? formatCell(row[anioField]) : 'Sin Dato',
+      mes: mesField ? normalizeMonthLabel(row[mesField]) : 'Sin Dato',
+      dia: diaField ? formatCell(row[diaField]) : 'Sin Dato',
+      diaSemana: diaSemanaField ? formatCell(row[diaSemanaField]) : 'Sin Dato',
+      hora: horaField ? formatCell(row[horaField]) : 'Sin Dato',
+      departamento: depField ? formatCell(row[depField]) : 'Sin Dato',
+      municipio: munField ? formatCell(row[munField]) : 'Sin Dato',
+      frecuencia: Math.max(1, Math.floor(num(row[VALUE_FIELD]) || 1)),
+      _sortKey: buildHistorySortKey(row),
+      _index: index
+    }))
+    .sort((a, b) => {
+      if (b._sortKey !== a._sortKey) return b._sortKey - a._sortKey;
+      return a._index - b._index;
+    })
+    .forEach(item => {
+      for (let i = 0; i < item.frecuencia && expanded.length < historyCount; i++) {
+        expanded.push({
+          anio: item.anio,
+          mes: item.mes,
+          dia: item.dia,
+          diaSemana: item.diaSemana,
+          hora: item.hora,
+          departamento: item.departamento,
+          municipio: item.municipio
+        });
+      }
+    });
+
+  return expanded;
+}
 
   function buildHistorySortKey(row) {
     const anioField = findRealBaseField('Año');
@@ -4621,7 +4649,7 @@ function isYTDPlaceholderField(field) {
 
     container.style.display = 'block';
     caption.innerHTML = `<strong>Filtros aplicados:</strong> Forma de fallecimiento = ${escapeHtml(result.filtros.forma)}, Año = ${escapeHtml(result.filtros.anio)}, No = ${formatNumber(result.filtros.topN)}.`;
-    historyCaption.innerHTML = `<strong>Registros historial mostrados:</strong> ${formatNumber(result.filtros.historyCount)} ordenados del más reciente al menos reciente.`;
+    historyCaption.innerHTML = `<strong>Incidencias mostradas:</strong> ${formatNumber(history.length)} de ${formatNumber(result.filtros.historyCount)} solicitadas, ordenadas del más reciente al menos reciente.`;
   }
 
   function clearDataTable() {
