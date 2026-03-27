@@ -6623,19 +6623,15 @@ function buildForecastProjectionFromDatos(filters) {
   const diasPronostico = Math.max(1, parseInt(filters?.diasPronostico, 10) || 30);
   const anioDatos = filters?.anioDatos || 'Todos';
 
-  const filtered = getForecastSourceRowsFromDataHistoryBody().filter(row => {
+  const sourceRows = getForecastSourceRowsFromDataHistoryBody().filter(row => {
     if (anioDatos !== 'Todos' && String(row.anio) !== String(anioDatos)) return false;
-    if (departamentoFiltro !== 'Todos' && row.departamento !== departamentoFiltro) return false;
-    if (municipioFiltro !== 'Todos' && row.municipio !== municipioFiltro) return false;
     return true;
   });
 
-  const grouped = {};
+  let primeraFechaGlobal = null;
   let ultimaFechaGlobal = null;
 
-  filtered.forEach(row => {
-    const dep = safeCell(row.departamento) || 'Sin dato';
-    const mun = safeCell(row.municipio) || 'Sin dato';
+  sourceRows.forEach(row => {
     const anio = toInt(row.anio);
     const mes = monthToNumber(row.mes);
     const dia = toInt(row.dia);
@@ -6643,40 +6639,51 @@ function buildForecastProjectionFromDatos(filters) {
 
     if (!fecha) return;
 
-    const key = `${dep}||${mun}`;
-
-    if (!grouped[key]) {
-      grouped[key] = {
-        departamento: dep,
-        municipio: mun,
-        totalIncidencias: 0,
-        primeraFecha: fecha,
-        ultimaFecha: fecha
-      };
+    if (!primeraFechaGlobal || fecha < primeraFechaGlobal) {
+      primeraFechaGlobal = fecha;
     }
-
-    grouped[key].totalIncidencias += 1;
-
-    if (fecha < grouped[key].primeraFecha) grouped[key].primeraFecha = fecha;
-    if (fecha > grouped[key].ultimaFecha) grouped[key].ultimaFecha = fecha;
 
     if (!ultimaFechaGlobal || fecha > ultimaFechaGlobal) {
       ultimaFechaGlobal = fecha;
     }
   });
 
+  const filtered = sourceRows.filter(row => {
+    if (departamentoFiltro !== 'Todos' && row.departamento !== departamentoFiltro) return false;
+    if (municipioFiltro !== 'Todos' && row.municipio !== municipioFiltro) return false;
+    return true;
+  });
+
+  const grouped = {};
+
+  filtered.forEach(row => {
+    const dep = safeCell(row.departamento) || 'Sin dato';
+    const mun = safeCell(row.municipio) || 'Sin dato';
+    const key = `${dep}||${mun}`;
+
+    if (!grouped[key]) {
+      grouped[key] = {
+        departamento: dep,
+        municipio: mun,
+        totalIncidencias: 0
+      };
+    }
+
+    grouped[key].totalIncidencias += 1;
+  });
+
+  const fechaInicioGlobal = isoToDate(primeraFechaGlobal);
+  const fechaFinGlobal = isoToDate(ultimaFechaGlobal);
+  const diffMs = (fechaInicioGlobal && fechaFinGlobal)
+    ? (fechaFinGlobal.getTime() - fechaInicioGlobal.getTime())
+    : 0;
+  const diasTranscurridosGlobal = Math.max(1, Math.floor(diffMs / 86400000) + 1);
+
   const resultRows = [];
 
   Object.keys(grouped).forEach(key => {
     const group = grouped[key];
-    const fechaInicio = isoToDate(group.primeraFecha);
-    const fechaFin = isoToDate(group.ultimaFecha);
-
-    if (!fechaInicio || !fechaFin) return;
-
-    const diffMs = fechaFin.getTime() - fechaInicio.getTime();
-    const diasTranscurridos = Math.max(1, Math.floor(diffMs / 86400000) + 1);
-    const promedioDiario = group.totalIncidencias / diasTranscurridos;
+    const promedioDiario = group.totalIncidencias / diasTranscurridosGlobal;
     const incidenciasPronosticadas = Math.max(0, Math.round(promedioDiario * diasPronostico));
 
     resultRows.push({
@@ -6685,9 +6692,9 @@ function buildForecastProjectionFromDatos(filters) {
       incidenciasPronosticadas,
       promedioDiario,
       totalIncidencias: group.totalIncidencias,
-      primeraFecha: group.primeraFecha,
-      ultimaFecha: group.ultimaFecha,
-      diasTranscurridos
+      primeraFecha: primeraFechaGlobal || 'Sin dato',
+      ultimaFecha: ultimaFechaGlobal || 'Sin dato',
+      diasTranscurridos: diasTranscurridosGlobal
     });
   });
 
@@ -6711,14 +6718,16 @@ function buildForecastProjectionFromDatos(filters) {
       },
       totalGrupos: resultRows.length,
       totalRegistrosBase: filtered.length,
+      totalRegistrosBaseGlobal: sourceRows.length,
+      primeraFechaObservada: primeraFechaGlobal || 'Sin dato',
       ultimaFechaObservada: ultimaFechaGlobal || 'Sin dato',
-      metodo: 'Promedio diario por municipio x días pronóstico',
+      metodo: 'Conteo por municipio / días globales observados x días pronóstico',
       origen: 'dataHistoryBody',
-      diasPronostico
+      diasPronostico,
+      diasTranscurridos: diasTranscurridosGlobal
     }
   };
 }
-
   function renderForecastTable(result) {
   const body = document.getElementById('forecastResultsBody');
   const caption = document.getElementById('forecastCaption');
