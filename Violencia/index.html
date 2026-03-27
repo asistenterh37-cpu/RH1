@@ -4409,6 +4409,16 @@ function isYTDPlaceholderField(field) {
       history
     };
 
+    result.history = (result.history || []).map(item => ({
+  anio: item.anio,
+  mes: item.mes,
+  dia: item.dia,
+  diaSemana: item.diaSemana,
+  hora: item.hora,
+  departamento: item.departamento,
+  municipio: item.municipio,
+  forma: forma
+}));
     LAST_DATA_TABLE_RESULT = result;
     renderDataTable(result);
     saveDataTableState(result);
@@ -6479,6 +6489,44 @@ function setForecastBusyState(isBusy, message) {
       : 'No se encontró histórico suficiente para el filtro seleccionado.';
 
     setForecastBusyState(false, msg);
+function processForecastAnalysis() {
+  const formaEl = document.getElementById('forecastForma');
+  const depEl = document.getElementById('forecastDepartamento');
+  const munEl = document.getElementById('forecastMunicipio');
+  const diasEl = document.getElementById('forecastDias');
+
+  syncForecastFormaWithData();
+
+  const forma = formaEl ? (formaEl.value || 'Todos') : 'Todos';
+  const departamento = depEl ? (depEl.value || 'Todos') : 'Todos';
+  const municipio = munEl ? (munEl.value || 'Todos') : 'Todos';
+
+  let diasPronostico = diasEl ? parseInt(diasEl.value, 10) : 30;
+  if (isNaN(diasPronostico) || diasPronostico < 1) {
+    diasPronostico = 30;
+    if (diasEl) diasEl.value = '30';
+  }
+
+  setForecastBusyState(true, 'Generando pronóstico...');
+
+  try {
+    const result = buildForecastProjectionFromDatos({
+      forma,
+      departamento,
+      municipio,
+      diasPronostico
+    });
+
+    LAST_FORECAST_RESULT = result;
+    renderForecastTable(result);
+
+    const rows = Array.isArray(result?.rows) ? result.rows : [];
+    const sourceUsed = result?.meta?.fuenteHistorico || 'Incidencias';
+    const msg = rows.length
+      ? `Pronóstico generado correctamente para ${diasPronostico} día(s), usando el histórico visible en ${sourceUsed}.`
+      : 'No se encontró histórico suficiente en la tabla Incidencias para el filtro seleccionado.';
+
+    setForecastBusyState(false, msg);
   } catch (error) {
     console.error('Error en processForecastAnalysis:', error);
 
@@ -6488,7 +6536,8 @@ function setForecastBusyState(isBusy, message) {
         filtros: { forma, departamento, municipio, diasPronostico },
         totalGrupos: 0,
         ultimaFechaObservada: 'Sin dato',
-        metodo: 'Promedio ponderado y suavizamiento exponencial'
+        metodo: 'Promedio ponderado y suavizamiento exponencial',
+        fuenteHistorico: 'Incidencias'
       }
     };
 
@@ -6497,7 +6546,9 @@ function setForecastBusyState(isBusy, message) {
     setForecastBusyState(false, 'Ocurrió un error al calcular el pronóstico. Revisa la consola.');
   }
 }
+    
 function clearForecastAnalysis() {
+    syncForecastFormaWithData();
   const body = document.getElementById('forecastResultsBody');
   const caption = document.getElementById('forecastCaption');
   const container = document.getElementById('forecastTableContainer');
@@ -6649,19 +6700,142 @@ function buildForecastProjectionFromDatos(filters) {
     return a.municipio.localeCompare(b.municipio, 'es');
   });
 
+ function buildForecastProjectionFromDatos({
+  forma = 'Todos',
+  departamento = 'Todos',
+  municipio = 'Todos',
+  diasPronostico = 30
+}) {
+  const formaFiltro = normalize(forma);
+  const departamentoFiltro = normalize(departamento);
+  const municipioFiltro = normalize(municipio);
+
+  const historyRows = Array.isArray(LAST_DATA_TABLE_RESULT?.history)
+    ? LAST_DATA_TABLE_RESULT.history.slice()
+    : [];
+
+  if (!historyRows.length) {
+    return {
+      rows: [],
+      meta: {
+        filtros: { forma, departamento, municipio, diasPronostico },
+        totalGrupos: 0,
+        ultimaFechaObservada: 'Sin dato',
+        metodo: 'Promedio ponderado y suavizamiento exponencial',
+        fuenteHistorico: 'Incidencias'
+      }
+    };
+  }
+
+  const grouped = {};
+
+  historyRows.forEach(row => {
+    if (!row) return;
+
+    const dep = String(row.departamento || '').trim();
+    const mun = String(row.municipio || '').trim();
+    const formaRow = String(row.forma || '').trim();
+
+    if (!dep || !mun) return;
+
+    if (formaFiltro !== normalize('Todos') && normalize(formaRow) !== formaFiltro) {
+      return;
+    }
+
+    if (departamentoFiltro !== normalize('Todos') && normalize(dep) !== departamentoFiltro) {
+      return;
+    }
+
+    if (municipioFiltro !== normalize('Todos') && normalize(mun) !== municipioFiltro) {
+      return;
+    }
+
+    const fechaIso = buildIsoDateFromRowValues(row.anio, row.mes, row.dia);
+    if (!fechaIso) return;
+
+    const key = `${dep}||${mun}`;
+    if (!grouped[key]) {
+      grouped[key] = {
+        departamento: dep,
+        municipio: mun,
+        dailyMap: {}
+      };
+    }
+
+    grouped[key].dailyMap[fechaIso] = (grouped[key].dailyMap[fechaIso] || 0) + 1;
+  });
+
+  const resultRows = [];
+  let ultimaFechaGlobal = null;
+
+  Object.keys(grouped).forEach(key => {
+    const group = grouped[key];
+    const dailyMap = group.dailyMap || {};
+    const fechas = Object.keys(dailyMap).sort();
+
+    if (!fechas.length) return;
+
+    const primeraFecha = fechas[0];
+    const ultimaFecha = fechas[fechas.length - 1];
+
+    if (!ultimaFechaGlobal || ultimaFecha > ultimaFechaGlobal) {
+      ultimaFechaGlobal = ultimaFecha;
+    }
+
+    const serieCompleta = buildContinuousSeries(primeraFecha, ultimaFecha, dailyMap);
+    if (!serieCompleta.length) return;
+
+    const valores = serieCompleta.map(item => Number(item.value || 0));
+    if (!valores.length) return;
+
+    const promedioPonderadoDiario = weightedMovingAverage(valores);
+    const suavizamientoDiario = exponentialSmoothingForecast(valores, 0.35);
+
+    const proyectadoPromedioPonderado = Math.max(
+      0,
+      Math.round(promedioPonderadoDiario * diasPronostico)
+    );
+
+    const proyectadoSuavizamiento = Math.max(
+      0,
+      Math.round(suavizamientoDiario * diasPronostico)
+    );
+
+    resultRows.push({
+      departamento: group.departamento,
+      municipio: group.municipio,
+      promedioPonderado: proyectadoPromedioPonderado,
+      suavizamientoExponencial: proyectadoSuavizamiento,
+      ultimaFechaObservada: ultimaFecha,
+      observacionesHistoricas: valores.length
+    });
+  });
+
+  resultRows.sort((a, b) => {
+    const totalA = Number(a.promedioPonderado || 0) + Number(a.suavizamientoExponencial || 0);
+    const totalB = Number(b.promedioPonderado || 0) + Number(b.suavizamientoExponencial || 0);
+
+    if (totalB !== totalA) return totalB - totalA;
+    if (a.departamento !== b.departamento) {
+      return a.departamento.localeCompare(b.departamento, 'es');
+    }
+    return a.municipio.localeCompare(b.municipio, 'es');
+  });
+
   return {
     rows: resultRows,
     meta: {
       filtros: {
         forma,
-        departamento: departamentoFiltro,
-        municipio: municipioFiltro,
+        departamento,
+        municipio,
         diasPronostico
       },
       totalGrupos: resultRows.length,
       ultimaFechaObservada: ultimaFechaGlobal || 'Sin dato',
       metodo: 'Promedio ponderado y suavizamiento exponencial',
-      diasPronostico
+      diasPronostico,
+      fuenteHistorico: 'Incidencias'
     }
   };
 }
