@@ -1707,11 +1707,14 @@
 
   <div class="interaction-panel">
     <div class="panel-title">Análisis IA</div>
-    <div class="panel-subtitle">
-      Genera un reporte automatizado con <strong>Análisis e interpretación</strong>,
+  <div class="panel-subtitle">
+      Genera un reporte automatizado en párrafos con <strong>Análisis e interpretación</strong>,
       <strong>Conclusiones</strong> y <strong>Recomendaciones</strong>, tomando como base la tabla consolidada de
       <strong>Datos</strong> (Patrón de ocurrencia, Perfil y Variable con sus respectivas frecuencias) y la
-      tabla de <strong>Incidencias pronosticadas</strong>.
+      tabla de <strong>Incidencias pronosticadas</strong> del módulo <strong>Pronóstico</strong>.
+      <br><br>
+      También se muestra una <strong>Vista previa de insumos enviados al análisis</strong> con sus componentes.
+      <strong>No incluir proyección estadística</strong> dentro del reporte.
     </div>
 
     <div class="independent-actions">
@@ -1761,15 +1764,7 @@
           </div>
         </div>
 
-        <div class="forecast-accordion-item">
-          <button type="button" class="forecast-accordion-toggle" onclick="toggleForecastAccordion(this)">
-            <span>Proyección estadística</span>
-            <span>+</span>
-          </button>
-          <div class="forecast-accordion-content">
-            <div id="aiProyeccionText" class="home-description-text" style="margin-bottom:16px;"></div>
-
-            <div id="aiProjectionTableContainer" style="display:none; margin-top:14px;">
+                  <div id="aiProjectionTableContainer" style="display:none; margin-top:14px;">
               <div class="data-table-wrap">
                 <table class="data-table">
                   <thead>
@@ -5969,38 +5964,44 @@ function compactProjectionForAI(projectionFull) {
 }
 
 function buildAIPreviewHtml(payload) {
-  if (!payload) {
-    return 'Aún no se ha preparado información desde la sección <strong>Datos</strong>.';
-  }
+  const filtros = payload && payload.filtros ? payload.filtros : {};
+  const resumen = payload && payload.resumen ? payload.resumen : {};
+  const patrones = Array.isArray(payload && payload.patrones) ? payload.patrones : [];
+  const perfiles = Array.isArray(payload && payload.perfiles) ? payload.perfiles : [];
+  const variables = Array.isArray(payload && payload.variables) ? payload.variables : [];
+  const forecastRows = Array.isArray(LAST_AI_UI_STATE && LAST_AI_UI_STATE.projectionRows) ? LAST_AI_UI_STATE.projectionRows : [];
 
-  const projection = payload.proyeccionEstadistica || {};
-  const projectionLabel = projection.disponible ? projection.mesProyectado : 'No disponible';
+  const patronesTxt = patrones.length
+    ? patrones.map(item => `${item.patron || item.label || ''} (${formatNumber(item.frecuencia || item.value || 0)})`).join(' | ')
+    : 'No hay patrones preparados.';
+
+  const perfilesTxt = perfiles.length
+    ? perfiles.map(item => `${item.perfil || item.label || ''} (${formatNumber(item.frecuencia || item.value || 0)})`).join(' | ')
+    : 'No hay perfiles preparados.';
+
+  const variablesTxt = variables.length
+    ? variables.map(item => `${item.variable || item.label || ''} (${formatNumber(item.frecuencia || item.value || 0)})`).join(' | ')
+    : 'No hay variables preparadas.';
+
+  const forecastTxt = forecastRows.length
+    ? forecastRows.map(item => `${item.departamento || ''} - ${item.municipio || ''}: ${formatNumber(item.proyeccion || 0)}`).join(' | ')
+    : 'No hay incidencias pronosticadas visibles.';
 
   return `
-    <div><strong>Fuente:</strong> ${escapeHtml(payload.fuente)}</div>
-    <div><strong>Forma de fallecimiento:</strong> ${escapeHtml(payload.filtros.forma)}</div>
-    <div><strong>Año:</strong> ${escapeHtml(payload.filtros.anio)}</div>
-    <div><strong>No:</strong> ${formatNumber(payload.filtros.topN)}</div>
-    <div><strong>Registros historial enviados a IA:</strong> ${formatNumber((payload.historialReciente || []).length)}</div>
-    <div><strong>Total frecuencia analizada:</strong> ${formatNumber(payload.resumen.totalFrecuencia)}</div>
-    <div><strong>Total registros analizados:</strong> ${formatNumber(payload.resumen.totalRegistros)}</div>
-    <div><strong>Patrones enviados:</strong> ${formatNumber(payload.resumen.patronesEnTabla)}</div>
-    <div><strong>Perfiles enviados:</strong> ${formatNumber(payload.resumen.perfilesEnTabla)}</div>
-    <div><strong>Variables frecuentes enviadas:</strong> ${formatNumber(payload.resumen.variablesEnTabla)}</div>
-    <div><strong>Método de proyección:</strong> ${escapeHtml(projection.metodo || 'No disponible')}</div>
-    <div><strong>Mes proyectado:</strong> ${escapeHtml(projectionLabel)}</div>
-    <div><strong>Días del mes proyectado:</strong> ${formatNumber(projection.totalDiasMes || 0)}</div>
-    <div><strong>Días base observados:</strong> ${formatNumber(projection.diasBaseObservados || 0)}</div>
-    <div><strong>Días con incidencia observados:</strong> ${formatNumber(projection.diasConIncidencia || 0)}</div>
-    <div><strong>Días proyectados enviados a IA:</strong> ${formatNumber(projection.diasProyectados || 0)}</div>
-    <div><strong>Total proyectado:</strong> ${formatNumber(projection.totalProyectado || 0)}</div>
-    <div><strong>Resumen geográfico enviado:</strong> ${formatNumber((projection.resumenTopGeografico || []).length)}</div>
-    <div><strong>Totales diarios enviados:</strong> ${formatNumber((projection.totalesDiarios || []).length)}</div>
-    <div><strong>Detalle proyectado enviado a IA:</strong> ${formatNumber((projection.detalleTop || []).length)}</div>
-    <div><strong>Filas de proyección visibles en pantalla:</strong> ${formatNumber((LAST_AI_UI_STATE.projectionRows || []).length)}</div>
+    <p><strong>Filtro aplicado.</strong> Forma de fallecimiento: ${escapeHtml(filtros.forma || 'Todos')}. Año: ${escapeHtml(filtros.anio || 'Todos')}. No: ${formatNumber((filtros.topN || 0))}.</p>
+
+    <p><strong>Resumen general enviado al análisis.</strong> Total frecuencia analizada: ${formatNumber(resumen.totalFrecuencia || 0)}. Total registros analizados: ${formatNumber(resumen.totalRegistros || 0)}. Patrones enviados: ${formatNumber(resumen.patronesEnTabla || 0)}. Perfiles enviados: ${formatNumber(resumen.perfilesEnTabla || 0)}. Variables frecuentes enviadas: ${formatNumber(resumen.variablesEnTabla || 0)}.</p>
+
+    <p><strong>Componente 1 - Patrón de ocurrencia.</strong> ${escapeHtml(patronesTxt)}</p>
+
+    <p><strong>Componente 2 - Perfil.</strong> ${escapeHtml(perfilesTxt)}</p>
+
+    <p><strong>Componente 3 - Variable con mayor frecuencia.</strong> ${escapeHtml(variablesTxt)}</p>
+
+    <p><strong>Componente 4 - Incidencias pronosticadas visibles en Pronóstico.</strong> ${escapeHtml(forecastTxt)}</p>
   `;
 }
-
+  
 function refreshAIPreviewFromLastData() {
   const preview = document.getElementById('aiInputPreview');
   const status = document.getElementById('aiStatus');
@@ -6037,6 +6038,27 @@ function formatAISectionText(text) {
     .trim();
 }
 
+  function renderAIParagraphs(targetId, text) {
+  const el = document.getElementById(targetId);
+  if (!el) return;
+
+  const cleanText = formatAISectionText(text || '');
+  if (!cleanText) {
+    el.innerHTML = '<p>No hay contenido disponible.</p>';
+    return;
+  }
+
+  const paragraphs = cleanText
+    .split(/\n\s*\n/)
+    .map(p => p.trim())
+    .filter(Boolean)
+    .map(p => `<p>${escapeHtml(p)}</p>`)
+    .join('');
+
+  el.innerHTML = paragraphs || '<p>No hay contenido disponible.</p>';
+}
+  
+  
 let AI_PROJECTION_CHART_INSTANCE = null;
 let LAST_AI_PROJECTION_DRILL_STATE = { level: 'departamento', departamento: '' };
 
@@ -6098,15 +6120,9 @@ function renderAIProjectionTable(rows, projectionMeta) {
 }
 
 function renderAIReport(data) {
-  document.getElementById('aiAnalisisText').textContent = formatAISectionText(data.analisis || '');
-  document.getElementById('aiConclusionesText').textContent = formatAISectionText(data.conclusiones || '');
-  document.getElementById('aiRecomendacionesText').textContent = formatAISectionText(data.recomendaciones || '');
-  document.getElementById('aiProyeccionText').textContent = formatAISectionText(data.proyeccion || '');
-
-  renderAIProjectionTable(
-    LAST_AI_UI_STATE.projectionRows || [],
-    LAST_AI_UI_STATE.projectionMeta || data.projectionMeta || {}
-  );
+  renderAIParagraphs('aiAnalisisText', data.analisis || '');
+  renderAIParagraphs('aiConclusionesText', data.conclusiones || '');
+  renderAIParagraphs('aiRecomendacionesText', data.recomendaciones || '');
 
   document.getElementById('aiResultCard').style.display = 'block';
 
@@ -6117,7 +6133,7 @@ function renderAIReport(data) {
     }, 150);
   }
 }
-
+  
 function renderAIProjectionDrilldownChart(rows, projectionMeta) {
   const container = document.getElementById('aiProjectionChartContainer');
   const chartDiv = document.getElementById('aiProjectionChart');
@@ -6506,8 +6522,8 @@ function buildLocalAIResult(payload) {
     topDia
       ? `Refuerza vigilancia operativa en ${topDia.diaSemana}, ya que aparece como uno de los días con mayor carga proyectada.`
       : `Monitorea la distribución semanal para detectar días críticos.`,
-    `Mantén la actualización periódica de la sección Datos antes de ejecutar el análisis IA, para asegurar consistencia en patrones, perfiles y proyecciones.`,
-    `Valida de forma mensual si la tendencia reciente cambia respecto al promedio histórico para recalibrar la proyección.`
+        `Mantén la actualización periódica de la sección Datos antes de ejecutar el análisis IA, para asegurar consistencia en patrones, perfiles, variables e incidencias pronosticadas.`,
+    `Revisa de forma periódica si cambian los territorios, perfiles o variables dominantes para ajustar las acciones operativas y preventivas.`
   ].join('\n\n');
 
   const proyeccion = proy && proy.disponible
@@ -6526,28 +6542,15 @@ function buildLocalAIResult(payload) {
   return {
     analisis: analisis,
     conclusiones: conclusiones,
-    recomendaciones: recomendaciones,
-    proyeccion: proyeccion,
-    projectionMeta: LAST_AI_UI_STATE.projectionMeta || {}
+    recomendaciones: recomendaciones
   };
-}
 
 function clearAIAnalysis() {
   document.getElementById('aiStatus').textContent = 'Análisis IA limpiado.';
   document.getElementById('aiResultCard').style.display = 'none';
-  document.getElementById('aiAnalisisText').textContent = '';
-  document.getElementById('aiConclusionesText').textContent = '';
-  document.getElementById('aiRecomendacionesText').textContent = '';
-  document.getElementById('aiProyeccionText').textContent = '';
-  document.getElementById('aiProjectionTableBody').innerHTML = '';
-  document.getElementById('aiProjectionCaption').innerHTML = '';
-  document.getElementById('aiProjectionTableContainer').style.display = 'none';
-  document.getElementById('aiProjectionChart').innerHTML = '';
-  document.getElementById('aiProjectionChartContainer').style.display = 'none';
-  document.getElementById('aiProjectionChartTitle').textContent = 'Frecuencia proyectada acumulada por departamento';
-  document.getElementById('aiProjectionChartSubtitle').textContent = '';
-  document.getElementById('aiProjectionChartHint').textContent = 'Primer nivel: departamentos. Haz clic sobre una barra para ver sus municipios. Pasa el cursor sobre la barra para ver día de semana dominante y frecuencia.';
-  document.getElementById('aiProjectionChartBackBtn').style.display = 'none';
+  document.getElementById('aiAnalisisText').innerHTML = '';
+  document.getElementById('aiConclusionesText').innerHTML = '';
+  document.getElementById('aiRecomendacionesText').innerHTML = '';
 
   LAST_AI_UI_STATE = { projectionRows: [], projectionMeta: {} };
   LAST_AI_PROJECTION_DRILL_STATE = { level: 'departamento', departamento: '' };
@@ -6555,9 +6558,11 @@ function clearAIAnalysis() {
 
   setAIBusyState(false, '');
   const payload = buildAIPayloadFromDataTable();
-  document.getElementById('aiInputPreview').innerHTML = payload ? buildAIPreviewHtml(payload) : 'Aún no se ha preparado información desde la sección <strong>Datos</strong>.';
+  document.getElementById('aiInputPreview').innerHTML = payload
+    ? buildAIPreviewHtml(payload)
+    : 'Aún no se ha preparado información desde la sección <strong>Datos</strong>.';
 }
-function getForecastMethodLabel(seriesLength) {
+  function getForecastMethodLabel(seriesLength) {
   if (seriesLength >= 14) return 'Serie diaria ponderada';
   if (seriesLength >= 7) return 'Promedio diario reciente';
   if (seriesLength >= 2) return 'Promedio simple diario';
