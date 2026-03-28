@@ -951,6 +951,35 @@
   font-size:12px;
 }
 
+.ai-report-card{
+  margin-top:18px;
+  background:#0b1220;
+  border:1px solid var(--border);
+  border-radius:16px;
+  padding:18px;
+}
+
+.ai-report-section + .ai-report-section{
+  margin-top:18px;
+  padding-top:18px;
+  border-top:1px solid rgba(51,65,85,.55);
+}
+
+.ai-report-title{
+  font-size:16px;
+  font-weight:700;
+  color:#f8fafc;
+  margin-bottom:10px;
+}
+
+.ai-report-text{
+  color:#e2e8f0;
+  font-size:14px;
+  line-height:1.8;
+  white-space:pre-line;
+  text-align:justify;
+}
+
 .forecast-accordion{
   display:flex;
   flex-direction:column;
@@ -1708,7 +1737,37 @@
   <div class="interaction-panel">
     <div class="panel-title">Análisis IA</div>
     <div class="panel-subtitle">
-      Este módulo estará disponible para la generación de análisis automatizados con inteligencia artificial.
+      Genera un reporte automatizado en formato narrativo, tomando como base los resultados consolidados del módulo
+      <strong>Datos</strong> (Patrón de ocurrencia, Perfil y Variable con sus frecuencias) y la tabla de
+      <strong>Incidencias pronosticadas</strong> del módulo <strong>Pronóstico</strong>.
+      <br><br>
+      El reporte se presenta únicamente en tres apartados:
+      <strong>Análisis e interpretación</strong>, <strong>Conclusiones</strong> y
+      <strong>Recomendaciones</strong>.
+    </div>
+
+    <div class="independent-actions">
+      <button class="pink" id="btnGenerateAI" onclick="processAIAnalysis()">Generar análisis IA</button>
+      <button class="warning" onclick="clearAIAnalysis()">Limpiar</button>
+    </div>
+
+    <div id="aiStatus" class="status-note">Primero genera la tabla en Datos y luego el Pronóstico.</div>
+
+    <div id="aiResultCard" class="ai-report-card" style="display:none;">
+      <div class="ai-report-section">
+        <div class="ai-report-title">Análisis e interpretación</div>
+        <div id="aiAnalisisText" class="ai-report-text"></div>
+      </div>
+
+      <div class="ai-report-section">
+        <div class="ai-report-title">Conclusiones</div>
+        <div id="aiConclusionesText" class="ai-report-text"></div>
+      </div>
+
+      <div class="ai-report-section">
+        <div class="ai-report-title">Recomendaciones</div>
+        <div id="aiRecomendacionesText" class="ai-report-text"></div>
+      </div>
     </div>
   </div>
 </div>
@@ -5990,12 +6049,6 @@ function renderAIReport(data) {
   document.getElementById('aiAnalisisText').textContent = formatAISectionText(data.analisis || '');
   document.getElementById('aiConclusionesText').textContent = formatAISectionText(data.conclusiones || '');
   document.getElementById('aiRecomendacionesText').textContent = formatAISectionText(data.recomendaciones || '');
-  document.getElementById('aiProyeccionText').textContent = formatAISectionText(data.proyeccion || '');
-
-  renderAIProjectionTable(
-    LAST_AI_UI_STATE.projectionRows || [],
-    LAST_AI_UI_STATE.projectionMeta || data.projectionMeta || {}
-  );
 
   document.getElementById('aiResultCard').style.display = 'block';
 
@@ -6006,7 +6059,7 @@ function renderAIReport(data) {
     }, 150);
   }
 }
-
+  
 function renderAIProjectionDrilldownChart(rows, projectionMeta) {
   const container = document.getElementById('aiProjectionChartContainer');
   const chartDiv = document.getElementById('aiProjectionChart');
@@ -6332,7 +6385,7 @@ async function processAIAnalysis() {
   }
 }
 
-  function normalizeAIResponse(response, payload) {
+function normalizeAIResponse(response, payload) {
   const fallback = buildLocalAIResult(payload);
   const source = response && response.data && typeof response.data === 'object'
     ? response.data
@@ -6345,11 +6398,10 @@ async function processAIAnalysis() {
   return {
     analisis: source.analisis || fallback.analisis,
     conclusiones: source.conclusiones || fallback.conclusiones,
-    recomendaciones: source.recomendaciones || fallback.recomendaciones,
-    proyeccion: source.proyeccion || fallback.proyeccion,
-    projectionMeta: source.projectionMeta || LAST_AI_UI_STATE.projectionMeta || fallback.projectionMeta || {}
+    recomendaciones: source.recomendaciones || fallback.recomendaciones
   };
 }
+  
 function buildLocalAIResult(payload) {
   const resumen = payload.resumen || {};
   const filtros = payload.filtros || {};
@@ -6361,92 +6413,79 @@ function buildLocalAIResult(payload) {
   const topPatron = patrones.length ? patrones[0] : null;
   const topPerfil = perfiles.length ? perfiles[0] : null;
   const topVariable = variables.length ? variables[0] : null;
-  const topGeo = Array.isArray(proy.resumenTopGeografico) && proy.resumenTopGeografico.length ? proy.resumenTopGeografico[0] : null;
+  const topGeo = Array.isArray(proy.resumenTopGeografico) && proy.resumenTopGeografico.length
+    ? proy.resumenTopGeografico[0]
+    : null;
   const topDia = Array.isArray(proy.totalesDiarios) && proy.totalesDiarios.length
     ? proy.totalesDiarios.slice().sort((a, b) => Number(b.totalProyectado || 0) - Number(a.totalProyectado || 0))[0]
     : null;
 
   const analisis = [
-    `Se analizó la forma de fallecimiento "${filtros.forma || 'Todos'}" para el año "${filtros.anio || 'Todos'}", con una frecuencia total de ${formatNumber(resumen.totalFrecuencia || 0)} y ${formatNumber(resumen.totalRegistros || 0)} registros.`,
+    `Se analizó la forma de fallecimiento "${filtros.forma || 'Todos'}" para el año "${filtros.anio || 'Todos'}", con una frecuencia total de ${formatNumber(resumen.totalFrecuencia || 0)} y ${formatNumber(resumen.totalRegistros || 0)} registros consolidados.`,
     topPatron
-      ? `El patrón de ocurrencia con mayor frecuencia fue "${topPatron.patron}" con ${formatNumber(topPatron.frecuencia || 0)} casos, lo que sugiere una concentración relevante en esa combinación territorial y temporal.`
-      : `No se identificaron patrones de ocurrencia destacados en la tabla consolidada.`,
+      ? `El patrón de ocurrencia con mayor frecuencia fue "${topPatron.patron}" con ${formatNumber(topPatron.frecuencia || 0)} casos, lo que evidencia una concentración territorial y temporal que merece atención prioritaria.`
+      : `No se identificó un patrón de ocurrencia dominante dentro del consolidado generado.`,
     topPerfil
-      ? `El perfil más frecuente fue "${topPerfil.perfil}" con ${formatNumber(topPerfil.frecuencia || 0)} casos.`
-      : `No se identificaron perfiles dominantes en la información disponible.`,
+      ? `El perfil más frecuente fue "${topPerfil.perfil}" con ${formatNumber(topPerfil.frecuencia || 0)} casos, lo que permite reconocer el grupo predominante dentro del universo analizado.`
+      : `No se identificó un perfil dominante claramente diferenciado en la salida disponible.`,
     topVariable
-      ? `Entre las variables con mayor frecuencia destacó "${topVariable.variable}" con ${formatNumber(topVariable.frecuencia || 0)} registros.`
-      : `No se detectaron variables frecuentes adicionales para resaltar.`
+      ? `Entre las variables con mayor frecuencia destacó "${topVariable.variable}" con ${formatNumber(topVariable.frecuencia || 0)} registros, reforzando la existencia de focos de concentración dentro de los datos observados.`
+      : `No se detectó una variable adicional con peso suficiente para ser destacada en este corte.`,
+    topGeo
+      ? `En la tabla de incidencias pronosticadas sobresale "${topGeo.departamento} - ${topGeo.municipio}" como el territorio con mayor acumulado proyectado, lo que sugiere continuidad operativa del riesgo en esa zona.`
+      : `La tabla de incidencias pronosticadas no mostró un territorio claramente dominante para resaltar.`,
+    topDia
+      ? `Asimismo, el comportamiento proyectado muestra mayor carga para ${topDia.diaSemana} (${topDia.fecha}), con ${formatNumber(topDia.totalProyectado || 0)} incidencias estimadas, señalando una ventana temporal crítica.`
+      : `No se identificó un día claramente dominante dentro de la tabla de incidencias pronosticadas.`
   ].join('\n\n');
 
   const conclusiones = [
-    `La concentración de casos no es homogénea y presenta agrupaciones específicas que deben priorizarse operativamente.`,
-    topPatron ? `El patrón principal "${topPatron.patron}" debe considerarse como referencia inmediata para focalización.` : `La ausencia de un patrón dominante sugiere revisar más detalle histórico.`,
-    topPerfil ? `El perfil "${topPerfil.perfil}" representa el grupo más recurrente dentro del conjunto analizado.` : `No se observó un perfil dominante claramente definido.`,
-    proy && proy.disponible
-      ? `La proyección para ${proy.mesProyectado || 'el siguiente mes'} estima un total de ${formatNumber(proy.totalProyectado || 0)} casos distribuidos durante ${formatNumber(proy.totalDiasMes || 0)} días.`
-      : `No fue posible construir una proyección estadística confiable con los datos actuales.`
+    `Los resultados muestran que la incidencia no se distribuye de manera uniforme, sino que se concentra en combinaciones específicas de patrón, perfil y variable.`,
+    topPatron
+      ? `El patrón principal "${topPatron.patron}" debe asumirse como punto de referencia inmediato para focalizar seguimiento y prevención.`
+      : `La ausencia de un patrón claramente dominante sugiere ampliar el análisis histórico antes de definir focos prioritarios.`,
+    topPerfil
+      ? `El perfil "${topPerfil.perfil}" representa la caracterización más recurrente dentro del conjunto evaluado.`
+      : `La caracterización de perfiles no presenta un liderazgo suficientemente marcado en este corte.`,
+    topGeo
+      ? `La proyección territorial sugiere mayor presión esperada en ${topGeo.departamento} - ${topGeo.municipio}, por lo que ese territorio debe leerse como prioridad operativa.`
+      : `La proyección territorial disponible no permite establecer una prioridad geográfica única con suficiente claridad.`
   ].join('\n\n');
 
   const recomendaciones = [
     topGeo
-      ? `Priorizar acciones preventivas y de monitoreo en ${topGeo.departamento} - ${topGeo.municipio}, por ser el territorio con mayor acumulado proyectado.`
-      : `Priorizar territorios con mayor recurrencia según la tabla consolidada.`,
+      ? `Priorizar acciones preventivas, monitoreo y despliegue operativo en ${topGeo.departamento} - ${topGeo.municipio}, por ser el punto con mayor incidencia pronosticada.`
+      : `Priorizar los territorios que concentran mayor recurrencia dentro del consolidado de Datos.`,
     topDia
-      ? `Refuerza vigilancia operativa en ${topDia.diaSemana}, ya que aparece como uno de los días con mayor carga proyectada.`
-      : `Monitorea la distribución semanal para detectar días críticos.`,
-    `Mantén la actualización periódica de la sección Datos antes de ejecutar el análisis IA, para asegurar consistencia en patrones, perfiles y proyecciones.`,
-    `Valida de forma mensual si la tendencia reciente cambia respecto al promedio histórico para recalibrar la proyección.`
+      ? `Reforzar vigilancia y control en el día ${topDia.diaSemana}, ya que aparece como uno de los momentos de mayor carga pronosticada.`
+      : `Dar seguimiento a la distribución semanal para detectar oportunamente días críticos emergentes.`,
+    topPerfil
+      ? `Orientar las acciones de intervención hacia las características del perfil predominante identificado en la tabla consolidada.`
+      : `Complementar el análisis con nuevos cortes para precisar mejor los grupos de mayor recurrencia.`,
+    `Mantener sincronizados los módulos Datos y Pronóstico antes de generar el análisis IA, para que la interpretación conserve consistencia entre frecuencias observadas y comportamiento esperado.`
   ].join('\n\n');
-
-  const proyeccion = proy && proy.disponible
-    ? [
-        `Se proyecta el mes ${proy.mesProyectado || ''} mediante una estimación diaria entera basada en días con incidencia, patrón semanal y tendencia reciente.`,
-        `El total proyectado es de ${formatNumber(proy.totalProyectado || 0)} casos en ${formatNumber(proy.totalDiasMes || 0)} días.`,
-        topGeo
-          ? `La mayor concentración proyectada se ubica en ${topGeo.departamento} - ${topGeo.municipio} con ${formatNumber(topGeo.totalProyectado || 0)} casos acumulados.`
-          : `No se identificó un territorio dominante en la proyección.`,
-        topDia
-          ? `El día con mayor carga proyectada es ${topDia.fecha} (${topDia.diaSemana}) con ${formatNumber(topDia.totalProyectado || 0)} casos estimados.`
-          : `No se identificó un día dominante dentro de la proyección.`
-      ].join('\n\n')
-    : `No fue posible generar la proyección estadística del siguiente mes con los datos disponibles.`;
 
   return {
     analisis: analisis,
     conclusiones: conclusiones,
-    recomendaciones: recomendaciones,
-    proyeccion: proyeccion,
-    projectionMeta: LAST_AI_UI_STATE.projectionMeta || {}
+    recomendaciones: recomendaciones
   };
 }
-
+  
 function clearAIAnalysis() {
   document.getElementById('aiStatus').textContent = 'Análisis IA limpiado.';
   document.getElementById('aiResultCard').style.display = 'none';
   document.getElementById('aiAnalisisText').textContent = '';
   document.getElementById('aiConclusionesText').textContent = '';
   document.getElementById('aiRecomendacionesText').textContent = '';
-  document.getElementById('aiProyeccionText').textContent = '';
-  document.getElementById('aiProjectionTableBody').innerHTML = '';
-  document.getElementById('aiProjectionCaption').innerHTML = '';
-  document.getElementById('aiProjectionTableContainer').style.display = 'none';
-  document.getElementById('aiProjectionChart').innerHTML = '';
-  document.getElementById('aiProjectionChartContainer').style.display = 'none';
-  document.getElementById('aiProjectionChartTitle').textContent = 'Frecuencia proyectada acumulada por departamento';
-  document.getElementById('aiProjectionChartSubtitle').textContent = '';
-  document.getElementById('aiProjectionChartHint').textContent = 'Primer nivel: departamentos. Haz clic sobre una barra para ver sus municipios. Pasa el cursor sobre la barra para ver día de semana dominante y frecuencia.';
-  document.getElementById('aiProjectionChartBackBtn').style.display = 'none';
 
   LAST_AI_UI_STATE = { projectionRows: [], projectionMeta: {} };
   LAST_AI_PROJECTION_DRILL_STATE = { level: 'departamento', departamento: '' };
   AI_PROJECTION_CHART_INSTANCE = null;
 
-  setAIBusyState(false, '');
-  const payload = buildAIPayloadFromDataTable();
-  document.getElementById('aiInputPreview').innerHTML = payload ? buildAIPreviewHtml(payload) : 'Aún no se ha preparado información desde la sección <strong>Datos</strong>.';
+  setAIBusyState(false, 'Primero genera la tabla en Datos y luego el Pronóstico.');
 }
-function getForecastMethodLabel(seriesLength) {
+  function getForecastMethodLabel(seriesLength) {
   if (seriesLength >= 14) return 'Serie diaria ponderada';
   if (seriesLength >= 7) return 'Promedio diario reciente';
   if (seriesLength >= 2) return 'Promedio simple diario';
