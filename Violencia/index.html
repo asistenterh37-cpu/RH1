@@ -35,7 +35,17 @@
       background:linear-gradient(135deg,#0f172a,#111827,#1e293b);
       color:var(--text);
     }
+body{
+  -webkit-user-select:none;
+  -moz-user-select:none;
+  -ms-user-select:none;
+  user-select:none;
+}
 
+html{
+  -webkit-touch-callout:none;
+}
+    
     .wrap{
       max-width:1700px;
       margin:0 auto;
@@ -1093,6 +1103,30 @@
   </style>
 </head>
 <body>
+  <div id="devtoolsOverlay" style="
+    display:none;
+    position:fixed;
+    inset:0;
+    z-index:999999;
+    background:rgba(15,23,42,.98);
+    color:#f8fafc;
+    font-family:Arial, sans-serif;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+    padding:30px;
+  ">
+    <div>
+      <div style="font-size:28px;font-weight:700;margin-bottom:12px;">
+        Acceso restringido
+      </div>
+      <div style="font-size:16px;line-height:1.6;color:#cbd5e1;max-width:700px;">
+        Esta interfaz tiene restricciones de visualización. Algunas acciones de inspección
+        fueron bloqueadas para proteger la estructura de la herramienta.
+      </div>
+    </div>
+  </div>
+  
   <div class="wrap">
     <div class="topbar">
 <div>
@@ -7053,5 +7087,103 @@ function escapeHtml(value) {
     .replace(/'/g, '&#39;');
 }
   </script>
+<script>
+  (function () {
+    const overlay = document.getElementById('devtoolsOverlay');
+
+    function showProtectionMessage() {
+      if (overlay) {
+        overlay.style.display = 'flex';
+      }
+    }
+
+    function blockAction(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      showProtectionMessage();
+      return false;
+    }
+
+    // Bloquear clic derecho
+    document.addEventListener('contextmenu', function (e) {
+      blockAction(e);
+    });
+
+    // Bloquear selección de texto y arrastre
+    document.addEventListener('selectstart', function (e) {
+      blockAction(e);
+    });
+
+    document.addEventListener('dragstart', function (e) {
+      blockAction(e);
+    });
+
+    // Bloquear combinaciones comunes
+    document.addEventListener('keydown', function (e) {
+      const key = (e.key || '').toLowerCase();
+
+      // F12
+      if (e.key === 'F12') {
+        return blockAction(e);
+      }
+
+      // Ctrl+Shift+I / Ctrl+Shift+J / Ctrl+Shift+C
+      if (e.ctrlKey && e.shiftKey && ['i', 'j', 'c'].includes(key)) {
+        return blockAction(e);
+      }
+
+      // Ctrl+U / Ctrl+S / Ctrl+P / Ctrl+A
+      if (e.ctrlKey && ['u', 's', 'p', 'a'].includes(key)) {
+        return blockAction(e);
+      }
+
+      // Cmd equivalents para Mac
+      if (e.metaKey && ['u', 's', 'p', 'a'].includes(key)) {
+        return blockAction(e);
+      }
+
+      if (e.metaKey && e.shiftKey && ['i', 'j', 'c'].includes(key)) {
+        return blockAction(e);
+      }
+    });
+
+    // Detección básica de DevTools abierto por diferencia de tamaño
+    let devtoolsOpen = false;
+
+    setInterval(function () {
+      const widthThreshold = window.outerWidth - window.innerWidth > 160;
+      const heightThreshold = window.outerHeight - window.innerHeight > 160;
+
+      if (widthThreshold || heightThreshold) {
+        if (!devtoolsOpen) {
+          devtoolsOpen = true;
+          showProtectionMessage();
+        }
+      } else {
+        devtoolsOpen = false;
+      }
+    }, 1000);
+
+    // Desactivar consola visible básica
+    try {
+      Object.defineProperty(window, 'console', {
+        get() {
+          showProtectionMessage();
+          return {
+            log() {},
+            warn() {},
+            error() {},
+            info() {},
+            clear() {},
+            table() {},
+            debug() {}
+          };
+        }
+      });
+    } catch (err) {
+      // Si el navegador no lo permite, simplemente continúa
+    }
+  })();
+</script>
 </body>
 </html>
