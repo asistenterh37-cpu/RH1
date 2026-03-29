@@ -465,6 +465,15 @@ html{
   border:1px solid var(--border);
   border-radius:12px;
   box-shadow:0 10px 24px rgba(0,0,0,.28);
+  min-width:260px;
+}
+
+.loading-timer{
+  margin-top:8px;
+  font-size:14px;
+  color:#94a3b8;
+  font-weight:600;
+  letter-spacing:.2px;
 }
 
     .status-note{
@@ -1909,7 +1918,10 @@ html{
   </div>
 </div>
 
-<div id="loading" class="loading">Cargando datos...</div>
+<div id="loading" class="loading" style="display:none;">
+  <div id="loadingText">Cargando datos...</div>
+  <div id="loadingTimer" class="loading-timer">Tiempo transcurrido: 0.0 s</div>
+</div>
 
 <div id="floatingTag" class="floating-tag"></div>
 
@@ -1958,6 +1970,9 @@ let LAST_FORECAST_RESULT = {
   top: [],
   meta: {}
 };
+
+  let LOADING_TIMER_INTERVAL = null;
+let LOADING_START_TIME = null;
   
   const DATA_STORAGE_KEY = 'dashboard_datos_table_v2';
   const ALL_LABEL = '__ALL__';
@@ -2253,7 +2268,7 @@ function loadData(payload) {
       }
     }, 100);
 
-    document.getElementById('loading').style.display = 'none';
+    stopLoadingTimer();
   }
 
   function buildActiveDimensions() {
@@ -2307,6 +2322,60 @@ document.addEventListener('DOMContentLoaded', function () {
   return;
 }
 
+  function startLoadingTimer(message = 'Cargando datos...') {
+  const loadingEl = document.getElementById('loading');
+  const loadingTextEl = document.getElementById('loadingText');
+  const loadingTimerEl = document.getElementById('loadingTimer');
+
+  if (!loadingEl) return;
+
+  if (loadingTextEl) {
+    loadingTextEl.textContent = message;
+  } else {
+    loadingEl.textContent = message;
+  }
+
+  LOADING_START_TIME = Date.now();
+
+  if (loadingTimerEl) {
+    loadingTimerEl.textContent = 'Tiempo transcurrido: 0.0 s';
+  }
+
+  if (LOADING_TIMER_INTERVAL) {
+    clearInterval(LOADING_TIMER_INTERVAL);
+    LOADING_TIMER_INTERVAL = null;
+  }
+
+  loadingEl.style.display = 'block';
+
+  LOADING_TIMER_INTERVAL = setInterval(() => {
+    if (!LOADING_START_TIME || !loadingTimerEl) return;
+    const elapsedSeconds = ((Date.now() - LOADING_START_TIME) / 1000).toFixed(1);
+    loadingTimerEl.textContent = `Tiempo transcurrido: ${elapsedSeconds} s`;
+  }, 100);
+}
+
+function stopLoadingTimer() {
+  const loadingEl = document.getElementById('loading');
+  const loadingTimerEl = document.getElementById('loadingTimer');
+
+  if (LOADING_TIMER_INTERVAL) {
+    clearInterval(LOADING_TIMER_INTERVAL);
+    LOADING_TIMER_INTERVAL = null;
+  }
+
+  if (LOADING_START_TIME && loadingTimerEl) {
+    const elapsedSeconds = ((Date.now() - LOADING_START_TIME) / 1000).toFixed(1);
+    loadingTimerEl.textContent = `Tiempo total: ${elapsedSeconds} s`;
+  }
+
+  LOADING_START_TIME = null;
+
+  if (loadingEl) {
+    loadingEl.style.display = 'none';
+  }
+}
+  
 function saveWebAppUrl(showMessage = true) {
   const input = document.getElementById('webAppUrlInput');
   if (!input) return false;
@@ -2449,9 +2518,9 @@ async function loadDashboardFromWebApp() {
     const saved = saveWebAppUrl(false);
     if (!saved) return;
 
-    document.getElementById('loading').style.display = 'block';
-    setWebAppStatus('Cargando datos desde Apps Script...');
-
+    startLoadingTimer('Cargando datos...');
+setWebAppStatus('Cargando datos desde Apps Script...');
+    
     const result = await apiGet('dashboard');
     const payload = resolveDashboardPayload(result);
 
@@ -2477,8 +2546,8 @@ async function loadDashboardFromWebApp() {
 
     setWebAppStatus(`Datos cargados correctamente. Registros recibidos: ${MASTER_DATA.length}`);
   } catch (error) {
-    document.getElementById('loading').style.display = 'none';
-    setWebAppStatus(error.message || 'Error al cargar los datos.', true);
+    stopLoadingTimer();
+setWebAppStatus(error.message || 'Error al cargar los datos.', true);
   }
 }
 function showScreen(screenId) {
