@@ -470,12 +470,11 @@ html{
 
 .loading-timer{
   margin-top:8px;
-  font-size:14px;
+  font-size:18px;
   color:#94a3b8;
   font-weight:600;
   letter-spacing:.2px;
 }
-
     .status-note{
       margin-top:10px;
       color:var(--muted);
@@ -2261,15 +2260,13 @@ function loadData(payload) {
    initForecastSelectors();
     renderAll();
   
-    setTimeout(() => {
+       setTimeout(() => {
       const descriptiveScreen = document.getElementById('descriptiveScreen');
       if (descriptiveScreen && descriptiveScreen.classList.contains('active')) {
         renderAll();
       }
     }, 100);
-
-    stopLoadingTimer();
-  }
+  } 
 
   function buildActiveDimensions() {
     const dims = [...DIMENSIONS];
@@ -2357,6 +2354,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
 function stopLoadingTimer() {
   const loadingEl = document.getElementById('loading');
+  const loadingTextEl = document.getElementById('loadingText');
   const loadingTimerEl = document.getElementById('loadingTimer');
 
   if (LOADING_TIMER_INTERVAL) {
@@ -2371,9 +2369,19 @@ function stopLoadingTimer() {
 
   LOADING_START_TIME = null;
 
-  if (loadingEl) {
-    loadingEl.style.display = 'none';
-  }
+  setTimeout(() => {
+    if (loadingEl) {
+      loadingEl.style.display = 'none';
+    }
+
+    if (loadingTextEl) {
+      loadingTextEl.textContent = 'Cargando datos...';
+    }
+
+    if (loadingTimerEl) {
+      loadingTimerEl.textContent = 'Tiempo transcurrido: 0.0 s';
+    }
+  }, 250);
 }
   
 function saveWebAppUrl(showMessage = true) {
@@ -2519,7 +2527,7 @@ async function loadDashboardFromWebApp() {
     if (!saved) return;
 
     startLoadingTimer('Cargando datos...');
-setWebAppStatus('Cargando datos desde Apps Script...');
+    setWebAppStatus('Cargando datos desde Apps Script...');
     
     const result = await apiGet('dashboard');
     const payload = resolveDashboardPayload(result);
@@ -2540,17 +2548,19 @@ setWebAppStatus('Cargando datos desde Apps Script...');
     EXCLUDED_FIELDS = Array.isArray(payload.excluded) ? payload.excluded : [];
 
     if (!MASTER_DATA.length) {
+      stopLoadingTimer();
       setWebAppStatus('Conexión correcta, pero la hoja no devolvió registros para el dashboard.', true);
       return;
     }
 
+    stopLoadingTimer();
     setWebAppStatus(`Datos cargados correctamente. Registros recibidos: ${MASTER_DATA.length}`);
   } catch (error) {
     stopLoadingTimer();
-setWebAppStatus(error.message || 'Error al cargar los datos.', true);
+    setWebAppStatus(error.message || 'Error al cargar los datos.', true);
   }
 }
-function showScreen(screenId) {
+  function showScreen(screenId) {
   const screens = document.querySelectorAll('.screen');
   screens.forEach(screen => {
     screen.classList.remove('active');
