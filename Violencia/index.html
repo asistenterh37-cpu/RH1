@@ -5369,45 +5369,25 @@ function buildAIPayloadFromDataTable() {
   const anio = filtros.anio || 'Todos';
   const topN = Number(filtros.topN || 5);
   const historyCount = Number(filtros.historyCount || 10);
-
   const rows = getRowsForDataModule(forma, anio);
+
   const occurrences = (result.occurrences || []).slice(0, AI_LIMITS.MAX_OCCURRENCES);
   const profiles = (result.profiles || []).slice(0, AI_LIMITS.MAX_PROFILES);
   const variables = (result.variables || []).slice(0, AI_LIMITS.MAX_VARIABLES);
   const history = (result.history || []).slice(0, AI_LIMITS.MAX_HISTORY_FOR_AI);
 
-  const projectionFull = buildProjectionFromFilteredRows(rows, {
-    forma,
-    anio,
-    topN,
-    historyCount
-  });
-
-  const projectionCompact = compactProjectionForAI(projectionFull);
+  const forecastResult = normalizeForecastResultForAI();
+  const projectionCompact = forecastResult.proyeccionEstadistica;
 
   LAST_AI_UI_STATE = {
-    projectionRows: Array.isArray(projectionFull.filas)
-      ? projectionFull.filas.slice(0, AI_LIMITS.MAX_PROJECTION_TABLE_UI)
+    projectionRows: Array.isArray(forecastResult.projectionRows)
+      ? forecastResult.projectionRows.slice(0, AI_LIMITS.MAX_PROJECTION_TABLE_UI)
       : [],
-    projectionMeta: {
-      metodo: projectionFull.metodo || '',
-      disponible: !!projectionFull.disponible,
-      motivo: projectionFull.motivo || '',
-      fechaUltimaObservacion: projectionFull.fechaUltimaObservacion || '',
-      mesProyectado: projectionFull.mesProyectado || '',
-      totalProyectado: Number(projectionFull.totalProyectado || 0),
-      diasProyectados: Number(projectionFull.diasProyectados || 0),
-      totalDiasMes: Number(projectionFull.totalDiasMes || 0),
-      resumenDiario: Array.isArray(projectionFull.resumenDiario) ? projectionFull.resumenDiario : [],
-      resumenGeo: Array.isArray(projectionFull.resumen) ? projectionFull.resumen : [],
-      diasBaseObservados: Number(projectionFull.diasBaseObservados || 0),
-      diasConIncidencia: Number(projectionFull.diasConIncidencia || 0),
-      fechaPrimeraObservacion: projectionFull.fechaPrimeraObservacion || ''
-    }
+    projectionMeta: forecastResult.projectionMeta || {}
   };
 
   return {
-    fuente: 'Base > Datos',
+    fuente: 'Base > Datos + Pronóstico',
     filtros: {
       forma: forma,
       anio: anio,
@@ -5447,6 +5427,103 @@ function buildAIPayloadFromDataTable() {
   };
 }
 
+function normalizeForecastResultForAI() {
+  const forecast = LAST_FORECAST_RESULT || {};
+  const rows = Array.isArray(forecast.rows) ? forecast.rows : [];
+  const meta = forecast.meta || {};
+
+  if (!rows.length) {
+    return {
+      projectionRows: [],
+      projectionMeta: {
+        metodo: meta.metodo || 'Conteo por municipio / días globales observados x días pronóstico',
+        disponible: false,
+        motivo: 'Primero debes generar el módulo Pronóstico para que IA use esos datos.',
+        fechaUltimaObservacion: meta.ultimaFechaObservada || '',
+        fechaPrimeraObservacion: meta.primeraFechaObservada || '',
+        totalProyectado: 0,
+        diasProyectados: Number(meta.diasPronostico || 0),
+        totalDiasMes: 0,
+        resumenDiario: [],
+        resumenGeo: [],
+        diasBaseObservados: Number(meta.diasTranscurridos || 0),
+        diasConIncidencia: Number(meta.totalRegistrosBase || 0)
+      },
+      proyeccionEstadistica: {
+        metodo: meta.metodo || 'Conteo por municipio / días globales observados x días pronóstico',
+        disponible: false,
+        motivo: 'No hay pronóstico generado.',
+        fechaPrimeraObservacion: meta.primeraFechaObservada || '',
+        fechaUltimaObservacion: meta.ultimaFechaObservada || '',
+        mesProyectado: '',
+        totalProyectado: 0,
+        diasProyectados: Number(meta.diasPronostico || 0),
+        totalDiasMes: 0,
+        diasBaseObservados: Number(meta.diasTranscurridos || 0),
+        diasConIncidencia: Number(meta.totalRegistrosBase || 0),
+        resumenTopGeografico: [],
+        totalesDiarios: [],
+        detalleTop: []
+      }
+    };
+  }
+
+  const totalProyectado = rows.reduce((acc, item) => {
+    return acc + Number(item.incidenciasPronosticadas || 0);
+  }, 0);
+
+  const resumenGeo = rows.map(item => ({
+    departamento: item.departamento || '',
+    municipio: item.municipio || '',
+    totalProyectado: Number(item.incidenciasPronosticadas || 0)
+  }));
+
+  const detalleTop = rows.slice(0, AI_LIMITS.MAX_PROJECTION_DETAIL_FOR_AI).map(item => ({
+    fecha: meta.ultimaFechaObservada || '',
+    diaSemana: '',
+    departamento: item.departamento || '',
+    municipio: item.municipio || '',
+    proyeccion: Number(item.incidenciasPronosticadas || 0)
+  }));
+
+  return {
+    projectionRows: detalleTop,
+    projectionMeta: {
+      metodo: meta.metodo || 'Conteo por municipio / días globales observados x días pronóstico',
+      disponible: true,
+      motivo: '',
+      fechaUltimaObservacion: meta.ultimaFechaObservada || '',
+      fechaPrimeraObservacion: meta.primeraFechaObservada || '',
+      totalProyectado: totalProyectado,
+      diasProyectados: Number(meta.diasPronostico || 0),
+      totalDiasMes: 0,
+      resumenDiario: [],
+      resumenGeo: resumenGeo,
+      diasBaseObservados: Number(meta.diasTranscurridos || 0),
+      diasConIncidencia: Number(meta.totalRegistrosBase || 0)
+    },
+    proyeccionEstadistica: {
+      metodo: meta.metodo || 'Conteo por municipio / días globales observados x días pronóstico',
+      disponible: true,
+      motivo: '',
+      fechaPrimeraObservacion: meta.primeraFechaObservada || '',
+      fechaUltimaObservacion: meta.ultimaFechaObservada || '',
+      mesProyectado: '',
+      totalProyectado: totalProyectado,
+      diasProyectados: Number(meta.diasPronostico || 0),
+      totalDiasMes: 0,
+      diasBaseObservados: Number(meta.diasTranscurridos || 0),
+      diasConIncidencia: Number(meta.totalRegistrosBase || 0),
+      resumenTopGeografico: resumenGeo
+        .slice()
+        .sort((a, b) => Number(b.totalProyectado || 0) - Number(a.totalProyectado || 0))
+        .slice(0, AI_LIMITS.MAX_GEO_SUMMARY_FOR_AI),
+      totalesDiarios: [],
+      detalleTop: detalleTop
+    }
+  };
+}
+  
 function buildProjectionFromFilteredRows(rows, filtros) {
   const diaSemanaField = findRealBaseField('Dia semana');
   const depField = findRealBaseField('Departamento');
@@ -6354,14 +6431,18 @@ function getDominantWeekdayFromMap(dayMap) {
 }
 
 async function processAIAnalysis() {
-  const payload = buildAIPayloadFromDataTable();
+const payload = buildAIPayloadFromDataTable();
+if (!payload) {
+  setAIBusyState(false, 'Primero genera la tabla en Datos.');
+  document.getElementById('aiResultCard').style.display = 'none';
+  return;
+}
 
-  if (!payload) {
-    setAIBusyState(false, 'Primero genera la tabla en Datos.');
-    document.getElementById('aiResultCard').style.display = 'none';
-    return;
-  }
-
+if (!LAST_FORECAST_RESULT || !Array.isArray(LAST_FORECAST_RESULT.rows) || !LAST_FORECAST_RESULT.rows.length) {
+  setAIBusyState(false, 'Primero genera el Pronóstico para que el análisis IA use esos datos.');
+  document.getElementById('aiResultCard').style.display = 'none';
+  return;
+}
   const url = getWebAppUrl();
   if (!url) {
     setAIBusyState(false, 'Primero configura la URL del Web App.');
