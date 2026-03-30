@@ -1948,8 +1948,11 @@ let LAST_FORECAST_RESULT = {
   meta: {}
 };
 
-  let LOADING_TIMER_INTERVAL = null;
+let LOADING_TIMER_INTERVAL = null;
 let LOADING_START_TIME = null;
+let DASHBOARD_LOAD_CONTROLLER = null;
+let DASHBOARD_IS_LOADING = false;
+const DASHBOARD_LOAD_TIMEOUT_MS = 45000;
   
   const DATA_STORAGE_KEY = 'dashboard_datos_table_v2';
   const ALL_LABEL = '__ALL__';
@@ -2384,7 +2387,7 @@ async function safeReadJson(response) {
   }
 }
 
-async function apiGet(action, extraParams = {}) {
+async function apiGet(action, extraParams = {}, options = {}) {
   const baseUrl = getWebAppUrl();
   if (!baseUrl) {
     throw new Error('No se ha configurado la URL del Web App.');
@@ -2404,6 +2407,7 @@ async function apiGet(action, extraParams = {}) {
     method: 'GET',
     redirect: 'follow',
     cache: 'no-store',
+    signal: options.signal,
     headers: {
       'Accept': 'application/json,text/plain,*/*'
     }
@@ -2421,7 +2425,7 @@ async function apiGet(action, extraParams = {}) {
 
   return data;
 }
-
+  
 async function apiPost(action, payload) {
   const baseUrl = getWebAppUrl();
   if (!baseUrl) {
@@ -2488,14 +2492,32 @@ async function testWebAppConnection() {
 }
 
 async function loadDashboardFromWebApp() {
+  if (DASHBOARD_IS_LOADING) return;
+
+  let timeoutId = null;
+
   try {
     const saved = saveWebAppUrl(false);
     if (!saved) return;
 
+    DASHBOARD_IS_LOADING = true;
+    DASHBOARD_LOAD_CONTROLLER = new AbortController();
+
     startLoadingTimer('Cargando datos...');
     setWebAppStatus('Cargando datos desde Apps Script...');
 
-    const result = await apiGet('dashboard');
+    timeoutId = setTimeout(() => {
+      if (DASHBOARD_LOAD_CONTROLLER) {
+        DASHBOARD_LOAD_CONTROLLER.abort();
+      }
+    }, DASHBOARD_LOAD_TIMEOUT_MS);
+
+    const result = await apiGet(
+      'dashboard',
+      {},
+      { signal: DASHBOARD_LOAD_CONTROLLER.signal }
+    );
+
     const payload = resolveDashboardPayload(result);
 
     if (!payload) {
@@ -2520,8 +2542,19 @@ async function loadDashboardFromWebApp() {
 
     setWebAppStatus(`Datos cargados correctamente. Registros recibidos: ${MASTER_DATA.length}`);
   } catch (error) {
-    setWebAppStatus(error.message || 'Error al cargar los datos.', true);
+    if (error && error.name === 'AbortError') {
+      setWebAppStatus('La carga tardó demasiado y fue cancelada automáticamente.', true);
+    } else {
+      setWebAppStatus(error.message || 'Error al cargar los datos.', true);
+    }
   } finally {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
+
+    DASHBOARD_LOAD_CONTROLLER = null;
+    DASHBOARD_IS_LOADING = false;
+
     requestAnimationFrame(() => {
       stopLoadingTimer();
     });
