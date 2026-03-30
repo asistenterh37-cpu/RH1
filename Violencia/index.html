@@ -2238,15 +2238,11 @@ function loadData(payload) {
     initForecastSelectors();
     renderAll();
 
-    setTimeout(() => {
+        setTimeout(() => {
       const descriptiveScreen = document.getElementById('descriptiveScreen');
       if (descriptiveScreen && descriptiveScreen.classList.contains('active')) {
         renderAll();
       }
-
-      requestAnimationFrame(() => {
-        stopLoadingTimer();
-      });
     }, 100);
   
   function buildActiveDimensions() {
@@ -2497,8 +2493,8 @@ async function loadDashboardFromWebApp() {
     if (!saved) return;
 
     startLoadingTimer('Cargando datos...');
-setWebAppStatus('Cargando datos desde Apps Script...');
-    
+    setWebAppStatus('Cargando datos desde Apps Script...');
+
     const result = await apiGet('dashboard');
     const payload = resolveDashboardPayload(result);
 
@@ -2524,11 +2520,14 @@ setWebAppStatus('Cargando datos desde Apps Script...');
 
     setWebAppStatus(`Datos cargados correctamente. Registros recibidos: ${MASTER_DATA.length}`);
   } catch (error) {
-    stopLoadingTimer();
-setWebAppStatus(error.message || 'Error al cargar los datos.', true);
+    setWebAppStatus(error.message || 'Error al cargar los datos.', true);
+  } finally {
+    requestAnimationFrame(() => {
+      stopLoadingTimer();
+    });
   }
 }
-function showScreen(screenId) {
+  function showScreen(screenId) {
   const screens = document.querySelectorAll('.screen');
   screens.forEach(screen => {
     screen.classList.remove('active');
