@@ -2302,7 +2302,9 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   });
 
-  loadDashboardFromWebApp();
+  requestAnimationFrame(() => {
+    loadDashboardFromWebApp();
+  });
 });
   
   function setWebAppStatus(message, isError) {
@@ -2516,6 +2518,12 @@ async function loadDashboardFromWebApp() {
     startLoadingTimer('Cargando datos...');
     setWebAppStatus('Cargando datos desde Apps Script...');
 
+    await new Promise(resolve => {
+      requestAnimationFrame(() => {
+        setTimeout(resolve, 0);
+      });
+    });
+
     timeoutId = setTimeout(() => {
       if (DASHBOARD_LOAD_CONTROLLER) {
         DASHBOARD_LOAD_CONTROLLER.abort();
@@ -2550,6 +2558,8 @@ async function loadDashboardFromWebApp() {
       return;
     }
 
+    await new Promise(resolve => requestAnimationFrame(resolve));
+
     setWebAppStatus(`Datos cargados correctamente. Registros recibidos: ${MASTER_DATA.length}`);
   } catch (error) {
     if (error && error.name === 'AbortError') {
@@ -2564,10 +2574,7 @@ async function loadDashboardFromWebApp() {
 
     DASHBOARD_LOAD_CONTROLLER = null;
     DASHBOARD_IS_LOADING = false;
-
-    requestAnimationFrame(() => {
-      stopLoadingTimer();
-    });
+    stopLoadingTimer();
   }
 }
   function showScreen(screenId) {
