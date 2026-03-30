@@ -1113,6 +1113,60 @@ html{
 </head>
 <body>
 
+<script>
+(function () {
+  function isEditableTarget(el) {
+    if (!el) return false;
+    const tag = (el.tagName || '').toUpperCase();
+    return el.isContentEditable || tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
+  }
+
+  document.addEventListener('contextmenu', function (e) {
+    e.preventDefault();
+  }, { passive:false });
+
+  document.addEventListener('dragstart', function (e) {
+    e.preventDefault();
+  }, { passive:false });
+
+  document.addEventListener('selectstart', function (e) {
+    if (!isEditableTarget(e.target)) e.preventDefault();
+  }, { passive:false });
+
+  document.addEventListener('copy', function (e) {
+    if (!isEditableTarget(e.target)) e.preventDefault();
+  }, { passive:false });
+
+  document.addEventListener('cut', function (e) {
+    if (!isEditableTarget(e.target)) e.preventDefault();
+  }, { passive:false });
+
+  document.addEventListener('keydown', function (e) {
+    const key = (e.key || '').toLowerCase();
+    const ctrl = e.ctrlKey || e.metaKey;
+    const shift = e.shiftKey;
+
+    if (key === 'f12') {
+      e.preventDefault();
+      e.stopPropagation();
+      return false;
+    }
+
+    if (ctrl && shift && ['i','j','c','k'].includes(key)) {
+      e.preventDefault();
+      e.stopPropagation();
+      return false;
+    }
+
+    if (!isEditableTarget(e.target) && ctrl && ['u','s','p','c','x','a'].includes(key)) {
+      e.preventDefault();
+      e.stopPropagation();
+      return false;
+    }
+  }, true);
+})();
+</script>
+  
   <!-- Overlay de restricción eliminado -->
 <!-- Conexión manual oculta: se conserva para que el JS siga funcionando -->
 <div class="url-row" style="display:none;">
