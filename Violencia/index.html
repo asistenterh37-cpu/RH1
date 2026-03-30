@@ -1208,17 +1208,17 @@ html{
   </div>
 </div>
 
-   <div id="homeScreen" class="screen active">
+  <div id="homeScreen" class="screen active">
   <div class="home-panel">
     <div class="home-subtitle">
       Selecciona uno de los módulos superiores para visualizar el contenido:
-    
-    </div>
-  </div>
       <strong>Perfil descriptivo</strong>, <strong>Segmentación cruzada</strong>,
       <strong>Patrón de ocurrencias</strong>, <strong>Perfiles</strong>,
       <strong>Datos</strong>, <strong>Pronóstico</strong>, <strong>Análisis IA</strong>
       o <strong>Formulario</strong>.
+    </div>
+  </div>
+  <div class="home-description">
   <div class="home-description">
     <div class="home-description-text">
       <p>
@@ -1741,26 +1741,25 @@ html{
         >
       </div>
     </div>
-    <div class="independent-actions">
-      <button class="pink" id="btnGenerateForecast" onclick="processForecastAnalysis()">Generar pronóstico</button>
-      <button class="warning" onclick="clearForecastAnalysis()">Limpiar</button>
-    </div>
+   <div class="independent-actions">
+  <button type="button" class="pink" id="btnGenerateForecast" onclick="processForecastAnalysis(event)">Generar pronóstico</button>
+  <button type="button" class="warning" onclick="clearForecastAnalysis()">Limpiar</button>
+</div>
 
     <div id="forecastStatus" class="status-note"></div>
 
     <div id="forecastTableContainer" style="display:none; margin-top:18px;">
       <div class="data-table-wrap">
-        <table class="data-table">
-         <thead>
- <thead>
-  <tr>
-    <th>Departamento</th>
-    <th>Municipio</th>
-    <th>Incidencias pronosticadas</th>
-  </tr>
-</thead>
-<tbody id="forecastResultsBody"></tbody>
-        </table>
+       <table class="data-table">
+  <thead>
+    <tr>
+      <th>Departamento</th>
+      <th>Municipio</th>
+      <th>Incidencias pronosticadas</th>
+    </tr>
+  </thead>
+  <tbody id="forecastResultsBody"></tbody>
+</table>
       </div>
       <div id="forecastCaption" class="data-caption"></div>
     </div>
@@ -1788,11 +1787,10 @@ html{
       <strong>Recomendaciones</strong>.
     </div>
 
-    <div class="independent-actions">
-      <button class="pink" id="btnGenerateAI" onclick="processAIAnalysis()">Generar análisis IA</button>
-      <button class="warning" onclick="clearAIAnalysis()">Limpiar</button>
-    </div>
-
+   <div class="independent-actions">
+  <button type="button" class="pink" id="btnGenerateAI" onclick="processAIAnalysis(event)">Generar análisis IA</button>
+  <button type="button" class="warning" onclick="clearAIAnalysis()">Limpiar</button>
+</div>
     <div id="aiStatus" class="status-note">Primero genera la tabla en Datos y luego el Pronóstico.</div>
 
     <div id="aiResultCard" class="ai-report-card" style="display:none;">
@@ -6543,19 +6541,25 @@ function getDominantWeekdayFromMap(dayMap) {
   return rows[0] ? rows[0].day : 'Sin Dato';
 }
 
-async function processAIAnalysis() {
-const payload = buildAIPayloadFromDataTable();
-if (!payload) {
-  setAIBusyState(false, 'Primero genera la tabla en Datos.');
-  document.getElementById('aiResultCard').style.display = 'none';
-  return;
-}
+async function processAIAnalysis(event) {
+  if (event) {
+    event.preventDefault();
+    event.stopPropagation();
+  }
 
-if (!LAST_FORECAST_RESULT || !Array.isArray(LAST_FORECAST_RESULT.rows) || !LAST_FORECAST_RESULT.rows.length) {
-  setAIBusyState(false, 'Primero genera el Pronóstico para que el análisis IA use esos datos.');
-  document.getElementById('aiResultCard').style.display = 'none';
-  return;
-}
+  const payload = buildAIPayloadFromDataTable();
+  if (!payload) {
+    setAIBusyState(false, 'Primero genera la tabla en Datos.');
+    document.getElementById('aiResultCard').style.display = 'none';
+    return;
+  }
+
+  if (!LAST_FORECAST_RESULT || !Array.isArray(LAST_FORECAST_RESULT.rows) || !LAST_FORECAST_RESULT.rows.length) {
+    setAIBusyState(false, 'Primero genera el Pronóstico para que el análisis IA use esos datos.');
+    document.getElementById('aiResultCard').style.display = 'none';
+    return;
+  }
+
   const url = getWebAppUrl();
   if (!url) {
     setAIBusyState(false, 'Primero configura la URL del Web App.');
@@ -6578,7 +6582,6 @@ if (!LAST_FORECAST_RESULT || !Array.isArray(LAST_FORECAST_RESULT.rows) || !LAST_
     setAIBusyState(false, (err && err.message ? err.message : 'No se pudo obtener respuesta del servidor.') + ' Se generó un análisis local de respaldo.');
   }
 }
-
 function normalizeAIResponse(response, payload) {
   const fallback = buildLocalAIResult(payload);
   const source = response && response.data && typeof response.data === 'object'
@@ -6700,7 +6703,11 @@ function setForecastBusyState(isBusy, message) {
   }
 }
 
- function processForecastAnalysis() {
+ function processForecastAnalysis(event) {
+  if (event) {
+    event.preventDefault();
+    event.stopPropagation();
+  }
   syncForecastFormaWithData();
 
   if (!Array.isArray(MASTER_DATA) || !MASTER_DATA.length) {
