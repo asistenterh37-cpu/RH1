@@ -1134,6 +1134,11 @@ html{
 
 <div id="webAppStatus" class="status-note" style="display:none;"></div>
 
+<div id="loading" class="loading" style="display:none;">
+  <div id="loadingText">Cargando datos...</div>
+  <div id="loadingTimer" class="loading-timer">Tiempo transcurrido: 0.0 s</div>
+</div>
+  
 <div class="wrap">
 <div class="topbar">
   <div>
@@ -2283,8 +2288,11 @@ document.addEventListener('DOMContentLoaded', function () {
   if (!input) return;
 
   const savedUrl = localStorage.getItem('WEB_APP_URL');
-  if (savedUrl && !input.value) {
+  if (savedUrl) {
     input.value = savedUrl;
+    WEB_APP_URL = normalizeWebAppUrl(savedUrl);
+  } else {
+    WEB_APP_URL = normalizeWebAppUrl(input.value);
   }
 
   input.addEventListener('change', function () {
@@ -2293,6 +2301,8 @@ document.addEventListener('DOMContentLoaded', function () {
       WEB_APP_URL = clean;
     }
   });
+
+  loadDashboardFromWebApp();
 });
   
   function setWebAppStatus(message, isError) {
