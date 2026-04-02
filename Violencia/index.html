@@ -52,39 +52,77 @@ html{
       padding:20px;
     }
 
-    .topbar{
-      display:flex;
-      flex-wrap:wrap;
-      gap:12px;
-      align-items:center;
-      justify-content:space-between;
-      margin-bottom:18px;
-    }
+.topbar{
+  display:flex;
+  flex-wrap:wrap;
+  gap:12px;
+  align-items:flex-start;
+  justify-content:space-between;
+  margin-bottom:18px;
+}
 
-    .title{
-      font-size:28px;
-      font-weight:700;
-    }
+.topbar-left{
+  min-width:0;
+}
 
-        .subtitle{
-      color:var(--muted);
-      font-size:14px;
-      margin-top:4px;
-    }
+.topbar-right{
+  margin-left:auto;
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  min-height:64px;
+}
 
-    .subtitle.source-highlight{
-      display:inline-block;
-      margin-top:8px;
-      padding:8px 14px;
-      border-radius:999px;
-      background:linear-gradient(135deg, rgba(56,189,248,.22), rgba(14,165,233,.18));
-      border:1px solid rgba(56,189,248,.55);
-      color:#e0f2fe;
-      font-weight:700;
-      letter-spacing:.2px;
-      box-shadow:0 0 0 1px rgba(56,189,248,.12), 0 8px 20px rgba(2,132,199,.14);
-    }
+.title{
+  font-size:28px;
+  font-weight:700;
+}
 
+.subtitle{
+  color:var(--muted);
+  font-size:14px;
+  margin-top:4px;
+}
+
+.data-as-of{
+  display:inline-flex;
+  align-items:center;
+  justify-content:flex-end;
+  text-align:right;
+  padding:10px 14px;
+  border-radius:12px;
+  background:rgba(15,23,42,.92);
+  border:1px solid rgba(56,189,248,.35);
+  color:#e2e8f0;
+  font-size:14px;
+  font-weight:700;
+  line-height:1.2;
+  box-shadow:0 8px 20px rgba(0,0,0,.18);
+}
+
+.data-as-of .label{
+  color:#94a3b8;
+  margin-right:6px;
+  font-weight:600;
+}
+
+.data-as-of .value{
+  color:#f8fafc;
+}
+
+.subtitle.source-highlight{
+  display:inline-block;
+  margin-top:8px;
+  padding:8px 14px;
+  border-radius:999px;
+  background:linear-gradient(135deg, rgba(56,189,248,.22), rgba(14,165,233,.18));
+  border:1px solid rgba(56,189,248,.55);
+  color:#e0f2fe;
+  font-weight:700;
+  letter-spacing:.2px;
+  box-shadow:0 0 0 1px rgba(56,189,248,.12), 0 8px 20px rgba(2,132,199,.14);
+}
+    
     .actions{
       display:flex;
       gap:10px;
@@ -888,8 +926,19 @@ html{
     align-items:stretch;
   }
 
-  .topbar > div{
+  .topbar-left,
+  .topbar-right{
     width:100%;
+  }
+
+  .topbar-right{
+    min-height:auto;
+    justify-content:flex-start;
+  }
+
+  .data-as-of{
+    justify-content:flex-start;
+    text-align:left;
   }
 
   .actions{
@@ -899,7 +948,7 @@ html{
   .actions button{
     flex:1 1 220px;
   }
-
+    
     .menu-row{
     grid-template-columns:repeat(5, minmax(0, 1fr));
     gap:8px;
@@ -1207,9 +1256,16 @@ html{
 
 <div class="wrap">
   <div class="topbar">
-    <div>
+    <div class="topbar-left">
       <div class="title">Muertes por causas externas</div>
       <div class="subtitle">Sistema de análisis y visualización</div>
+    </div>
+
+    <div class="topbar-right">
+      <div class="data-as-of" id="dataAsOfBox">
+        <span class="label">Datos al:</span>
+        <span class="value" id="dataAsOfDate">Sin fecha</span>
+      </div>
     </div>
   </div>
 
@@ -2302,10 +2358,11 @@ function loadData(payload) {
     }
 
     initFormulario();
-    initDatosModule();
+initDatosModule();
 
-   initForecastSelectors();
-    renderAll();
+initForecastSelectors();
+updateDataAsOf();
+renderAll();
   
     setTimeout(() => {
       const descriptiveScreen = document.getElementById('descriptiveScreen');
@@ -3848,6 +3905,80 @@ function isYTDPlaceholderField(field) {
     return null;
   }
 
+function parseBaseRowDate(row) {
+  if (!row || typeof row !== 'object') return null;
+
+  const yearField = findRealBaseField('Año');
+  const monthField = findRealBaseField('Mes');
+  const dayField = findRealBaseField('Dia') || findRealBaseField('Día');
+
+  if (!yearField || !monthField || !dayField) return null;
+
+  const rawYear = String(row[yearField] ?? '').trim();
+  const rawMonth = String(row[monthField] ?? '').trim();
+  const rawDay = String(row[dayField] ?? '').trim();
+
+  const year = parseInt(rawYear, 10);
+  const day = parseInt(rawDay, 10);
+
+  let month = 0;
+  const monthNorm = normalize(rawMonth);
+
+  if (MONTH_INDEX[monthNorm]) {
+    month = MONTH_INDEX[monthNorm];
+  } else {
+    month = parseInt(rawMonth, 10);
+  }
+
+  if (!year || !month || !day) return null;
+
+  const dt = new Date(year, month - 1, day);
+  if (
+    isNaN(dt.getTime()) ||
+    dt.getFullYear() !== year ||
+    dt.getMonth() !== (month - 1) ||
+    dt.getDate() !== day
+  ) {
+    return null;
+  }
+
+  return dt;
+}
+
+function formatDateAsEs(dateObj) {
+  if (!(dateObj instanceof Date) || isNaN(dateObj.getTime())) return 'Sin fecha';
+
+  const dd = String(dateObj.getDate()).padStart(2, '0');
+  const mm = String(dateObj.getMonth() + 1).padStart(2, '0');
+  const yyyy = dateObj.getFullYear();
+
+  return `${dd}/${mm}/${yyyy}`;
+}
+
+function getLatestBaseDate() {
+  if (!Array.isArray(MASTER_DATA) || !MASTER_DATA.length) return null;
+
+  let latest = null;
+
+  MASTER_DATA.forEach(row => {
+    const dt = parseBaseRowDate(row);
+    if (!dt) return;
+    if (!latest || dt.getTime() > latest.getTime()) {
+      latest = dt;
+    }
+  });
+
+  return latest;
+}
+
+function updateDataAsOf() {
+  const el = document.getElementById('dataAsOfDate');
+  if (!el) return;
+
+  const latest = getLatestBaseDate();
+  el.textContent = latest ? formatDateAsEs(latest) : 'Sin fecha';
+}
+  
   function isExcludedIndependentField(field) {
     return EXCLUDED_INDEPENDENT_FIELDS.some(excluded => normalize(excluded) === normalize(field));
   }
