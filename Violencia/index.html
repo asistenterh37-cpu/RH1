@@ -2427,13 +2427,15 @@ window.addEventListener('resize', function() {
   setWebAppStatus('No se encontró una URL válida del Web App.', true);
   loadData({ headers: [], rows: [], dimensions: [], valueField: 'Frecuencia', excluded: [] });
 }
-function loadData(payload) {
 
-    
-    MASTER_DATA = payload.rows || [];
-    DIMENSIONS = payload.dimensions || [];
+  function loadData(payload) {
+    payload = payload || {};
+
+    MASTER_HEADERS = Array.isArray(payload.headers) ? payload.headers : [];
+    MASTER_DATA = Array.isArray(payload.rows) ? payload.rows : [];
+    DIMENSIONS = Array.isArray(payload.dimensions) ? payload.dimensions : [];
     VALUE_FIELD = payload.valueField || 'Frecuencia';
-
+    EXCLUDED_FIELDS = Array.isArray(payload.excluded) ? payload.excluded : [];
     ACTIVE_DIMENSIONS = buildActiveDimensions();
     FILTER_STATE = {};
     ACTIVE_DIMENSIONS.forEach(dim => FILTER_STATE[dim] = ALL_LABEL);
@@ -2456,7 +2458,10 @@ initDatosModule();
 initForecastSelectors();
 updateDataAsOf();
 renderAll();
-  
+
+    if (LOADING_START_TIME) {
+  stopLoadingTimer();
+}
     setTimeout(() => {
       const descriptiveScreen = document.getElementById('descriptiveScreen');
       if (descriptiveScreen && descriptiveScreen.classList.contains('active')) {
@@ -2807,6 +2812,7 @@ async function loadDashboardFromWebApp() {
     }
 
     setWebAppStatus(`Datos cargados correctamente. Registros: ${rows.length}.`);
+    stopLoadingTimer();
   } catch (error) {
     console.error('Error cargando dashboard:', error);
     stopLoadingTimer();
@@ -2814,7 +2820,7 @@ async function loadDashboardFromWebApp() {
     loadData({ headers: [], rows: [], dimensions: [], valueField: 'Frecuencia', excluded: [] });
   }
 }
-
+  
 function showScreen(screenId) {
   const screens = document.querySelectorAll('.screen');
   screens.forEach(screen => {
@@ -2856,6 +2862,24 @@ function showScreen(screenId) {
     }, 60);
   }
 
+  setTimeout(() => {
+    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+    if (screenId === 'formScreen') {
+      const firstVisibleField =
+        document.getElementById('formDepartamento') ||
+        document.getElementById('formForma') ||
+        document.getElementById('formSexo');
+
+      if (firstVisibleField) {
+        try {
+          firstVisibleField.focus();
+        } catch (e) {}
+      }
+    }
+  }, 60);
+}
+  
   setTimeout(() => {
     target.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
