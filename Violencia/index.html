@@ -2096,6 +2096,20 @@ html{
   google.charts.load('current', { packages: ['corechart'] });
   google.charts.setOnLoadCallback(init);
 
+function bootAppOnce() {
+  if (window.__dashboardBooted) return;
+  window.__dashboardBooted = true;
+  init();
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+  setTimeout(bootAppOnce, 150);
+});
+
+window.addEventListener('load', function () {
+  setTimeout(bootAppOnce, 150);
+});
+  
   function toggleForecastAccordion(button, contentId) {
   const content = document.getElementById(contentId);
   if (!content) return;
@@ -2385,20 +2399,22 @@ window.addEventListener('resize', function() {
   }
 });
 
-  function init() {
+function init() {
   WEB_APP_URL = normalizeWebAppUrl(
     WEB_APP_URL ||
     'https://script.google.com/macros/s/AKfycbyE5bIXrimMMT3DdWAS4Yf3UH5CQCwm8vV2ngTdSLnriyMPb1lB8HMyJMo1DBhFKOPS/exec'
   );
-    
+
   if (WEB_APP_URL) {
     localStorage.setItem('WEB_APP_URL', WEB_APP_URL);
     loadDashboardFromWebApp();
     return;
   }
 
+  setWebAppStatus('No se encontró una URL válida del Web App.', true);
   loadData({ headers: [], rows: [], dimensions: [], valueField: 'Frecuencia', excluded: [] });
 }
+  
 function loadData(payload) {
 
     
@@ -2491,10 +2507,23 @@ document.addEventListener('DOMContentLoaded', function () {
   });
 });
   
-  function setWebAppStatus(message, isError) {
-  return;
-}
+function setWebAppStatus(message, isError = false) {
+  const statusEl = document.getElementById('webAppStatus');
+  if (!statusEl) return;
 
+  const text = String(message || '').trim();
+  if (!text) {
+    statusEl.textContent = '';
+    statusEl.style.display = 'none';
+    statusEl.style.color = '';
+    return;
+  }
+
+  statusEl.textContent = text;
+  statusEl.style.display = 'block';
+  statusEl.style.color = isError ? '#fca5a5' : '#94a3b8';
+}
+  
   function startLoadingTimer(message = 'Cargando datos...') {
   const loadingEl = document.getElementById('loading');
   const loadingTextEl = document.getElementById('loadingText');
@@ -2687,43 +2716,52 @@ async function testWebAppConnection() {
 }
 
 async function loadDashboardFromWebApp() {
+  startLoadingTimer('Cargando datos...');
+  setWebAppStatus('Cargando datos desde Apps Script...');
+
   try {
     const saved = saveWebAppUrl(false);
-    if (!saved) return;
+    if (!saved) {
+      stopLoadingTimer();
+      return;
+    }
 
-    startLoadingTimer('Cargando datos...');
-setWebAppStatus('Cargando datos desde Apps Script...');
-    
     const result = await apiGet('dashboard');
     const payload = resolveDashboardPayload(result);
 
-    if (!payload) {
+    if (!payload || typeof payload !== 'object') {
       throw new Error('La API no devolvió un objeto válido para el dashboard.');
     }
 
+    const headers = Array.isArray(payload.headers) ? payload.headers : [];
+    const rows = Array.isArray(payload.rows) ? payload.rows : [];
+    const dimensions = Array.isArray(payload.dimensions) ? payload.dimensions : [];
+    const excluded = Array.isArray(payload.excluded) ? payload.excluded : [];
+
+    MASTER_HEADERS = headers;
+    EXCLUDED_FIELDS = excluded;
+
     loadData({
-      headers: Array.isArray(payload.headers) ? payload.headers : [],
-      rows: Array.isArray(payload.rows) ? payload.rows : [],
-      dimensions: Array.isArray(payload.dimensions) ? payload.dimensions : [],
+      headers,
+      rows,
+      dimensions,
       valueField: payload.valueField || 'Frecuencia',
-      excluded: Array.isArray(payload.excluded) ? payload.excluded : []
+      excluded
     });
 
-    MASTER_HEADERS = Array.isArray(payload.headers) ? payload.headers : [];
-    EXCLUDED_FIELDS = Array.isArray(payload.excluded) ? payload.excluded : [];
-
-    if (!MASTER_DATA.length) {
+    if (!rows.length) {
       setWebAppStatus('Conexión correcta, pero la hoja no devolvió registros para el dashboard.', true);
       return;
     }
 
-    setWebAppStatus(`Datos cargados correctamente. Registros recibidos: ${MASTER_DATA.length}`);
+    setWebAppStatus(`Datos cargados correctamente. Registros recibidos: ${rows.length}`);
   } catch (error) {
+    console.error('Error al cargar dashboard:', error);
+    setWebAppStatus(error && error.message ? error.message : 'Error al cargar los datos.', true);
     stopLoadingTimer();
-setWebAppStatus(error.message || 'Error al cargar los datos.', true);
   }
 }
-function showScreen(screenId) {
+  function showScreen(screenId) {
   const screens = document.querySelectorAll('.screen');
   screens.forEach(screen => {
     screen.classList.remove('active');
