@@ -2106,7 +2106,6 @@ html{
 
 <script>
   google.charts.load('current', { packages: ['corechart'] });
-  google.charts.setOnLoadCallback(init);
 
 function bootAppOnce() {
   if (window.__dashboardBooted) return;
@@ -2114,13 +2113,7 @@ function bootAppOnce() {
   init();
 }
 
-document.addEventListener('DOMContentLoaded', function () {
-  setTimeout(bootAppOnce, 150);
-});
-
-window.addEventListener('load', function () {
-  setTimeout(bootAppOnce, 150);
-});
+google.charts.setOnLoadCallback(bootAppOnce);
   
   function toggleForecastAccordion(button, contentId) {
   const content = document.getElementById(contentId);
@@ -2411,11 +2404,19 @@ window.addEventListener('resize', function() {
   }
 });
 
-function init() {
+  function init() {
   WEB_APP_URL = normalizeWebAppUrl(
     WEB_APP_URL ||
+    localStorage.getItem('WEB_APP_URL') ||
     'https://script.google.com/macros/s/AKfycbyE5bIXrimMMT3DdWAS4Yf3UH5CQCwm8vV2ngTdSLnriyMPb1lB8HMyJMo1DBhFKOPS/exec'
   );
+
+  const input = document.getElementById('webAppUrlInput');
+  if (input && WEB_APP_URL) {
+    input.value = WEB_APP_URL;
+  }
+
+  ensureLoadingBox();
 
   if (WEB_APP_URL) {
     localStorage.setItem('WEB_APP_URL', WEB_APP_URL);
@@ -2426,7 +2427,6 @@ function init() {
   setWebAppStatus('No se encontró una URL válida del Web App.', true);
   loadData({ headers: [], rows: [], dimensions: [], valueField: 'Frecuencia', excluded: [] });
 }
-  
 function loadData(payload) {
 
     
@@ -2618,6 +2618,14 @@ function stopLoadingTimer() {
     }, 250);
   }
 } 
+
+window.addEventListener('beforeunload', function () {
+  if (LOADING_TIMER_INTERVAL) {
+    clearInterval(LOADING_TIMER_INTERVAL);
+    LOADING_TIMER_INTERVAL = null;
+  }
+});
+  
 function saveWebAppUrl(showMessage = true) {
   const input = document.getElementById('webAppUrlInput');
   if (!input) return false;
@@ -2798,8 +2806,16 @@ async function loadDashboardFromWebApp() {
       return;
     }
 
-    setWebAppStatus(`Datos cargados correctamente. Registros
-  function showScreen(screenId) {
+    setWebAppStatus(`Datos cargados correctamente. Registros: ${rows.length}.`);
+  } catch (error) {
+    console.error('Error cargando dashboard:', error);
+    stopLoadingTimer();
+    setWebAppStatus(error.message || 'No fue posible cargar los datos del dashboard.', true);
+    loadData({ headers: [], rows: [], dimensions: [], valueField: 'Frecuencia', excluded: [] });
+  }
+}
+
+function showScreen(screenId) {
   const screens = document.querySelectorAll('.screen');
   screens.forEach(screen => {
     screen.classList.remove('active');
@@ -2840,6 +2856,23 @@ async function loadDashboardFromWebApp() {
     }, 60);
   }
 
+  setTimeout(() => {
+    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+    if (screenId === 'formScreen') {
+      const firstVisibleField =
+        document.getElementById('formDepartamento') ||
+        document.getElementById('formForma') ||
+        document.getElementById('formSexo');
+
+      if (firstVisibleField) {
+        try {
+          firstVisibleField.focus();
+        } catch (e) {}
+      }
+    }
+  }, 60);
+}
   setTimeout(() => {
     target.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
