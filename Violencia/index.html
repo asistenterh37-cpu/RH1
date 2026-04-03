@@ -130,10 +130,10 @@ html{
       flex-wrap:wrap;
     }
 
-.menu-row{
+    .menu-row{
   display:grid;
-  grid-template-columns:repeat(9, minmax(0, 1fr));
-  gap:8px;
+  grid-template-columns:repeat(10, minmax(0, 1fr));
+  gap:6px;
   margin:12px 0 18px 0;
   align-items:stretch;
 }
@@ -141,19 +141,18 @@ html{
 .menu-row button{
   width:100%;
   min-width:0;
-  min-height:44px;
+  min-height:42px;
   display:flex;
   align-items:center;
   justify-content:center;
   text-align:center;
-  line-height:1.15;
+  line-height:1.05;
   white-space:normal;
-  padding:8px 6px;
-  font-size:16px;
+  padding:6px 4px;
+  font-size:13px;
   border-radius:10px;
   overflow-wrap:anywhere;
 }
-    
     .actions{
       align-items:stretch;
     }
@@ -942,11 +941,11 @@ html{
   }
 
   .menu-row button{
-    font-size:15px;
-    padding:7px 6px;
+    font-size:13px;
+    padding:7px 5px;
   }
 }
-@media (max-width: 820px){
+    @media (max-width: 820px){
   .menu-row{
     grid-template-columns:1fr;
     width:100%;
@@ -1271,9 +1270,10 @@ html{
     </div>
   </div>
 
-  <div class="menu-row">
+ <div class="menu-row">
     <button type="button" onclick="showScreen('homeScreen')">Inicio</button>
     <button type="button" onclick="showScreen('descriptiveScreen')">Perfil descriptivo</button>
+    <button type="button" onclick="showScreen('analyticScreen')">Perfil analítico</button>
     <button type="button" onclick="showScreen('segmentScreen')">Segmentación cruzada</button>
     <button type="button" onclick="showScreen('occurrenceScreen')">Patrón de ocurrencias</button>
     <button type="button" onclick="showScreen('profilesScreen')">Perfiles</button>
@@ -1396,7 +1396,70 @@ html{
 
   <div class="charts-rows" id="chartsRows"></div>
 </div>
- 
+
+<!-- PERFIL ANALÍTICO -->
+<div id="analyticScreen" class="screen">
+  <div class="section-actions">
+    <button class="dark" type="button" onclick="showScreen('homeScreen')">Volver</button>
+  </div>
+
+  <div class="interaction-panel">
+    <div class="panel-title">Perfil analítico</div>
+    <div class="panel-subtitle">
+      Muestra un único gráfico seleccionado desde la lista de análisis ubicada a la derecha.
+    </div>
+
+    <div style="display:grid; grid-template-columns:minmax(0,1fr) 340px; gap:18px; align-items:start;">
+      <div class="independent-chart-card" style="margin-top:0;">
+        <div class="independent-chart-header">
+          <div class="independent-chart-title" id="analyticChartTitle">Perfil analítico</div>
+          <div class="independent-chart-subtitle" id="analyticChartSubtitle">
+            Selecciona un análisis desde la lista lateral.
+          </div>
+        </div>
+
+        <div class="independentChartOuter">
+          <div id="analyticChartScroll" class="independentChartViewport">
+            <div id="analyticChartStage" class="independentChartStage">
+              <div id="analyticChart" class="independentChart"></div>
+            </div>
+          </div>
+        </div>
+
+        <div id="analyticChartNote" class="independent-chart-hint" style="margin-top:10px;">
+          El gráfico cambia automáticamente al seleccionar otra opción.
+        </div>
+      </div>
+
+      <div class="filter-box" style="height:100%;">
+        <label class="filter-label" for="analyticSelect">Análisis</label>
+        <select id="analyticSelect" class="filter-select" onchange="renderAnalyticProfile()">
+          <option value="Forma de fallecimiento">Forma de fallecimiento</option>
+          <option value="Año">Año</option>
+          <option value="Comparación interanual acumulada">Comparación interanual acumulada</option>
+          <option value="Mes">Mes</option>
+          <option value="Año mes">Año mes</option>
+          <option value="Dia">Dia</option>
+          <option value="Dia semana">Dia semana</option>
+          <option value="Hora">Hora</option>
+          <option value="Departamento">Departamento</option>
+          <option value="Municipio">Municipio</option>
+          <option value="Mecánismo utilizado">Mecánismo utilizado</option>
+          <option value="Sexo">Sexo</option>
+          <option value="Rango edad">Rango edad</option>
+          <option value="Estado civil">Estado civil</option>
+          <option value="Ocupación">Ocupación</option>
+          <option value="Edad">Edad</option>
+        </select>
+
+        <div class="status-note" style="margin-top:12px;">
+          Solo se visualiza un gráfico a la vez.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+  
     <!-- SEGMENTACIÓN CRUZADA -->
     <div id="segmentScreen" class="screen">
       <div class="section-actions">
@@ -2371,6 +2434,11 @@ renderAll();
       if (descriptiveScreen && descriptiveScreen.classList.contains('active')) {
         renderAll();
       }
+
+      const analyticScreen = document.getElementById('analyticScreen');
+      if (analyticScreen && analyticScreen.classList.contains('active')) {
+        renderAnalyticProfile();
+      }
     }, 100);
 
     stopLoadingTimer();
@@ -2680,6 +2748,10 @@ function showScreen(screenId) {
     setTimeout(() => renderAll(), 60);
   }
 
+  if (screenId === 'analyticScreen') {
+    setTimeout(() => renderAnalyticProfile(), 60);
+  }
+
   if (screenId === 'aiScreen') {
     setTimeout(() => refreshAIPreviewFromLastData(), 60);
   }
@@ -2692,6 +2764,23 @@ function showScreen(screenId) {
     }, 60);
   }
 
+  setTimeout(() => {
+    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+    if (screenId === 'formScreen') {
+      const firstVisibleField =
+        document.getElementById('formDepartamento') ||
+        document.getElementById('formForma') ||
+        document.getElementById('formSexo');
+
+      if (firstVisibleField) {
+        try {
+          firstVisibleField.focus();
+        } catch (e) {}
+      }
+    }
+  }, 60);
+}
   setTimeout(() => {
     target.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
@@ -2752,6 +2841,225 @@ function renderAll() {
   renderChartsByRows();
 }
 
+function getAnalyticRequestedField() {
+  const select = document.getElementById('analyticSelect');
+  if (!select) return 'Forma de fallecimiento';
+  return select.value || 'Forma de fallecimiento';
+}
+
+function resolveAnalyticField(label) {
+  if (normalize(label) === normalize('Comparación interanual acumulada')) {
+    return 'YTD_COMPARISON';
+  }
+
+  if (normalize(label) === normalize('Mecánismo utilizado')) {
+    return findRealField('Mecanismo utilizado') || findRealField('Mecánismo utilizado');
+  }
+
+  return findRealField(label);
+}
+
+function aggregateAnalyticField(rows, field) {
+  const map = new Map();
+
+  rows.forEach(row => {
+    let key = '';
+
+    if (normalize(field) === normalize(VIRTUAL_YEAR_MONTH_FIELD)) {
+      key = typeof buildVirtualYearMonthValue === 'function'
+        ? formatCell(buildVirtualYearMonthValue(row))
+        : 'Sin Dato';
+    } else {
+      key = formatCell(row[field]);
+    }
+
+    const freq = num(row[VALUE_FIELD]);
+    if (!map.has(key)) map.set(key, 0);
+    map.set(key, map.get(key) + freq);
+  });
+
+  return Array.from(map.entries())
+    .map(([name, value]) => ({ name, value }))
+    .sort((a, b) => {
+      if (b.value !== a.value) return b.value - a.value;
+      return String(a.name).localeCompare(String(b.name), 'es', { numeric:true, sensitivity:'base' });
+    });
+}
+
+function sortAnalyticData(field, data) {
+  const customMonthOrder = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  const customDayOrder = ['Lunes','Martes','Miércoles','Miercoles','Jueves','Viernes','Sábado','Sabado','Domingo'];
+  const customHourOrder = ['Madrugada','Mañana','Manana','Tarde','Noche'];
+
+  if (normalize(field) === normalize('Mes')) {
+    return [...data].sort((a, b) => customMonthOrder.indexOf(a.name) - customMonthOrder.indexOf(b.name));
+  }
+
+  if (normalize(field) === normalize('Dia semana')) {
+    return [...data].sort((a, b) => customDayOrder.indexOf(a.name) - customDayOrder.indexOf(b.name));
+  }
+
+  if (normalize(field) === normalize('Hora')) {
+    return [...data].sort((a, b) => customHourOrder.indexOf(a.name) - customHourOrder.indexOf(b.name));
+  }
+
+  if (normalize(field) === normalize('Año')) {
+    return [...data].sort((a, b) => Number(a.name) - Number(b.name));
+  }
+
+  if (normalize(field) === normalize('Dia') || normalize(field) === normalize('Edad')) {
+    return [...data].sort((a, b) => Number(a.name) - Number(b.name));
+  }
+
+  if (normalize(field) === normalize('Año mes')) {
+    return [...data].sort((a, b) => String(a.name).localeCompare(String(b.name), 'es', { numeric:true, sensitivity:'base' }));
+  }
+
+  return data;
+}
+
+function renderAnalyticProfile() {
+  const chartDiv = document.getElementById('analyticChart');
+  const titleEl = document.getElementById('analyticChartTitle');
+  const subtitleEl = document.getElementById('analyticChartSubtitle');
+  const noteEl = document.getElementById('analyticChartNote');
+  const scrollEl = document.getElementById('analyticChartScroll');
+  const stageEl = document.getElementById('analyticChartStage');
+
+  if (!chartDiv || !titleEl || !subtitleEl || !noteEl) return;
+
+  const selectedLabel = getAnalyticRequestedField();
+
+  if (normalize(selectedLabel) === normalize('Comparación interanual acumulada')) {
+    titleEl.textContent = 'Comparación interanual acumulada (YTD vs YTD)';
+    subtitleEl.textContent = 'Comparación del año más reciente disponible contra el año inmediato anterior';
+    noteEl.textContent = 'Se reutiliza la lógica acumulada ya existente del tablero.';
+    chartDiv.id = 'chart_ytdComparison';
+    renderYTDComparisonChart();
+    return;
+  }
+
+  if (chartDiv.id !== 'analyticChart') {
+    chartDiv.id = 'analyticChart';
+  }
+
+  const realField = resolveAnalyticField(selectedLabel);
+  const filtered = applyAllFilters();
+
+  if (!filtered.length) {
+    chartDiv.innerHTML = '<div class="empty">No hay datos para la combinación de filtros seleccionada.</div>';
+    titleEl.textContent = 'Perfil analítico';
+    subtitleEl.textContent = 'Sin datos disponibles';
+    noteEl.textContent = 'Ajusta los filtros del tablero.';
+    return;
+  }
+
+  if (!realField) {
+    chartDiv.innerHTML = '<div class="empty">No se encontró la variable seleccionada.</div>';
+    titleEl.textContent = 'Perfil analítico';
+    subtitleEl.textContent = selectedLabel;
+    noteEl.textContent = 'La variable no está disponible en la fuente actual.';
+    return;
+  }
+
+  let aggregated = aggregateAnalyticField(filtered, realField);
+  aggregated = sortAnalyticData(realField, aggregated);
+
+  if (!aggregated.length) {
+    chartDiv.innerHTML = '<div class="empty">No hay datos para mostrar.</div>';
+    titleEl.textContent = selectedLabel;
+    subtitleEl.textContent = 'Sin resultados';
+    noteEl.textContent = 'No fue posible construir el gráfico.';
+    return;
+  }
+
+  titleEl.textContent = selectedLabel;
+  subtitleEl.textContent = 'Visualización individual del análisis seleccionado';
+
+  const isHorizontal =
+    normalize(selectedLabel) === normalize('Departamento') ||
+    normalize(selectedLabel) === normalize('Municipio') ||
+    normalize(selectedLabel) === normalize('Mecánismo utilizado') ||
+    normalize(selectedLabel) === normalize('Ocupación');
+
+  const isLine =
+    normalize(selectedLabel) === normalize('Año') ||
+    normalize(selectedLabel) === normalize('Mes') ||
+    normalize(selectedLabel) === normalize('Año mes') ||
+    normalize(selectedLabel) === normalize('Dia') ||
+    normalize(selectedLabel) === normalize('Dia semana') ||
+    normalize(selectedLabel) === normalize('Hora') ||
+    normalize(selectedLabel) === normalize('Edad');
+
+  const total = aggregated.reduce((acc, item) => acc + num(item.value), 0);
+  const dt = new google.visualization.DataTable();
+  dt.addColumn('string', selectedLabel);
+  dt.addColumn('number', VALUE_FIELD);
+
+  aggregated.forEach(item => {
+    dt.addRow([item.name, item.value]);
+  });
+
+  const dynamicHeight = isHorizontal
+    ? Math.max(440, aggregated.length * 42 + 40)
+    : 460;
+
+  chartDiv.style.height = dynamicHeight + 'px';
+  if (scrollEl) scrollEl.scrollTop = 0;
+  if (stageEl) {
+    stageEl.style.width = '100%';
+    stageEl.style.minWidth = '100%';
+  }
+
+  const options = {
+    backgroundColor: 'transparent',
+    chartArea: isHorizontal
+      ? { left: 180, top: 35, width: '68%', height: dynamicHeight - 90 }
+      : { left: 60, top: 35, width: '82%', height: '72%' },
+    legend: { position: 'none' },
+    hAxis: {
+      textStyle: { color: '#e2e8f0', fontSize: 11 },
+      titleTextStyle: { color: '#e2e8f0' },
+      gridlines: { color: '#334155' },
+      baselineColor: '#475569'
+    },
+    vAxis: {
+      textStyle: { color: '#e2e8f0', fontSize: 11 },
+      titleTextStyle: { color: '#e2e8f0' },
+      gridlines: { color: '#334155' },
+      baselineColor: '#475569'
+    },
+    colors: ['#38bdf8'],
+    tooltip: { textStyle: { fontSize: 12 } },
+    animation: { startup: true, duration: 500, easing: 'out' }
+  };
+
+  let chart;
+
+  if (isHorizontal) {
+    chart = new google.visualization.BarChart(chartDiv);
+  } else if (isLine) {
+    chart = new google.visualization.LineChart(chartDiv);
+  } else {
+    chart = new google.visualization.ColumnChart(chartDiv);
+  }
+
+  google.visualization.events.addListener(chart, 'onmouseover', function(e) {
+    if (e.row == null) return;
+    const item = aggregated[e.row];
+    const pct = total > 0 ? (item.value / total) * 100 : 0;
+    showFloatingTag(selectedLabel, item.name, item.value, pct);
+  });
+
+  google.visualization.events.addListener(chart, 'onmouseout', function() {
+    hideFloatingTag();
+  });
+
+  chart.draw(dt, options);
+
+  noteEl.textContent = `Total de categorías graficadas: ${formatNumber(aggregated.length)} | Frecuencia total: ${formatNumber(total)}`;
+}
+  
   function applyAllFilters() {
     return MASTER_DATA.filter(row => {
       return ACTIVE_DIMENSIONS.every(field => {
