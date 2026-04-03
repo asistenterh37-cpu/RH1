@@ -897,11 +897,23 @@ html{
   gap:8px;
   flex-wrap:wrap;
 }
-/* Ocultar completamente la conexión manual sin romper el JS */
-.url-row,
-#webAppStatus{
+/* Ocultar la conexión manual sin ocultar el estado de carga */
+.url-row{
   display:none !important;
 }
+
+#webAppStatus{
+  display:none;
+  margin:0 0 14px 0;
+  padding:12px 14px;
+  border-radius:12px;
+  background:rgba(11,18,32,.96);
+  border:1px solid var(--border);
+  box-shadow:0 10px 24px rgba(0,0,0,.18);
+  font-size:14px;
+  line-height:1.35;
+}
+    
     
     .mobile-form-title{
       display:none;
@@ -2507,29 +2519,55 @@ document.addEventListener('DOMContentLoaded', function () {
   });
 });
   
-function setWebAppStatus(message, isError = false) {
-  const statusEl = document.getElementById('webAppStatus');
-  if (!statusEl) return;
+ function setWebAppStatus(message, isError = false) {
+  let statusEl = document.getElementById('webAppStatus');
+
+  if (!statusEl) {
+    const wrap = document.querySelector('.wrap') || document.body;
+    statusEl = document.createElement('div');
+    statusEl.id = 'webAppStatus';
+    statusEl.className = 'status-note';
+    wrap.insertBefore(statusEl, wrap.firstChild);
+  }
 
   const text = String(message || '').trim();
+
   if (!text) {
     statusEl.textContent = '';
     statusEl.style.display = 'none';
     statusEl.style.color = '';
+    statusEl.style.borderColor = '';
     return;
   }
 
   statusEl.textContent = text;
   statusEl.style.display = 'block';
-  statusEl.style.color = isError ? '#fca5a5' : '#94a3b8';
+  statusEl.style.color = isError ? '#fca5a5' : '#cbd5e1';
+  statusEl.style.borderColor = isError ? 'rgba(239,68,68,.45)' : 'rgba(56,189,248,.35)';
 }
-  
-  function startLoadingTimer(message = 'Cargando datos...') {
-  const loadingEl = document.getElementById('loading');
+
+function ensureLoadingBox() {
+  let loadingEl = document.getElementById('loading');
+
+  if (!loadingEl) {
+    loadingEl = document.createElement('div');
+    loadingEl.id = 'loading';
+    loadingEl.className = 'loading';
+    loadingEl.style.display = 'none';
+    loadingEl.innerHTML = `
+      <div id="loadingText">Cargando datos...</div>
+      <div id="loadingTimer" class="loading-timer">Tiempo transcurrido: 0.0 s</div>
+    `;
+    document.body.appendChild(loadingEl);
+  }
+
+  return loadingEl;
+}
+
+function startLoadingTimer(message = 'Cargando datos...') {
+  const loadingEl = ensureLoadingBox();
   const loadingTextEl = document.getElementById('loadingText');
   const loadingTimerEl = document.getElementById('loadingTimer');
-
-  if (!loadingEl) return;
 
   if (loadingTextEl) {
     loadingTextEl.textContent = message;
@@ -2551,9 +2589,10 @@ function setWebAppStatus(message, isError = false) {
   loadingEl.style.display = 'block';
 
   LOADING_TIMER_INTERVAL = setInterval(() => {
-    if (!LOADING_START_TIME || !loadingTimerEl) return;
+    const timerEl = document.getElementById('loadingTimer');
+    if (!LOADING_START_TIME || !timerEl) return;
     const elapsedSeconds = ((Date.now() - LOADING_START_TIME) / 1000).toFixed(1);
-    loadingTimerEl.textContent = `Tiempo transcurrido: ${elapsedSeconds} s`;
+    timerEl.textContent = `Tiempo transcurrido: ${elapsedSeconds} s`;
   }, 100);
 }
 
@@ -2574,10 +2613,11 @@ function stopLoadingTimer() {
   LOADING_START_TIME = null;
 
   if (loadingEl) {
-    loadingEl.style.display = 'none';
+    setTimeout(() => {
+      loadingEl.style.display = 'none';
+    }, 250);
   }
-}
-  
+} 
 function saveWebAppUrl(showMessage = true) {
   const input = document.getElementById('webAppUrlInput');
   if (!input) return false;
@@ -2723,6 +2763,7 @@ async function loadDashboardFromWebApp() {
     const saved = saveWebAppUrl(false);
     if (!saved) {
       stopLoadingTimer();
+      setWebAppStatus('No se pudo cargar porque la URL del Web App no es válida.', true);
       return;
     }
 
@@ -2741,6 +2782,8 @@ async function loadDashboardFromWebApp() {
     MASTER_HEADERS = headers;
     EXCLUDED_FIELDS = excluded;
 
+    setWebAppStatus(`Cargando datos: ${rows.length} registros recibidos. Procesando visualizaciones...`);
+
     loadData({
       headers,
       rows,
@@ -2751,16 +2794,11 @@ async function loadDashboardFromWebApp() {
 
     if (!rows.length) {
       setWebAppStatus('Conexión correcta, pero la hoja no devolvió registros para el dashboard.', true);
+      stopLoadingTimer();
       return;
     }
 
-    setWebAppStatus(`Datos cargados correctamente. Registros recibidos: ${rows.length}`);
-  } catch (error) {
-    console.error('Error al cargar dashboard:', error);
-    setWebAppStatus(error && error.message ? error.message : 'Error al cargar los datos.', true);
-    stopLoadingTimer();
-  }
-}
+    setWebAppStatus(`Datos cargados correctamente. Registros
   function showScreen(screenId) {
   const screens = document.querySelectorAll('.screen');
   screens.forEach(screen => {
@@ -7681,11 +7719,8 @@ function escapeHtml(value) {
     .replace(/'/g, '&#39;');
 }
   </script>
-<script>
-  <script>
-  /* Bloque de protección eliminado porque estaba mostrando
-     el mensaje "Acceso restringido" en la interfaz */
-</script>
-  </div>
+<!-- Bloque de protección eliminado porque estaba mostrando
+     el mensaje "Acceso restringido" en la interfaz -->
+</div>
 </body>
 </html>
