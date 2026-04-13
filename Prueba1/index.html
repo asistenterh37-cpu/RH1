@@ -401,7 +401,25 @@ button[disabled]{
 </head>
 
 <body>
-  <input id="webapp" class="sr-hidden" aria-hidden="true" tabindex="-1" />
+  <div class="wrap" style="padding-top:10px;padding-bottom:0">
+  <div class="card" style="margin-bottom:12px">
+    <div class="card-b">
+      <div class="form-grid">
+        <div class="field col-8 boxed">
+          <div class="lbl">URL Web App Apps Script</div>
+          <input id="webapp" placeholder="https://script.google.com/macros/s/.../exec" />
+        </div>
+        <div class="field col-4 boxed">
+          <div class="lbl">Pruebas API</div>
+          <div class="controls">
+            <button id="btnProbarApi" class="btn-blue">Probar API</button>
+            <button id="btnAbrirPing" class="btn-ghost">Abrir Ping</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 
   <!-- ✅ MODAL RECUPERAR -->
 <div id="recoverModalBack" class="modalBack" role="dialog" aria-modal="true" aria-labelledby="recoverTitle">
@@ -1227,6 +1245,17 @@ Dejar de hacer:`;
     $("webapp").value = normalizeWebApp(v || "");
   }
 
+function ensureWebAppVisibleValue_(){
+  const el = $("webapp");
+  if (!el) return;
+
+  const saved = localStorage.getItem(LS_KEY_);
+  const finalUrl = normalizeWebApp(saved || el.value || DEFAULT_WEBAPP_);
+
+  el.value = finalUrl;
+  localStorage.setItem(LS_KEY_, finalUrl);
+}
+  
   /* ================= STATE ================= */
       const state = {
     fase: "",
@@ -1290,22 +1319,31 @@ Dejar de hacer:`;
   const base = getWebApp();
   const url = new URL(base);
 
-  Object.entries(params).forEach(([k,v]) => {
-    url.searchParams.set(k, v);
+  Object.entries(params || {}).forEach(([k,v]) => {
+    if (v !== undefined && v !== null) url.searchParams.set(k, String(v));
   });
 
-  url.searchParams.set("callback", cbName);
+  if (cbName) url.searchParams.set("callback", cbName);
   url.searchParams.set("_", String(Date.now()));
-
   return url.toString();
 }
 
-  function apiGet(params, timeoutMs = 15000) {
+function normalizeApiResponse(data){
+  // Caso 1: el backend ya devuelve { ok:true, ... }
+  if (data && typeof data === "object" && "ok" in data) return data;
+
+  // Caso 2: el backend devuelve payload “directo”
+  if (data && typeof data === "object") {
+    return { ok: true, ...data };
+  }
+
+  return { ok:false, error:"Respuesta vacía o inválida" };
+}
+
+function apiGetJsonp(params, timeoutMs = 15000){
   return new Promise((resolve, reject) => {
     const cb = "cb_" + Math.random().toString(36).slice(2);
     const src = build(params, cb);
-
-    setApiStatus("", "API: consultando…");
 
     const s = document.createElement("script");
     s.async = true;
@@ -1313,63 +1351,112 @@ Dejar de hacer:`;
 
     let done = false;
 
-    function fail(msg) {
-      setApiStatus("err", "API: " + msg);
+    function cleanup(){
+      try { clearTimeout(timer); } catch(_){}
+      try { delete window[cb]; } catch(_) { window[cb] = undefined; }
+      try { s.remove(); } catch(_){}
+    }
+
+    function fail(msg){
+      if (done) return;
+      done = true;
+      cleanup();
       reject(new Error(msg));
     }
 
-    const t = setTimeout(() => {
-      if (done) return;
-      done = true;
-      cleanup();
-      fail("Timeout. La WebApp no respondió. Abre Ping para verificar el deploy.");
+    const timer = setTimeout(() => {
+      fail("Timeout JSONP");
     }, timeoutMs);
 
-    function cleanup() {
-      clearTimeout(t);
-      try { delete window[cb]; } catch (_) { window[cb] = undefined; }
-      if (s && s.parentNode) s.parentNode.removeChild(s);
-    }
-
-    window[cb] = (data) => {
+    window[cb] = (payload) => {
       if (done) return;
       done = true;
       cleanup();
 
-      if (!data || typeof data !== "object") {
-        fail("Respuesta inválida. Si al abrir Ping te pide login, el deploy no es público.");
-        return;
-      }
-
+      const data = normalizeApiResponse(payload);
       if (data.ok !== true) {
-        fail(data.error || "Respuesta inválida");
+        reject(new Error(data.error || "Respuesta JSONP inválida"));
         return;
       }
-
-      setApiStatus("ok", "API: conectada");
       resolve(data);
     };
 
-    s.onerror = () => {
-      if (done) return;
-      done = true;
-      cleanup();
-      fail("desconectada");
-    };
-
+    s.onerror = () => fail("Error cargando script JSONP");
     s.src = src;
     document.body.appendChild(s);
   });
 }
 
-  /* ================= UTIL ================= */
-  function todayLocal(){
-    const d = new Date();
-    const yyyy = d.getFullYear();
-    const mm = String(d.getMonth()+1).padStart(2,"0");
-    const dd = String(d.getDate()).padStart(2,"0");
-    return `${dd}/${mm}/${yyyy}`;
+async function apiGetFetch(params, timeoutMs = 15000){
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+  try{
+    const url = build(params, null);
+
+    const res = await fetch(url, {
+      method: "GET",
+      redirect: "follow",
+      signal: controller.signal,
+      headers: {
+        "Accept": "application/json, text/plain, */*"
+      }
+    });
+
+    const text = await res.text();
+    let parsed = null;
+
+    try{
+      parsed = JSON.parse(text);
+    }catch(_){
+      throw new Error("La API respondió, pero no devolvió JSON válido");
+    }
+
+    const data = normalizeApiResponse(parsed);
+    if (data.ok !== true) {
+      throw new Error(data.error || "Respuesta fetch inválida");
+    }
+
+    return data;
+  } finally {
+    clearTimeout(timer);
   }
+}
+
+async function apiGet(params, timeoutMs = 15000){
+  setApiStatus("", "API: consultando…");
+
+  let lastErr = null;
+
+  // 1) Intenta fetch primero
+  try{
+    const data = await apiGetFetch(params, timeoutMs);
+    setApiStatus("ok", "API: conectada");
+    return data;
+  }catch(err1){
+    lastErr = err1;
+  }
+
+  // 2) Si fetch falla, intenta JSONP
+  try{
+    const data = await apiGetJsonp(params, timeoutMs);
+    setApiStatus("ok", "API: conectada");
+    return data;
+  }catch(err2){
+    lastErr = err2;
+  }
+
+  setApiStatus("err", "API: " + (lastErr?.message || "desconectada"));
+  throw lastErr || new Error("No se pudo conectar con la API");
+}
+
+function todayLocal(){
+  const d = new Date();
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth()+1).padStart(2,"0");
+  const dd = String(d.getDate()).padStart(2,"0");
+  return `${dd}/${mm}/${yyyy}`;
+}
   function formatDateDMY(raw){
   const s = String(raw || "").trim();
   if(!s) return "";
@@ -2142,7 +2229,9 @@ function renderNivelesTable(levels){
     }
 
     if(state.fase === "PESOS"){
-      const lv = await apiGet({action:"levels", sheet:"Pesos"});
+      const lv = await apiGet({ action:"levels", sheet:"Pesos" }).catch(async ()=>{
+  return await apiGet({ action:"levels", sheet:"Formularios" });
+});
       const levels = lv.levels || [];
       if(!levels.length) throw new Error("No se encontraron niveles en 'Pesos'.");
       fillNivelSelect(levels, true);
@@ -3182,6 +3271,18 @@ on("webapp", "change", ()=>{
   localStorage.setItem(LS_KEY_, v);
 });
 
+on("webapp", "blur", async ()=>{
+  const v = normalizeWebApp($("webapp").value);
+  $("webapp").value = v;
+  localStorage.setItem(LS_KEY_, v);
+
+  try{
+    await apiGet({ action:"ping" });
+  }catch(_){
+    // ya queda reflejado en el status
+  }
+});
+  
 // Ping / Probar (si existen)
 on("btnAbrirPing", "click", ()=>{
   const base = getWebApp();
@@ -3388,6 +3489,14 @@ on("btnNuevo", "click", ()=>{
 
 // ✅ Botones Cargar/Limpiar (ahora nunca rompen si faltan IDs)
 on("btnCargarNiveles", "click", ()=>loadNivelesList().catch(err=>setApiStatus("err","API: " + err.message)));
+  on("btnCargarNiveles", "click", async ()=>{
+  try{
+    await apiGet({ action:"ping" });
+    await loadNivelesList();
+  }catch(err){
+    setApiStatus("err", "API: " + (err?.message || err));
+  }
+});
 on("btnLimpiarNiveles", "click", clearNivelesTable);
 
 on("btnCargarForm", "click", ()=>loadFormulariosItems().catch(err=>setApiStatus("err","API: " + err.message)));
@@ -3463,32 +3572,38 @@ on("comentariosColaboradorAuto","change", updateGuardarUIState);
     if (typeof clearNivelesTable === "function") clearNivelesTable();
 
     // webapp
-    const saved = localStorage.getItem(LS_KEY_);
-    setWebApp(saved || DEFAULT_WEBAPP_);
-
+    ensureWebAppVisibleValue_();
     // ping inicial
-    apiGet({action:"ping"})
-      .then(()=>{
-        setApiStatus("ok","API: conectada");
-        if($("cuestionario")) $("cuestionario").innerHTML =
-          `<div class="hint">Selecciona una fase para iniciar.</div>`;
-      })
-      .catch(async (e1)=>{
-        setApiStatus("err","API: "+e1.message + " (probando URL por defecto)");
+    (async ()=>{
+  try{
+    await apiGet({ action:"ping" });
+    if($("cuestionario")){
+      $("cuestionario").innerHTML = `<div class="hint">Selecciona una fase para iniciar.</div>`;
+    }
+  }catch(e1){
+    setApiStatus("err","API: " + (e1?.message || e1) + " (probando URL por defecto)");
 
-        setWebApp(DEFAULT_WEBAPP_);
-        localStorage.setItem(LS_KEY_, DEFAULT_WEBAPP_);
+    try{
+      setWebApp(DEFAULT_WEBAPP_);
+      localStorage.setItem(LS_KEY_, DEFAULT_WEBAPP_);
+      await apiGet({ action:"ping" });
 
-        try{
-          await apiGet({action:"ping"});
-          setApiStatus("ok","API: conectada");
-          if($("cuestionario")) $("cuestionario").innerHTML =
-            `<div class="hint">Selecciona una fase para iniciar.</div>`;
-        }catch(e2){
-          setApiStatus("err","API: "+e2.message);
-        }
-      });
-
+      if($("cuestionario")){
+        $("cuestionario").innerHTML = `<div class="hint">Selecciona una fase para iniciar.</div>`;
+      }
+    }catch(e2){
+      setApiStatus("err","API: " + (e2?.message || e2));
+      if($("cuestionario")){
+        $("cuestionario").innerHTML = `
+          <div class="hint">
+            No se pudo conectar con la API.<br>
+            Revisa la URL del deploy, permisos de la Web App y que el backend responda a <code>action=ping</code>.
+          </div>
+        `;
+      }
+    }
+  }
+})();
     updateGuardarUIState();
     updatePesosSaveState();
     updateCapSaveState_();
