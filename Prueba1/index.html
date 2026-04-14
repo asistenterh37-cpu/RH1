@@ -1972,13 +1972,40 @@ const showGuardar =
   isClientesPhase() ||
   isEvalPhase() ||
   isDesempenoPhase() ||
-  state.fase === "INCIDENCIAS";
+  state.fase === "INCIDENCIAS" ||
+  state.fase === "ONEONE";
 
 btnG.style.display = showGuardar ? "inline-block" : "none";
 
 // si está oculto, igual lo dejamos deshabilitado por seguridad
 if(!showGuardar){
   btnG.disabled = true;
+  return;
+}
+
+// ✅ Guardar habilitado solo cuando corresponde
+if(isClientesPhase()){
+  btnG.disabled = !isClientesComplete();
+  return;
+}
+
+if(state.fase === "INCIDENCIAS"){
+  btnG.disabled = !isIncidenciasComplete();
+  return;
+}
+
+if(state.fase === "ONEONE"){
+  btnG.disabled = !isOneOneComplete();
+  return;
+}
+
+// ✅ En evaluación: AUTO o DESEMPENO (isEvalComplete ya valida extras si es DESEMPENO)
+if(isEvalPhase() || isDesempenoPhase()){
+  btnG.disabled = !isEvalComplete();
+  return;
+}
+
+btnG.disabled = true;
   return;
 }
 
