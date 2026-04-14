@@ -742,7 +742,7 @@ button[disabled]{
       <div class="card-h">
         <div>
           <h2>Formularios (rúbricas por nivel)</h2>
-          <div class="sub">Usa <b>Cargar</b> para mostrar Nivel, Factor, Item y las descripciones 1–5.</div>
+          <div class="sub">Usa <b>Cargar</b> para mostrar Nivel, Item y las descripciones 1–5.</div>
         </div>
     <div class="controls">
   <button id="btnCargarForm" class="btn-blue">Cargar</button>
@@ -755,24 +755,23 @@ button[disabled]{
         </div>
         <div id="formTableInfo" class="sub" style="margin-bottom:10px">—</div>
         <div class="tableWrap">
-                    <table id="formTable">
-            <thead>
-              <tr>
-                <th>Código</th>
-                <th>Nivel</th>
-                <th>Factor</th>
-                <th>Item</th>
-                <th>1</th>
-                <th>2</th>
-                <th>3</th>
-                <th>4</th>
-                <th>5</th>
-              </tr>
-            </thead>
-            <tbody id="formTableBody">
-              <tr><td colspan="9" class="sub">Presiona <b>Cargar</b> para ver la información.</td></tr>
-            </tbody>
-          </table>
+             <table id="formTable">
+  <thead>
+    <tr>
+      <th>Código</th>
+      <th>Nivel</th>
+      <th>Item</th>
+      <th>1</th>
+      <th>2</th>
+      <th>3</th>
+      <th>4</th>
+      <th>5</th>
+    </tr>
+  </thead>
+  <tbody id="formTableBody">
+    <tr><td colspan="8" class="sub">Presiona <b>Cargar</b> para ver la información.</td></tr>
+  </tbody>
+</table>       
         </div>
       </div>
     </section>
@@ -1379,7 +1378,7 @@ Dejar de hacer:"></textarea>
 `Empezar a hacer:
 Continuar haciendo:
 Dejar de hacer:`;
-  const DEFAULT_WEBAPP_ = "https://script.google.com/macros/s/AKfycbw_wXSsLbYv9YiniLg6ltzxVx-pczZpbK0PbIdtWHO79eVJz7Ph0MkhH2DXqo5JuHGV/exec";
+  const DEFAULT_WEBAPP_ = "https://script.google.com/macros/s/AKfycbwxYwW-EurrJA9Vs3hfQGcxtqhrvm2n8fzTuiNZ8zg97B7bSjM1Q8dBRutwpglHgvsg/exec";
   const $ = id => document.getElementById(id);
 
 function syncFaseButtonsUI(value){
@@ -1747,21 +1746,20 @@ function todayLocal(){
   }
 
   // ✅ Puntaje final en HTML = Σ ((respuestaNum(1-5)/5) * peso)
-  // Usa itemKeys ("nivel|Factor|Item") y los pesos de la hoja Pesos
-  function calcPuntajeFinalClient_(nivelRef, pesosItems, itemKeys, respuestasNum){
+// Usa itemKeys ("nivel|item") y los pesos de la hoja Pesos
+function calcPuntajeFinalClient_(nivelRef, pesosItems, itemKeys, respuestasNum){
   const nivelCanon = (String(nivelRef || "").match(/(\d+)/)?.[1] || String(nivelRef || "").trim());
 
-  const pesoMap = new Map();
   const pesoMapByItem = new Map();
 
   (Array.isArray(pesosItems) ? pesosItems : []).forEach(r=>{
-    const nivel  = nivelCanonClient_(r.Nivel ?? "");
-    const factor = normKey_(r.Factor ?? "");
-    const item   = normKey_(r.Item ?? "");
-    const peso   = toNum(r.Peso ?? 0, 0);
+    const nivel = nivelCanonClient_(r.Nivel ?? "");
+    const item  = normKey_(r.Item ?? "");
+    const peso  = toNum(r.Peso ?? 0, 0);
 
-    if(nivel && factor && item) pesoMap.set(`${nivel}|${factor}|${item}`, peso);
-    if(nivel && item && !pesoMapByItem.has(`${nivel}|${item}`)) pesoMapByItem.set(`${nivel}|${item}`, peso);
+    if(nivel && item && !pesoMapByItem.has(`${nivel}|${item}`)) {
+      pesoMapByItem.set(`${nivel}|${item}`, peso);
+    }
   });
 
   let sum = 0;
@@ -1778,15 +1776,9 @@ function todayLocal(){
 
     const parts = k.split("|");
     const nivel = nivelCanonClient_(parts[0] ?? "");
-    const factor = normKey_(parts[1] ?? "");
-    const item = normKey_(parts.length >= 3 ? parts[2] : parts[1]);
+    const item  = normKey_(parts.length >= 2 ? parts[parts.length - 1] : "");
 
-    const peso = Number(
-      (factor ? pesoMap.get(`${nivel}|${factor}|${item}`) : null) ??
-      pesoMapByItem.get(`${nivel}|${item}`) ??
-      0
-    );
-
+    const peso = Number(pesoMapByItem.get(`${nivel}|${item}`) ?? 0);
     sum += (v / 5) * peso;
   }
 
@@ -1810,9 +1802,8 @@ function todayLocal(){
 function makeFormKeyNorm_(formKey){
   const parts = String(formKey ?? "").split("|");
   const nivel = nivelCanonClient_(parts[0] ?? "");
-  const factor = normKey_(parts[1] ?? "");
-  const item = normKey_(parts.length >= 3 ? parts[2] : parts[1]);
-  return `${nivel}|${factor}|${item}`;
+  const item = normKey_(parts.length >= 2 ? parts[parts.length - 1] : "");
+  return `${nivel}|${item}`;
 }
 
   function buildCodigosMapFromPesos_(items){
