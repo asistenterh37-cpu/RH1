@@ -799,13 +799,16 @@ button[disabled]{
         <div class="tableWrap">
                        <table id="pesosTable">
             <thead>
-              <tr>
-                <th>Código</th>
-                <th>Nivel</th>
-                <th>Factor</th>
-                <th>Item</th>
-                <th>Peso</th>
-              </tr>
+             <tr>
+  <th>Código</th>
+  <th>Nivel</th>
+  <th>Item</th>
+  <th>1</th>
+  <th>2</th>
+  <th>3</th>
+  <th>4</th>
+  <th>5</th>
+</tr>
          </thead>
            <tbody id="pesosTableBody">
   <tr><td colspan="5" class="sub">Presiona <b>Cargar</b> para ver la información.</td></tr>
@@ -1376,7 +1379,7 @@ Dejar de hacer:"></textarea>
 `Empezar a hacer:
 Continuar haciendo:
 Dejar de hacer:`;
-  const DEFAULT_WEBAPP_ = "https://script.google.com/macros/s/AKfycbwTJU94wiGLhYzoA0JFEl1OWEKf1TzMyRLbT-nS4jvMQaFXve7eqFUFo5jwgsym-Cqg/exec";
+  const DEFAULT_WEBAPP_ = "https://script.google.com/macros/s/AKfycbw_wXSsLbYv9YiniLg6ltzxVx-pczZpbK0PbIdtWHO79eVJz7Ph0MkhH2DXqo5JuHGV/exec";
   const $ = id => document.getElementById(id);
 
 function syncFaseButtonsUI(value){
@@ -1746,39 +1749,49 @@ function todayLocal(){
   // ✅ Puntaje final en HTML = Σ ((respuestaNum(1-5)/5) * peso)
   // Usa itemKeys ("nivel|Factor|Item") y los pesos de la hoja Pesos
   function calcPuntajeFinalClient_(nivelRef, pesosItems, itemKeys, respuestasNum){
-    const nivelCanon = (String(nivelRef || "").match(/(\d+)/)?.[1] || String(nivelRef || "").trim());
+  const nivelCanon = (String(nivelRef || "").match(/(\d+)/)?.[1] || String(nivelRef || "").trim());
 
-    // Mapa Pesos: "nivel|factorNorm|itemNorm" -> pesoNum
-    const pesoMap = new Map();
-    (Array.isArray(pesosItems) ? pesosItems : []).forEach(r=>{
-      const nivel  = nivelCanonClient_(r.Nivel ?? "");
-      const factor = normKey_(r.Factor ?? "");
-      const item   = normKey_(r.Item ?? "");
-      const peso   = toNum(r.Peso ?? 0, 0);
-      if(nivel && factor && item) pesoMap.set(`${nivel}|${factor}|${item}`, peso);
-    });
+  const pesoMap = new Map();
+  const pesoMapByItem = new Map();
 
-    let sum = 0;
+  (Array.isArray(pesosItems) ? pesosItems : []).forEach(r=>{
+    const nivel  = nivelCanonClient_(r.Nivel ?? "");
+    const factor = normKey_(r.Factor ?? "");
+    const item   = normKey_(r.Item ?? "");
+    const peso   = toNum(r.Peso ?? 0, 0);
 
-    const keys = Array.isArray(itemKeys) ? itemKeys : [];
-    const nums = Array.isArray(respuestasNum) ? respuestasNum : [];
+    if(nivel && factor && item) pesoMap.set(`${nivel}|${factor}|${item}`, peso);
+    if(nivel && item && !pesoMapByItem.has(`${nivel}|${item}`)) pesoMapByItem.set(`${nivel}|${item}`, peso);
+  });
 
-    for(let i=0; i<keys.length; i++){
-      const k = String(keys[i] ?? "").trim();
-      if(!k) continue;
+  let sum = 0;
 
-      const v = Number(String(nums[i] ?? "").trim());
-      if(!(v >= 1 && v <= 5)) continue;
+  const keys = Array.isArray(itemKeys) ? itemKeys : [];
+  const nums = Array.isArray(respuestasNum) ? respuestasNum : [];
 
-      const kn = makeFormKeyNorm_(k); // "nivel|factorNorm|itemNorm"
-      const peso = Number(pesoMap.get(kn) ?? 0);
+  for(let i=0; i<keys.length; i++){
+    const k = String(keys[i] ?? "").trim();
+    if(!k) continue;
 
-      sum += (v / 5) * peso;
-    }
+    const v = Number(String(nums[i] ?? "").trim());
+    if(!(v >= 1 && v <= 5)) continue;
 
-    // 2 decimales para guardar en EvaluacionFinal
-    return Number.isFinite(sum) ? sum.toFixed(2) : "0.00";
+    const parts = k.split("|");
+    const nivel = nivelCanonClient_(parts[0] ?? "");
+    const factor = normKey_(parts[1] ?? "");
+    const item = normKey_(parts.length >= 3 ? parts[2] : parts[1]);
+
+    const peso = Number(
+      (factor ? pesoMap.get(`${nivel}|${factor}|${item}`) : null) ??
+      pesoMapByItem.get(`${nivel}|${item}`) ??
+      0
+    );
+
+    sum += (v / 5) * peso;
   }
+
+  return Number.isFinite(sum) ? sum.toFixed(2) : "0.00";
+}
   /* ================= CÓDIGOS (PESOS -> UI) ================= */
   function nivelCanonClient_(nivel){
     const s = String(nivel ?? "").trim();
@@ -1794,35 +1807,35 @@ function todayLocal(){
       .replace(/\s+/g," ");                             // espacios
   }
 
-  function makeFormKeyNorm_(formKey){
-    // formKey viene como: "nivelCanon|Factor|Item"
-    const parts = String(formKey ?? "").split("|");
-    const nivel = nivelCanonClient_(parts[0] ?? "");
-    const factor = normKey_(parts[1] ?? "");
-    const item = normKey_(parts[2] ?? "");
-    return `${nivel}|${factor}|${item}`;
-  }
+function makeFormKeyNorm_(formKey){
+  const parts = String(formKey ?? "").split("|");
+  const nivel = nivelCanonClient_(parts[0] ?? "");
+  const factor = normKey_(parts[1] ?? "");
+  const item = normKey_(parts.length >= 3 ? parts[2] : parts[1]);
+  return `${nivel}|${factor}|${item}`;
+}
 
   function buildCodigosMapFromPesos_(items){
-    state.codigosByKey.clear();
-    state.codigosByKeyNorm.clear();
+  state.codigosByKey.clear();
+  state.codigosByKeyNorm.clear();
 
-    const arr = Array.isArray(items) ? items : [];
-    arr.forEach(r=>{
-      const codigo = String(r.Codigo ?? r.Código ?? "").trim();
-      const nivel  = nivelCanonClient_(r.Nivel ?? "");
-      const factor = String(r.Factor ?? "").trim();
-      const item   = String(r.Item ?? "").trim();
-      if(!nivel || !factor || !item) return;
+  const arr = Array.isArray(items) ? items : [];
+  arr.forEach(r=>{
+    const codigo = String(r.Codigo ?? r.Código ?? "").trim();
+    const nivel  = nivelCanonClient_(r.Nivel ?? "");
+    const factor = String(r.Factor ?? "").trim();
+    const item   = String(r.Item ?? "").trim();
+    if(!nivel || !item) return;
 
-      const keyExact = `${nivel}|${factor}|${item}`;
-      state.codigosByKey.set(keyExact, codigo);
+    if(factor){
+      state.codigosByKey.set(`${nivel}|${factor}|${item}`, codigo);
+      state.codigosByKeyNorm.set(`${nivel}|${normKey_(factor)}|${normKey_(item)}`, codigo);
+    }
 
-      const keyNorm = `${nivel}|${normKey_(factor)}|${normKey_(item)}`;
-      state.codigosByKeyNorm.set(keyNorm, codigo);
-    });
-  }
-
+    if(!state.codigosByKey.has(`${nivel}||${item}`)) state.codigosByKey.set(`${nivel}||${item}`, codigo);
+    if(!state.codigosByKeyNorm.has(`${nivel}||${normKey_(item)}`)) state.codigosByKeyNorm.set(`${nivel}||${normKey_(item)}`, codigo);
+  });
+}
   function getCodigoForFormKey_(formKey){
     const k = String(formKey ?? "").trim();
     if(!k) return "";
@@ -2235,56 +2248,52 @@ function renderNivelesTable(levels){
   
   /* ================= FORMULARIOS: TABLE ================= */
 
-  function clearFormTable(){
-    state.lastFormItemsCount = 0;
-    $("formTableInfo").textContent = "—";
-    $("formTableBody").innerHTML = `<tr><td colspan="9" class="sub">Presiona <b>Cargar</b> para ver la información.</td></tr>`;
-  }
-
+function clearFormTable(){
+  state.lastFormItemsCount = 0;
+  $("formTableInfo").textContent = "—";
+  $("formTableBody").innerHTML = `<tr><td colspan="8" class="sub">Presiona <b>Cargar</b> para ver la información.</td></tr>`;
+}
       function renderFormTable(items){
 
-    const tbody = $("formTableBody");
+  const tbody = $("formTableBody");
 
-    const count = Array.isArray(items) ? items.length : 0;
+  const count = Array.isArray(items) ? items.length : 0;
 
-    state.lastFormItemsCount = count;
+  state.lastFormItemsCount = count;
 
-    const nivelLabel = getNivelRef();
+  const nivelLabel = getNivelRef();
 
-    $("formTableInfo").textContent = `Mostrando: ${count} filas | Nivel seleccionado: ${nivelLabel}`;
+  $("formTableInfo").textContent = `Mostrando: ${count} filas | Nivel seleccionado: ${nivelLabel}`;
 
-    if(!count){
-      tbody.innerHTML = `<tr><td colspan="9" class="sub">No hay datos para ese nivel.</td></tr>`;
-      return;
-    }
-
-    tbody.innerHTML = items.map(r => {
-      const c  = escapeHtml(r.Codigo ?? r.Código ?? "");
-      const n  = escapeHtml(r.Nivel ?? "");
-      const f  = escapeHtml(r.Factor ?? "");
-      const it = escapeHtml(r.Item ?? "");
-      const d1 = escapeHtml(r["1"] ?? "");
-      const d2 = escapeHtml(r["2"] ?? "");
-      const d3 = escapeHtml(r["3"] ?? "");
-      const d4 = escapeHtml(r["4"] ?? "");
-      const d5 = escapeHtml(r["5"] ?? "");
-
-      return `
-        <tr>
-          <td class="mono">${c}</td>
-          <td class="mono">${n}</td>
-          <td>${f}</td>
-          <td>${it}</td>
-          <td>${d1}</td>
-          <td>${d2}</td>
-          <td>${d3}</td>
-          <td>${d4}</td>
-          <td>${d5}</td>
-        </tr>
-      `;
-    }).join("");
+  if(!count){
+    tbody.innerHTML = `<tr><td colspan="8" class="sub">No hay datos para ese nivel.</td></tr>`;
+    return;
   }
 
+  tbody.innerHTML = items.map(r => {
+    const c  = escapeHtml(r.Codigo ?? r.Código ?? "");
+    const n  = escapeHtml(r.Nivel ?? "");
+    const it = escapeHtml(r.Item ?? "");
+    const d1 = escapeHtml(r["1"] ?? "");
+    const d2 = escapeHtml(r["2"] ?? "");
+    const d3 = escapeHtml(r["3"] ?? "");
+    const d4 = escapeHtml(r["4"] ?? "");
+    const d5 = escapeHtml(r["5"] ?? "");
+
+    return `
+      <tr>
+        <td class="mono">${c}</td>
+        <td class="mono">${n}</td>
+        <td>${it}</td>
+        <td>${d1}</td>
+        <td>${d2}</td>
+        <td>${d3}</td>
+        <td>${d4}</td>
+        <td>${d5}</td>
+      </tr>
+    `;
+  }).join("");
+}
   async function loadFormulariosItems(){
     if(!isFormulariosPhase()){
       alert("Selecciona la fase Formularios.");
