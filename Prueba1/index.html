@@ -1600,12 +1600,11 @@ async function apiGetFetch(params, timeoutMs = 15000){
   }
 }
 
-async function apiGet(params, timeoutMs = 15000){
+async function apiGet(params, timeoutMs = 7000){
   setApiStatus("", "API: consultando…");
 
   let lastErr = null;
 
-  // 1) Intenta fetch primero
   try{
     const data = await apiGetFetch(params, timeoutMs);
     setApiStatus("ok", "API: conectada");
@@ -1614,9 +1613,8 @@ async function apiGet(params, timeoutMs = 15000){
     lastErr = err1;
   }
 
-  // 2) Si fetch falla, intenta JSONP
   try{
-    const data = await apiGetJsonp(params, timeoutMs);
+    const data = await apiGetJsonp(params, 3500);
     setApiStatus("ok", "API: conectada");
     return data;
   }catch(err2){
@@ -1626,7 +1624,6 @@ async function apiGet(params, timeoutMs = 15000){
   setApiStatus("err", "API: " + (lastErr?.message || "desconectada"));
   throw lastErr || new Error("No se pudo conectar con la API");
 }
-
 function todayLocal(){
   const d = new Date();
   const yyyy = d.getFullYear();
@@ -3620,14 +3617,16 @@ on("btnAbrirPing", "click", ()=>{
 });
 
 on("btnProbarApi", "click", async ()=>{
+  $("btnProbarApi").disabled = true;
   try{
-    await apiGet({action:"ping"});
+    await apiGet({ action:"ping" }, 4000);
     setApiStatus("ok","API: conectada");
   }catch(e){
-    setApiStatus("err","API: " + e.message);
+    setApiStatus("err","API: " + (e?.message || e));
+  }finally{
+    $("btnProbarApi").disabled = false;
   }
 });
-
 // helpers: wrappers para no romper si faltan funciones
 async function recoverConsolidadoSafe_(){
   if (typeof recoverConsolidado_ === "function") {
@@ -3953,31 +3952,19 @@ on("comentariosColaboradorAuto","change", updateGuardarUIState);
     // ping inicial
     (async ()=>{
   try{
-    await apiGet({ action:"ping" });
+    await apiGet({ action:"ping" }, 4000);
     if($("cuestionario")){
       $("cuestionario").innerHTML = `<div class="hint">Selecciona una fase para iniciar.</div>`;
     }
-  }catch(e1){
-    setApiStatus("err","API: " + (e1?.message || e1) + " (probando URL por defecto)");
-
-    try{
-      setWebApp(DEFAULT_WEBAPP_);
-      localStorage.setItem(LS_KEY_, DEFAULT_WEBAPP_);
-      await apiGet({ action:"ping" });
-
-      if($("cuestionario")){
-        $("cuestionario").innerHTML = `<div class="hint">Selecciona una fase para iniciar.</div>`;
-      }
-    }catch(e2){
-      setApiStatus("err","API: " + (e2?.message || e2));
-      if($("cuestionario")){
-        $("cuestionario").innerHTML = `
-          <div class="hint">
-            No se pudo conectar con la API.<br>
-            Revisa la URL del deploy, permisos de la Web App y que el backend responda a <code>action=ping</code>.
-          </div>
-        `;
-      }
+  }catch(e){
+    setApiStatus("err","API: " + (e?.message || e));
+    if($("cuestionario")){
+      $("cuestionario").innerHTML = `
+        <div class="hint">
+          No se pudo conectar con la API.<br>
+          Revisa la URL del deploy, permisos de la Web App y que el backend responda a <code>action=ping</code>.
+        </div>
+      `;
     }
   }
 })();
