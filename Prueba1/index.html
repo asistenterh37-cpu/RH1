@@ -2903,13 +2903,14 @@ async function generarDesarrollo_(){
   }
 
   function clearIncidencias(){
-    if($("incFecha")) $("incFecha").value = todayLocal();
-    if($("incNoPersonal")) $("incNoPersonal").value = "";
-    if($("incNombre")) $("incNombre").value = "";
-    if($("incIncidencia")) $("incIncidencia").value = "";
-    if($("incUsuario")) $("incUsuario").value = "";
-    updateGuardarUIState();
-  }
+  if($("incFecha")) $("incFecha").value = "";
+  if($("incNoPersonal")) $("incNoPersonal").value = "";
+  if($("incNombre")) $("incNombre").value = "";
+  if($("incIncidencia")) $("incIncidencia").value = "";
+  if($("incUsuario")) $("incUsuario").value = "";
+
+  updateGuardarUIState();
+}
   
   function clearDesempenoExtra(){
     [
@@ -2974,6 +2975,8 @@ async function generarDesarrollo_(){
     return;
   }
 
+  const btn = $("btnGuardar");
+
   const payload = {
     fase: "INCIDENCIAS",
     fecha: formatDateDMY($("incFecha").value),
@@ -2990,9 +2993,14 @@ async function generarDesarrollo_(){
     throw new Error(out?.error || "No se pudo guardar la incidencia.");
   }
 
-  alert("Incidencia guardada ✅\nID: " + (out.id || "—"));
   clearIncidencias();
   setApiStatus("ok","API: incidencia guardada");
+  alert("Incidencia guardada ✅\nID: " + (out.id || "—"));
+
+  if(btn){
+    btn.disabled = false; // sale del estado "Guardando..."
+    btn.textContent = "Guardar";
+  }
 }
   
   function buildCompatComentarios(){
@@ -3703,11 +3711,16 @@ on("btnGuardar", "click", async ()=>{
   }catch(err){
     setApiStatus("err","API: " + (err?.message || err));
     alert(err?.message || "Ocurrió un error al guardar.");
-  }finally{
-    state.saving = false;
-    btn.textContent = prevText;
+ }finally{
+  state.saving = false;
+  btn.textContent = prevText;
+
+  if(isIncidenciasPhase()){
+    btn.disabled = false;
+  }else{
     updateGuardarUIState();
   }
+}
 });
 // Nuevo (si existe)
 on("btnNuevo", "click", ()=>{
