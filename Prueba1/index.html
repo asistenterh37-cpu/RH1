@@ -183,7 +183,48 @@ button[disabled]{
     [data-phase-block].show{display:block}
     .nivelWrap{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
     .nivelWrap.hide{display:none}
+/* ✅ BOTONES DE FASE EN UNA SOLA FILA */
+.faseButtonsWrap{
+  display:flex;
+  gap:10px;
+  flex-wrap:nowrap;
+  overflow-x:auto;
+  white-space:nowrap;
+  padding-bottom:4px;
+  scrollbar-width:thin;
+}
 
+.faseButtonsWrap::-webkit-scrollbar{
+  height:8px;
+}
+.faseButtonsWrap::-webkit-scrollbar-thumb{
+  background:rgba(147,197,253,.35);
+  border-radius:999px;
+}
+
+.faseBtn{
+  flex:0 0 auto;
+  min-width:max-content;
+  border:2px solid rgba(147,197,253,.45);
+  background:rgba(15,27,51,.88);
+  color:var(--text) !important;
+  font-weight:700;
+  border-radius:14px;
+  padding:10px 14px;
+}
+
+.faseBtn:hover{
+  border-color:rgba(147,197,253,.95);
+  transform:translateY(-1px);
+}
+
+.faseBtn.active{
+  background:#93c5fd;
+  color:#000 !important;
+  border-color:#60a5fa;
+  box-shadow:0 0 0 3px rgba(147,197,253,.18);
+}
+    
     /* CUESTIONARIO */
     .factor{
       border:1px solid rgba(255,255,255,.10);
@@ -605,29 +646,43 @@ button[disabled]{
     <section class="card" id="blockFaseNivel">
       <div class="card-h">
         <div class="controls" style="width:100%; justify-content:space-between">
-          <div class="controls" style="gap:10px">
-            <select id="faseSelect">
-      <option value="">Seleccione fase</option>
-     <option value="NIVELES">Niveles</option>
+<div class="controls" style="gap:10px; width:100%; flex-wrap:nowrap; overflow-x:auto">
+  <div class="faseButtonsWrap" id="faseButtonsWrap" aria-label="Selector de fases">
+    <button type="button" class="faseBtn active" data-fase="">Seleccione fase</button>
+    <button type="button" class="faseBtn" data-fase="NIVELES">Niveles</button>
+    <button type="button" class="faseBtn" data-fase="FORMULARIOS">Formularios</button>
+    <button type="button" class="faseBtn" data-fase="PESOS">Pesos</button>
+    <button type="button" class="faseBtn" data-fase="AUTO">Autoevaluación</button>
+    <button type="button" class="faseBtn" data-fase="CLIENTES">Evaluación clientes</button>
+    <button type="button" class="faseBtn" data-fase="DESEMPENO">Evaluación desempeño</button>
+    <button type="button" class="faseBtn" data-fase="RESULTADO">Resultado</button>
+    <button type="button" class="faseBtn" data-fase="CONSOLIDADO">Informe ejecutivo</button>
+    <button type="button" class="faseBtn" data-fase="CAPACITACION">Capacitación</button>
+    <button type="button" class="faseBtn" data-fase="DESARROLLO">Plan de desarrollo</button>
+  </div>
+
+  <!-- Se mantiene oculto para no romper el JS actual -->
+  <select id="faseSelect" style="display:none">
+    <option value="">Seleccione fase</option>
+    <option value="NIVELES">Niveles</option>
     <option value="FORMULARIOS">Formularios</option>
-  <option value="PESOS">Pesos</option>
-  <option value="AUTO">Formulario de autoevaluación</option>
-  <option value="CLIENTES">Formulario de evaluación de clientes</option>
-  <option value="DESEMPENO">Formulario de evaluación del desempeño</option>
-  <option value="RESULTADO">Resultado evaluación del desempeño</option>
-  <option value="CONSOLIDADO">Informe ejecutivo</option>
-  <option value="CAPACITACION">Informe necesidades de capacitación</option>
-  <option value="DESARROLLO">Informe plan de desarrollo</option>
-</select>
+    <option value="PESOS">Pesos</option>
+    <option value="AUTO">Formulario de autoevaluación</option>
+    <option value="CLIENTES">Formulario de evaluación de clientes</option>
+    <option value="DESEMPENO">Formulario de evaluación del desempeño</option>
+    <option value="RESULTADO">Resultado evaluación del desempeño</option>
+    <option value="CONSOLIDADO">Informe ejecutivo</option>
+    <option value="CAPACITACION">Informe necesidades de capacitación</option>
+    <option value="DESARROLLO">Informe plan de desarrollo</option>
+  </select>
 
-            <span class="nivelWrap" id="nivelWrap">
-              <select id="nivelSelect" disabled>
-                <option>Cargando niveles…</option>
-              </select>
-            </span>
-          </div>
-
-          <div class="sub" id="faseHelp" style="max-width:520px; text-align:right">
+  <span class="nivelWrap" id="nivelWrap">
+    <select id="nivelSelect" disabled>
+      <option>Cargando niveles…</option>
+    </select>
+  </span>
+</div>
+          <div class="sub" id="faseHelp" style="max-width:520px; text-align:right; flex:1 1 auto">
             Selecciona una fase para desplegar el formulario.
           </div>
         </div>
@@ -1219,6 +1274,22 @@ Dejar de hacer:`;
   const DEFAULT_WEBAPP_ = "https://script.google.com/macros/s/AKfycbwpeZU8OgblLgb2cet7T8LOmRSclngVvhFELtCmeju8es0Z4JTrxcXvOLrUiIjGWJT3/exec";
   const $ = id => document.getElementById(id);
 
+function syncFaseButtonsUI(value){
+  document.querySelectorAll(".faseBtn").forEach(btn=>{
+    btn.classList.toggle("active", btn.dataset.fase === String(value || ""));
+  });
+}
+
+function setFaseFromButton(value){
+  const sel = $("faseSelect");
+  if(!sel) return;
+
+  sel.value = String(value || "");
+  syncFaseButtonsUI(sel.value);
+
+  sel.dispatchEvent(new Event("change", { bubbles:true }));
+}
+  
   function normalizeWebApp(raw){
     let v = String(raw || "").trim();
     if(!v) return DEFAULT_WEBAPP_;
@@ -3391,9 +3462,16 @@ on("tiposModalBack", "click", (e)=>{
   if(e.target === $("tiposModalBack")) closeTiposModal_();
 });
 
+document.querySelectorAll(".faseBtn").forEach(btn=>{
+  btn.addEventListener("click", ()=>{
+    setFaseFromButton(btn.dataset.fase || "");
+  });
+});
+  
 // Fase / Nivel
 on("faseSelect", "change", async (e)=>{
   const fase = e.target.value;
+  syncFaseButtonsUI(fase);
   setPhase(fase);
 
   if(fase === "TIPOS"){
@@ -3565,6 +3643,7 @@ on("comentariosColaboradorAuto","change", updateGuardarUIState);
 
     // UI limpia
     setPhase("");
+    syncFaseButtonsUI("");
     clearFormTable();
     clearPesosTable();
     clearResultado();
