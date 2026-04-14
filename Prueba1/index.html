@@ -1330,7 +1330,7 @@ Dejar de hacer:"></textarea>
 `Empezar a hacer:
 Continuar haciendo:
 Dejar de hacer:`;
-  const DEFAULT_WEBAPP_ = "https://script.google.com/macros/s/AKfycbwtRrps29CzX_T6BeJWQtETRKzh6R-XVPzlhIW-GayNjxEjrpBdoblTdT1f2tpFpqE0/exec";
+  const DEFAULT_WEBAPP_ = "https://script.google.com/macros/s/AKfycbwbU20dFyESKTYIObvK8G0IfHeFYNDzqjHypOejM2ZZFdJ50QAB91mQKEdQP3geeMyz/exec";
   const $ = id => document.getElementById(id);
 
 function syncFaseButtonsUI(value){
@@ -1417,7 +1417,6 @@ function ensureWebAppVisibleValue_(){
   };
   /* ================= STATUS ================= */
   function setApiStatus(mode, text){
-  // Header (puede no existir si lo quitaste)
   const el = $("apiStatus");
   const elText = $("apiStatusText");
 
@@ -1429,13 +1428,16 @@ function ensureWebAppVisibleValue_(){
     elText.textContent = text;
   }
 
-  // Minis (siguen existiendo en cada bloque)
   const plain = String(text || "").replace("API: ","");
+
   const miniClientes = $("apiMini");
   if (miniClientes) miniClientes.textContent = plain;
 
   const miniEval = $("apiMiniEval");
   if (miniEval) miniEval.textContent = plain;
+
+  const miniInc = $("apiMiniInc");
+  if (miniInc) miniInc.textContent = plain;
 
   const miniRes = $("apiMiniRes");
   if (miniRes) miniRes.textContent = plain;
@@ -1443,7 +1445,6 @@ function ensureWebAppVisibleValue_(){
   const miniCap = $("apiMiniCap");
   if (miniCap) miniCap.textContent = plain;
 }
-
   /* ================= JSONP API ================= */
  function build(params, cbName){
   const base = getWebApp();
@@ -2963,31 +2964,36 @@ async function generarDesarrollo_(){
     clearClientes();
   }
   async function saveIncidencias(){
-    if(!isIncidenciasPhase()){
-      alert("Para guardar Incidencias, selecciona la fase Incidencias.");
-      return;
-    }
-
-    if(!isIncidenciasComplete()){
-      alert("Aún faltan campos. Completa Fecha, No de personal, Nombre, Incidencia y Usuario.");
-      return;
-    }
-
-    const payload = {
-      fase: "INCIDENCIAS",
-      fecha: $("incFecha").value.trim(),
-      no: $("incNoPersonal").value.trim(),
-      nombre: $("incNombre").value.trim(),
-      incidencia: $("incIncidencia").value.trim(),
-      usuario: $("incUsuario").value.trim()
-    };
-
-    const b64 = btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
-    const out = await apiGet({ action:"save", payload:b64 });
-
-    alert("Incidencia guardada ✅\nID: " + (out.id || "—"));
-    clearIncidencias();
+  if(!isIncidenciasPhase()){
+    alert("Para guardar Incidencias, selecciona la fase Incidencias.");
+    return;
   }
+
+  if(!isIncidenciasComplete()){
+    alert("Aún faltan campos. Completa Fecha, No de personal, Nombre, Incidencia y Usuario.");
+    return;
+  }
+
+  const payload = {
+    fase: "INCIDENCIAS",
+    fecha: formatDateDMY($("incFecha").value),
+    noPersonal: $("incNoPersonal").value.trim(),
+    nombre: $("incNombre").value.trim(),
+    incidencia: $("incIncidencia").value.trim(),
+    usuario: $("incUsuario").value.trim()
+  };
+
+  const b64 = btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
+  const out = await apiGet({ action:"save", payload:b64 });
+
+  if(!out || out.ok !== true){
+    throw new Error(out?.error || "No se pudo guardar la incidencia.");
+  }
+
+  alert("Incidencia guardada ✅\nID: " + (out.id || "—"));
+  clearIncidencias();
+  setApiStatus("ok","API: incidencia guardada");
+}
   
   function buildCompatComentarios(){
     if(!isDesempenoPhase()) return "";
@@ -3680,14 +3686,15 @@ on("nivelSelect", "change", async (e)=>{
 // Guardar (con anti-doble-click)
 on("btnGuardar", "click", async ()=>{
   if(state.saving) return;
-  state.saving = true;
 
   const btn = $("btnGuardar");
   const prevText = btn.textContent;
-  btn.disabled = true;
-  btn.textContent = "Guardando…";
 
   try{
+    state.saving = true;
+    btn.disabled = true;
+    btn.textContent = "Guardando...";
+
     if(isIncidenciasPhase()){
       await saveIncidencias();
     }else{
@@ -3695,13 +3702,13 @@ on("btnGuardar", "click", async ()=>{
     }
   }catch(err){
     setApiStatus("err","API: " + (err?.message || err));
+    alert(err?.message || "Ocurrió un error al guardar.");
   }finally{
     state.saving = false;
     btn.textContent = prevText;
     updateGuardarUIState();
   }
 });
-
 // Nuevo (si existe)
 on("btnNuevo", "click", ()=>{
   clearClientes();
