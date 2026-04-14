@@ -846,6 +846,49 @@ Dejar de hacer:"></textarea>
       </div>
     </section>
 
+        <!-- INCIDENCIAS -->
+    <section class="card" data-phase-block="INCIDENCIAS" id="blockIncidencias">
+      <div class="card-h">
+        <div>
+          <h2>Registro de incidencias</h2>
+          <div class="sub">Completa los campos y presiona <b>Guardar</b> para registrar en la hoja <b>Incidencias</b>.</div>
+        </div>
+        <div class="chips">
+          <span class="chip mono">Hoja destino: <b>Incidencias</b></span>
+        </div>
+      </div>
+      <div class="card-b">
+        <div class="form-grid">
+          <div class="field col-3 boxed">
+            <div class="lbl">Fecha</div>
+            <input id="incFecha" type="date" />
+          </div>
+
+          <div class="field col-3 boxed">
+            <div class="lbl">No de personal</div>
+            <input id="incNoPersonal" placeholder="Ej: 1600" />
+          </div>
+
+          <div class="field col-6 boxed">
+            <div class="lbl">Nombre</div>
+            <input id="incNombre" placeholder="Ej: Carlos Paz" />
+          </div>
+
+          <div class="field col-8 boxed">
+            <div class="lbl">Incidencia</div>
+            <textarea id="incIncidencia" placeholder="Describe la incidencia..."></textarea>
+          </div>
+
+          <div class="field col-4 boxed">
+            <div class="lbl">Usuario</div>
+            <input id="incUsuario" placeholder="Ej: avalle / Valentina" />
+          </div>
+        </div>
+
+        <div class="sub" style="margin-top:10px">Estado API: <b id="apiMiniInc">—</b></div>
+      </div>
+    </section>
+
     <!-- EVAL (AUTO / DESEMPENO) -->
     <section class="card" id="blockDatos">
       <div class="card-h">
@@ -1274,7 +1317,7 @@ Dejar de hacer:"></textarea>
 `Empezar a hacer:
 Continuar haciendo:
 Dejar de hacer:`;
-  const DEFAULT_WEBAPP_ = "https://script.google.com/macros/s/AKfycbwpeZU8OgblLgb2cet7T8LOmRSclngVvhFELtCmeju8es0Z4JTrxcXvOLrUiIjGWJT3/exec";
+  const DEFAULT_WEBAPP_ = "https://script.google.com/macros/s/AKfycbwmQTcBoZNtIp6YyQnJmAU6T_FjUPUkkTgDuw5jQsmyshpfbb9EW4KkjNtSrjgNL-7V/exec";
   const $ = id => document.getElementById(id);
 
 function syncFaseButtonsUI(value){
@@ -1756,6 +1799,7 @@ function todayLocal(){
   function isCapacitacionPhase(){ return state.fase === "CAPACITACION"; }
   function isDesarrolloPhase(){ return state.fase === "DESARROLLO"; } // ✅ NUEVO
   function isTiposPhase(){ return state.fase === "TIPOS"; }
+  function isIncidenciasPhase(){ return state.fase === "INCIDENCIAS"; }
   
   /* ================= VALIDATION ================= */
   function getClientesRequiredFields(){
@@ -1771,6 +1815,21 @@ function todayLocal(){
       $("nombreEvaluador").value.trim(),
     ];
   }
+  function getIncidenciasRequiredFields(){
+    return [
+      $("incFecha")?.value.trim(),
+      $("incNoPersonal")?.value.trim(),
+      $("incNombre")?.value.trim(),
+      $("incIncidencia")?.value.trim(),
+      $("incUsuario")?.value.trim(),
+    ];
+  }
+
+  function isIncidenciasComplete(){
+    if(!isIncidenciasPhase()) return false;
+    return !getIncidenciasRequiredFields().some(v => !v);
+  }
+  
   function getEvalHeaderRequiredFields(){
     return [
       $("noPersonalEval").value.trim(),
@@ -1833,10 +1892,13 @@ btnR.style.display = (isDesempenoPhase() || isResultadoPhase()) ? "inline-block"
 
     // ✅ Guardar (HEADER) debe verse en CLIENTES y en el Formulario de evaluación (AUTO/DESEMPENO)
 
-const showGuardar = isClientesPhase() || isEvalPhase() || isDesempenoPhase();
+const showGuardar =
+  isClientesPhase() ||
+  isEvalPhase() ||
+  isDesempenoPhase() ||
+  state.fase === "INCIDENCIAS";
 
 btnG.style.display = showGuardar ? "inline-block" : "none";
-
 
 // si está oculto, igual lo dejamos deshabilitado por seguridad
 if(!showGuardar){
@@ -1851,6 +1913,11 @@ if(isClientesPhase()){
   return;
 }
 
+if(state.fase === "INCIDENCIAS"){
+  btnG.disabled = !isIncidenciasComplete();
+  return;
+}
+
 // ✅ En evaluación: AUTO o DESEMPENO (isEvalComplete ya valida extras si es DESEMPENO)
 if(isEvalPhase() || isDesempenoPhase()){
   btnG.disabled = !isEvalComplete();
@@ -1858,7 +1925,7 @@ if(isEvalPhase() || isDesempenoPhase()){
 }
 
 btnG.disabled = true;
-  }
+    }
   /* ================= PHASE UI ================= */
 function setPhase(phase){
   state.fase = phase || "";
@@ -1874,8 +1941,8 @@ function setPhase(phase){
     el.classList.toggle("show", isEvalPhase());
   });
 
-  // ✅ Fases nuevas sin bloque aún: ocultan todo hasta que les agregues su sección
-  if(state.fase === "INCIDENCIAS" || state.fase === "ONEONE"){
+  // ✅ ONEONE sigue sin bloque; INCIDENCIAS ya tendrá su propia sección
+  if(state.fase === "ONEONE"){
     document.querySelectorAll("[data-phase-block]").forEach(el=>{
       el.classList.remove("show");
     });
@@ -2512,7 +2579,13 @@ if ($("printTextArea")) $("printTextArea").value = "";
     state.resultadoCache = null;
     updateGuardarUIState();
   }
-
+  // inicializa fecha por defecto para incidencias
+  function initIncidenciasDefaults(){
+    if($("incFecha") && !$("incFecha").value){
+      $("incFecha").value = todayLocal();
+    }
+  }
+  
   // ✅ Obtiene 1 registro de EvaluacionFinal y construye el reporte:
   // - Factor/Item: desde el cuestionario del nivel usado
   // - Respuesta: selección elegida (texto de EvaluacionFinal, ej "3 — ...")
@@ -2815,6 +2888,15 @@ async function generarDesarrollo_(){
     updateGuardarUIState();
   }
 
+  function clearIncidencias(){
+    if($("incFecha")) $("incFecha").value = todayLocal();
+    if($("incNoPersonal")) $("incNoPersonal").value = "";
+    if($("incNombre")) $("incNombre").value = "";
+    if($("incIncidencia")) $("incIncidencia").value = "";
+    if($("incUsuario")) $("incUsuario").value = "";
+    updateGuardarUIState();
+  }
+  
   function clearDesempenoExtra(){
     [
       "comentariosColaborador","evaluacionClientesDes","fortalezas","oportunidadesMejora",
@@ -2867,7 +2949,33 @@ async function generarDesarrollo_(){
     alert("Guardado ✅\nID: " + (out.id || "—"));
     clearClientes();
   }
+  async function saveIncidencias(){
+    if(!isIncidenciasPhase()){
+      alert("Para guardar Incidencias, selecciona la fase Incidencias.");
+      return;
+    }
 
+    if(!isIncidenciasComplete()){
+      alert("Aún faltan campos. Completa Fecha, No de personal, Nombre, Incidencia y Usuario.");
+      return;
+    }
+
+    const payload = {
+      fase: "INCIDENCIAS",
+      fecha: $("incFecha").value.trim(),
+      no: $("incNoPersonal").value.trim(),
+      nombre: $("incNombre").value.trim(),
+      incidencia: $("incIncidencia").value.trim(),
+      usuario: $("incUsuario").value.trim()
+    };
+
+    const b64 = btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
+    const out = await apiGet({ action:"save", payload:b64 });
+
+    alert("Incidencia guardada ✅\nID: " + (out.id || "—"));
+    clearIncidencias();
+  }
+  
   function buildCompatComentarios(){
     if(!isDesempenoPhase()) return "";
     return ($("justificacion")?.value || "").trim();
@@ -3477,6 +3585,13 @@ document.querySelectorAll(".faseBtn").forEach(btn=>{
     setFaseFromButton(btn.dataset.fase || "");
   });
 });
+
+["incFecha","incNoPersonal","incNombre","incIncidencia","incUsuario"].forEach(id=>{
+  const el = $(id);
+  if(!el) return;
+  el.addEventListener("input", updateGuardarUIState);
+  el.addEventListener("change", updateGuardarUIState);
+});
   
 // Fase / Nivel
 on("faseSelect", "change", async (e)=>{
@@ -3495,6 +3610,11 @@ on("faseSelect", "change", async (e)=>{
       await loadLevelsForPhase();
     }
 
+    if(fase === "INCIDENCIAS"){
+      initIncidenciasDefaults();
+      updateGuardarUIState();
+    }
+    
     if(fase === "NIVELES"){
       clearNivelesTable();
       // NO autoload forzado si prefieres, pero aquí sí ayuda a “no se ve muerto”
@@ -3555,7 +3675,11 @@ on("btnGuardar", "click", async ()=>{
   btn.textContent = "Guardando…";
 
   try{
-    await doGuardar();
+    if(isIncidenciasPhase()){
+      await saveIncidencias();
+    }else{
+      await doGuardar();
+    }
   }catch(err){
     setApiStatus("err","API: " + (err?.message || err));
   }finally{
@@ -3568,13 +3692,13 @@ on("btnGuardar", "click", async ()=>{
 // Nuevo (si existe)
 on("btnNuevo", "click", ()=>{
   clearClientes();
+  clearIncidencias();
   clearEval();
   clearResultado();
   clearFormTable();
   clearPesosTable();
   clearNivelesTable();
 });
-
 // ✅ Botones Cargar/Limpiar (ahora nunca rompen si faltan IDs)
 on("btnCargarNiveles", "click", ()=>loadNivelesList().catch(err=>setApiStatus("err","API: " + err.message)));
   on("btnCargarNiveles", "click", async ()=>{
