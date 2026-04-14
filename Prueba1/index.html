@@ -1624,6 +1624,18 @@ async function apiGet(params, timeoutMs = 5000){
   setApiStatus("err", "API: " + (lastErr?.message || "desconectada"));
   throw lastErr || new Error("No se pudo conectar con la API");
 }
+async function apiGetSafe(params, timeoutMs = 8000){
+  try{
+    return await apiGet(params, timeoutMs);
+  }catch(err){
+    if ($("nivelSelect")) {
+      $("nivelSelect").disabled = true;
+      $("nivelSelect").innerHTML = `<option>Error cargando niveles</option>`;
+    }
+    throw err;
+  }
+}
+  
   function todayLocal(){
   const d = new Date();
   const yyyy = d.getFullYear();
@@ -3614,8 +3626,8 @@ on("btnAbrirPing", "click", ()=>{
 on("btnProbarApi", "click", async ()=>{
   $("btnProbarApi").disabled = true;
   try{
-    await apiGet({ action:"ping" }, 4000);
-    setApiStatus("ok","API: conectada");
+    await apiGetSafe({ action:"ping" }, 8000);
+setApiStatus("ok","API: conectada");
   }catch(e){
     setApiStatus("err","API: " + (e?.message || e));
   }finally{
@@ -3702,10 +3714,14 @@ on("btnCopyText", "click", async ()=>{
   }
 });
 
-// Recover modal
-on("btnRecoverClose", "click", closeRecoverModal);
+function closeRecoverModalSafe_(){
+  if (typeof closeRecoverModal === "function") return closeRecoverModal();
+  $("recoverModalBack")?.classList.remove("show");
+}
+
+on("btnRecoverClose", "click", closeRecoverModalSafe_);
 on("recoverModalBack", "click", (e)=>{
-  if(e.target === $("recoverModalBack")) closeRecoverModal();
+  if(e.target === $("recoverModalBack")) closeRecoverModalSafe_();
 });
 
 // Tipos modal
@@ -3858,7 +3874,7 @@ clearEval();
 // ✅ Botones Cargar/Limpiar (ahora nunca rompen si faltan IDs)
 on("btnCargarNiveles", "click", async ()=>{
   try{
-    await apiGet({ action:"ping" }, 4000);
+    await apiGetSafe({ action:"ping" }, 8000);
     await loadNivelesList();
   }catch(err){
     setApiStatus("err", "API: " + (err?.message || err));
