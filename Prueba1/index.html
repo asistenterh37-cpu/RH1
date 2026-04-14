@@ -1723,6 +1723,55 @@ async function apiGetSafe(params, timeoutMs = 8000){
       sel.appendChild(o);
     });
   }
+function clearNivelesTable(){
+  if ($("nivelesInfo")) $("nivelesInfo").textContent = "—";
+  if ($("nivelesTbody")) {
+    $("nivelesTbody").innerHTML = `<tr><td colspan="4" class="sub">Presiona <b>Cargar</b> para ver los niveles.</td></tr>`;
+  }
+}
+
+async function loadNivelesList(){
+  clearNivelesTable();
+
+  const sel = $("nivelSelect");
+  if (sel) {
+    sel.disabled = true;
+    sel.innerHTML = `<option>Cargando niveles...</option>`;
+  }
+
+  try{
+    const lv = await apiGetSafe({ action:"levels", sheet:"Formularios" }, 8000);
+    const levels = Array.isArray(lv?.levels) ? lv.levels : [];
+
+    if(!levels.length){
+      if (sel) {
+        sel.disabled = true;
+        sel.innerHTML = `<option>Sin niveles</option>`;
+      }
+      $("nivelesInfo").textContent = "Niveles encontrados: 0";
+      $("nivelesTbody").innerHTML = `<tr><td colspan="4" class="sub">No hay niveles para mostrar.</td></tr>`;
+      return;
+    }
+
+    fillNivelSelect(levels, true);
+    if (sel) {
+      sel.disabled = false;
+      sel.value = "ALL";
+    }
+    state.nivel = "ALL";
+    renderNivelesTable(levels);
+
+  }catch(err){
+    if (sel) {
+      sel.disabled = true;
+      sel.innerHTML = `<option>Error cargando niveles</option>`;
+    }
+    $("nivelesInfo").textContent = "Error cargando niveles";
+    $("nivelesTbody").innerHTML = `<tr><td colspan="4" class="sub">${escapeHtml(err?.message || "No se pudieron cargar los niveles.")}</td></tr>`;
+    throw err;
+  }
+}
+  
   function pickDefault(levels, includeAll){
     if(includeAll) return "ALL";
     const has1 = levels.some(x => String(x).trim() === "1" || String(x).trim().startsWith("1"));
@@ -2426,57 +2475,54 @@ function renderNivelesTable(levels){
 
   /* ================= LOADERS (levels + form) ================= */
     async function loadLevelsForPhase(){
-
-    if(isEvalPhase()){
-      const lv = await apiGet({action:"levels", sheet:"Formularios"});
-      const levels = lv.levels || [];
-      if(!levels.length) throw new Error("No se encontraron niveles en 'Formularios'.");
-      fillNivelSelect(levels, false);
-      const def = pickDefault(levels, false);
-      $("nivelSelect").value = def;
-      state.nivel = def;
-      return;
-    }
-
-    if(state.fase === "NIVELES"){
-      const lv = await apiGet({action:"levels", sheet:"Formularios"});
-      const levels = lv.levels || [];
-      if(!levels.length) throw new Error("No se encontraron niveles en 'Formularios'.");
-      // En NIVELES mostramos la lista completa
-      fillNivelSelect(levels, true);
-      const def = pickDefault(levels, true);
-      $("nivelSelect").value = def;
-      state.nivel = def;
-
-      renderNivelesTable(levels);
-      return;
-    }
-
-    if(state.fase === "FORMULARIOS"){
-      const lv = await apiGet({action:"levels", sheet:"Formularios"});
-      const levels = lv.levels || [];
-      if(!levels.length) throw new Error("No se encontraron niveles en 'Formularios'.");
-      fillNivelSelect(levels, true);
-      const def = pickDefault(levels, true);
-      $("nivelSelect").value = def;
-      state.nivel = def;
-      return;
-    }
-
-    if(state.fase === "PESOS"){
-      const lv = await apiGet({ action:"levels", sheet:"Pesos" }).catch(async ()=>{
-  return await apiGet({ action:"levels", sheet:"Formularios" });
-});
-      const levels = lv.levels || [];
-      if(!levels.length) throw new Error("No se encontraron niveles en 'Pesos'.");
-      fillNivelSelect(levels, true);
-      const def = pickDefault(levels, true);
-      $("nivelSelect").value = def;
-      state.nivel = def;
-      return;
-    }
+  const sel = $("nivelSelect");
+  if (sel) {
+    sel.disabled = true;
+    sel.innerHTML = `<option>Cargando niveles...</option>`;
   }
 
+  if(isEvalPhase()){
+    const lv = await apiGetSafe({ action:"levels", sheet:"Formularios" }, 8000);
+    const levels = lv.levels || [];
+    if(!levels.length) throw new Error("No se encontraron niveles en 'Formularios'.");
+    fillNivelSelect(levels, false);
+    const def = pickDefault(levels, false);
+    sel.value = def;
+    sel.disabled = false;
+    state.nivel = def;
+    return;
+  }
+
+  if(state.fase === "NIVELES"){
+    await loadNivelesList();
+    return;
+  }
+
+  if(state.fase === "FORMULARIOS"){
+    const lv = await apiGetSafe({ action:"levels", sheet:"Formularios" }, 8000);
+    const levels = lv.levels || [];
+    if(!levels.length) throw new Error("No se encontraron niveles en 'Formularios'.");
+    fillNivelSelect(levels, true);
+    const def = pickDefault(levels, true);
+    sel.value = def;
+    sel.disabled = false;
+    state.nivel = def;
+    return;
+  }
+
+  if(state.fase === "PESOS"){
+    const lv = await apiGetSafe({ action:"levels", sheet:"Pesos" }, 8000).catch(async ()=>{
+      return await apiGetSafe({ action:"levels", sheet:"Formularios" }, 8000);
+    });
+    const levels = lv.levels || [];
+    if(!levels.length) throw new Error("No se encontraron niveles en 'Pesos'.");
+    fillNivelSelect(levels, true);
+    const def = pickDefault(levels, true);
+    sel.value = def;
+    sel.disabled = false;
+    state.nivel = def;
+  }
+}
    async function loadFormByNivel(nivel){
     const niv = String(nivel ?? "").trim() || "1";
 
@@ -3874,10 +3920,9 @@ clearEval();
 // ✅ Botones Cargar/Limpiar (ahora nunca rompen si faltan IDs)
 on("btnCargarNiveles", "click", async ()=>{
   try{
-    await apiGetSafe({ action:"ping" }, 8000);
     await loadNivelesList();
   }catch(err){
-    setApiStatus("err", "API: " + (err?.message || err));
+    setApiStatus("err", "JS: " + (err?.message || String(err)));
   }
 });
   on("btnLimpiarNiveles", "click", clearNivelesTable);
