@@ -1950,58 +1950,57 @@ function isOneOneComplete(){
   }
 
     /* ================= UI STATE (BOTONES) ================= */
-    function updateGuardarUIState(){
-    const btnG = $("btnGuardar");
-    const btnL = $("btnLimpiarEval");
-    const btnR = $("btnRecuperar");
-    const btnP = $("btnPrint");
+function updateGuardarUIState(){
+  const btnG = $("btnGuardar");
+  const btnL = $("btnLimpiarEval");
+  const btnR = $("btnRecuperar");
+  const btnP = $("btnPrint");
 
-    // ✅ Limpiar se muestra en: EVAL / CLIENTES / RESULTADO / CONSOLIDADO
-    const showLimpiar = isEvalPhase() || isClientesPhase() || isIncidenciasPhase() || isOneOnePhase() || isResultadoPhase() || isConsolidadoPhase();
-    btnL.style.display = showLimpiar ? "inline-block" : "none";
+  const showLimpiar =
+    isEvalPhase() || isClientesPhase() || isIncidenciasPhase() ||
+    isOneOnePhase() || isResultadoPhase() || isConsolidadoPhase();
+  btnL.style.display = showLimpiar ? "inline-block" : "none";
 
-    // ✅ Recuperar se muestra en: DESEMPENO / RESULTADO (NO en Informe ejecutivo)
-btnR.style.display = (isDesempenoPhase() || isResultadoPhase()) ? "inline-block" : "none";
+  btnR.style.display = (isDesempenoPhase() || isResultadoPhase()) ? "inline-block" : "none";
+  btnP.style.display = isResultadoPhase() ? "inline-block" : "none";
 
-    // ✅ Imprimir SOLO en RESULTADO (en CONSOLIDADO se imprime desde el modal)
-    btnP.style.display = isResultadoPhase() ? "inline-block" : "none";
+  const showGuardar =
+    isClientesPhase() ||
+    isEvalPhase() ||
+    isDesempenoPhase() ||
+    isIncidenciasPhase() ||
+    isOneOnePhase();
 
-    // ✅ Guardar (HEADER) debe verse en CLIENTES y en el Formulario de evaluación (AUTO/DESEMPENO)
+  btnG.style.display = showGuardar ? "inline-block" : "inline-none";
 
-const showGuardar =
-  isClientesPhase() ||
-  isEvalPhase() ||
-  isDesempenoPhase() ||
-  state.fase === "INCIDENCIAS";
+  if(!showGuardar){
+    btnG.disabled = true;
+    return;
+  }
 
-btnG.style.display = showGuardar ? "inline-block" : "none";
+  if(isClientesPhase()){
+    btnG.disabled = !isClientesComplete();
+    return;
+  }
 
-// si está oculto, igual lo dejamos deshabilitado por seguridad
-if(!showGuardar){
+  if(isIncidenciasPhase()){
+    btnG.disabled = !isIncidenciasComplete();
+    return;
+  }
+
+  if(isOneOnePhase()){
+    btnG.disabled = !isOneOneComplete();
+    return;
+  }
+
+  if(isEvalPhase() || isDesempenoPhase()){
+    btnG.disabled = !isEvalComplete();
+    return;
+  }
+
   btnG.disabled = true;
-  return;
 }
-
-
-// ✅ Guardar habilitado solo cuando corresponde
-if(isClientesPhase()){
-  btnG.disabled = !isClientesComplete();
-  return;
-}
-
-if(state.fase === "INCIDENCIAS"){
-  btnG.disabled = !isIncidenciasComplete();
-  return;
-}
-
-// ✅ En evaluación: AUTO o DESEMPENO (isEvalComplete ya valida extras si es DESEMPENO)
-if(isEvalPhase() || isDesempenoPhase()){
-  btnG.disabled = !isEvalComplete();
-  return;
-}
-
-btnG.disabled = true;
-    }
+  
   /* ================= PHASE UI ================= */
 function setPhase(phase){
   state.fase = phase || "";
@@ -3059,6 +3058,16 @@ function clearOneOne(){
     throw new Error(out?.error || "No se pudo guardar la incidencia.");
   }
 
+  clearIncidencias();
+  setApiStatus("ok","API: incidencia guardada");
+  alert("Incidencia guardada ✅\nID: " + (out.id || "—"));
+
+  if(btn){
+    btn.disabled = false;
+    btn.textContent = "Guardar";
+  }
+}
+
 async function saveOneOne(){
   if(!isOneOnePhase()){
     alert("Para guardar One One, selecciona la fase One One.");
@@ -3097,7 +3106,6 @@ async function saveOneOne(){
     btn.textContent = "Guardar";
   }
 }
-
     
   clearIncidencias();
   setApiStatus("ok","API: incidencia guardada");
