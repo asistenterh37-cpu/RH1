@@ -358,16 +358,17 @@ button[disabled]{
       table{min-width:840px}
     }
 
-@media (max-width:860px){
-  #blockIncidencias .card-b > div[style*="display:flex"]{
+    @media (max-width:860px){
+  #blockIncidencias .card-b > div[style*="display:flex"],
+  #blockOneOne .card-b > div[style*="display:flex"]{
     flex-direction:column;
   }
-  #blockIncidencias .field.boxed{
+  #blockIncidencias .field.boxed,
+  #blockOneOne .field.boxed{
     min-width:100% !important;
     flex:1 1 100% !important;
   }
 }
-    
   @media print{
 
   /* Ocultar secciones principales */
@@ -901,6 +902,51 @@ Dejar de hacer:"></textarea>
     <div class="sub" style="margin-top:10px">Estado API: <b id="apiMiniInc">—</b></div>
   </div>
 </section>
+
+<!-- ONE ONE -->
+<section class="card" data-phase-block="ONEONE" id="blockOneOne">
+  <div class="card-h">
+    <div>
+      <h2>One One</h2>
+      <div class="sub">Completa los campos y presiona <b>Guardar</b> para registrar en la hoja <b>One One</b>.</div>
+    </div>
+    <div class="chips">
+      <span class="chip mono">Hoja destino: <b>One One</b></span>
+    </div>
+  </div>
+  <div class="card-b">
+    <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:stretch; margin-bottom:10px;">
+      <div class="field boxed" style="flex:0 0 120px;">
+        <div class="lbl">Fecha</div>
+        <input id="ooFecha" type="date" />
+      </div>
+
+      <div class="field boxed" style="flex:0 0 190px;">
+        <div class="lbl">No de personal</div>
+        <input id="ooNoPersonal" placeholder="Ej: 1600" />
+      </div>
+
+      <div class="field boxed" style="flex:0 0 320px;">
+        <div class="lbl">Nombre</div>
+        <input id="ooNombre" placeholder="Ej: Carlos Paz" />
+      </div>
+    </div>
+
+    <div style="display:flex; gap:10px; align-items:stretch; flex-wrap:wrap;">
+      <div class="field boxed" style="flex:10 1 0; min-width:700px;">
+        <div class="lbl">Seguimiento individual</div>
+        <textarea id="ooSeguimiento" placeholder="Describe el seguimiento individual..." style="min-height:110px;"></textarea>
+      </div>
+
+      <div class="field boxed" style="flex:1 1 260px; min-width:260px;">
+        <div class="lbl">Evaluador</div>
+        <input id="ooEvaluador" placeholder="Ej: avalle / Valentina" />
+      </div>
+    </div>
+
+    <div class="sub" style="margin-top:10px">Estado API: <b id="apiMiniOneOne">—</b></div>
+  </div>
+</section>
     
     <!-- EVAL (AUTO / DESEMPENO) -->
     <section class="card" id="blockDatos">
@@ -1330,7 +1376,7 @@ Dejar de hacer:"></textarea>
 `Empezar a hacer:
 Continuar haciendo:
 Dejar de hacer:`;
-  const DEFAULT_WEBAPP_ = "https://script.google.com/macros/s/AKfycbwbU20dFyESKTYIObvK8G0IfHeFYNDzqjHypOejM2ZZFdJ50QAB91mQKEdQP3geeMyz/exec";
+  const DEFAULT_WEBAPP_ = "https://script.google.com/macros/s/AKfycby5zuultBm0ciwqEpHN_I4ByYdSRCGA0b7fJJsBDoR8v1h_KaaxT09f46kA1-UtEooW/exec";
   const $ = id => document.getElementById(id);
 
 function syncFaseButtonsUI(value){
@@ -1814,6 +1860,7 @@ function todayLocal(){
   function isDesarrolloPhase(){ return state.fase === "DESARROLLO"; } // ✅ NUEVO
   function isTiposPhase(){ return state.fase === "TIPOS"; }
   function isIncidenciasPhase(){ return state.fase === "INCIDENCIAS"; }
+  function isOneOnePhase(){ return state.fase === "ONEONE"; }
   
   /* ================= VALIDATION ================= */
   function getClientesRequiredFields(){
@@ -1843,6 +1890,21 @@ function todayLocal(){
     if(!isIncidenciasPhase()) return false;
     return !getIncidenciasRequiredFields().some(v => !v);
   }
+
+function getOneOneRequiredFields(){
+  return [
+    $("ooFecha")?.value.trim(),
+    $("ooNoPersonal")?.value.trim(),
+    $("ooNombre")?.value.trim(),
+    $("ooSeguimiento")?.value.trim(),
+    $("ooEvaluador")?.value.trim(),
+  ];
+}
+
+function isOneOneComplete(){
+  if(!isOneOnePhase()) return false;
+  return !getOneOneRequiredFields().some(v => !v);
+}
   
   function getEvalHeaderRequiredFields(){
     return [
@@ -1895,7 +1957,7 @@ function todayLocal(){
     const btnP = $("btnPrint");
 
     // ✅ Limpiar se muestra en: EVAL / CLIENTES / RESULTADO / CONSOLIDADO
-    const showLimpiar = isEvalPhase() || isClientesPhase() || isResultadoPhase() || isConsolidadoPhase();
+    const showLimpiar = isEvalPhase() || isClientesPhase() || isIncidenciasPhase() || isOneOnePhase() || isResultadoPhase() || isConsolidadoPhase();
     btnL.style.display = showLimpiar ? "inline-block" : "none";
 
     // ✅ Recuperar se muestra en: DESEMPENO / RESULTADO (NO en Informe ejecutivo)
@@ -1955,12 +2017,7 @@ function setPhase(phase){
     el.classList.toggle("show", isEvalPhase());
   });
 
-  // ✅ ONEONE sigue sin bloque; INCIDENCIAS ya tendrá su propia sección
-  if(state.fase === "ONEONE"){
-    document.querySelectorAll("[data-phase-block]").forEach(el=>{
-      el.classList.remove("show");
-    });
-  }
+    // ✅ ONEONE ya tiene su propio bloque
   
 // Nivel: oculto en CLIENTES/RESULTADO/CONSOLIDADO/CAPACITACION/DESARROLLO/TIPOS/NIVELES
 const nivelWrap = $("nivelWrap");
@@ -2911,6 +2968,15 @@ async function generarDesarrollo_(){
 
   updateGuardarUIState();
 }
+
+function clearOneOne(){
+  ["ooFecha","ooNoPersonal","ooNombre","ooSeguimiento","ooEvaluador"].forEach(id=>{
+    const el = $(id);
+    if(el) el.value = "";
+  });
+  if($("ooFecha")) $("ooFecha").value = todayLocal();
+  updateGuardarUIState();
+}
   
   function clearDesempenoExtra(){
     [
@@ -2993,6 +3059,46 @@ async function generarDesarrollo_(){
     throw new Error(out?.error || "No se pudo guardar la incidencia.");
   }
 
+async function saveOneOne(){
+  if(!isOneOnePhase()){
+    alert("Para guardar One One, selecciona la fase One One.");
+    return;
+  }
+
+  if(!isOneOneComplete()){
+    alert("Aún faltan campos. Completa Fecha, No de personal, Nombre, Seguimiento individual y Evaluador.");
+    return;
+  }
+
+  const btn = $("btnGuardar");
+
+  const payload = {
+    fase: "ONEONE",
+    fecha: formatDateDMY($("ooFecha").value),
+    noPersonal: $("ooNoPersonal").value.trim(),
+    nombre: $("ooNombre").value.trim(),
+    seguimientoIndividual: $("ooSeguimiento").value.trim(),
+    evaluador: $("ooEvaluador").value.trim()
+  };
+
+  const b64 = btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
+  const out = await apiGet({ action:"save", payload:b64 });
+
+  if(!out || out.ok !== true){
+    throw new Error(out?.error || "No se pudo guardar el One One.");
+  }
+
+  clearOneOne();
+  setApiStatus("ok","API: One One guardado");
+  alert("One One guardado ✅\nID: " + (out.id || "—"));
+
+  if(btn){
+    btn.disabled = false;
+    btn.textContent = "Guardar";
+  }
+}
+
+    
   clearIncidencias();
   setApiStatus("ok","API: incidencia guardada");
   alert("Incidencia guardada ✅\nID: " + (out.id || "—"));
@@ -3638,9 +3744,14 @@ on("faseSelect", "change", async (e)=>{
     }
 
     if(fase === "INCIDENCIAS"){
-      initIncidenciasDefaults();
-      updateGuardarUIState();
-    }
+  initIncidenciasDefaults();
+  updateGuardarUIState();
+}
+
+if(fase === "ONEONE"){
+  clearOneOne();
+  updateGuardarUIState();
+}
     
     if(fase === "NIVELES"){
       clearNivelesTable();
@@ -3703,11 +3814,13 @@ on("btnGuardar", "click", async ()=>{
     btn.disabled = true;
     btn.textContent = "Guardando...";
 
-    if(isIncidenciasPhase()){
-      await saveIncidencias();
-    }else{
-      await doGuardar();
-    }
+   if(isIncidenciasPhase()){
+  await saveIncidencias();
+}else if(isOneOnePhase()){
+  await saveOneOne();
+}else{
+  await doGuardar();
+}
   }catch(err){
     setApiStatus("err","API: " + (err?.message || err));
     alert(err?.message || "Ocurrió un error al guardar.");
@@ -3715,18 +3828,19 @@ on("btnGuardar", "click", async ()=>{
   state.saving = false;
   btn.textContent = prevText;
 
-  if(isIncidenciasPhase()){
-    btn.disabled = false;
-  }else{
-    updateGuardarUIState();
-  }
+ if(isIncidenciasPhase() || isOneOnePhase()){
+  btn.disabled = false;
+}else{
+  updateGuardarUIState();
+}
 }
 });
 // Nuevo (si existe)
 on("btnNuevo", "click", ()=>{
   clearClientes();
-  clearIncidencias();
-  clearEval();
+clearIncidencias();
+clearOneOne();
+clearEval();
   clearResultado();
   clearFormTable();
   clearPesosTable();
@@ -3802,8 +3916,9 @@ on("comentariosColaboradorAuto","change", updateGuardarUIState);
 (function boot(){
   try{
     // defaults de fechas
-    if($("fecha")) $("fecha").value = todayLocal();
-    if($("fechaEval")) $("fechaEval").value = todayLocal();
+   if($("fecha")) $("fecha").value = todayLocal();
+if($("fechaEval")) $("fechaEval").value = todayLocal();
+if($("ooFecha")) $("ooFecha").value = todayLocal();
 
     const tCli = $("comentariosEvaluadorClientes");
     if (tCli && !String(tCli.value || "").trim()) tCli.value = DEFAULT_COMENTARIOS_CLIENTES;
