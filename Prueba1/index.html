@@ -796,23 +796,19 @@ button[disabled]{
         <div id="pesosTableInfo" class="sub" style="margin-bottom:10px">—</div>
 
         <div class="tableWrap">
-                       <table id="pesosTable">
-            <thead>
-             <tr>
-  <th>Código</th>
-  <th>Nivel</th>
-  <th>Item</th>
-  <th>1</th>
-  <th>2</th>
-  <th>3</th>
-  <th>4</th>
-  <th>5</th>
-</tr>
-         </thead>
-           <tbody id="pesosTableBody">
-  <tr><td colspan="5" class="sub">Presiona <b>Cargar</b> para ver la información.</td></tr>
-</tbody>
-          </table>
+        <table id="pesosTable">
+  <thead>
+    <tr>
+      <th>Código</th>
+      <th>Nivel</th>
+      <th>Item</th>
+      <th>Peso</th>
+    </tr>
+  </thead>
+  <tbody id="pesosTableBody">
+    <tr><td colspan="4" class="sub">Presiona <b>Cargar</b> para ver la información.</td></tr>
+  </tbody>
+</table>
         </div>
       </div>
     </section>
@@ -1147,23 +1143,22 @@ Dejar de hacer:"></textarea>
   </div>
 </div>
 
-        <!-- Tabla: Factor / Ítem / Respuesta -->
-        <div class="tableWrap" style="margin-bottom:14px">
-          <table id="resultadoTable">
-            <thead>
-              <tr>
-                <th>Factor</th>
-                <th>Ítem</th>
-                <th>Respuesta</th>
-              </tr>
-            </thead>
-            <tbody id="resultadoTbody">
-              <tr>
-                <td colspan="3" class="sub">Usa <b>Recuperar</b> para cargar el reporte.</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+        <!-- Tabla: Ítem / Respuesta -->
+<div class="tableWrap" style="margin-bottom:14px">
+  <table id="resultadoTable">
+    <thead>
+      <tr>
+        <th>Ítem</th>
+        <th>Respuesta</th>
+      </tr>
+    </thead>
+    <tbody id="resultadoTbody">
+      <tr>
+        <td colspan="2" class="sub">Usa <b>Recuperar</b> para cargar el reporte.</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
 
         <!-- Puntaje final -->
         <div class="form-grid" style="margin-bottom:14px">
@@ -2297,20 +2292,19 @@ function clearFormTable(){
 
   /* ================= ✅ PESOS: TABLE (editable) ================= */
    function clearPesosTable(){
-    state.pesosItems = [];
-    state.pesosDirty = false;
-    $("pesosTableInfo").textContent = "—";
-    $("pesosTableBody").innerHTML = `<tr><td colspan="5" class="sub">Presiona <b>Cargar</b> para ver la información.</td></tr>`;
-    updatePesosSaveState();
-  }
-       function renderPesosTable(items){
+  state.pesosItems = [];
+  state.pesosDirty = false;
+  $("pesosTableInfo").textContent = "—";
+  $("pesosTableBody").innerHTML = `<tr><td colspan="4" class="sub">Presiona <b>Cargar</b> para ver la información.</td></tr>`;
+  updatePesosSaveState();
+}
+ function renderPesosTable(items){
   const tbody = $("pesosTableBody");
   const arr = Array.isArray(items) ? items : [];
 
   state.pesosItems = arr.map(r => ({
     Codigo: (r.Codigo ?? r.Código ?? ""),
     Nivel:  (r.Nivel ?? ""),
-    Factor: (r.Factor ?? ""),
     Item:   (r.Item ?? ""),
     Peso:   (r.Peso ?? "")
   }));
@@ -2321,7 +2315,7 @@ function clearFormTable(){
   $("pesosTableInfo").textContent = `Mostrando: ${count} filas | Nivel seleccionado: ${getNivelRef()}`;
 
   if(!count){
-    tbody.innerHTML = `<tr><td colspan="5" class="sub">No hay datos para ese nivel.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="4" class="sub">No hay datos para ese nivel.</td></tr>`;
     updatePesosSaveState();
     return;
   }
@@ -2329,7 +2323,6 @@ function clearFormTable(){
   tbody.innerHTML = state.pesosItems.map((r, idx) => {
     const c  = escapeHtml(r.Codigo ?? "");
     const n  = escapeHtml(r.Nivel ?? "");
-    const f  = escapeHtml(r.Factor ?? "");
     const it = escapeHtml(r.Item ?? "");
     const p  = escapeAttr(String(r.Peso ?? ""));
 
@@ -2337,7 +2330,6 @@ function clearFormTable(){
       <tr data-idx="${idx}">
         <td class="mono">${c}</td>
         <td class="mono">${n}</td>
-        <td>${f}</td>
         <td>${it}</td>
         <td>
           <input class="pesoInput" inputmode="decimal" placeholder="Ej: 10" value="${p}" />
@@ -2390,15 +2382,13 @@ function clearFormTable(){
 
     const nivel = String(state.nivel || $("nivelSelect").value || "ALL");
     const payload = {
-      nivel: nivel,
-      items: state.pesosItems.map(r => ({
-        Nivel: String(r.Nivel ?? ""),
-        Factor: String(r.Factor ?? ""),
-        Item: String(r.Item ?? ""),
-        Peso: String(r.Peso ?? "")
-      }))
-    };
-
+  nivel: nivel,
+  items: state.pesosItems.map(r => ({
+    Nivel: String(r.Nivel ?? ""),
+    Item: String(r.Item ?? ""),
+    Peso: String(r.Peso ?? "")
+  }))
+};
     const b64 = btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
     const out = await apiGet({ action:"savePesos", payload:b64 });
 
@@ -2713,10 +2703,9 @@ if ($("repVersion"))  $("repVersion").value = ver || "—";
 if ($("repFecha"))    $("repFecha").value = fechaDMY || "—";
 
     // ✅ Tabla
-    $("resultadoTbody").innerHTML = rows.map(r=>{
+  $("resultadoTbody").innerHTML = rows.map(r=>{
   return `
     <tr>
-      <td>${escapeHtml(r.factor ?? "")}</td>
       <td>${escapeHtml(r.item ?? "")}</td>
       <td>${escapeHtml(r.respuesta ?? "—")}</td>
     </tr>
