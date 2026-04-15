@@ -460,7 +460,7 @@ button[disabled]{
       <div class="form-grid">
         <div class="field col-8 boxed">
           <div class="lbl">URL Web App Apps Script</div>
-          <input id="webapp" value="https://script.google.com/macros/s/AKfycbz4UZMx2wmk1L4mAqtijymndXx0aw6RZ8JJLDIW3toGI2m7RXNBtE0B3uPYl5fm6fL-/exec" />
+          <input id="webapp" value="https://script.google.com/macros/s/AKfycbxnYUVkFzYaNvS8wCEsC6Vu4FdOM3ACEuVWIDv5oBwr0HdrcGK29tuVZIvbygU0CdwF/exec" />
         </div>
         <div class="field col-4 boxed">
           <div class="lbl">Pruebas API</div>
@@ -869,11 +869,6 @@ Dejar de hacer:"></textarea>
   </div>
   <div class="card-b">
     <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:stretch; margin-bottom:10px;">
-      <div class="field boxed" style="flex:0 0 120px;">
-        <div class="lbl">Fecha</div>
-        <input id="incFecha" type="date" />
-      </div>
-
       <div class="field boxed" style="flex:0 0 190px;">
         <div class="lbl">No de personal</div>
         <input id="incNoPersonal" placeholder="Ej: 1600" />
@@ -883,12 +878,32 @@ Dejar de hacer:"></textarea>
         <div class="lbl">Nombre</div>
         <input id="incNombre" placeholder="Ej: Carlos Paz" />
       </div>
+
+      <div class="field boxed" style="flex:0 0 260px;">
+        <div class="lbl">Posición</div>
+        <input id="incPosicion" placeholder="Ej: Analista" />
+      </div>
+
+      <div class="field boxed" style="flex:0 0 260px;">
+        <div class="lbl">Departamento</div>
+        <input id="incDepto" placeholder="Ej: Contabilidad" />
+      </div>
     </div>
 
-    <div style="display:flex; gap:10px; align-items:stretch; flex-wrap:wrap;">
-      <div class="field boxed" style="flex:10 1 0; min-width:700px;">
-        <div class="lbl">Incidencia</div>
-        <textarea id="incIncidencia" placeholder="Describe la incidencia..." style="min-height:110px;"></textarea>
+    <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:stretch; margin-bottom:10px;">
+      <div class="field boxed" style="flex:0 0 180px;">
+        <div class="lbl">Periodo</div>
+        <input id="incPeriodo" placeholder="Ej: 2025" />
+      </div>
+
+      <div class="field boxed" style="flex:0 0 140px;">
+        <div class="lbl">Versión</div>
+        <input id="incVersion" placeholder="Ej: 1" />
+      </div>
+
+      <div class="field boxed" style="flex:0 0 160px;">
+        <div class="lbl">Fecha</div>
+        <input id="incFecha" type="date" />
       </div>
 
       <div class="field boxed" style="flex:1 1 260px; min-width:260px;">
@@ -897,10 +912,17 @@ Dejar de hacer:"></textarea>
       </div>
     </div>
 
+    <div style="display:flex; gap:10px; align-items:stretch; flex-wrap:wrap;">
+      <div class="field boxed" style="flex:1 1 100%; min-width:100%;">
+        <div class="lbl">Incidencia</div>
+        <textarea id="incIncidencia" placeholder="Describe la incidencia..." style="min-height:110px;"></textarea>
+      </div>
+    </div>
+
     <div class="sub" style="margin-top:10px">Estado API: <b id="apiMiniInc">—</b></div>
   </div>
 </section>
-
+    
 <!-- ONE ONE -->
 <section class="card" data-phase-block="ONEONE" id="blockOneOne">
   <div class="card-h">
@@ -1373,7 +1395,7 @@ Dejar de hacer:"></textarea>
 `Empezar a hacer:
 Continuar haciendo:
 Dejar de hacer:`;
-  const DEFAULT_WEBAPP_ = "https://script.google.com/macros/s/AKfycbz4UZMx2wmk1L4mAqtijymndXx0aw6RZ8JJLDIW3toGI2m7RXNBtE0B3uPYl5fm6fL-/exec";
+  const DEFAULT_WEBAPP_ = "https://script.google.com/macros/s/AKfycbxnYUVkFzYaNvS8wCEsC6Vu4FdOM3ACEuVWIDv5oBwr0HdrcGK29tuVZIvbygU0CdwF/exec";
   const $ = id => document.getElementById(id);
 
 function syncFaseButtonsUI(value){
@@ -1870,14 +1892,18 @@ function buildCodigosMapFromPesos_(items){
     ];
   }
   function getIncidenciasRequiredFields(){
-    return [
-      $("incFecha")?.value.trim(),
-      $("incNoPersonal")?.value.trim(),
-      $("incNombre")?.value.trim(),
-      $("incIncidencia")?.value.trim(),
-      $("incUsuario")?.value.trim(),
-    ];
-  }
+  return [
+    $("incNoPersonal")?.value.trim(),
+    $("incNombre")?.value.trim(),
+    $("incPosicion")?.value.trim(),
+    $("incDepto")?.value.trim(),
+    $("incPeriodo")?.value.trim(),
+    $("incVersion")?.value.trim(),
+    $("incFecha")?.value.trim(),
+    $("incIncidencia")?.value.trim(),
+    $("incUsuario")?.value.trim(),
+  ];
+}
 
   function isIncidenciasComplete(){
     if(!isIncidenciasPhase()) return false;
@@ -2948,12 +2974,11 @@ async function generarDesarrollo_(){
   }
 
   function clearIncidencias(){
-  if($("incFecha")) $("incFecha").value = "";
-  if($("incNoPersonal")) $("incNoPersonal").value = "";
-  if($("incNombre")) $("incNombre").value = "";
-  if($("incIncidencia")) $("incIncidencia").value = "";
-  if($("incUsuario")) $("incUsuario").value = "";
-
+  ["incNoPersonal","incNombre","incPosicion","incDepto","incPeriodo","incVersion","incIncidencia","incUsuario"].forEach(id=>{
+    const el = $(id);
+    if(el) el.value = "";
+  });
+  if($("incFecha")) $("incFecha").value = todayLocal();
   updateGuardarUIState();
 }
 
@@ -3025,7 +3050,7 @@ function clearOneOne(){
   }
 
   if(!isIncidenciasComplete()){
-    alert("Aún faltan campos. Completa Fecha, No de personal, Nombre, Incidencia y Usuario.");
+    alert("Aún faltan campos. Completa No de personal, Nombre, Posición, Departamento, Periodo, Versión, Fecha, Incidencia y Usuario.");
     return;
   }
 
@@ -3033,9 +3058,13 @@ function clearOneOne(){
 
   const payload = {
     fase: "INCIDENCIAS",
-    fecha: formatDateDMY($("incFecha").value),
     noPersonal: $("incNoPersonal").value.trim(),
     nombre: $("incNombre").value.trim(),
+    posicion: $("incPosicion").value.trim(),
+    depto: $("incDepto").value.trim(),
+    periodo: $("incPeriodo").value.trim(),
+    version: $("incVersion").value.trim(),
+    fecha: formatDateDMY($("incFecha").value),
     incidencia: $("incIncidencia").value.trim(),
     usuario: $("incUsuario").value.trim()
   };
@@ -3714,13 +3743,12 @@ document.querySelectorAll(".faseBtn").forEach(btn=>{
   });
 });
 
-["incFecha","incNoPersonal","incNombre","incIncidencia","incUsuario"].forEach(id=>{
+  ["incNoPersonal","incNombre","incPosicion","incDepto","incPeriodo","incVersion","incFecha","incIncidencia","incUsuario"].forEach(id=>{
   const el = $(id);
   if(!el) return;
   el.addEventListener("input", updateGuardarUIState);
   el.addEventListener("change", updateGuardarUIState);
 });
-  
 // Fase / Nivel
 on("faseSelect", "change", async (e)=>{
   const fase = e.target.value;
