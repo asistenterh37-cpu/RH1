@@ -460,7 +460,7 @@ button[disabled]{
       <div class="form-grid">
         <div class="field col-8 boxed">
           <div class="lbl">URL Web App Apps Script</div>
-          <input id="webapp" value="https://script.google.com/macros/s/AKfycbwXFqMKjKjmh5OwjyqE4PJAyOY_mgWFh2R0yvJPHPiixQDBk7DsjskpDW9kyJssmJsF/exec" placeholder="https://script.google.com/macros/s/.../exec" />
+          <input id="webapp" value="https://script.google.com/macros/s/AKfycbz4UZMx2wmk1L4mAqtijymndXx0aw6RZ8JJLDIW3toGI2m7RXNBtE0B3uPYl5fm6fL-/exec" />
         </div>
         <div class="field col-4 boxed">
           <div class="lbl">Pruebas API</div>
@@ -1373,7 +1373,7 @@ Dejar de hacer:"></textarea>
 `Empezar a hacer:
 Continuar haciendo:
 Dejar de hacer:`;
-  const DEFAULT_WEBAPP_ = "https://script.google.com/macros/s/AKfycbwXFqMKjKjmh5OwjyqE4PJAyOY_mgWFh2R0yvJPHPiixQDBk7DsjskpDW9kyJssmJsF/exec";
+  const DEFAULT_WEBAPP_ = "https://script.google.com/macros/s/AKfycbz4UZMx2wmk1L4mAqtijymndXx0aw6RZ8JJLDIW3toGI2m7RXNBtE0B3uPYl5fm6fL-/exec";
   const $ = id => document.getElementById(id);
 
 function syncFaseButtonsUI(value){
@@ -3608,6 +3608,14 @@ on("btnProbarApi", "click", async ()=>{
     setApiStatus("err","API: " + (e?.message || e));
   }
 });
+async function assertBackendVersion_(){
+  const r = await apiGet({ action:"pingVersion" });
+  const v = String(r?.v || "");
+  if(v !== "fix-botones-sin-factor-2"){
+    throw new Error("Deploy anterior detectado. Publica la versión nueva del GS.");
+  }
+}
+  
 // helpers: wrappers para no romper si faltan funciones
 async function recoverConsolidadoSafe_(){
   if (typeof recoverConsolidado_ === "function") {
@@ -3924,6 +3932,7 @@ if($("ooFecha")) $("ooFecha").value = todayLocal();
     (async ()=>{
   try{
     await apiGet({ action:"ping" });
+    await assertBackendVersion_();
     if($("cuestionario")){
       $("cuestionario").innerHTML = `<div class="hint">Selecciona una fase para iniciar.</div>`;
     }
