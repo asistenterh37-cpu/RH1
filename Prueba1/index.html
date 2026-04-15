@@ -692,9 +692,9 @@ button[disabled]{
 </select>
 
   <span class="nivelWrap" id="nivelWrap">
-    <select id="nivelSelect" disabled>
-      <option>Cargando niveles…</option>
-    </select>
+   <select id="nivelSelect" disabled>
+  <option value="">Selecciona una fase</option>
+</select>
   </span>
 </div>
           <div class="sub" id="faseHelp" style="max-width:520px; text-align:right; flex:1 1 auto">
@@ -2393,57 +2393,55 @@ function clearFormTable(){
   }
 
   /* ================= LOADERS (levels + form) ================= */
-    async function loadLevelsForPhase(){
+    function setNivelSelectState_(text, disabled = true){
+  const sel = $("nivelSelect");
+  if(!sel) return;
+  sel.innerHTML = `<option value="">${text}</option>`;
+  sel.disabled = disabled;
+}
+
+async function loadLevelsForPhase(){
+  setNivelSelectState_("Cargando niveles...", true);
+
+  try{
+    let lv = null;
+    let includeAll = false;
 
     if(isEvalPhase()){
-      const lv = await apiGet({action:"levels", sheet:"Formularios"});
-      const levels = lv.levels || [];
-      if(!levels.length) throw new Error("No se encontraron niveles en 'Formularios'.");
-      fillNivelSelect(levels, false);
-      const def = pickDefault(levels, false);
-      $("nivelSelect").value = def;
-      state.nivel = def;
+      lv = await apiGet({ action:"levels", sheet:"Formularios" });
+      includeAll = false;
+    }else if(state.fase === "NIVELES" || state.fase === "FORMULARIOS"){
+      lv = await apiGet({ action:"levels", sheet:"Formularios" });
+      includeAll = true;
+    }else if(state.fase === "PESOS"){
+      lv = await apiGet({ action:"levels", sheet:"Pesos" }).catch(async ()=>{
+        return await apiGet({ action:"levels", sheet:"Formularios" });
+      });
+      includeAll = true;
+    }else{
+      setNivelSelectState_("Selecciona una fase", true);
       return;
     }
+
+    const levels = lv.levels || [];
+    if(!levels.length) throw new Error("No se encontraron niveles.");
+
+    fillNivelSelect(levels, includeAll);
+
+    const def = pickDefault(levels, includeAll);
+    $("nivelSelect").value = def;
+    $("nivelSelect").disabled = false;
+    state.nivel = def;
 
     if(state.fase === "NIVELES"){
-      const lv = await apiGet({action:"levels", sheet:"Formularios"});
-      const levels = lv.levels || [];
-      if(!levels.length) throw new Error("No se encontraron niveles en 'Formularios'.");
-      // En NIVELES mostramos la lista completa
-      fillNivelSelect(levels, true);
-      const def = pickDefault(levels, true);
-      $("nivelSelect").value = def;
-      state.nivel = def;
-
       renderNivelesTable(levels);
-      return;
     }
-
-    if(state.fase === "FORMULARIOS"){
-      const lv = await apiGet({action:"levels", sheet:"Formularios"});
-      const levels = lv.levels || [];
-      if(!levels.length) throw new Error("No se encontraron niveles en 'Formularios'.");
-      fillNivelSelect(levels, true);
-      const def = pickDefault(levels, true);
-      $("nivelSelect").value = def;
-      state.nivel = def;
-      return;
-    }
-
-    if(state.fase === "PESOS"){
-      const lv = await apiGet({ action:"levels", sheet:"Pesos" }).catch(async ()=>{
-  return await apiGet({ action:"levels", sheet:"Formularios" });
-});
-      const levels = lv.levels || [];
-      if(!levels.length) throw new Error("No se encontraron niveles en 'Pesos'.");
-      fillNivelSelect(levels, true);
-      const def = pickDefault(levels, true);
-      $("nivelSelect").value = def;
-      state.nivel = def;
-      return;
-    }
+  }catch(err){
+    state.nivel = "";
+    setNivelSelectState_("Error cargando niveles", true);
+    throw err;
   }
+}
 async function loadFormByNivel(nivel){
   const niv = String(nivel ?? "").trim() || "1";
 
@@ -3601,13 +3599,12 @@ on("btnAbrirPing", "click", ()=>{
 
 on("btnProbarApi", "click", async ()=>{
   try{
-    await apiGet({action:"ping"});
-    setApiStatus("ok","API: conectada");
+    const r = await apiGet({ action:"pingVersion" });
+    setApiStatus("ok", "API: conectada (" + (r.v || "sin versión") + ")");
   }catch(e){
-    setApiStatus("err","API: " + e.message);
+    setApiStatus("err","API: " + (e?.message || e));
   }
 });
-
 // helpers: wrappers para no romper si faltan funciones
 async function recoverConsolidadoSafe_(){
   if (typeof recoverConsolidado_ === "function") {
