@@ -1373,7 +1373,7 @@ Dejar de hacer:"></textarea>
 `Empezar a hacer:
 Continuar haciendo:
 Dejar de hacer:`;
-  const DEFAULT_WEBAPP_ = "https://script.google.com/macros/s/AKfycbwucBBn8jTrvMXQRLDeA8fNScEA836PjfnZEGoqqHzLxqGJsOZ5drgcV5Y5hZw_4eds/exec";
+  const DEFAULT_WEBAPP_ = "https://script.google.com/macros/s/AKfycbwXFqMKjKjmh5OwjyqE4PJAyOY_mgWFh2R0yvJPHPiixQDBk7DsjskpDW9kyJssmJsF/exec";
   const $ = id => document.getElementById(id);
 
 function syncFaseButtonsUI(value){
@@ -1793,11 +1793,10 @@ function calcPuntajeFinalClient_(nivelRef, pesosItems, itemKeys, respuestasNum){
 function makeFormKeyNorm_(formKey){
   const parts = String(formKey ?? "").split("|");
   const nivel = nivelCanonClient_(parts[0] ?? "");
-  const item = normKey_(parts.length >= 2 ? parts[parts.length - 1] : "");
+  const item  = normKey_(parts[1] ?? parts[parts.length - 1] ?? "");
   return `${nivel}|${item}`;
 }
-
-  function buildCodigosMapFromPesos_(items){
+function buildCodigosMapFromPesos_(items){
   state.codigosByKey.clear();
   state.codigosByKeyNorm.clear();
 
@@ -1805,19 +1804,18 @@ function makeFormKeyNorm_(formKey){
   arr.forEach(r=>{
     const codigo = String(r.Codigo ?? r.Código ?? "").trim();
     const nivel  = nivelCanonClient_(r.Nivel ?? "");
-    const factor = String(r.Factor ?? "").trim();
     const item   = String(r.Item ?? "").trim();
     if(!nivel || !item) return;
 
-    if(factor){
-      state.codigosByKey.set(`${nivel}|${factor}|${item}`, codigo);
-      state.codigosByKeyNorm.set(`${nivel}|${normKey_(factor)}|${normKey_(item)}`, codigo);
+    if(!state.codigosByKey.has(`${nivel}|${item}`)) {
+      state.codigosByKey.set(`${nivel}|${item}`, codigo);
     }
-
-    if(!state.codigosByKey.has(`${nivel}||${item}`)) state.codigosByKey.set(`${nivel}||${item}`, codigo);
-    if(!state.codigosByKeyNorm.has(`${nivel}||${normKey_(item)}`)) state.codigosByKeyNorm.set(`${nivel}||${normKey_(item)}`, codigo);
+    if(!state.codigosByKeyNorm.has(`${nivel}|${normKey_(item)}`)) {
+      state.codigosByKeyNorm.set(`${nivel}|${normKey_(item)}`, codigo);
+    }
   });
 }
+  
   function getCodigoForFormKey_(formKey){
     const k = String(formKey ?? "").trim();
     if(!k) return "";
