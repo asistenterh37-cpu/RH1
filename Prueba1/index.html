@@ -924,7 +924,7 @@ Dejar de hacer:"></textarea>
   </div>
 </section>
     
-<!-- ONE ONE -->
+    <!-- ONE ONE -->
 <section class="card" data-phase-block="ONEONE" id="blockOneOne">
   <div class="card-h">
     <div>
@@ -937,11 +937,6 @@ Dejar de hacer:"></textarea>
   </div>
   <div class="card-b">
     <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:stretch; margin-bottom:10px;">
-      <div class="field boxed" style="flex:0 0 120px;">
-        <div class="lbl">Fecha</div>
-        <input id="ooFecha" type="date" />
-      </div>
-
       <div class="field boxed" style="flex:0 0 190px;">
         <div class="lbl">No de personal</div>
         <input id="ooNoPersonal" placeholder="Ej: 1600" />
@@ -951,12 +946,32 @@ Dejar de hacer:"></textarea>
         <div class="lbl">Nombre</div>
         <input id="ooNombre" placeholder="Ej: Carlos Paz" />
       </div>
+
+      <div class="field boxed" style="flex:0 0 260px;">
+        <div class="lbl">Posición</div>
+        <input id="ooPosicion" placeholder="Ej: Analista" />
+      </div>
+
+      <div class="field boxed" style="flex:0 0 260px;">
+        <div class="lbl">Departamento</div>
+        <input id="ooDepto" placeholder="Ej: Contabilidad" />
+      </div>
     </div>
 
-    <div style="display:flex; gap:10px; align-items:stretch; flex-wrap:wrap;">
-      <div class="field boxed" style="flex:10 1 0; min-width:700px;">
-        <div class="lbl">Seguimiento individual</div>
-        <textarea id="ooSeguimiento" placeholder="Describe el seguimiento individual..." style="min-height:110px;"></textarea>
+    <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:stretch; margin-bottom:10px;">
+      <div class="field boxed" style="flex:0 0 180px;">
+        <div class="lbl">Periodo</div>
+        <input id="ooPeriodo" placeholder="Ej: 2025" />
+      </div>
+
+      <div class="field boxed" style="flex:0 0 140px;">
+        <div class="lbl">Versión</div>
+        <input id="ooVersion" placeholder="Ej: 1" />
+      </div>
+
+      <div class="field boxed" style="flex:0 0 160px;">
+        <div class="lbl">Fecha</div>
+        <input id="ooFecha" type="date" />
       </div>
 
       <div class="field boxed" style="flex:1 1 260px; min-width:260px;">
@@ -965,10 +980,16 @@ Dejar de hacer:"></textarea>
       </div>
     </div>
 
+    <div style="display:flex; gap:10px; align-items:stretch; flex-wrap:wrap;">
+      <div class="field boxed" style="flex:1 1 100%; min-width:100%;">
+        <div class="lbl">Seguimiento</div>
+        <textarea id="ooSeguimiento" placeholder="Describe el seguimiento..." style="min-height:110px;"></textarea>
+      </div>
+    </div>
+
     <div class="sub" style="margin-top:10px">Estado API: <b id="apiMiniOneOne">—</b></div>
   </div>
 </section>
-    
     <!-- EVAL (AUTO / DESEMPENO) -->
     <section class="card" id="blockDatos">
       <div class="card-h">
@@ -1913,14 +1934,17 @@ function buildCodigosMapFromPesos_(items){
 
 function getOneOneRequiredFields(){
   return [
-    $("ooFecha")?.value.trim(),
     $("ooNoPersonal")?.value.trim(),
     $("ooNombre")?.value.trim(),
+    $("ooPosicion")?.value.trim(),
+    $("ooDepto")?.value.trim(),
+    $("ooPeriodo")?.value.trim(),
+    $("ooVersion")?.value.trim(),
+    $("ooFecha")?.value.trim(),
     $("ooSeguimiento")?.value.trim(),
     $("ooEvaluador")?.value.trim(),
   ];
 }
-
 function isOneOneComplete(){
   if(!isOneOnePhase()) return false;
   return !getOneOneRequiredFields().some(v => !v);
@@ -2983,15 +3007,14 @@ async function generarDesarrollo_(){
   updateGuardarUIState();
 }
 
-function clearOneOne(){
-  ["ooFecha","ooNoPersonal","ooNombre","ooSeguimiento","ooEvaluador"].forEach(id=>{
+  function clearOneOne(){
+  ["ooNoPersonal","ooNombre","ooPosicion","ooDepto","ooPeriodo","ooVersion","ooSeguimiento","ooEvaluador"].forEach(id=>{
     const el = $(id);
     if(el) el.value = "";
   });
   if($("ooFecha")) $("ooFecha").value = todayLocal();
   updateGuardarUIState();
 }
-  
   function clearDesempenoExtra(){
     [
       "comentariosColaborador","evaluacionClientesDes","fortalezas","oportunidadesMejora",
@@ -3086,7 +3109,7 @@ async function saveOneOne(){
   }
 
   if(!isOneOneComplete()){
-    alert("Aún faltan campos. Completa Fecha, No de personal, Nombre, Seguimiento individual y Evaluador.");
+    alert("Aún faltan campos. Completa No de personal, Nombre, Posición, Departamento, Periodo, Versión, Fecha, Seguimiento y Evaluador.");
     return;
   }
 
@@ -3094,9 +3117,15 @@ async function saveOneOne(){
 
   const payload = {
     fase: "ONEONE",
-    fecha: formatDateDMY($("ooFecha").value),
     noPersonal: $("ooNoPersonal").value.trim(),
     nombre: $("ooNombre").value.trim(),
+    posicion: $("ooPosicion").value.trim(),
+    departamento: $("ooDepto").value.trim(),
+    depto: $("ooDepto").value.trim(),
+    periodo: $("ooPeriodo").value.trim(),
+    version: $("ooVersion").value.trim(),
+    fecha: formatDateDMY($("ooFecha").value),
+    seguimiento: $("ooSeguimiento").value.trim(),
     seguimientoIndividual: $("ooSeguimiento").value.trim(),
     evaluador: $("ooEvaluador").value.trim()
   };
@@ -3117,7 +3146,6 @@ async function saveOneOne(){
     btn.textContent = "Guardar";
   }
 }
-
     
   clearIncidencias();
   setApiStatus("ok","API: incidencia guardada");
@@ -3937,6 +3965,11 @@ on("comentariosColaboradorAuto","change", updateGuardarUIState);
   on(id,"change", updateCapSaveState_);
 });
 
+["ooNoPersonal","ooNombre","ooPosicion","ooDepto","ooPeriodo","ooVersion","ooFecha","ooSeguimiento","ooEvaluador"].forEach(id=>{
+  on(id,"input", updateGuardarUIState);
+  on(id,"change", updateGuardarUIState);
+});
+  
 /* ================= BOOT (SAFE) ================= */
 (function boot(){
   try{
