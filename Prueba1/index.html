@@ -1373,7 +1373,7 @@ Dejar de hacer:"></textarea>
 `Empezar a hacer:
 Continuar haciendo:
 Dejar de hacer:`;
-  const DEFAULT_WEBAPP_ = "https://script.google.com/macros/s/AKfycbxXnJeGhpaiuI0m0kaFgwcERe42G_z-HD8NN9CKQ_ZycADbjRxKkhgPueePNLUQDSGk/exec";
+  const DEFAULT_WEBAPP_ = "https://script.google.com/macros/s/AKfycbz7TyIl3pMxvbypYA6sRKL3B0HhNMvP7TTeIK1Ybe75PqvE88XYJ3kUOwLWeV06s3yA/exec";
   const $ = id => document.getElementById(id);
 
 function syncFaseButtonsUI(value){
@@ -2446,24 +2446,28 @@ function clearFormTable(){
       return;
     }
   }
+async function loadFormByNivel(nivel){
+  const niv = String(nivel ?? "").trim() || "1";
 
-   async function loadFormByNivel(nivel){
-    const niv = String(nivel ?? "").trim() || "1";
+  // 1) formulario (Formularios)
+  const res = await apiGet({ action:"form", nivel: niv });
+  state.form = res.form || null;
 
-    // 1) formulario (Formularios)
-    const res = await apiGet({ action:"form", nivel: niv });
-    state.form = res.form || null;
-
-    // 2) códigos (Pesos) para este nivel
-    //    OJO: usamos el mismo "nivel" para filtrar pesos
+  // 2) códigos (Pesos) para este nivel
+  //    si Pesos falla, NO bloquea el formulario
+  try{
     const pes = await apiGet({ action:"items", sheet:"Pesos", nivel: niv });
     buildCodigosMapFromPesos_(pes.items || []);
-
-    // 3) render
-    state.answers.clear();
-    renderCuestionario(state.form);
+  }catch(_){
+    state.codigosByKey.clear();
+    state.codigosByKeyNorm.clear();
   }
 
+  // 3) render
+  state.answers.clear();
+  renderCuestionario(state.form);
+}
+   
   /* ================= ✅ RECUPERAR (DESEMPENO) ================= */
   function openRecoverModal(records, clientesCount){
     const back = $("recoverModalBack");
