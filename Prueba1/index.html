@@ -1392,24 +1392,28 @@ function setFaseFromButton(value){
   sel.dispatchEvent(new Event("change", { bubbles:true }));
 }
   
-  function normalizeWebApp(raw){
-    let v = String(raw || "").trim();
-    if(!v) return DEFAULT_WEBAPP_;
-    v = v.replace(/#.*$/, "");
-    v = v.replace(/\s+/g, "");
-    v = v.replace(/\/+$/, "");
-    v = v.replace(/\/dev$/i, "/exec");
-    if(/\/exec$/i.test(v)) return v;
-    if(/script\.google\.com\/macros\/s\/[^/]+$/i.test(v)) return v + "/exec";
-    const qm = v.indexOf("?");
-    if(qm > -1){
-      const base = v.slice(0, qm).replace(/\/+$/, "");
-      const qs = v.slice(qm);
-      if(/\/exec$/i.test(base)) return base + qs;
-      if(/script\.google\.com\/macros\/s\/[^/]+$/i.test(base)) return base + "/exec" + qs;
-    }
-    return v;
+function normalizeWebApp(raw){
+  let v = String(raw || "").trim();
+  if(!v) return DEFAULT_WEBAPP_;
+
+  v = v.replace(/#.*$/, "");
+  v = v.replace(/\s+/g, "");
+  v = v.replace(/\/+$/, "");
+  v = v.replace(/\/dev$/i, "/exec");
+
+  const qm = v.indexOf("?");
+  let base = qm > -1 ? v.slice(0, qm).replace(/\/+$/, "") : v;
+  const qs = qm > -1 ? v.slice(qm) : "";
+
+  if(/script\.google\.com\/macros\/s\/[^/]+$/i.test(base)) base += "/exec";
+
+  if(!/^https:\/\/script\.google\.com\/macros\/s\/[^/]+\/exec$/i.test(base)){
+    return DEFAULT_WEBAPP_;
   }
+
+  return base + qs;
+}
+  
   function getWebApp(){
     const v = normalizeWebApp($("webapp").value);
     return v || DEFAULT_WEBAPP_;
