@@ -1575,6 +1575,8 @@ async function apiGetFetch(params, timeoutMs = 15000){
     const res = await fetch(url, {
       method: "GET",
       redirect: "follow",
+      mode: "cors",
+      cache: "no-store",
       signal: controller.signal,
       headers: {
         "Accept": "application/json, text/plain, */*"
@@ -1587,6 +1589,9 @@ async function apiGetFetch(params, timeoutMs = 15000){
     try{
       parsed = JSON.parse(text);
     }catch(_){
+      if (/^\s*</.test(text)) {
+        throw new Error("La API devolvió HTML, no JSON. Revisa la URL /exec desplegada.");
+      }
       throw new Error("La API respondió, pero no devolvió JSON válido");
     }
 
@@ -1600,34 +1605,21 @@ async function apiGetFetch(params, timeoutMs = 15000){
     clearTimeout(timer);
   }
 }
-
+  
 async function apiGet(params, timeoutMs = 15000){
   setApiStatus("", "API: consultando…");
 
-  let lastErr = null;
-
-  // 1) Intenta fetch primero
   try{
     const data = await apiGetFetch(params, timeoutMs);
     setApiStatus("ok", "API: conectada");
     return data;
-  }catch(err1){
-    lastErr = err1;
+  }catch(err){
+    const msg = err?.message || "desconectada";
+    setApiStatus("err", "API: " + msg);
+    throw err;
   }
-
-  // 2) Si fetch falla, intenta JSONP
-  try{
-    const data = await apiGetJsonp(params, timeoutMs);
-    setApiStatus("ok", "API: conectada");
-    return data;
-  }catch(err2){
-    lastErr = err2;
-  }
-
-  setApiStatus("err", "API: " + (lastErr?.message || "desconectada"));
-  throw lastErr || new Error("No se pudo conectar con la API");
 }
-
+  
 function todayLocal(){
   const d = new Date();
   const yyyy = d.getFullYear();
