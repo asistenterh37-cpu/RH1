@@ -2218,13 +2218,16 @@ function renderNivelesTable(levels){
   }).join("");
 }
   async function loadNivelesList(){
-    if(state.fase !== "NIVELES"){
-      alert("Selecciona la fase Niveles.");
-      return;
-    }
-    const lv = await apiGet({ action:"levels", sheet:"Formularios" });
-    renderNivelesTable(lv.levels || []);
+  if(state.fase !== "NIVELES"){
+    state.fase = "NIVELES";
+    const faseSel = $("faseSelect");
+    if(faseSel) faseSel.value = "NIVELES";
+    syncFaseButtonsUI("NIVELES");
+    toggleBlocksForPhase();
   }
+
+  await loadLevelsForPhase();
+}
   
   /* ================= FORMULARIOS: TABLE ================= */
 
@@ -3831,8 +3834,7 @@ clearEval();
   clearNivelesTable();
 });
 // ✅ Botones Cargar/Limpiar (ahora nunca rompen si faltan IDs)
-on("btnCargarNiveles", "click", ()=>loadNivelesList().catch(err=>setApiStatus("err","API: " + err.message)));
-  on("btnCargarNiveles", "click", async ()=>{
+on("btnCargarNiveles", "click", async ()=>{
   try{
     await apiGet({ action:"ping" });
     await loadNivelesList();
@@ -3840,7 +3842,7 @@ on("btnCargarNiveles", "click", ()=>loadNivelesList().catch(err=>setApiStatus("e
     setApiStatus("err", "API: " + (err?.message || err));
   }
 });
-on("btnLimpiarNiveles", "click", clearNivelesTable);
+  on("btnLimpiarNiveles", "click", clearNivelesTable);
 
 on("btnCargarForm", "click", ()=>loadFormulariosItems().catch(err=>setApiStatus("err","API: " + err.message)));
 on("btnLimpiarForm", "click", clearFormTable);
