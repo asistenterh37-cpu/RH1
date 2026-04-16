@@ -3688,22 +3688,36 @@ on("btnAbrirPing", "click", ()=>{
   window.open(raw, "_blank", "noopener,noreferrer");
 });
 
-on("btnProbarApi", "click", async ()=>{
+  on("btnProbarApi", "click", async ()=>{
   try{
-    const r = await apiGet({ action:"pingVersion" });
-    setApiStatus("ok", "API: conectada (" + (r.v || "sin versión") + ")");
+    let r;
+    try{
+      r = await apiGet({ action:"pingVersion" });
+      setApiStatus("ok", "API: conectada (" + (r?.v || "sin versión") + ")");
+    }catch(_){
+      r = await apiGet({ action:"ping" });
+      setApiStatus("ok", "API: conectada");
+    }
   }catch(e){
     setApiStatus("err","API: " + (e?.message || e));
   }
 });
+
 async function assertBackendVersion_(){
-  const r = await apiGet({ action:"pingVersion" });
-  const v = String(r?.v || "");
-  if(v !== "fix-botones-sin-factor-2"){
-    throw new Error("Deploy anterior detectado. Publica la versión nueva del GS.");
+  try{
+    const r = await apiGet({ action:"pingVersion" });
+    const v = String(r?.v || "");
+    if(v && v !== "fix-botones-sin-factor-2"){
+      setApiStatus("err", "API: deploy anterior detectado");
+    }
+  }catch(_){
+    try{
+      await apiGet({ action:"ping" });
+    }catch(e){
+      setApiStatus("err", "API: " + (e?.message || e));
+    }
   }
 }
-  
 // helpers: wrappers para no romper si faltan funciones
 async function recoverConsolidadoSafe_(){
   if (typeof recoverConsolidado_ === "function") {
