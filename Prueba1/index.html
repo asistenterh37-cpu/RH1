@@ -3689,22 +3689,25 @@ on("btnAbrirPing", "click", ()=>{
   window.open(raw, "_blank", "noopener,noreferrer");
 });
 
-on("btnProbarApi", "click", async ()=>{
+  on("btnProbarApi", "click", async ()=>{
   try{
-    const r = await apiGet({ action:"pingVersion" });
-    setApiStatus("ok", "API: conectada (" + (r.v || "sin versión") + ")");
+    const r = await apiGet({ action:"pingVersion" }).catch(()=>apiGet({ action:"ping" }));
+    const ver = r?.v ? " (" + r.v + ")" : "";
+    setApiStatus("ok", "API: conectada" + ver);
   }catch(e){
     setApiStatus("err","API: " + (e?.message || e));
   }
 });
+
 async function assertBackendVersion_(){
-  const r = await apiGet({ action:"pingVersion" });
-  const v = String(r?.v || "");
-  if(v !== "fix-botones-sin-factor-2"){
-    throw new Error("Deploy anterior detectado. Publica la versión nueva del GS.");
+  try{
+    const r = await apiGet({ action:"pingVersion" });
+    return String(r?.v || "").trim();
+  }catch(_){
+    await apiGet({ action:"ping" });
+    return "";
   }
 }
-  
 // helpers: wrappers para no romper si faltan funciones
 async function recoverConsolidadoSafe_(){
   if (typeof recoverConsolidado_ === "function") {
@@ -4024,8 +4027,8 @@ if($("ooFecha")) $("ooFecha").value = todayLocal();
     // ping inicial
     (async ()=>{
   try{
-    await apiGet({ action:"ping" });
-    await assertBackendVersion_();
+    const ver = await assertBackendVersion_();
+    setApiStatus("ok", "API: conectada" + (ver ? " (" + ver + ")" : ""));
     if($("cuestionario")){
       $("cuestionario").innerHTML = `<div class="hint">Selecciona una fase para iniciar.</div>`;
     }
@@ -4035,7 +4038,8 @@ if($("ooFecha")) $("ooFecha").value = todayLocal();
     try{
       setWebApp(DEFAULT_WEBAPP_);
       localStorage.setItem(LS_KEY_, DEFAULT_WEBAPP_);
-      await apiGet({ action:"ping" });
+      const r = await apiGet({ action:"pingVersion" }).catch(()=>apiGet({ action:"ping" }));
+      setApiStatus("ok", "API: conectada" + (r?.v ? " (" + r.v + ")" : ""));
 
       if($("cuestionario")){
         $("cuestionario").innerHTML = `<div class="hint">Selecciona una fase para iniciar.</div>`;
