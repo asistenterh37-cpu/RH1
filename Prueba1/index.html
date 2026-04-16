@@ -460,7 +460,7 @@ button[disabled]{
       <div class="form-grid">
         <div class="field col-8 boxed">
           <div class="lbl">URL Web App Apps Script</div>
-          <input id="webapp" value="https://script.google.com/macros/s/AKfycbxlLpQkMD-qRlG9NXS8vn0qBM2NJRGcgA3X5ErndnekJ9ajuq3Y5LePLfG80BmT0onZ/exec" />
+          <input id="webapp" value="https://script.google.com/macros/s/AKfycby-PfSQRKn2zskpB7LhYy8DsOAdoLxcHprc6H6-TYcLfW-L4jmVkf6kk5Wa1WeQDkwj/exec" />
         </div>
         <div class="field col-4 boxed">
           <div class="lbl">Pruebas API</div>
@@ -1416,7 +1416,7 @@ Dejar de hacer:"></textarea>
 `Empezar a hacer:
 Continuar haciendo:
 Dejar de hacer:`;
-  const DEFAULT_WEBAPP_ = "https://script.google.com/macros/s/AKfycbxlLpQkMD-qRlG9NXS8vn0qBM2NJRGcgA3X5ErndnekJ9ajuq3Y5LePLfG80BmT0onZ/exec";
+  const DEFAULT_WEBAPP_ = "https://script.google.com/macros/s/AKfycby-PfSQRKn2zskpB7LhYy8DsOAdoLxcHprc6H6-TYcLfW-L4jmVkf6kk5Wa1WeQDkwj/exec";
   const $ = id => document.getElementById(id);
 
 function syncFaseButtonsUI(value){
@@ -1650,18 +1650,26 @@ async function apiGetFetch(params, timeoutMs = 15000){
     clearTimeout(timer);
   }
 }
-  
-async function apiGet(params, timeoutMs = 15000){
+
+  async function apiGet(params, timeoutMs = 15000){
   setApiStatus("", "API: consultando…");
 
   try{
-    const data = await apiGetFetch(params, timeoutMs);
+    // ✅ Primero intenta JSONP (más estable con GitHub Pages + Apps Script /exec)
+    const data = await apiGetJsonp(params, timeoutMs);
     setApiStatus("ok", "API: conectada");
     return data;
-  }catch(err){
-    const msg = err?.message || "desconectada";
-    setApiStatus("err", "API: " + msg);
-    throw err;
+  }catch(errJsonp){
+    try{
+      // ✅ Fallback por si el backend responde JSON normal
+      const data = await apiGetFetch(params, timeoutMs);
+      setApiStatus("ok", "API: conectada");
+      return data;
+    }catch(errFetch){
+      const msg = errJsonp?.message || errFetch?.message || "desconectada";
+      setApiStatus("err", "API: " + msg);
+      throw (errJsonp || errFetch);
+    }
   }
 }
   
