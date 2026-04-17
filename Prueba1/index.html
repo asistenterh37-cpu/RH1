@@ -460,7 +460,7 @@ button[disabled]{
       <div class="form-grid">
         <div class="field col-8 boxed">
           <div class="lbl">URL Web App Apps Script</div>
-          <input id="webapp" value="https://script.google.com/macros/s/AKfycbzDvx6wrQtazqHJYmBOaYe1Zu5PP3hnz8-nrtVr1RA-Pvqy9TnQnQs5v0g4Je8zYFeI/exec" />
+          <input id="webapp" value="https://script.google.com/macros/s/AKfycbw18Cx4gUEK_y4Rh29P-UwrJV3iniuFf1agW8pmRskOvm19YJ9t-Xah8SACDnZK6bEA/exec" />
         </div>
         <div class="field col-4 boxed">
           <div class="lbl">Pruebas API</div>
@@ -1416,7 +1416,7 @@ Dejar de hacer:"></textarea>
 `Empezar a hacer:
 Continuar haciendo:
 Dejar de hacer:`;
-  const DEFAULT_WEBAPP_ = "https://script.google.com/macros/s/AKfycbzDvx6wrQtazqHJYmBOaYe1Zu5PP3hnz8-nrtVr1RA-Pvqy9TnQnQs5v0g4Je8zYFeI/exec";
+  const DEFAULT_WEBAPP_ = "https://script.google.com/macros/s/AKfycbw18Cx4gUEK_y4Rh29P-UwrJV3iniuFf1agW8pmRskOvm19YJ9t-Xah8SACDnZK6bEA/exec";
   const $ = id => document.getElementById(id);
 
 function syncFaseButtonsUI(value){
@@ -3119,50 +3119,44 @@ async function generarDesarrollo_(){
   }
 
     async function saveOneOne(){
-    if(!isOneOnePhase()){
-      alert("Para guardar One One, selecciona la fase One One.");
-      return;
-    }
-
-    if(!isOneOneComplete()){
-      alert("Aún faltan campos. Completa No de personal, Nombre, Posición, Departamento, Periodo, Versión, Fecha, Seguimiento y Evaluador.");
-      return;
-    }
-
-    const btn = $("btnGuardar");
-
-    const payload = {
-      fase: "ONEONE",
-      no: $("ooNoPersonal").value.trim(),
-      noPersonal: $("ooNoPersonal").value.trim(),
-      nombre: $("ooNombre").value.trim(),
-      posicion: $("ooPosicion").value.trim(),
-      departamento: $("ooDepto").value.trim(),
-      depto: $("ooDepto").value.trim(),
-      periodo: $("ooPeriodo").value.trim(),
-      version: $("ooVersion").value.trim(),
-      fecha: formatDateDMY($("ooFecha").value),
-      seguimiento: $("ooSeguimiento").value.trim(),
-      seguimientoIndividual: $("ooSeguimiento").value.trim(),
-      evaluador: $("ooEvaluador").value.trim()
-    };
-
-    const b64 = btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
-    const out = await apiGet({ action:"save", payload:b64 });
-
-    if(!out || out.ok !== true){
-      throw new Error(out?.error || "No se pudo guardar el One One.");
-    }
-
-    clearOneOne();
-    setApiStatus("ok","API: One One guardado");
-    alert("One One guardado ✅\nID: " + (out.id || "—"));
-
-    if(btn){
-      btn.disabled = false;
-      btn.textContent = "Guardar";
-    }
+  if(!isOneOnePhase()){
+    alert("Para guardar One One, selecciona la fase One One.");
+    return;
   }
+
+  if(!isOneOneComplete()){
+    alert("Aún faltan campos. Completa No de personal, Nombre, Posición, Departamento, Periodo, Versión, Fecha, Seguimiento y Evaluador.");
+    return;
+  }
+
+  const btn = $("btnGuardar");
+
+  const out = await apiGet({
+    action: "saveOneOne",
+    noPersonal: $("ooNoPersonal").value.trim(),
+    nombre: $("ooNombre").value.trim(),
+    posicion: $("ooPosicion").value.trim(),
+    departamento: $("ooDepto").value.trim(),
+    periodo: $("ooPeriodo").value.trim(),
+    version: $("ooVersion").value.trim(),
+    fecha: formatDateDMY($("ooFecha").value),
+    seguimiento: $("ooSeguimiento").value.trim(),
+    evaluador: $("ooEvaluador").value.trim()
+  });
+
+  if(!out || out.ok !== true){
+    throw new Error(out?.error || "No se pudo guardar el One One.");
+  }
+
+  clearOneOne();
+  setApiStatus("ok","API: One One guardado");
+  alert("One One guardado ✅\nID: " + (out.id || "—"));
+
+  if(btn){
+    btn.disabled = false;
+    btn.textContent = "Guardar";
+  }
+}
   
   function buildCompatComentarios(){
     if(!isDesempenoPhase()) return "";
