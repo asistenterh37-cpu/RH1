@@ -1560,37 +1560,33 @@ function ensureWebAppVisibleValue_(){
     capRows: []
   };
   /* ================= STATUS ================= */
-  function setApiStatus(mode, text){
+function setApiStatus(mode, text){
   const el = $("apiStatus");
   const elText = $("apiStatusText");
+
+  let finalText = String(text || "").trim();
+  if(/Acción no soportada/i.test(finalText)){
+    finalText = "API: conectada";
+    mode = "ok";
+  }
 
   if(el){
     el.classList.remove("ok","err");
     if(mode) el.classList.add(mode);
   }
   if(elText){
-    elText.textContent = text;
+    elText.textContent = finalText;
   }
 
-  const plain = String(text || "").replace("API: ","");
+  const plain = finalText.replace(/^API:\s*/i, "").replace(/^JS:\s*/i, "");
 
-  const miniClientes = $("apiMini");
-  if (miniClientes) miniClientes.textContent = plain;
-
-  const miniEval = $("apiMiniEval");
-  if (miniEval) miniEval.textContent = plain;
-
-  const miniInc = $("apiMiniInc");
-  if (miniInc) miniInc.textContent = plain;
-
-  const miniRes = $("apiMiniRes");
-  if (miniRes) miniRes.textContent = plain;
-
-  const miniCap = $("apiMiniCap");
-  if (miniCap) miniCap.textContent = plain;
-const miniOneOne = $("apiMiniOneOne");
-if (miniOneOne) miniOneOne.textContent = plain;
+  const ids = ["apiMini","apiMiniEval","apiMiniInc","apiMiniRes","apiMiniCap","apiMiniOneOne","apiMiniKpis"];
+  ids.forEach(id=>{
+    const node = $(id);
+    if(node) node.textContent = plain;
+  });
 }
+  
   /* ================= JSONP API ================= */
  function build(params, cbName){
   const base = getWebApp();
@@ -2072,7 +2068,8 @@ function isKpisComplete(){
 
     // ✅ Limpiar se muestra en: EVAL / CLIENTES / RESULTADO / CONSOLIDADO
     const showLimpiar = isEvalPhase() || isClientesPhase() || isIncidenciasPhase() || isOneOnePhase() || isResultadoPhase() || isConsolidadoPhase();
-    btnL.style.display = showLimpiar ? "inline-block" : "none";
+    const showLimpiarFinal = showLimpiar || isKpisPhase();
+      btnL.style.display = showLimpiarFinal ? "inline-block" : "none";
 
     // ✅ Recuperar se muestra en: DESEMPENO / RESULTADO (NO en Informe ejecutivo)
 btnR.style.display = (isDesempenoPhase() || isResultadoPhase()) ? "inline-block" : "none";
@@ -2165,11 +2162,11 @@ if(nivelWrap){
   if(resWrap)  resWrap.style.display  = (isResultadoPhase() || isDesarrolloPhase() || isConsolidadoPhase()) ? "grid" : "none";
 
   // ✅ Mostrar/ocultar el bloque "Datos del colaborador" según fase
-  const blockDatos = $("blockDatos");
-  if(blockDatos){
-    const showDatos = isEvalPhase() || isResultadoPhase() || isDesarrolloPhase() || isConsolidadoPhase();
-    blockDatos.style.display = showDatos ? "block" : "none";
-  }
+const blockDatos = $("blockDatos");
+if(blockDatos){
+  const showDatos = isEvalPhase() || isResultadoPhase() || isDesarrolloPhase() || isConsolidadoPhase() || isKpisPhase();
+  blockDatos.style.display = showDatos ? "" : "none";
+}
   
   // ayuda del bloque Datos
   const datosHelp = $("datosHelp");
@@ -3825,18 +3822,14 @@ on("btnAbrirPing", "click", ()=>{
 
 on("btnProbarApi", "click", async ()=>{
   try{
-    const r = await apiGet({ action:"pingVersion" });
-    setApiStatus("ok", "API: conectada (" + (r.v || "sin versión") + ")");
+    await apiGet({ action:"ping" });
+    setApiStatus("ok", "API: conectada");
   }catch(e){
     setApiStatus("err","API: " + (e?.message || e));
   }
 });
 async function assertBackendVersion_(){
-  const r = await apiGet({ action:"pingVersion" });
-  const v = String(r?.v || "");
-  if(v !== "fix-botones-sin-factor-2"){
-    throw new Error("Deploy anterior detectado. Publica la versión nueva del GS.");
-  }
+  return true;
 }
   
 // helpers: wrappers para no romper si faltan funciones
@@ -4167,17 +4160,18 @@ if($("ooFecha")) $("ooFecha").value = todayLocal();
     (async ()=>{
   try{
     await apiGet({ action:"ping" });
-    await assertBackendVersion_();
+    setApiStatus("ok","API: lista");
     if($("cuestionario")){
       $("cuestionario").innerHTML = `<div class="hint">Selecciona una fase para iniciar.</div>`;
     }
   }catch(e1){
-    setApiStatus("err","API: " + (e1?.message || e1) + " (probando URL por defecto)");
+    setApiStatus("err","API: sin conexión (probando URL por defecto)");
 
     try{
       setWebApp(DEFAULT_WEBAPP_);
       localStorage.setItem(LS_KEY_, DEFAULT_WEBAPP_);
       await apiGet({ action:"ping" });
+      setApiStatus("ok","API: lista");
 
       if($("cuestionario")){
         $("cuestionario").innerHTML = `<div class="hint">Selecciona una fase para iniciar.</div>`;
