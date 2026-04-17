@@ -667,6 +667,7 @@ button[disabled]{
   <button type="button" class="faseBtn" data-fase="CLIENTES">Evaluación clientes</button>
   <button type="button" class="faseBtn" data-fase="INCIDENCIAS">Incidencias</button>
   <button type="button" class="faseBtn" data-fase="ONEONE">One One</button>
+   <button type="button" class="faseBtn" data-fase="KPIS">Kpis/entregables</button>
   <button type="button" class="faseBtn" data-fase="DESEMPENO">Evaluación desempeño</button>
   <button type="button" class="faseBtn" data-fase="RESULTADO">Resultado</button>
   <button type="button" class="faseBtn" data-fase="CONSOLIDADO">Informe ejecutivo</button>
@@ -684,6 +685,7 @@ button[disabled]{
   <option value="CLIENTES">Formulario de evaluación de clientes</option>
   <option value="INCIDENCIAS">Incidencias</option>
   <option value="ONEONE">One One</option>
+   <option value="KPIS">Kpis/entregables</option>
   <option value="DESEMPENO">Formulario de evaluación del desempeño</option>
   <option value="RESULTADO">Resultado evaluación del desempeño</option>
   <option value="CONSOLIDADO">Informe ejecutivo</option>
@@ -1016,6 +1018,58 @@ Dejar de hacer:"></textarea>
           <div class="sub col-12" style="margin-top:8px">Estado API: <b id="apiMiniEval">—</b></div>
         </div>
 
+<!-- KPIS / ENTREGABLES -->
+<section class="card" data-phase-block="KPIS" id="blockKpis">
+  <div class="card-h">
+    <div>
+      <h2>Kpis / entregables</h2>
+      <div class="sub">Completa los campos y presiona <b>Guardar</b> para registrar en la hoja <b>Kpis</b>.</div>
+    </div>
+    <div class="chips">
+      <span class="chip mono">Hoja destino: <b>Kpis</b></span>
+    </div>
+  </div>
+  <div class="card-b">
+    <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:stretch; margin-bottom:10px;">
+      <div class="field boxed" style="flex:0 0 190px;">
+        <div class="lbl">No de personal</div>
+        <input id="kpNoPersonal" placeholder="Ej: 1600" />
+      </div>
+
+      <div class="field boxed" style="flex:0 0 320px;">
+        <div class="lbl">Nombre</div>
+        <input id="kpNombre" placeholder="Ej: Carlos Paz" />
+      </div>
+
+      <div class="field boxed" style="flex:1 1 280px; min-width:280px;">
+        <div class="lbl">Posición / Nivel</div>
+        <select id="kpPosicionNivel">
+          <option value="">Selecciona una posición / nivel</option>
+        </select>
+      </div>
+    </div>
+
+    <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:stretch;">
+      <div class="field boxed" style="flex:0 0 180px;">
+        <div class="lbl">Período</div>
+        <input id="kpPeriodo" placeholder="Ej: 2025" />
+      </div>
+
+      <div class="field boxed" style="flex:0 0 140px;">
+        <div class="lbl">Versión</div>
+        <input id="kpVersion" placeholder="Ej: 1" />
+      </div>
+
+      <div class="field boxed" style="flex:0 0 160px;">
+        <div class="lbl">Fecha</div>
+        <input id="kpFecha" type="date" />
+      </div>
+    </div>
+
+    <div class="sub" style="margin-top:10px">Estado API: <b id="apiMiniKpis">—</b></div>
+  </div>
+</section>
+        
         <!-- ✅ Bloque RESULTADO (solo estos 3 campos) -->
         <div id="datosResultadoWrap" class="form-grid" style="display:none">
           <div class="field col-4 boxed"><div class="lbl">No. de personal</div><input id="noPersonalRes" placeholder="Ej: 1600" /></div>
@@ -1898,7 +1952,8 @@ function buildCodigosMapFromPesos_(items){
   function isDesarrolloPhase(){ return state.fase === "DESARROLLO"; } // ✅ NUEVO
   function isTiposPhase(){ return state.fase === "TIPOS"; }
   function isIncidenciasPhase(){ return state.fase === "INCIDENCIAS"; }
-  function isOneOnePhase(){ return state.fase === "ONEONE"; }
+function isOneOnePhase(){ return state.fase === "ONEONE"; }
+function isKpisPhase(){ return state.fase === "KPIS"; }
   
   /* ================= VALIDATION ================= */
   function getClientesRequiredFields(){
@@ -1933,7 +1988,7 @@ function buildCodigosMapFromPesos_(items){
     return !getIncidenciasRequiredFields().some(v => !v);
   }
 
-function getOneOneRequiredFields(){
+  function getOneOneRequiredFields(){
   return [
     $("ooNoPersonal")?.value.trim(),
     $("ooNombre")?.value.trim(),
@@ -1950,7 +2005,21 @@ function isOneOneComplete(){
   if(!isOneOnePhase()) return false;
   return !getOneOneRequiredFields().some(v => !v);
 }
-  
+
+function getKpisRequiredFields(){
+  return [
+    $("kpNoPersonal")?.value.trim(),
+    $("kpNombre")?.value.trim(),
+    $("kpPosicionNivel")?.value.trim(),
+    $("kpPeriodo")?.value.trim(),
+    $("kpVersion")?.value.trim(),
+    $("kpFecha")?.value.trim(),
+  ];
+}
+function isKpisComplete(){
+  if(!isKpisPhase()) return false;
+  return !getKpisRequiredFields().some(v => !v);
+}
   function getEvalHeaderRequiredFields(){
     return [
       $("noPersonalEval").value.trim(),
@@ -2018,8 +2087,9 @@ const showGuardar =
   isEvalPhase() ||
   isDesempenoPhase() ||
   state.fase === "INCIDENCIAS" ||
-  state.fase === "ONEONE";
-btnG.style.display = showGuardar ? "inline-block" : "none";
+  state.fase === "ONEONE" ||
+  state.fase === "KPIS";
+      btnG.style.display = showGuardar ? "inline-block" : "none";
 
 // si está oculto, igual lo dejamos deshabilitado por seguridad
 if(!showGuardar){
@@ -2042,7 +2112,10 @@ if(state.fase === "ONEONE"){
   btnG.disabled = !isOneOneComplete();
   return;
 }
-
+if(state.fase === "KPIS"){
+  btnG.disabled = !isKpisComplete();
+  return;
+}
 
 // ✅ En evaluación: AUTO o DESEMPENO (isEvalComplete ya valida extras si es DESEMPENO)
 if(isEvalPhase() || isDesempenoPhase()){
@@ -2075,9 +2148,9 @@ const nivelWrap = $("nivelWrap");
 if(nivelWrap){
 
   const hideNivel =
-    isClientesPhase() || isResultadoPhase() || isConsolidadoPhase() ||
-    isCapacitacionPhase() || isDesarrolloPhase() || isTiposPhase() ||
-    state.fase === "NIVELES"; // ✅ NUEVO
+  isClientesPhase() || isResultadoPhase() || isConsolidadoPhase() ||
+  isCapacitacionPhase() || isDesarrolloPhase() || isTiposPhase() ||
+  state.fase === "NIVELES" || state.fase === "KPIS";
 
   nivelWrap.classList.toggle("hide", hideNivel);
 }
@@ -2502,7 +2575,28 @@ async function loadLevelsForPhase(){
     throw err;
   }
 }
-async function loadFormByNivel(nivel){
+
+async function loadKpisPosiciones(){
+  const sel = $("kpPosicionNivel");
+  if(!sel) return;
+
+  sel.innerHTML = `<option value="">Cargando posiciones / nivel...</option>`;
+  sel.disabled = true;
+
+  const out = await apiGet({ action:"kpisPosiciones" });
+  const items = Array.isArray(out?.items) ? out.items : [];
+
+  if(!items.length){
+    sel.innerHTML = `<option value="">Sin datos en Kpis</option>`;
+    sel.disabled = true;
+    return;
+  }
+
+  sel.innerHTML = `<option value="">Selecciona una posición / nivel</option>` +
+    items.map(v => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join("");
+  sel.disabled = false;
+}
+  async function loadFormByNivel(nivel){
   const niv = String(nivel ?? "").trim() || "1";
 
   // 1) formulario (Formularios)
@@ -3013,12 +3107,22 @@ async function generarDesarrollo_(){
   updateGuardarUIState();
 }
 
-  function clearOneOne(){
+function clearOneOne(){
   ["ooNoPersonal","ooNombre","ooPosicion","ooDepto","ooPeriodo","ooVersion","ooSeguimiento","ooEvaluador"].forEach(id=>{
     const el = $(id);
     if(el) el.value = "";
   });
   if($("ooFecha")) $("ooFecha").value = todayLocal();
+  updateGuardarUIState();
+}
+
+function clearKpis(){
+  ["kpNoPersonal","kpNombre","kpPeriodo","kpVersion"].forEach(id=>{
+    const el = $(id);
+    if(el) el.value = "";
+  });
+  if($("kpFecha")) $("kpFecha").value = todayLocal();
+  if($("kpPosicionNivel")) $("kpPosicionNivel").value = "";
   updateGuardarUIState();
 }
   function clearDesempenoExtra(){
@@ -3168,6 +3272,47 @@ console.log("DEBUG ONE ONE:", payload);
   clearOneOne();
   setApiStatus("ok","API: One One guardado");
   alert("One One guardado ✅\nID: " + (out.id || "—"));
+
+  if(btn){
+    btn.disabled = false;
+    btn.textContent = "Guardar";
+  }
+}
+
+async function saveKpis(){
+  if(!isKpisPhase()){
+    alert("Para guardar Kpis/entregables, selecciona la fase Kpis/entregables.");
+    return;
+  }
+
+  if(!isKpisComplete()){
+    alert("Aún faltan campos. Completa No de personal, Nombre, Posición / Nivel, Período, Versión y Fecha.");
+    return;
+  }
+
+  const btn = $("btnGuardar");
+
+  const payload = {
+    fase: "KPIS",
+    noPersonal: $("kpNoPersonal").value.trim(),
+    no: $("kpNoPersonal").value.trim(),
+    nombre: $("kpNombre").value.trim(),
+    posicionNivel: $("kpPosicionNivel").value.trim(),
+    periodo: $("kpPeriodo").value.trim(),
+    version: $("kpVersion").value.trim(),
+    fecha: formatDateDMY($("kpFecha").value)
+  };
+
+  const b64 = btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
+  const out = await apiGet({ action:"save", payload:b64 });
+
+  if(!out || out.ok !== true){
+    throw new Error(out?.error || "No se pudo guardar Kpis/entregables.");
+  }
+
+  clearKpis();
+  setApiStatus("ok","API: Kpis guardado");
+  alert("Kpis/entregables guardado ✅\nID: " + (out.id || "—"));
 
   if(btn){
     btn.disabled = false;
@@ -3820,11 +3965,16 @@ on("faseSelect", "change", async (e)=>{
   updateGuardarUIState();
 }
 
-if(fase === "ONEONE"){
+    if(fase === "ONEONE"){
   clearOneOne();
   updateGuardarUIState();
 }
-    
+
+if(fase === "KPIS"){
+  clearKpis();
+  await loadKpisPosiciones();
+  updateGuardarUIState();
+}
     if(fase === "NIVELES"){
       clearNivelesTable();
       // NO autoload forzado si prefieres, pero aquí sí ayuda a “no se ve muerto”
@@ -3890,6 +4040,8 @@ on("btnGuardar", "click", async ()=>{
   await saveIncidencias();
 }else if(isOneOnePhase()){
   await saveOneOne();
+}else if(isKpisPhase()){
+  await saveKpis();
 }else{
   await doGuardar();
 }
@@ -3912,6 +4064,7 @@ on("btnNuevo", "click", ()=>{
   clearClientes();
 clearIncidencias();
 clearOneOne();
+clearKpis();
 clearEval();
   clearResultado();
   clearFormTable();
@@ -4046,6 +4199,15 @@ if($("ooFecha")) $("ooFecha").value = todayLocal();
     updatePesosSaveState();
     updateCapSaveState_();
     updateDevGenerarState_();
+
+  [
+  "kpNoPersonal","kpNombre","kpPeriodo","kpVersion","kpFecha","kpPosicionNivel"
+].forEach(id=>{
+  const el = $(id);
+  if(!el) return;
+  el.addEventListener("input", updateGuardarUIState);
+  el.addEventListener("change", updateGuardarUIState);
+});
 
   }catch(err){
     setApiStatus("err", "JS: " + (err?.message || String(err)));
