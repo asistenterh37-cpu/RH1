@@ -460,7 +460,7 @@ button[disabled]{
       <div class="form-grid">
         <div class="field col-8 boxed">
           <div class="lbl">URL Web App Apps Script</div>
-          <input id="webapp" value="https://script.google.com/macros/s/AKfycbzrOhga1fsEhucdLtyvo6kfvfYY-TPr98l52faw-bDoLhnyRUrqzbb-jFSQzLRF6ko1/exec" />
+          <input id="webapp" value="https://script.google.com/macros/s/AKfycbwFkGTIHVOV6dWIK9WGm1ujGWgcKJfDxUPhsrkRfY6VE4ExFlHzdBBBpKJmmK-Ha_RS/exec" />
         </div>
         <div class="field col-4 boxed">
           <div class="lbl">Pruebas API</div>
@@ -1468,7 +1468,7 @@ Dejar de hacer:"></textarea>
 `Empezar a hacer:
 Continuar haciendo:
 Dejar de hacer:`;
-  const DEFAULT_WEBAPP_ = "https://script.google.com/macros/s/AKfycbzrOhga1fsEhucdLtyvo6kfvfYY-TPr98l52faw-bDoLhnyRUrqzbb-jFSQzLRF6ko1/exec";
+  const DEFAULT_WEBAPP_ = "https://script.google.com/macros/s/AKfycbwFkGTIHVOV6dWIK9WGm1ujGWgcKJfDxUPhsrkRfY6VE4ExFlHzdBBBpKJmmK-Ha_RS/exec";
   const $ = id => document.getElementById(id);
 
 function syncFaseButtonsUI(value){
@@ -2110,6 +2110,10 @@ if(state.fase === "INCIDENCIAS"){
 }
 if(state.fase === "ONEONE"){
   btnG.disabled = !isOneOneComplete();
+  return;
+}
+if(state.fase === "KPIS"){
+  btnG.disabled = !isKpisComplete();
   return;
 }
 
@@ -3990,6 +3994,13 @@ if(fase === "ONEONE"){
   clearOneOne();
   updateGuardarUIState();
 }
+
+if(fase === "KPIS"){
+  clearKpis();
+  if($("kpiFecha")) $("kpiFecha").value = todayLocal();
+  await loadKpiLevels();
+  updateGuardarUIState();
+}
     
     if(fase === "NIVELES"){
       clearNivelesTable();
@@ -4056,6 +4067,8 @@ on("btnGuardar", "click", async ()=>{
   await saveIncidencias();
 }else if(isOneOnePhase()){
   await saveOneOne();
+}else if(isKpisPhase()){
+  await saveKpis();
 }else{
   await doGuardar();
 }
@@ -4066,7 +4079,7 @@ on("btnGuardar", "click", async ()=>{
   state.saving = false;
   btn.textContent = prevText;
 
- if(isIncidenciasPhase() || isOneOnePhase()){
+ if(isIncidenciasPhase() || isOneOnePhase() || isKpisPhase()){
   btn.disabled = false;
 }else{
   updateGuardarUIState();
@@ -4153,15 +4166,29 @@ on("comentariosColaboradorAuto","change", updateGuardarUIState);
   on(id,"input", updateGuardarUIState);
   on(id,"change", updateGuardarUIState);
 });
+
+["kpiNoPersonal","kpiNombre","kpiPeriodo","kpiVersion","kpiFecha"].forEach(id=>{
+  on(id,"input", updateGuardarUIState);
+  on(id,"change", updateGuardarUIState);
+});
+
+on("kpiNivelSelect","change", async ()=>{
+  try{
+    await loadKpiItems();
+  }catch(err){
+    setApiStatus("err","API: " + (err?.message || err));
+  }
+});
   
 /* ================= BOOT (SAFE) ================= */
 (function boot(){
   try{
     // defaults de fechas
-   if($("fecha")) $("fecha").value = todayLocal();
+   
+if($("fecha")) $("fecha").value = todayLocal();
 if($("fechaEval")) $("fechaEval").value = todayLocal();
 if($("ooFecha")) $("ooFecha").value = todayLocal();
-
+if($("kpiFecha")) $("kpiFecha").value = todayLocal();
     const tCli = $("comentariosEvaluadorClientes");
     if (tCli && !String(tCli.value || "").trim()) tCli.value = DEFAULT_COMENTARIOS_CLIENTES;
 
