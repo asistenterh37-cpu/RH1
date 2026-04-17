@@ -666,8 +666,9 @@ button[disabled]{
   <button type="button" class="faseBtn" data-fase="AUTO">Autoevaluación</button>
   <button type="button" class="faseBtn" data-fase="CLIENTES">Evaluación clientes</button>
   <button type="button" class="faseBtn" data-fase="INCIDENCIAS">Incidencias</button>
-  <button type="button" class="faseBtn" data-fase="ONEONE">One One</button>
-  <button type="button" class="faseBtn" data-fase="DESEMPENO">Evaluación desempeño</button>
+    <button type="button" class="faseBtn" data-fase="ONEONE">One One</button>
+<button type="button" class="faseBtn" data-fase="KPIS">Kpis/entregables</button>
+<button type="button" class="faseBtn" data-fase="DESEMPENO">Evaluación desempeño</button> 
   <button type="button" class="faseBtn" data-fase="RESULTADO">Resultado</button>
   <button type="button" class="faseBtn" data-fase="CONSOLIDADO">Informe ejecutivo</button>
   <button type="button" class="faseBtn" data-fase="CAPACITACION">Capacitación</button>
@@ -684,7 +685,8 @@ button[disabled]{
   <option value="CLIENTES">Formulario de evaluación de clientes</option>
   <option value="INCIDENCIAS">Incidencias</option>
   <option value="ONEONE">One One</option>
-  <option value="DESEMPENO">Formulario de evaluación del desempeño</option>
+<option value="KPIS">Kpis/entregables</option>
+<option value="DESEMPENO">Formulario de evaluación del desempeño</option>
   <option value="RESULTADO">Resultado evaluación del desempeño</option>
   <option value="CONSOLIDADO">Informe ejecutivo</option>
   <option value="CAPACITACION">Informe necesidades de capacitación</option>
@@ -1061,6 +1063,56 @@ Dejar de hacer:"></textarea>
         </div>
       </div>
     </section>
+
+    <section class="card" data-phase-block="KPIS" id="blockKpis">
+  <div class="card-h">
+    <div>
+      <h2>Kpis / entregables</h2>
+      <div class="sub">Selecciona la Posición / Nivel para cargar los indicadores y sus niveles 1 a 5.</div>
+    </div>
+    <div class="chips">
+      <span class="chip mono">Hoja origen/destino: <b>Kpis</b></span>
+    </div>
+  </div>
+
+  <div class="card-b">
+    <div class="form-grid">
+      <div class="field col-3 boxed"><div class="lbl">No de personal</div><input id="kpiNoPersonal" placeholder="Ej: 1600" /></div>
+      <div class="field col-5 boxed"><div class="lbl">Nombre</div><input id="kpiNombre" placeholder="Ej: Carlos Paz" /></div>
+      <div class="field col-2 boxed"><div class="lbl">Período</div><input id="kpiPeriodo" placeholder="Ej: 2025" /></div>
+      <div class="field col-1 boxed"><div class="lbl">Versión</div><input id="kpiVersion" placeholder="Ej: 1" /></div>
+      <div class="field col-1 boxed"><div class="lbl">Fecha</div><input id="kpiFecha" type="date" /></div>
+
+      <div class="field col-6 boxed">
+        <div class="lbl">Posición / Nivel</div>
+        <select id="kpiNivelSelect">
+          <option value="">Seleccionar...</option>
+        </select>
+      </div>
+    </div>
+
+    <div id="kpiItemsInfo" class="sub" style="margin:12px 0 10px">Selecciona una Posición / Nivel.</div>
+
+    <div class="tableWrap">
+      <table id="kpiTable">
+        <thead>
+          <tr>
+            <th>Posición / Nivel</th>
+            <th>Indicador / Entregable</th>
+            <th>1</th>
+            <th>2</th>
+            <th>3</th>
+            <th>4</th>
+            <th>5</th>
+          </tr>
+        </thead>
+        <tbody id="kpiTableBody">
+          <tr><td colspan="7" class="sub">Selecciona una Posición / Nivel para ver la información.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
 
     <!-- DESEMPENO extras -->
     <section class="card" data-phase-block="DESEMPENO" id="blockDesempenoExtra">
@@ -1899,6 +1951,7 @@ function buildCodigosMapFromPesos_(items){
   function isTiposPhase(){ return state.fase === "TIPOS"; }
   function isIncidenciasPhase(){ return state.fase === "INCIDENCIAS"; }
   function isOneOnePhase(){ return state.fase === "ONEONE"; }
+  function isKpisPhase(){ return state.fase === "KPIS"; }
   
   /* ================= VALIDATION ================= */
   function getClientesRequiredFields(){
@@ -1949,6 +2002,22 @@ function getOneOneRequiredFields(){
 function isOneOneComplete(){
   if(!isOneOnePhase()) return false;
   return !getOneOneRequiredFields().some(v => !v);
+}
+
+function getKpisRequiredFields(){
+  return [
+    $("kpiNoPersonal")?.value.trim(),
+    $("kpiNombre")?.value.trim(),
+    $("kpiPeriodo")?.value.trim(),
+    $("kpiVersion")?.value.trim(),
+    $("kpiFecha")?.value.trim(),
+    $("kpiNivelSelect")?.value.trim()
+  ];
+}
+
+function isKpisComplete(){
+  if(!isKpisPhase()) return false;
+  return !getKpisRequiredFields().some(v => !v);
 }
   
   function getEvalHeaderRequiredFields(){
@@ -2002,7 +2071,7 @@ function isOneOneComplete(){
     const btnP = $("btnPrint");
 
     // ✅ Limpiar se muestra en: EVAL / CLIENTES / RESULTADO / CONSOLIDADO
-    const showLimpiar = isEvalPhase() || isClientesPhase() || isIncidenciasPhase() || isOneOnePhase() || isResultadoPhase() || isConsolidadoPhase();
+    const showLimpiar = isEvalPhase() || isClientesPhase() || isIncidenciasPhase() || isOneOnePhase() || isKpisPhase() || isResultadoPhase() || isConsolidadoPhase();
     btnL.style.display = showLimpiar ? "inline-block" : "none";
 
     // ✅ Recuperar se muestra en: DESEMPENO / RESULTADO (NO en Informe ejecutivo)
@@ -2018,8 +2087,9 @@ const showGuardar =
   isEvalPhase() ||
   isDesempenoPhase() ||
   state.fase === "INCIDENCIAS" ||
-  state.fase === "ONEONE";
-btnG.style.display = showGuardar ? "inline-block" : "none";
+  state.fase === "ONEONE" ||
+  state.fase === "KPIS";
+  btnG.style.display = showGuardar ? "inline-block" : "none";
 
 // si está oculto, igual lo dejamos deshabilitado por seguridad
 if(!showGuardar){
@@ -2042,7 +2112,6 @@ if(state.fase === "ONEONE"){
   btnG.disabled = !isOneOneComplete();
   return;
 }
-
 
 // ✅ En evaluación: AUTO o DESEMPENO (isEvalComplete ya valida extras si es DESEMPENO)
 if(isEvalPhase() || isDesempenoPhase()){
@@ -2075,10 +2144,9 @@ const nivelWrap = $("nivelWrap");
 if(nivelWrap){
 
   const hideNivel =
-    isClientesPhase() || isResultadoPhase() || isConsolidadoPhase() ||
-    isCapacitacionPhase() || isDesarrolloPhase() || isTiposPhase() ||
-    state.fase === "NIVELES"; // ✅ NUEVO
-
+  isClientesPhase() || isResultadoPhase() || isConsolidadoPhase() ||
+  isCapacitacionPhase() || isDesarrolloPhase() || isTiposPhase() ||
+  state.fase === "NIVELES" || state.fase === "KPIS";
   nivelWrap.classList.toggle("hide", hideNivel);
 }
   // habilitar select nivel solo cuando toca
@@ -3174,7 +3242,105 @@ console.log("DEBUG ONE ONE:", payload);
     btn.textContent = "Guardar";
   }
 }
-  
+
+async function loadKpiLevels(){
+  const out = await apiGet({ action:"kpiLevels" });
+  const sel = $("kpiNivelSelect");
+  if(!sel) return;
+
+  sel.innerHTML = `<option value="">Seleccionar...</option>`;
+  const levels = Array.isArray(out?.levels) ? out.levels : [];
+
+  levels.forEach(v=>{
+    const op = document.createElement("option");
+    op.value = String(v);
+    op.textContent = String(v);
+    sel.appendChild(op);
+  });
+}
+
+async function loadKpiItems(){
+  const nivel = $("kpiNivelSelect")?.value?.trim();
+  const tb = $("kpiTableBody");
+  const info = $("kpiItemsInfo");
+
+  if(!nivel){
+    tb.innerHTML = `<tr><td colspan="7" class="sub">Selecciona una Posición / Nivel para ver la información.</td></tr>`;
+    info.textContent = "Selecciona una Posición / Nivel.";
+    updateGuardarUIState();
+    return;
+  }
+
+  const out = await apiGet({ action:"kpiItems", nivel });
+  const items = Array.isArray(out?.items) ? out.items : [];
+
+  if(!items.length){
+    tb.innerHTML = `<tr><td colspan="7" class="sub">No se encontraron indicadores para la posición / nivel seleccionada.</td></tr>`;
+    info.textContent = "Sin resultados.";
+    updateGuardarUIState();
+    return;
+  }
+
+  tb.innerHTML = items.map(r => `
+    <tr>
+      <td>${escapeHtml(String(r["Posición / Nivel"] ?? ""))}</td>
+      <td>${escapeHtml(String(r["Indicador / Entregable"] ?? ""))}</td>
+      <td>${escapeHtml(String(r["1"] ?? ""))}</td>
+      <td>${escapeHtml(String(r["2"] ?? ""))}</td>
+      <td>${escapeHtml(String(r["3"] ?? ""))}</td>
+      <td>${escapeHtml(String(r["4"] ?? ""))}</td>
+      <td>${escapeHtml(String(r["5"] ?? ""))}</td>
+    </tr>
+  `).join("");
+
+  info.textContent = `Indicadores cargados: ${items.length}`;
+  updateGuardarUIState();
+}
+
+function clearKpis(){
+  ["kpiNoPersonal","kpiNombre","kpiPeriodo","kpiVersion","kpiFecha"].forEach(id=>{
+    if($(id)) $(id).value = "";
+  });
+  if($("kpiNivelSelect")) $("kpiNivelSelect").value = "";
+  if($("kpiItemsInfo")) $("kpiItemsInfo").textContent = "Selecciona una Posición / Nivel.";
+  if($("kpiTableBody")){
+    $("kpiTableBody").innerHTML = `<tr><td colspan="7" class="sub">Selecciona una Posición / Nivel para ver la información.</td></tr>`;
+  }
+  updateGuardarUIState();
+}
+
+async function saveKpis(){
+  if(!isKpisPhase()){
+    alert("Para guardar, selecciona la fase Kpis/entregables.");
+    return;
+  }
+
+  if(!isKpisComplete()){
+    alert("Aún faltan campos. Completa No de personal, Nombre, Período, Versión, Fecha y Posición / Nivel.");
+    return;
+  }
+
+  const payload = {
+    fase: "KPIS",
+    noPersonal: $("kpiNoPersonal").value.trim(),
+    no: $("kpiNoPersonal").value.trim(),
+    nombre: $("kpiNombre").value.trim(),
+    periodo: $("kpiPeriodo").value.trim(),
+    version: $("kpiVersion").value.trim(),
+    fecha: formatDateDMY($("kpiFecha").value),
+    posicionNivel: $("kpiNivelSelect").value.trim()
+  };
+
+  const b64 = btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
+  const out = await apiGet({ action:"save", payload:b64 });
+
+  if(!out || out.ok !== true){
+    throw new Error(out?.error || "No se pudo guardar Kpis/entregables.");
+  }
+
+  clearKpis();
+  setApiStatus("ok","API: Kpis/entregables guardado");
+  alert("Kpis/entregables guardado ✅\nID  
   function buildCompatComentarios(){
     if(!isDesempenoPhase()) return "";
     return ($("justificacion")?.value || "").trim();
