@@ -460,7 +460,7 @@ button[disabled]{
       <div class="form-grid">
         <div class="field col-8 boxed">
           <div class="lbl">URL Web App Apps Script</div>
-          <input id="webapp" value="https://script.google.com/macros/s/AKfycbxh7_74al_6PvbzdGW0GihLm4M0MZmaJIfoQh4wGjMpkdylyBS9GKiojTYz93vRsh_V/exec" />
+          <input id="webapp" value="https://script.google.com/macros/s/AKfycbwBbZmWfOo0zB512zqwGMnC_Nq7R47OWZFCUJXcoNG7BUnYPTvH2OXo-RPR-4-SanEl/exec" />
         </div>
         <div class="field col-4 boxed">
           <div class="lbl">Pruebas API</div>
@@ -1469,7 +1469,7 @@ Dejar de hacer:"></textarea>
 `Empezar a hacer:
 Continuar haciendo:
 Dejar de hacer:`;
-  const DEFAULT_WEBAPP_ = "https://script.google.com/macros/s/AKfycbxh7_74al_6PvbzdGW0GihLm4M0MZmaJIfoQh4wGjMpkdylyBS9GKiojTYz93vRsh_V/exec";
+  const DEFAULT_WEBAPP_ = "https://script.google.com/macros/s/AKfycbwBbZmWfOo0zB512zqwGMnC_Nq7R47OWZFCUJXcoNG7BUnYPTvH2OXo-RPR-4-SanEl/exec";
   const $ = id => document.getElementById(id);
 
 function syncFaseButtonsUI(value){
@@ -2576,22 +2576,27 @@ async function loadKpisPosiciones(){
   const sel = $("kpPosicionNivel");
   if(!sel) return;
 
-  sel.innerHTML = `<option value="">Cargando posiciones / nivel...</option>`;
+  sel.innerHTML = `<option value="">Seleccionar</option>`;
+  sel.value = "";
   sel.disabled = true;
 
-  const out = await apiGet({ action:"kpisPosiciones" });
-  const items = Array.isArray(out?.items) ? out.items : [];
+  try{
+    const out = await apiGet({ action:"kpisPosiciones" });
+    const items = Array.isArray(out?.items) ? out.items.filter(Boolean) : [];
 
-  if(!items.length){
-    sel.innerHTML = `<option value="">Sin datos en Kpis</option>`;
-    sel.disabled = true;
-    return;
+    sel.innerHTML = `<option value="">Seleccionar</option>` +
+      items.map(v => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join("");
+
+    sel.value = "";
+    sel.disabled = false;
+  }catch(err){
+    console.error("KPIS posiciones:", err);
+    sel.innerHTML = `<option value="">Seleccionar</option>`;
+    sel.value = "";
+    sel.disabled = false;
   }
-
-  sel.innerHTML = `<option value="">Seleccionar</option>` +
-  items.map(v => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join("");
-  sel.disabled = false;
 }
+  
   async function loadFormByNivel(nivel){
   const niv = String(nivel ?? "").trim() || "1";
 
