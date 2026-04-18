@@ -460,7 +460,7 @@ button[disabled]{
       <div class="form-grid">
         <div class="field col-8 boxed">
           <div class="lbl">URL Web App Apps Script</div>
-          <input id="webapp" value="https://script.google.com/macros/s/AKfycbw-vCoLFry6VaP3xjr_9UCMEXoJpzN1wqKj9T4texPTIvzUDKj3XsgGzBknEz7NTuRF/exec" />
+          <input id="webapp" value="https://script.google.com/macros/s/AKfycbyz7NoIBsUsRBzQRzOJnC2J1xxjSxN8RZTzUlZRma-37XC9wnm31BZWJRXSat5-dzWz/exec" />
         </div>
         <div class="field col-4 boxed">
           <div class="lbl">Pruebas API</div>
@@ -1469,7 +1469,7 @@ Dejar de hacer:"></textarea>
 `Empezar a hacer:
 Continuar haciendo:
 Dejar de hacer:`;
-  const DEFAULT_WEBAPP_ = "https://script.google.com/macros/s/AKfycbw-vCoLFry6VaP3xjr_9UCMEXoJpzN1wqKj9T4texPTIvzUDKj3XsgGzBknEz7NTuRF/exec";
+  const DEFAULT_WEBAPP_ = "https://script.google.com/macros/s/AKfycbyz7NoIBsUsRBzQRzOJnC2J1xxjSxN8RZTzUlZRma-37XC9wnm31BZWJRXSat5-dzWz/exec";
   const $ = id => document.getElementById(id);
 
 function syncFaseButtonsUI(value){
@@ -2654,7 +2654,7 @@ function renderKpisDetalle_(posicionNivel){
   `).join("");
 }
 
-async function loadKpisPosiciones(){
+  async function loadKpisPosiciones(){
   const sel = $("kpPosicionNivel");
   if(!sel) return;
 
@@ -2666,10 +2666,22 @@ async function loadKpisPosiciones(){
   sel.disabled = true;
 
   try{
-    const out = await apiGet({ action:"kpisCatalog" });
+    let out;
 
-    if(!out || out.ok !== true){
-      throw new Error(out?.error || "No se pudo cargar el catálogo KPIS.");
+    try{
+      out = await apiGet({ action:"kpisCatalog" });
+      if(!out || out.ok !== true) throw new Error(out?.error || "kpisCatalog no disponible");
+    }catch(_){
+      const oldOut = await apiGet({ action:"kpisPosiciones" });
+      if(!oldOut || oldOut.ok !== true){
+        throw new Error(oldOut?.error || "No se pudo cargar Posición / Nivel.");
+      }
+
+      const posiciones = Array.isArray(oldOut.posiciones)
+        ? oldOut.posiciones
+        : (Array.isArray(oldOut.items) ? oldOut.items : []);
+
+      out = { ok:true, posiciones, rows:[] };
     }
 
     const posiciones = Array.isArray(out.posiciones) ? out.posiciones : [];
@@ -2706,7 +2718,6 @@ async function loadKpisPosiciones(){
     updateGuardarUIState();
   }
 }
-  
   async function loadFormByNivel(nivel){
   const niv = String(nivel ?? "").trim() || "1";
 
