@@ -460,7 +460,7 @@ button[disabled]{
       <div class="form-grid">
         <div class="field col-8 boxed">
           <div class="lbl">URL Web App Apps Script</div>
-          <input id="webapp" value="https://script.google.com/macros/s/AKfycbzbq3FszTbRe-qV9MdKIaeQIJa8BvNprV2VdektLjnQNNMdvyESD1czYiKYd52mqJIm/exec" />
+          <input id="webapp" value="https://script.google.com/macros/s/AKfycbzlygZ8SbDHQdVrEfOk3ISBBtXKyDYHIRsMOauiUn1xwQPfaCXXcsefK4DLNGqxc7XF/exec" />
         </div>
         <div class="field col-4 boxed">
           <div class="lbl">Pruebas API</div>
@@ -1469,7 +1469,7 @@ Dejar de hacer:"></textarea>
 `Empezar a hacer:
 Continuar haciendo:
 Dejar de hacer:`;
-  const DEFAULT_WEBAPP_ = "https://script.google.com/macros/s/AKfycbzbq3FszTbRe-qV9MdKIaeQIJa8BvNprV2VdektLjnQNNMdvyESD1czYiKYd52mqJIm/exec";
+  const DEFAULT_WEBAPP_ = "https://script.google.com/macros/s/AKfycbzlygZ8SbDHQdVrEfOk3ISBBtXKyDYHIRsMOauiUn1xwQPfaCXXcsefK4DLNGqxc7XF/exec";
   const $ = id => document.getElementById(id);
 
 function syncFaseButtonsUI(value){
@@ -2133,6 +2133,13 @@ function setPhase(phase){
     el.classList.toggle("show", p === state.fase);
   });
 
+if(state.fase === "KPIS"){
+  loadKpisPosiciones().catch(err=>{
+    console.error("KPIS posiciones:", err);
+    setApiStatus("err","API: " + (err?.message || err));
+  });
+}
+  
   if(state.fase === "KPIS"){
     loadKpisPosiciones().catch(err=>{
       console.error("KPIS posiciones:", err);
@@ -2606,12 +2613,14 @@ async function loadLevelsForPhase(){
       items.map(v => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join("");
 
     sel.value = "";
+    sel.selectedIndex = 0;
     sel.disabled = false;
     updateGuardarUIState();
   }catch(err){
     console.error("KPIS posiciones:", err);
     sel.innerHTML = `<option value="">Seleccionar</option>`;
     sel.value = "";
+    sel.selectedIndex = 0;
     sel.disabled = false;
     updateGuardarUIState();
   }
@@ -3148,6 +3157,7 @@ function clearKpis(){
   }
   updateGuardarUIState();
 }
+  
   function clearDesempenoExtra(){
     [
       "comentariosColaborador","evaluacionClientesDes","fortalezas","oportunidadesMejora",
