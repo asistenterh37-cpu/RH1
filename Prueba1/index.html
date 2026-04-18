@@ -460,7 +460,7 @@ button[disabled]{
       <div class="form-grid">
         <div class="field col-8 boxed">
           <div class="lbl">URL Web App Apps Script</div>
-          <input id="webapp" value="https://script.google.com/macros/s/AKfycbyz7NoIBsUsRBzQRzOJnC2J1xxjSxN8RZTzUlZRma-37XC9wnm31BZWJRXSat5-dzWz/exec" />
+          <input id="webapp" value="https://script.google.com/macros/s/AKfycbzlInH-LFAbGHXY8nMBsSLO0zRsqohJh6TgrO8MxxKbukQG9h3STGGSvZve1N7yUfPw/exec" />
         </div>
         <div class="field col-4 boxed">
           <div class="lbl">Pruebas API</div>
@@ -1469,7 +1469,7 @@ Dejar de hacer:"></textarea>
 `Empezar a hacer:
 Continuar haciendo:
 Dejar de hacer:`;
-  const DEFAULT_WEBAPP_ = "https://script.google.com/macros/s/AKfycbyz7NoIBsUsRBzQRzOJnC2J1xxjSxN8RZTzUlZRma-37XC9wnm31BZWJRXSat5-dzWz/exec";
+  const DEFAULT_WEBAPP_ = "https://script.google.com/macros/s/AKfycbzlInH-LFAbGHXY8nMBsSLO0zRsqohJh6TgrO8MxxKbukQG9h3STGGSvZve1N7yUfPw/exec";
   const $ = id => document.getElementById(id);
 
 function syncFaseButtonsUI(value){
@@ -2132,20 +2132,12 @@ function setPhase(phase){
     const p = el.getAttribute("data-phase-block");
     el.classList.toggle("show", p === state.fase);
   });
-
 if(state.fase === "KPIS"){
   loadKpisPosiciones().catch(err=>{
     console.error("KPIS posiciones:", err);
     setApiStatus("err","API: " + (err?.message || err));
   });
 }
-  
-  if(state.fase === "KPIS"){
-    loadKpisPosiciones().catch(err=>{
-      console.error("KPIS posiciones:", err);
-      setApiStatus("err","API: " + (err?.message || err));
-    });
-  }
   
   // EVAL es “virtual” (AUTO o DESEMPENO)
   document.querySelectorAll('[data-phase-block="EVAL"]').forEach(el=>{
@@ -2654,7 +2646,7 @@ function renderKpisDetalle_(posicionNivel){
   `).join("");
 }
 
-async function loadKpisPosiciones(){
+  async function loadKpisPosiciones(){
   const sel = $("kpPosicionNivel");
   if(!sel) return;
 
@@ -2666,22 +2658,10 @@ async function loadKpisPosiciones(){
   sel.disabled = true;
 
   try{
-    let out = null;
+    const out = await apiGet({ action:"kpisCatalog" });
 
-    try{
-      out = await apiGet({ action:"kpisCatalog" });
-      if(!out || out.ok !== true) throw new Error(out?.error || "kpisCatalog no disponible");
-    }catch(_e1){
-      const oldOut = await apiGet({ action:"kpisPosiciones" });
-      if(!oldOut || oldOut.ok !== true){
-        throw new Error(oldOut?.error || "No se pudo cargar Posición / Nivel.");
-      }
-
-      const posiciones = Array.isArray(oldOut.posiciones)
-        ? oldOut.posiciones
-        : (Array.isArray(oldOut.items) ? oldOut.items : []);
-
-      out = { ok:true, posiciones, rows:[] };
+    if(!out || out.ok !== true){
+      throw new Error(out?.error || "No se pudo cargar el catálogo KPIS.");
     }
 
     const posiciones = Array.isArray(out.posiciones) ? out.posiciones : [];
@@ -2691,25 +2671,25 @@ async function loadKpisPosiciones(){
     rows.forEach(r=>{
       const key = String(r?.posicionNivel || "").trim();
       if(!key) return;
-      (byPosicion[key] ||= []).push(r);
+      if(!byPosicion[key]) byPosicion[key] = [];
+      byPosicion[key].push(r);
     });
 
     window.__KPIS_CATALOG__ = { posiciones, byPosicion };
 
     sel.innerHTML = `<option value="">Seleccionar</option>`;
-    posiciones.forEach(v=>{
-      const opt = document.createElement("option");
-      opt.value = v;
-      opt.textContent = v;
-      sel.appendChild(opt);
-    });
+    posiciones
+      .filter(v => String(v || "").trim())
+      .forEach(v=>{
+        const opt = document.createElement("option");
+        opt.value = String(v).trim();
+        opt.textContent = String(v).trim();
+        sel.appendChild(opt);
+      });
 
     sel.value = "";
     sel.selectedIndex = 0;
-
-    if(!posiciones.length){
-      throw new Error("La hoja Kpis no devolvió posiciones en la columna Posición / Nivel.");
-    }
+    setApiStatus("ok", `API: KPIS cargado (${posiciones.length} posiciones)`);
   }catch(err){
     console.error("KPIS catálogo:", err);
     sel.innerHTML = `<option value="">Seleccionar</option>`;
@@ -2722,7 +2702,6 @@ async function loadKpisPosiciones(){
     updateGuardarUIState();
   }
 }
-  
   async function loadFormByNivel(nivel){
   const niv = String(nivel ?? "").trim() || "1";
 
@@ -3248,14 +3227,11 @@ function clearOneOne(){
     const el = $(id);
     if(el) el.value = "";
   });
-
   if($("kpFecha")) $("kpFecha").value = todayLocal();
-
   if($("kpPosicionNivel")){
     $("kpPosicionNivel").value = "";
     $("kpPosicionNivel").selectedIndex = 0;
   }
-
   clearKpisDetalle_();
   updateGuardarUIState();
 }
@@ -4079,18 +4055,19 @@ if(fase === "KPIS"){
   updateGuardarUIState();
 }
 
-  if(fase === "KPIS" && $("kpPosicionNivel")){
-  $("kpPosicionNivel").onchange = (e)=>{
-    const value = String(e.target?.value || "").trim();
-    if(!value){
+const kpSel = $("kpPosicionNivel");
+if(kpSel && !kpSel.dataset.boundKpis){
+  kpSel.dataset.boundKpis = "1";
+  kpSel.addEventListener("change", ()=>{
+    const val = String(kpSel.value || "").trim();
+    if(!val){
       clearKpisDetalle_();
     }else{
-      renderKpisDetalle_(value);
+      renderKpisDetalle_(val);
     }
     updateGuardarUIState();
-  };
+  });
 }
-
     const kpSel = $("kpPosicionNivel");
 if(kpSel && !kpSel.dataset.boundKpis){
   kpSel.dataset.boundKpis = "1";
