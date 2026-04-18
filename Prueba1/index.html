@@ -460,7 +460,7 @@ button[disabled]{
       <div class="form-grid">
         <div class="field col-8 boxed">
           <div class="lbl">URL Web App Apps Script</div>
-          <input id="webapp" value="https://script.google.com/macros/s/AKfycbxLRdXWPP5n_bjm0ev8_CW6H6Ijq9NsEdeen0aGDSO_lc2mhX0rRejl-J5wAb_bZIp5/exec" />
+          <input id="webapp" value="https://script.google.com/macros/s/AKfycbzf7Rsnog-vQY3L72udvdDk63kuBvWxVK3zrby_T9XZ0BL3ikbrMjpkzeIJC_7ot8R-/exec" />
         </div>
         <div class="field col-4 boxed">
           <div class="lbl">Pruebas API</div>
@@ -1059,10 +1059,10 @@ Dejar de hacer:"></textarea>
   </div>
 
   <div class="field boxed" style="flex:1 1 280px; min-width:280px;">
-  <div class="lbl">Posición / Nivel</div>
-  <select id="kpPosicionNivel" onchange="cargarCatalogoKpis()">
-  <option value="">Seleccionar</option>
-</select>
+  <div class="lbl">Posición / Categoría</div>
+  <select id="kpPosicionNivel">
+    <option value="">Seleccionar</option>
+  </select>
 </div>
 </div>
     <div class="sub" style="margin-top:10px">Estado API: <b id="apiMiniKpis">—</b></div>
@@ -1469,7 +1469,7 @@ Dejar de hacer:"></textarea>
 `Empezar a hacer:
 Continuar haciendo:
 Dejar de hacer:`;
-  const DEFAULT_WEBAPP_ = "https://script.google.com/macros/s/AKfycbxLRdXWPP5n_bjm0ev8_CW6H6Ijq9NsEdeen0aGDSO_lc2mhX0rRejl-J5wAb_bZIp5/exec";
+  const DEFAULT_WEBAPP_ = "https://script.google.com/macros/s/AKfycbzf7Rsnog-vQY3L72udvdDk63kuBvWxVK3zrby_T9XZ0BL3ikbrMjpkzeIJC_7ot8R-/exec";
   const $ = id => document.getElementById(id);
 
 function syncFaseButtonsUI(value){
@@ -2609,11 +2609,10 @@ function clearKpisDetalle_(){
   if(!host) return;
   host.innerHTML = `
     <div class="hint" id="kpDetalleHint">
-      Selecciona una opción en <b>Posición / Nivel</b> para mostrar los <b>Indicador / Entregable</b> y sus niveles 1–5.
+      Selecciona una opción en <b>Posición / Categoría</b> para mostrar los <b>Indicadores / Entregables</b> y sus niveles 1–5.
     </div>
   `;
 }
-
 function renderKpisDetalle_(posicionNivel){
   const host = ensureKpisDetalleHost_();
   if(!host) return;
@@ -2708,7 +2707,7 @@ async function loadKpisPosiciones(){
     sel.selectedIndex = 0;
 
     if(!posiciones.length){
-      throw new Error("La hoja Kpis no devolvió posiciones en la columna Posición / Nivel.");
+      throw new Error("La hoja Kpis no devolvió valores en la columna Posición / Categoría.");
     }
   }catch(err){
     console.error("KPIS catálogo:", err);
@@ -3420,7 +3419,7 @@ console.log("DEBUG ONE ONE:", payload);
   }
 
   if(!isKpisComplete()){
-    alert("Aún faltan campos. Completa No de personal, Nombre, Posición / Nivel, Período, Versión y Fecha.");
+    alert("Aún faltan campos. Completa No de personal, Nombre, Posición / Categoría, Período, Versión y Fecha.");
     return;
   }
 
@@ -4079,23 +4078,11 @@ if(fase === "KPIS"){
   updateGuardarUIState();
 }
 
-  if(fase === "KPIS" && $("kpPosicionNivel")){
-  $("kpPosicionNivel").onchange = (e)=>{
-    const value = String(e.target?.value || "").trim();
-    if(!value){
-      clearKpisDetalle_();
-    }else{
-      renderKpisDetalle_(value);
-    }
-    updateGuardarUIState();
-  };
-}
-
-    const kpSel = $("kpPosicionNivel");
+  const kpSel = $("kpPosicionNivel");
 if(kpSel && !kpSel.dataset.boundKpis){
   kpSel.dataset.boundKpis = "1";
-  kpSel.addEventListener("change", ()=>{
-    const val = String(kpSel.value || "").trim();
+  kpSel.addEventListener("change", (e)=>{
+    const val = String(e.target?.value || "").trim();
     if(!val){
       clearKpisDetalle_();
       updateGuardarUIState();
