@@ -460,7 +460,7 @@ button[disabled]{
       <div class="form-grid">
         <div class="field col-8 boxed">
           <div class="lbl">URL Web App Apps Script</div>
-          <input id="webapp" value="https://script.google.com/macros/s/AKfycbw-3TA4ZiiQNj5DlVxJ8WB1PfEL4PpGW-fPOFAnencrDidomya0JSeD2MPPd5EEY_PW/exec" />
+          <input id="webapp" value="https://script.google.com/macros/s/AKfycbw-vCoLFry6VaP3xjr_9UCMEXoJpzN1wqKj9T4texPTIvzUDKj3XsgGzBknEz7NTuRF/exec" />
         </div>
         <div class="field col-4 boxed">
           <div class="lbl">Pruebas API</div>
@@ -1469,7 +1469,7 @@ Dejar de hacer:"></textarea>
 `Empezar a hacer:
 Continuar haciendo:
 Dejar de hacer:`;
-  const DEFAULT_WEBAPP_ = "https://script.google.com/macros/s/AKfycbw-3TA4ZiiQNj5DlVxJ8WB1PfEL4PpGW-fPOFAnencrDidomya0JSeD2MPPd5EEY_PW/exec";
+  const DEFAULT_WEBAPP_ = "https://script.google.com/macros/s/AKfycbw-vCoLFry6VaP3xjr_9UCMEXoJpzN1wqKj9T4texPTIvzUDKj3XsgGzBknEz7NTuRF/exec";
   const $ = id => document.getElementById(id);
 
 function syncFaseButtonsUI(value){
@@ -2667,21 +2667,30 @@ async function loadKpisPosiciones(){
 
   try{
     const out = await apiGet({ action:"kpisCatalog" });
-    const posiciones = Array.isArray(out?.posiciones) ? out.posiciones : [];
-    const rows = Array.isArray(out?.rows) ? out.rows : [];
+
+    if(!out || out.ok !== true){
+      throw new Error(out?.error || "No se pudo cargar el catálogo KPIS.");
+    }
+
+    const posiciones = Array.isArray(out.posiciones) ? out.posiciones : [];
+    const rows = Array.isArray(out.rows) ? out.rows : [];
 
     const byPosicion = {};
     rows.forEach(r=>{
       const key = String(r?.posicionNivel || "").trim();
       if(!key) return;
-      if(!byPosicion[key]) byPosicion[key] = [];
-      byPosicion[key].push(r);
+      (byPosicion[key] ||= []).push(r);
     });
 
     window.__KPIS_CATALOG__ = { posiciones, byPosicion };
 
-    sel.innerHTML = `<option value="">Seleccionar</option>` +
-      posiciones.map(v => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join("");
+    sel.innerHTML = `<option value="">Seleccionar</option>`;
+    posiciones.forEach(v=>{
+      const opt = document.createElement("option");
+      opt.value = v;
+      opt.textContent = v;
+      sel.appendChild(opt);
+    });
 
     sel.value = "";
     sel.selectedIndex = 0;
@@ -2691,11 +2700,13 @@ async function loadKpisPosiciones(){
     sel.value = "";
     sel.selectedIndex = 0;
     clearKpisDetalle_();
+    setApiStatus("err", "API: " + (err?.message || err));
   }finally{
     sel.disabled = false;
     updateGuardarUIState();
   }
 }
+  
   async function loadFormByNivel(nivel){
   const niv = String(nivel ?? "").trim() || "1";
 
@@ -3386,9 +3397,9 @@ console.log("DEBUG ONE ONE:", payload);
   }
 }
 
-async function saveKpis(){
+  async function saveKpis(){
   if(!isKpisPhase()){
-    alert("Para guardar Kpis/entregables, selecciona la fase Kpis/entregables.");
+    alert("Para usar Kpis/entregables, selecciona la fase Kpis/entregables.");
     return;
   }
 
@@ -3397,36 +3408,9 @@ async function saveKpis(){
     return;
   }
 
-  const btn = $("btnGuardar");
-
-  const payload = {
-    fase: "KPIS",
-    noPersonal: $("kpNoPersonal").value.trim(),
-    no: $("kpNoPersonal").value.trim(),
-    nombre: $("kpNombre").value.trim(),
-    posicionNivel: $("kpPosicionNivel").value.trim(),
-    periodo: $("kpPeriodo").value.trim(),
-    version: $("kpVersion").value.trim(),
-    fecha: formatDateDMY($("kpFecha").value)
-  };
-
-  const b64 = btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
-  const out = await apiGet({ action:"save", payload:b64 });
-
-  if(!out || out.ok !== true){
-    throw new Error(out?.error || "No se pudo guardar Kpis/entregables.");
-  }
-
-  clearKpis();
-  setApiStatus("ok","API: Kpis guardado");
-  alert("Kpis/entregables guardado ✅\nID: " + (out.id || "—"));
-
-  if(btn){
-    btn.disabled = false;
-    btn.textContent = "Guardar";
-  }
+  setApiStatus("ok","API: KPIS cargado en modo consulta");
+  alert("Kpis/entregables está configurado solo para consulta. No guarda respuestas en la hoja Kpis.");
 }
-  
   function buildCompatComentarios(){
     if(!isDesempenoPhase()) return "";
     return ($("justificacion")?.value || "").trim();
@@ -4079,6 +4063,18 @@ if(fase === "KPIS"){
   updateGuardarUIState();
 }
 
+  if(fase === "KPIS" && $("kpPosicionNivel")){
+  $("kpPosicionNivel").onchange = (e)=>{
+    const value = String(e.target?.value || "").trim();
+    if(!value){
+      clearKpisDetalle_();
+    }else{
+      renderKpisDetalle_(value);
+    }
+    updateGuardarUIState();
+  };
+}
+
     const kpSel = $("kpPosicionNivel");
 if(kpSel && !kpSel.dataset.boundKpis){
   kpSel.dataset.boundKpis = "1";
@@ -4338,31 +4334,6 @@ clearKpisDetalle_();
   }
 })();
  </script>
-<script>
-async function cargarPosicionesKpis() {
-  const url = document.getElementById("webapp").value;
-
-  try {
-    const res = await fetch(`${url}?action=kpisPosiciones`);
-    const data = await res.json();
-
-    const select = document.getElementById("kpPosicionNivel");
-    select.innerHTML = '<option value="">Seleccionar</option>';
-
-    if (data.ok && data.items.length) {
-      data.items.forEach(pos => {
-        const opt = document.createElement("option");
-        opt.value = pos;
-        opt.textContent = pos;
-        select.appendChild(opt);
-      });
-    }
-
-  } catch (e) {
-    console.error("Error cargando posiciones KPIs:", e);
-  }
-}
-</script>
   
 </body>
 </html>
