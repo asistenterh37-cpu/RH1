@@ -460,7 +460,7 @@ button[disabled]{
       <div class="form-grid">
         <div class="field col-8 boxed">
           <div class="lbl">URL Web App Apps Script</div>
-          <input id="webapp" value="https://script.google.com/macros/s/AKfycbz3c-pycD_xpYlBqwSi2g0puaSllmZFJUEAED2p_W9JKT_ososclXyfivf-nfTLd3Wk/exec" />
+          <input id="webapp" value="https://script.google.com/macros/s/AKfycbzbq3FszTbRe-qV9MdKIaeQIJa8BvNprV2VdektLjnQNNMdvyESD1czYiKYd52mqJIm/exec" />
         </div>
         <div class="field col-4 boxed">
           <div class="lbl">Pruebas API</div>
@@ -1469,7 +1469,7 @@ Dejar de hacer:"></textarea>
 `Empezar a hacer:
 Continuar haciendo:
 Dejar de hacer:`;
-  const DEFAULT_WEBAPP_ = "https://script.google.com/macros/s/AKfycbz3c-pycD_xpYlBqwSi2g0puaSllmZFJUEAED2p_W9JKT_ososclXyfivf-nfTLd3Wk/exec";
+  const DEFAULT_WEBAPP_ = "https://script.google.com/macros/s/AKfycbzbq3FszTbRe-qV9MdKIaeQIJa8BvNprV2VdektLjnQNNMdvyESD1czYiKYd52mqJIm/exec";
   const $ = id => document.getElementById(id);
 
 function syncFaseButtonsUI(value){
@@ -2005,7 +2005,7 @@ function getKpisRequiredFields(){
   return [
     $("kpNoPersonal")?.value.trim(),
     $("kpNombre")?.value.trim(),
-    $("kpPosicionNivel")?.value.trim(),
+    String($("kpPosicionNivel")?.value || "").trim(),
     $("kpPeriodo")?.value.trim(),
     $("kpVersion")?.value.trim(),
     $("kpFecha")?.value.trim(),
@@ -2013,6 +2013,8 @@ function getKpisRequiredFields(){
 }
 function isKpisComplete(){
   if(!isKpisPhase()) return false;
+  const posNivel = String($("kpPosicionNivel")?.value || "").trim();
+  if(!posNivel || posNivel.toLowerCase() === "seleccionar") return false;
   return !getKpisRequiredFields().some(v => !v);
 }
   function getEvalHeaderRequiredFields(){
@@ -2131,6 +2133,13 @@ function setPhase(phase){
     el.classList.toggle("show", p === state.fase);
   });
 
+  if(state.fase === "KPIS"){
+    loadKpisPosiciones().catch(err=>{
+      console.error("KPIS posiciones:", err);
+      setApiStatus("err","API: " + (err?.message || err));
+    });
+  }
+  
   // EVAL es “virtual” (AUTO o DESEMPENO)
   document.querySelectorAll('[data-phase-block="EVAL"]').forEach(el=>{
     el.classList.toggle("show", isEvalPhase());
@@ -2572,7 +2581,7 @@ async function loadLevelsForPhase(){
   }
 }
 
-async function loadKpisPosiciones(){
+  async function loadKpisPosiciones(){
   const sel = $("kpPosicionNivel");
   if(!sel) return;
 
@@ -2583,9 +2592,14 @@ async function loadKpisPosiciones(){
   try{
     const out = await apiGet({ action:"kpisPosiciones" });
     const items = Array.isArray(out?.items)
-      ? out.items
-          .map(v => String(v || "").trim())
-          .filter(v => v && v.toLowerCase() !== "seleccionar")
+      ? [...new Set(
+          out.items
+            .map(v => String(v || "").trim())
+            .filter(v => {
+              const n = String(v || "").trim().toLowerCase();
+              return n && n !== "seleccionar";
+            })
+        )]
       : [];
 
     sel.innerHTML = `<option value="">Seleccionar</option>` +
@@ -2593,14 +2607,15 @@ async function loadKpisPosiciones(){
 
     sel.value = "";
     sel.disabled = false;
+    updateGuardarUIState();
   }catch(err){
     console.error("KPIS posiciones:", err);
     sel.innerHTML = `<option value="">Seleccionar</option>`;
     sel.value = "";
     sel.disabled = false;
+    updateGuardarUIState();
   }
 }
-  
   async function loadFormByNivel(nivel){
   const niv = String(nivel ?? "").trim() || "1";
 
@@ -3127,7 +3142,10 @@ function clearKpis(){
     if(el) el.value = "";
   });
   if($("kpFecha")) $("kpFecha").value = todayLocal();
-  if($("kpPosicionNivel")) $("kpPosicionNivel").value = "";
+  if($("kpPosicionNivel")){
+    $("kpPosicionNivel").value = "";
+    $("kpPosicionNivel").selectedIndex = 0;
+  }
   updateGuardarUIState();
 }
   function clearDesempenoExtra(){
