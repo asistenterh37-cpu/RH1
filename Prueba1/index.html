@@ -2654,7 +2654,7 @@ function renderKpisDetalle_(posicionNivel){
   `).join("");
 }
 
-  async function loadKpisPosiciones(){
+async function loadKpisPosiciones(){
   const sel = $("kpPosicionNivel");
   if(!sel) return;
 
@@ -2666,12 +2666,12 @@ function renderKpisDetalle_(posicionNivel){
   sel.disabled = true;
 
   try{
-    let out;
+    let out = null;
 
     try{
       out = await apiGet({ action:"kpisCatalog" });
       if(!out || out.ok !== true) throw new Error(out?.error || "kpisCatalog no disponible");
-    }catch(_){
+    }catch(_e1){
       const oldOut = await apiGet({ action:"kpisPosiciones" });
       if(!oldOut || oldOut.ok !== true){
         throw new Error(oldOut?.error || "No se pudo cargar Posición / Nivel.");
@@ -2706,6 +2706,10 @@ function renderKpisDetalle_(posicionNivel){
 
     sel.value = "";
     sel.selectedIndex = 0;
+
+    if(!posiciones.length){
+      throw new Error("La hoja Kpis no devolvió posiciones en la columna Posición / Nivel.");
+    }
   }catch(err){
     console.error("KPIS catálogo:", err);
     sel.innerHTML = `<option value="">Seleccionar</option>`;
@@ -2718,6 +2722,7 @@ function renderKpisDetalle_(posicionNivel){
     updateGuardarUIState();
   }
 }
+  
   async function loadFormByNivel(nivel){
   const niv = String(nivel ?? "").trim() || "1";
 
