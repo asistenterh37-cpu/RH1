@@ -460,7 +460,7 @@ button[disabled]{
       <div class="form-grid">
         <div class="field col-8 boxed">
           <div class="lbl">URL Web App Apps Script</div>
-          <input id="webapp" value="https://script.google.com/macros/s/AKfycbw1TXlCgPUMWSKeqf7ms9AlqKJdIa7znVsN_aXc7wEvSvsL4HcCN--Fxh3PitsWo4Am/exec" />
+          <input id="webapp" value="https://script.google.com/macros/s/AKfycbw-3TA4ZiiQNj5DlVxJ8WB1PfEL4PpGW-fPOFAnencrDidomya0JSeD2MPPd5EEY_PW/exec" />
         </div>
         <div class="field col-4 boxed">
           <div class="lbl">Pruebas API</div>
@@ -1060,9 +1060,9 @@ Dejar de hacer:"></textarea>
 
   <div class="field boxed" style="flex:1 1 280px; min-width:280px;">
   <div class="lbl">Posición / Nivel</div>
-  <select id="kpPosicionNivel">
-    <option value="">Seleccionar</option>
-  </select>
+  <select id="kpPosicionNivel" onchange="cargarCatalogoKpis()">
+  <option value="">Seleccionar</option>
+</select>
 </div>
 </div>
     <div class="sub" style="margin-top:10px">Estado API: <b id="apiMiniKpis">—</b></div>
@@ -1469,7 +1469,7 @@ Dejar de hacer:"></textarea>
 `Empezar a hacer:
 Continuar haciendo:
 Dejar de hacer:`;
-  const DEFAULT_WEBAPP_ = "https://script.google.com/macros/s/AKfycbw1TXlCgPUMWSKeqf7ms9AlqKJdIa7znVsN_aXc7wEvSvsL4HcCN--Fxh3PitsWo4Am/exec";
+  const DEFAULT_WEBAPP_ = "https://script.google.com/macros/s/AKfycbw-3TA4ZiiQNj5DlVxJ8WB1PfEL4PpGW-fPOFAnencrDidomya0JSeD2MPPd5EEY_PW/exec";
   const $ = id => document.getElementById(id);
 
 function syncFaseButtonsUI(value){
@@ -4338,6 +4338,32 @@ clearKpisDetalle_();
   }
 })();
  </script>
+<script>
+async function cargarPosicionesKpis() {
+  const url = document.getElementById("webapp").value;
+
+  try {
+    const res = await fetch(`${url}?action=kpisPosiciones`);
+    const data = await res.json();
+
+    const select = document.getElementById("kpPosicionNivel");
+    select.innerHTML = '<option value="">Seleccionar</option>';
+
+    if (data.ok && data.items.length) {
+      data.items.forEach(pos => {
+        const opt = document.createElement("option");
+        opt.value = pos;
+        opt.textContent = pos;
+        select.appendChild(opt);
+      });
+    }
+
+  } catch (e) {
+    console.error("Error cargando posiciones KPIs:", e);
+  }
+}
+</script>
+  
 </body>
 </html>
 
