@@ -460,7 +460,7 @@ button[disabled]{
       <div class="form-grid">
         <div class="field col-8 boxed">
           <div class="lbl">URL Web App Apps Script</div>
-          <input id="webapp" value="https://script.google.com/macros/s/AKfycbwBbZmWfOo0zB512zqwGMnC_Nq7R47OWZFCUJXcoNG7BUnYPTvH2OXo-RPR-4-SanEl/exec" />
+          <input id="webapp" value="https://script.google.com/macros/s/AKfycbz3c-pycD_xpYlBqwSi2g0puaSllmZFJUEAED2p_W9JKT_ososclXyfivf-nfTLd3Wk/exec" />
         </div>
         <div class="field col-4 boxed">
           <div class="lbl">Pruebas API</div>
@@ -1059,11 +1059,11 @@ Dejar de hacer:"></textarea>
   </div>
 
   <div class="field boxed" style="flex:1 1 280px; min-width:280px;">
-    <div class="lbl">Posición / Nivel</div>
-    <select id="kpPosicionNivel">
-      <option value="">Selecciona una posición / nivel</option>
-    </select>
-  </div>
+  <div class="lbl">Posición / Nivel</div>
+  <select id="kpPosicionNivel">
+    <option value="">Seleccionar</option>
+  </select>
+</div>
 </div>
     <div class="sub" style="margin-top:10px">Estado API: <b id="apiMiniKpis">—</b></div>
   </div>
@@ -1469,7 +1469,7 @@ Dejar de hacer:"></textarea>
 `Empezar a hacer:
 Continuar haciendo:
 Dejar de hacer:`;
-  const DEFAULT_WEBAPP_ = "https://script.google.com/macros/s/AKfycbwBbZmWfOo0zB512zqwGMnC_Nq7R47OWZFCUJXcoNG7BUnYPTvH2OXo-RPR-4-SanEl/exec";
+  const DEFAULT_WEBAPP_ = "https://script.google.com/macros/s/AKfycbz3c-pycD_xpYlBqwSi2g0puaSllmZFJUEAED2p_W9JKT_ososclXyfivf-nfTLd3Wk/exec";
   const $ = id => document.getElementById(id);
 
 function syncFaseButtonsUI(value){
@@ -2582,7 +2582,11 @@ async function loadKpisPosiciones(){
 
   try{
     const out = await apiGet({ action:"kpisPosiciones" });
-    const items = Array.isArray(out?.items) ? out.items.filter(Boolean) : [];
+    const items = Array.isArray(out?.items)
+      ? out.items
+          .map(v => String(v || "").trim())
+          .filter(v => v && v.toLowerCase() !== "seleccionar")
+      : [];
 
     sel.innerHTML = `<option value="">Seleccionar</option>` +
       items.map(v => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join("");
