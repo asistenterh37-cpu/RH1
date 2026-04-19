@@ -492,7 +492,7 @@ button[disabled]{
       <div class="form-grid">
         <div class="field col-8 boxed">
           <div class="lbl">URL Web App Apps Script</div>
-          <input id="webapp" value="https://script.google.com/macros/s/AKfycbxjw-WvyMrvmFd_ikD-dBu5uGwEVG7sV129kKA4tim5yOW-2TMi0GXzcgbz4qWjQgUy/exec"/>
+          <input id="webapp" value="https://script.google.com/macros/s/AKfycbxMkNbY3QSTYLaOv-8i-hkXv9Snt7Jk8XM9maJ89dTgSw3nqoOp_dfxIt9mHT8sz6rq/exec"/>
         </div>
         <div class="field col-4 boxed">
           <div class="lbl">Pruebas API</div>
@@ -855,7 +855,7 @@ button[disabled]{
       <div class="sub">Completa todos los campos. Guardar se habilita hasta que todo esté lleno.</div>
     </div>
     <div class="chips">
-      <span class="chip mono">Hoja destino: <b>Clientes</b></span>
+      <span class="chip mono">Hoja destino: <b>Observaciones</b></span>
     </div>
   </div>
   <div class="card-b">
@@ -898,7 +898,7 @@ Dejar de hacer:"></textarea>
       <div class="sub">Completa los campos y presiona <b>Guardar</b> para registrar en la hoja <b>Incidencias</b>.</div>
     </div>
     <div class="chips">
-      <span class="chip mono">Hoja destino: <b>Incidencias</b></span>
+      <span class="chip mono">Hoja destino: <b>Observaciones</b></span>
     </div>
   </div>
   <div class="card-b">
@@ -935,7 +935,7 @@ Dejar de hacer:"></textarea>
       <div class="sub">Completa los campos y presiona <b>Guardar</b> para registrar en la hoja <b>One One</b>.</div>
     </div>
     <div class="chips">
-      <span class="chip mono">Hoja destino: <b>One One</b></span>
+      <span class="chip mono">Hoja destino: <b>Observaciones</b></span>
     </div>
   </div>
   <div class="card-b">
@@ -1442,7 +1442,7 @@ Dejar de hacer:"></textarea>
 `Empezar a hacer:
 Continuar haciendo:
 Dejar de hacer:`;
-  const DEFAULT_WEBAPP_ = "https://script.google.com/macros/s/AKfycbxjw-WvyMrvmFd_ikD-dBu5uGwEVG7sV129kKA4tim5yOW-2TMi0GXzcgbz4qWjQgUy/exec";
+  const DEFAULT_WEBAPP_ = "https://script.google.com/macros/s/AKfycbxMkNbY3QSTYLaOv-8i-hkXv9Snt7Jk8XM9maJ89dTgSw3nqoOp_dfxIt9mHT8sz6rq/exec";
   const $ = id => document.getElementById(id);
 
 function syncFaseButtonsUI(value){
@@ -3256,47 +3256,45 @@ function clearOneOne(){
     clearClientes();
   }
     async function saveIncidencias(){
-    if(!isIncidenciasPhase()){
-      alert("Para guardar Incidencias, selecciona la fase Incidencias.");
-      return;
-    }
-
-    if(!isIncidenciasComplete()){
-      
-      return;
-    }
-
-    const btn = $("btnGuardar");
-    alert("Aún faltan campos. Completa No de personal, Nombre, Periodo, Versión, Fecha, Observaciones y Responsable.");
-    const payload = {
-      fase: "INCIDENCIAS",
-      no: $("incNoPersonal").value.trim(),
-      noPersonal: $("incNoPersonal").value.trim(),
-      nombre: $("incNombre").value.trim(),
-      periodo: $("incPeriodo").value.trim(),
-      version: $("incVersion").value.trim(),
-      fecha: formatDateDMY($("incFecha").value),
-      incidencia: $("incIncidencia").value.trim(),
-      usuario: $("incUsuario").value.trim()
-    };
-
-    const b64 = btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
-    const out = await apiGet({ action:"save", payload:b64 });
-
-    if(!out || out.ok !== true){
-      throw new Error(out?.error || "No se pudo guardar la incidencia.");
-    }
-
-    clearIncidencias();
-    setApiStatus("ok","API: incidencia guardada");
-    alert("Incidencia guardada ✅\nID: " + (out.id || "—"));
-
-    if(btn){
-      btn.disabled = false;
-      btn.textContent = "Guardar";
-    }
+  if(!isIncidenciasPhase()){
+    alert("Para guardar Incidencias, selecciona la fase Incidencias.");
+    return;
   }
 
+  if(!isIncidenciasComplete()){
+    alert("Aún faltan campos. Completa No de personal, Nombre, Periodo, Versión, Fecha, Observaciones y Responsable.");
+    return;
+  }
+
+  const btn = $("btnGuardar");
+  const payload = {
+    fase: "INCIDENCIAS",
+    no: $("incNoPersonal").value.trim(),
+    noPersonal: $("incNoPersonal").value.trim(),
+    nombre: $("incNombre").value.trim(),
+    periodo: $("incPeriodo").value.trim(),
+    version: $("incVersion").value.trim(),
+    fecha: formatDateDMY($("incFecha").value),
+    incidencia: $("incIncidencia").value.trim(),
+    usuario: $("incUsuario").value.trim()
+  };
+
+  const b64 = btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
+  const out = await apiGet({ action:"save", payload:b64 });
+
+  if(!out || out.ok !== true){
+    throw new Error(out?.error || "No se pudo guardar la incidencia.");
+  }
+
+  clearIncidencias();
+  setApiStatus("ok","API: incidencia guardada");
+  alert("Incidencia guardada ✅\nID: " + (out.id || "—"));
+
+  if(btn){
+    btn.disabled = false;
+    btn.textContent = "Guardar";
+  }
+}
     async function saveOneOne(){
   if(!isOneOnePhase()){
     alert("Para guardar One One, selecciona la fase One One.");
