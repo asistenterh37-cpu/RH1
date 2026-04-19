@@ -1522,9 +1522,7 @@ function ensureWebAppVisibleValue_(){
   const el = $("webapp");
   if (!el) return;
 
-  const saved = localStorage.getItem(LS_KEY_);
-  const finalUrl = normalizeWebApp(saved || el.value || DEFAULT_WEBAPP_);
-
+  const finalUrl = normalizeWebApp(el.value || DEFAULT_WEBAPP_);
   el.value = finalUrl;
   localStorage.setItem(LS_KEY_, finalUrl);
 }
@@ -1559,15 +1557,11 @@ function ensureWebAppVisibleValue_(){
     capRows: []
   };
   /* ================= STATUS ================= */
-function setApiStatus(mode, text){
+  function setApiStatus(mode, text){
   const el = $("apiStatus");
   const elText = $("apiStatusText");
 
-  let finalText = String(text || "").trim();
-  if(/Acción no soportada/i.test(finalText)){
-    finalText = "API: conectada";
-    mode = "ok";
-  }
+  const finalText = String(text || "").trim();
 
   if(el){
     el.classList.remove("ok","err");
@@ -1585,7 +1579,6 @@ function setApiStatus(mode, text){
     if(node) node.textContent = plain;
   });
 }
-  
   /* ================= JSONP API ================= */
  function build(params, cbName){
   const base = getWebApp();
@@ -2654,24 +2647,14 @@ function clearKpisDetalle_(){
   sel.disabled = true;
 
   try{
-    let out = null;
+    const ver = await apiGet({ action:"pingVersion" });
+    if(!ver || ver.ok !== true){
+      throw new Error("La Web App no respondió pingVersion.");
+    }
 
-    try{
-      out = await apiGet({ action:"kpisCatalog" });
-      if(!out || out.ok !== true) throw new Error(out?.error || "kpisCatalog no disponible");
-    }catch(_e1){
-      const oldOut = await apiGet({ action:"kpisPosiciones" });
-      if(!oldOut || oldOut.ok !== true){
-        throw new Error(oldOut?.error || "No se pudo cargar Nivel.");
-      }
-
-      const posiciones = Array.isArray(oldOut.niveles)
-        ? oldOut.niveles
-        : Array.isArray(oldOut.posiciones)
-          ? oldOut.posiciones
-          : (Array.isArray(oldOut.items) ? oldOut.items : []);
-
-      out = { ok:true, posiciones, rows:[] };
+    let out = await apiGet({ action:"kpisCatalog" });
+    if(!out || out.ok !== true){
+      throw new Error(out?.error || "kpisCatalog no disponible en este deploy.");
     }
 
     const posiciones = Array.isArray(out.niveles)
@@ -2687,6 +2670,10 @@ function clearKpisDetalle_(){
       (byPosicion[key] ||= []).push(r);
     });
 
+    if(!posiciones.length){
+      throw new Error("La hoja Kpis no devolvió valores para Nivel.");
+    }
+
     window.__KPIS_CATALOG__ = { posiciones, byPosicion };
 
     sel.innerHTML = `<option value="">Seleccionar</option>`;
@@ -2699,10 +2686,7 @@ function clearKpisDetalle_(){
 
     sel.value = "";
     sel.selectedIndex = 0;
-
-    if(!posiciones.length){
-      throw new Error("La hoja Kpis no devolvió valores para Nivel.");
-    }
+    setApiStatus("ok", "API: KPIS cargado");
   }catch(err){
     console.error("KPIS catálogo:", err);
     sel.innerHTML = `<option value="">Seleccionar</option>`;
