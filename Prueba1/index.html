@@ -266,7 +266,31 @@ button[disabled]{
     .item-right .lbl{margin-bottom:8px}
     .item-right select{width:100%}
 
-        .kpiRow{
+    .kpisHeadGrid{
+      display:grid;
+      grid-template-columns:150px minmax(220px,1.8fr) 120px 110px 150px 220px;
+      gap:10px;
+      align-items:start;
+      margin-bottom:14px;
+    }
+    .kpisHeadGrid .field.boxed{
+      min-width:0;
+    }
+    .kpisHeadGrid .field.boxed .lbl{
+      width:100%;
+      justify-content:center;
+      text-align:center;
+      margin-bottom:8px;
+    }
+
+    .kpisDetalleWrap{
+      margin-top:14px;
+      border:1px solid rgba(255,255,255,.10);
+      border-radius:18px;
+      overflow:hidden;
+      background:linear-gradient(180deg, rgba(11,18,32,.25), rgba(15,27,51,.10));
+    }
+    .kpiRow{
       display:flex;
       justify-content:space-between;
       align-items:center;
@@ -281,11 +305,20 @@ button[disabled]{
     .kpiRight .lbl{margin-bottom:8px}
     .kpiRight select{width:100%}
 
+    @media (max-width:1100px){
+      .kpisHeadGrid{
+        grid-template-columns:repeat(2,minmax(220px,1fr));
+      }
+    }
+
     @media (max-width:860px){
+      .kpisHeadGrid{
+        grid-template-columns:1fr;
+      }
       .kpiRow{flex-direction:column; align-items:stretch}
       .kpiRight{flex:1 1 100%; max-width:none; width:100%}
     }
-
+    
     /* TABLE */
     .tableWrap{
       border:1px solid rgba(255,255,255,.10);
@@ -1024,18 +1057,53 @@ Dejar de hacer:"></textarea>
     <input id="kpVersion" placeholder="Ej: 1" />
   </div>
 
-  <div class="field boxed" style="flex:0 0 150px; min-width:150px;">
-    <div class="lbl">Fecha</div>
-    <input id="kpFecha" type="date" />
+  <section class="card" data-phase-block="KPIS" id="blockKpis">
+  <div class="card-h">
+    <div>
+      <h2>Kpis / entregables</h2>
+      <div class="sub">Completa los campos y presiona <b>Guardar</b> para registrar en la hoja <b>Kpis</b>.</div>
+    </div>
+    <div class="chips">
+      <span class="chip mono">Hoja destino: <b>Kpis</b></span>
+    </div>
   </div>
+  <div class="card-b">
+    <div class="kpisHeadGrid">
+      <div class="field boxed">
+        <div class="lbl">No de personal</div>
+        <input id="kpNoPersonal" placeholder="Ej: 1600" />
+      </div>
 
-  <div class="field boxed" style="flex:0 0 220px; min-width:220px;">
-    <div class="lbl">Nivel</div>
-    <select id="kpPosicionNivel">
-      <option value="">Seleccionar</option>
-    </select>
-  </div>
-</div>
+      <div class="field boxed">
+        <div class="lbl">Nombre</div>
+        <input id="kpNombre" placeholder="Ej: Carlos Paz" />
+      </div>
+
+      <div class="field boxed">
+        <div class="lbl">Período</div>
+        <input id="kpPeriodo" placeholder="Ej: 2025" />
+      </div>
+
+      <div class="field boxed">
+        <div class="lbl">Versión</div>
+        <input id="kpVersion" placeholder="Ej: 1" />
+      </div>
+
+      <div class="field boxed">
+        <div class="lbl">Fecha</div>
+        <input id="kpFecha" type="date" />
+      </div>
+
+      <div class="field boxed">
+        <div class="lbl">Nivel</div>
+        <select id="kpPosicionNivel">
+          <option value="">Seleccionar</option>
+        </select>
+      </div>
+    </div>
+
+    <div id="kpisDetalle" class="kpisDetalleWrap"></div>
+
     <div class="sub" style="margin-top:10px">Estado API: <b id="apiMiniKpis">—</b></div>
   </div>
 </section>
@@ -2043,8 +2111,9 @@ const showGuardar =
   isEvalPhase() ||
   isDesempenoPhase() ||
   state.fase === "INCIDENCIAS" ||
-  state.fase === "ONEONE";
-btnG.style.display = showGuardar ? "inline-block" : "none";
+  state.fase === "ONEONE" ||
+  state.fase === "KPIS";
+      btnG.style.display = showGuardar ? "inline-block" : "none";
 // si está oculto, igual lo dejamos deshabilitado por seguridad
 if(!showGuardar){
   btnG.disabled = true;
