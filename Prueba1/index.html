@@ -567,7 +567,7 @@ button[disabled]{
       <div class="form-grid">
         <div class="field col-8 boxed">
           <div class="lbl">URL Web App Apps Script</div>
-          <input id="webapp" value="https://script.google.com/macros/s/AKfycbxAWtFXAR-3i6q1VBTm050LJcwX1ifo61LnMwE-1HVedX5SXUx7D7dHM-o8FTCwn3wf/exec"/>
+          <input id="webapp" value="https://script.google.com/macros/s/AKfycbwh3HUl-XiRN2CtyiALs16RPBYHapO9FehHAlKw0s_-tAHWzQb_oBqcr7PR5ByiYeD2/exec"/>
         </div>
         <div class="field col-4 boxed">
           <div class="lbl">Pruebas API</div>
@@ -814,38 +814,33 @@ button[disabled]{
     </section>
     <!-- ✅ NIVELES -->
     <section class="card" data-phase-block="NIVELES" id="blockNiveles">
-      <div class="card-h">
-        <div>
-          <h2>Niveles</h2>
-          <div class="sub">Usa <b>Cargar</b> para listar los niveles detectados desde la hoja <b>Formularios</b>.</div>
-        </div>
-        <div class="controls">
-          <button id="btnCargarNiveles" class="btn-blue">Cargar</button>
-          <button id="btnLimpiarNiveles" class="btn-warn">Limpiar</button>
-        </div>
-      </div>
-
-      <div class="card-b">
-        <div id="nivelesInfo" class="sub" style="margin-bottom:10px">—</div>
-
-          <div class="tableWrap">
-  <table id="nivelesTable">
-    <thead>
-      <tr>
-        <th style="width:90px">Nivel</th>
-        <th style="width:260px">Nombre</th>
-        <th>Descripción</th>
-        <th style="width:360px">Ejemplos</th>
-      </tr>
-    </thead>
-    <tbody id="nivelesTbody">
-      <tr><td colspan="4" class="sub">Presiona <b>Cargar</b> para ver los niveles.</td></tr>
-    </tbody>
-  </table>
-</div>
+  <div class="card-h">
+    <div>
+      <h2>Niveles</h2>
+      <div class="sub">Se muestran automáticamente los campos <b>Nivel</b>, <b>Nombre</b>, <b>Descripción</b> y <b>Ejemplos</b> desde la hoja <b>Niveles</b>.</div>
     </div>
-    </section>
+  </div>
 
+  <div class="card-b">
+    <div id="nivelesInfo" class="sub" style="margin-bottom:10px">—</div>
+
+    <div class="tableWrap">
+      <table id="nivelesTable">
+        <thead>
+          <tr>
+            <th style="width:90px">Nivel</th>
+            <th style="width:260px">Nombre</th>
+            <th>Descripción</th>
+            <th style="width:360px">Ejemplos</th>
+          </tr>
+        </thead>
+        <tbody id="nivelesTbody">
+          <tr><td colspan="4" class="sub">Selecciona la fase <b>Niveles</b> para ver la información.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
     <!-- FORMULARIOS -->
     <section class="card" data-phase-block="FORMULARIOS" id="blockFormularios">
       <div class="card-h">
@@ -1518,7 +1513,7 @@ Dejar de hacer:"></textarea>
 `Empezar a hacer:
 Continuar haciendo:
 Dejar de hacer:`;
-  const DEFAULT_WEBAPP_ = "https://script.google.com/macros/s/AKfycbxAWtFXAR-3i6q1VBTm050LJcwX1ifo61LnMwE-1HVedX5SXUx7D7dHM-o8FTCwn3wf/exec";
+  const DEFAULT_WEBAPP_ = "https://script.google.com/macros/s/AKfycbwh3HUl-XiRN2CtyiALs16RPBYHapO9FehHAlKw0s_-tAHWzQb_oBqcr7PR5ByiYeD2/exec";
   const $ = id => document.getElementById(id);
 
 function syncFaseButtonsUI(value){
@@ -2338,25 +2333,11 @@ if(blockDatos){
 
   function clearNivelesTable(){
   $("nivelesInfo").textContent = "—";
-  $("nivelesTbody").innerHTML = `<tr><td colspan="4" class="sub">Presiona <b>Cargar</b> para ver los niveles.</td></tr>`;
+  $("nivelesTbody").innerHTML = `<tr><td colspan="4" class="sub">Selecciona la fase <b>Niveles</b> para ver la información.</td></tr>`;
 }
 
-// helper: intenta extraer número + nombre del string "1. Operativo básico"
-function parseNivelLabel_(raw){
-  const s = String(raw ?? "").trim();
-  // casos típicos: "1. Nombre", "1) Nombre", "1 - Nombre", "1 — Nombre"
-  const m = s.match(/^(\d{1,2})\s*[\.\)\-–—:]\s*(.+)$/);
-  if(m) return { n: Number(m[1]), nombre: m[2].trim() };
-
-  // si viene solo "1" o "Nivel 1"
-  const m2 = s.match(/(\d{1,2})/);
-  if(m2) return { n: Number(m2[1]), nombre: s.replace(m2[1], "").replace(/nivel/i,"").replace(/[\.\)\-–—:]/g,"").trim() };
-
-  return { n: NaN, nombre: s };
-}
-
-function renderNivelesTable(levels){
-  const arr = Array.isArray(levels) ? levels : [];
+function renderNivelesTable(rows){
+  const arr = Array.isArray(rows) ? rows : [];
   $("nivelesInfo").textContent = `Niveles encontrados: ${arr.length}`;
 
   if(!arr.length){
@@ -2364,37 +2345,30 @@ function renderNivelesTable(levels){
     return;
   }
 
-  $("nivelesTbody").innerHTML = arr.map(raw=>{
-    const p = parseNivelLabel_(raw);
-    const tipo = Number.isFinite(p.n) ? TIPOS_DATA.find(t => Number(t.n) === Number(p.n)) : null;
-
-    const nivelNum = Number.isFinite(p.n) ? String(p.n) : "";
-    const nombre = (tipo?.nombre || p.nombre || String(raw ?? "")).trim();
-    const desc   = (tipo?.desc || "").trim();
-    const ej     = (tipo?.ej   || "").trim();
-
-    return `
-      <tr>
-        <td class="mono">${escapeHtml(nivelNum || "—")}</td>
-        <td><b>${escapeHtml(nombre || "—")}</b></td>
-        <td>${escapeHtml(desc || "—")}</td>
-        <td>${escapeHtml(ej || "—")}</td>
-      </tr>
-    `;
-  }).join("");
+  $("nivelesTbody").innerHTML = arr.map(r => `
+    <tr>
+      <td class="mono">${escapeHtml(r.Nivel ?? "—")}</td>
+      <td><b>${escapeHtml(r.Nombre ?? "—")}</b></td>
+      <td>${escapeHtml(r.Descripción ?? "—")}</td>
+      <td>${escapeHtml(r.Ejemplos ?? "—")}</td>
+    </tr>
+  `).join("");
 }
-  async function loadNivelesList(){
+
+async function loadNivelesList(){
   if(state.fase !== "NIVELES"){
     state.fase = "NIVELES";
     const faseSel = $("faseSelect");
     if(faseSel) faseSel.value = "NIVELES";
     syncFaseButtonsUI("NIVELES");
-    toggleBlocksForPhase();
+    document.querySelectorAll("[data-phase-block]").forEach(el=>{
+      el.classList.toggle("show", el.getAttribute("data-phase-block") === "NIVELES");
+    });
   }
 
-  await loadLevelsForPhase();
+  const res = await apiGet({ action:"nivelesCatalog" });
+  renderNivelesTable(res.rows || []);
 }
-  
   /* ================= FORMULARIOS: TABLE ================= */
 
 function clearFormTable(){
@@ -4160,9 +4134,7 @@ if(kpSel && !kpSel.dataset.boundKpis){
   });
 }
     
-    if(fase === "NIVELES"){
-      clearNivelesTable();
-      // NO autoload forzado si prefieres, pero aquí sí ayuda a “no se ve muerto”
+        if(fase === "NIVELES"){
       await loadNivelesList();
     }
 
@@ -4252,19 +4224,9 @@ clearEval();
   clearPesosTable();
   clearNivelesTable();
 });
-// ✅ Botones Cargar/Limpiar (ahora nunca rompen si faltan IDs)
-on("btnCargarNiveles", "click", async ()=>{
-  try{
-    await apiGet({ action:"ping" });
-    await loadNivelesList();
-  }catch(err){
-    setApiStatus("err", "API: " + (err?.message || err));
-  }
-});
-  on("btnLimpiarNiveles", "click", clearNivelesTable);
-
+// ✅ Botones Cargar/Limpiar
 on("btnCargarForm", "click", ()=>loadFormulariosItems().catch(err=>setApiStatus("err","API: " + err.message)));
-on("btnLimpiarForm", "click", clearFormTable);
+  on("btnLimpiarForm", "click", clearFormTable);
 
 on("btnCargarPesos", "click", ()=>loadPesosItems().catch(err=>setApiStatus("err","API: " + err.message)));
 on("btnLimpiarPesos", "click", clearPesosTable);
