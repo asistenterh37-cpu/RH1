@@ -807,11 +807,16 @@ button[disabled]{
   <button type="button" class="faseBtn" data-fase="INCIDENCIAS">Incidencias</button>
   <button type="button" class="faseBtn" data-fase="ONEONE">One One</button>
    <button type="button" class="faseBtn" data-fase="KPIS">Kpis/entregables</button>
-  <button type="button" class="faseBtn" data-fase="DESEMPENO">Evaluación desempeño</button>
-  <button type="button" class="faseBtn" data-fase="RESULTADO">Resultado</button>
-  <button type="button" class="faseBtn" data-fase="CONSOLIDADO">Informe ejecutivo</button>
-  <button type="button" class="faseBtn" data-fase="CAPACITACION">Capacitación</button>
-  <button type="button" class="faseBtn" data-fase="DESARROLLO">Plan de desarrollo</button>
+    <button type="button" class="faseBtn" data-fase="DESEMPENO">Evaluación desempeño</button>
+  <button type="button" id="btnReportesToggle" class="faseBtn">Reportes</button>
+  <select id="reportesSelect" style="display:none;min-width:320px">
+    <option value="">Seleccionar</option>
+    <option value="EVAL_RESUMEN">1. Evaluación del desempeño</option>
+    <option value="EVAL_CALIFICACIONES">2. Calificaciones de evaluación del desempeño</option>
+    <option value="NECESIDADES_CAP">3. Necesidades de capacitación</option>
+    <option value="PROYECCION_POTENCIAL">4. Proyección y potencial de desarrollo</option>
+    <option value="OPORTUNIDADES_MEJORA">5. Oportunidades de mejora</option>
+  </select>
 </div>
 
   <!-- Se mantiene oculto para no romper el JS actual -->
@@ -825,7 +830,7 @@ button[disabled]{
   <option value="INCIDENCIAS">Incidencias</option>
   <option value="ONEONE">One One</option>
    <option value="KPIS">Kpis/entregables</option>
-  <option value="DESEMPENO">Formulario de evaluación del desempeño</option>
+    <option value="DESEMPENO">Formulario de evaluación del desempeño</option>
   <option value="RESULTADO">Resultado evaluación del desempeño</option>
   <option value="CONSOLIDADO">Informe ejecutivo</option>
   <option value="CAPACITACION">Informe necesidades de capacitación</option>
@@ -1566,6 +1571,54 @@ function setFaseFromButton(value){
 
   sel.dispatchEvent(new Event("change", { bubbles:true }));
 }
+
+const REPORTES_PHASE_MAP = {
+  EVAL_RESUMEN: "CONSOLIDADO",
+  EVAL_CALIFICACIONES: "RESULTADO",
+  NECESIDADES_CAP: "CAPACITACION",
+  PROYECCION_POTENCIAL: "DESARROLLO",
+  OPORTUNIDADES_MEJORA: "DESARROLLO"
+};
+
+function syncReportesSelectUIByPhase(){
+  const sel = $("reportesSelect");
+  if(!sel) return;
+
+  if(state.fase === "CONSOLIDADO"){
+    sel.value = "EVAL_RESUMEN";
+  }else if(state.fase === "RESULTADO"){
+    sel.value = "EVAL_CALIFICACIONES";
+  }else if(state.fase === "CAPACITACION"){
+    sel.value = "NECESIDADES_CAP";
+  }else if(state.fase === "DESARROLLO"){
+    sel.value = state.reportesView || "";
+  }else{
+    sel.value = "";
+  }
+}
+
+function applyReportesView_(){
+  const opp = $("devOportunidades")?.closest(".field");
+  const proy = $("devProyeccion")?.closest(".field");
+  if(!opp || !proy) return;
+
+  const view = String(state.reportesView || "");
+
+  if(view === "PROYECCION_POTENCIAL"){
+    opp.style.display = "none";
+    proy.style.display = "";
+    return;
+  }
+
+  if(view === "OPORTUNIDADES_MEJORA"){
+    opp.style.display = "";
+    proy.style.display = "none";
+    return;
+  }
+
+  opp.style.display = "";
+  proy.style.display = "";
+}
   
 function normalizeWebApp(raw){
   let v = String(raw || "").trim();
@@ -1629,12 +1682,7 @@ function ensureWebAppVisibleValue_(){
     recoveredClientes: null,
     suppressAutoSyncSSC: false,
 
-    // ✅ RESULTADO
-    resultadoCache: null,
-
-    // ✅ CAPACITACIÓN
-    capRows: []
-  };
+  
   /* ================= STATUS ================= */
   function setApiStatus(mode, text){
   const el = $("apiStatus");
@@ -3090,6 +3138,7 @@ if ($("repFecha"))    $("repFecha").value = fechaDMY || "—";
 function clearDesarrollo_(){
   if($("devOportunidades")) $("devOportunidades").value = "";
   if($("devProyeccion")) $("devProyeccion").value = "";
+  applyReportesView_();
   if($("devInfo")) $("devInfo").textContent = "—";
   if($("devTbody")) $("devTbody").innerHTML =
     `<tr><td colspan="5" class="sub">Presiona <b>Generar</b> para cargar el informe.</td></tr>`;
@@ -4147,6 +4196,25 @@ document.querySelectorAll(".faseBtn").forEach(btn=>{
   });
 });
 
+on("btnReportesToggle", "click", ()=>{
+  const sel = $("reportesSelect");
+  if(!sel) return;
+  const hidden = sel.style.display === "none" || !sel.style.display;
+  sel.style.display = hidden ? "inline-block" : "none";
+  if(hidden) sel.focus();
+});
+
+on("reportesSelect", "change", (e)=>{
+  const view = String(e.target?.value || "");
+  state.reportesView = view;
+  applyReportesView_();
+
+  const fase = REPORTES_PHASE_MAP[view] || "";
+  if(!fase) return;
+
+  setFaseFromButton(fase);
+});
+  
   ["incNoPersonal","incNombre","incPeriodo","incVersion","incFecha","incIncidencia","incUsuario"].forEach(id=>{
   const el = $(id);
   if(!el) return;
@@ -4158,7 +4226,8 @@ on("faseSelect", "change", async (e)=>{
   const fase = e.target.value;
   syncFaseButtonsUI(fase);
   setPhase(fase);
-
+  syncReportesSelectUIByPhase();
+  applyReportesView_();
   if(fase === "TIPOS"){
     openTiposModal_();
     return;
