@@ -551,7 +551,7 @@ button[disabled]{
       <div class="form-grid">
         <div class="field col-8 boxed">
           <div class="lbl">URL Web App Apps Script</div>
-          <input id="webapp" value="https://script.google.com/macros/s/AKfycbxMkNbY3QSTYLaOv-8i-hkXv9Snt7Jk8XM9maJ89dTgSw3nqoOp_dfxIt9mHT8sz6rq/exec"/>
+          <input id="webapp" value="https://script.google.com/macros/s/AKfycbxAWtFXAR-3i6q1VBTm050LJcwX1ifo61LnMwE-1HVedX5SXUx7D7dHM-o8FTCwn3wf/exec"/>
         </div>
         <div class="field col-4 boxed">
           <div class="lbl">Pruebas API</div>
@@ -1502,7 +1502,7 @@ Dejar de hacer:"></textarea>
 `Empezar a hacer:
 Continuar haciendo:
 Dejar de hacer:`;
-  const DEFAULT_WEBAPP_ = "https://script.google.com/macros/s/AKfycbxMkNbY3QSTYLaOv-8i-hkXv9Snt7Jk8XM9maJ89dTgSw3nqoOp_dfxIt9mHT8sz6rq/exec";
+  const DEFAULT_WEBAPP_ = "https://script.google.com/macros/s/AKfycbxAWtFXAR-3i6q1VBTm050LJcwX1ifo61LnMwE-1HVedX5SXUx7D7dHM-o8FTCwn3wf/exec";
   const $ = id => document.getElementById(id);
 
 function syncFaseButtonsUI(value){
@@ -3412,7 +3412,28 @@ console.log("DEBUG ONE ONE:", payload);
   }
 }
 
-    async function saveKpis(){
+    function getKpisDetalleSelections_(){
+  return Array.from(document.querySelectorAll(".kpNivelDetalle"))
+    .map((sel, i)=>{
+      const value = String(sel.value || "").trim();
+      if(!value) return null;
+
+      const row = sel.closest(".kpiRow");
+      const indicador = String(row?.querySelector(".kpiTitle")?.textContent || "").trim();
+      const label = String(sel.options[sel.selectedIndex]?.textContent || "").trim();
+
+      return {
+        index: i,
+        indicador,
+        valor: value,
+        label,
+        observacion: `${indicador}: ${label}`
+      };
+    })
+    .filter(Boolean);
+}
+
+async function saveKpis(){
   if(!isKpisPhase()){
     alert("Para guardar Kpis / entregables, selecciona la fase Kpis/entregables.");
     return;
@@ -3420,6 +3441,12 @@ console.log("DEBUG ONE ONE:", payload);
 
   if(!isKpisComplete()){
     alert("Aún faltan campos. Completa No de personal, Nombre, Período, Versión, Fecha y Nivel.");
+    return;
+  }
+
+  const detalles = getKpisDetalleSelections_();
+  if(!detalles.length){
+    alert("Selecciona al menos una opción en los Kpis / entregables.");
     return;
   }
 
@@ -3434,7 +3461,8 @@ console.log("DEBUG ONE ONE:", payload);
     version: $("kpVersion").value.trim(),
     fecha: formatDateDMY($("kpFecha").value),
     nivel: $("kpPosicionNivel").value.trim(),
-    posicionNivel: $("kpPosicionNivel").value.trim()
+    posicionNivel: $("kpPosicionNivel").value.trim(),
+    detalles
   };
 
   const b64 = btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
@@ -3446,7 +3474,7 @@ console.log("DEBUG ONE ONE:", payload);
 
   clearKpis();
   setApiStatus("ok","API: Kpis / entregables guardado");
-  alert("Kpis / entregables guardado ✅\nID: " + (out.id || "—"));
+  alert(`Kpis / entregables guardado ✅\nFilas: ${out.rows || detalles.length}`);
 
   if(btn){
     btn.disabled = false;
