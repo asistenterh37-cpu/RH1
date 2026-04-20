@@ -1188,7 +1188,7 @@ Dejar de hacer:"></textarea>
       <div class="card-h">
         <div>
           <h2>Comentarios y desarrollo</h2>
-          <div class="sub">En <b>Recuperar</b> se carga: formulario usado (Nivel), respuestas, comentarios del colaborador y evaluación de clientes (SSC).</div>
+          <div class="sub">En <b>Recuperar</b> se carga: formulario usado (Nivel), respuestas y comentarios del colaborador.</div>
         </div>
         <div class="chips"><span class="chip mono">Destino Guardar: <b>EvaluacionFinal</b></span></div>
       </div>
@@ -1202,15 +1202,6 @@ Dejar de hacer:"></textarea>
     <div class="field col-12 boxed">
       <div class="lbl">Justificación y comentarios</div>
       <textarea id="justificacion" placeholder="Describe evidencias / ejemplos / contexto..."></textarea>
-    </div>
-
-    <!-- ✅ SSC (Clientes) -->
-    <div class="field col-12 boxed">
-      <div class="lbl">Evaluación de clientes (SSC)</div>
-      <div class="sub" style="margin-top:-2px;margin-bottom:8px">
-        Se llena desde la hoja <b>Clientes</b> al Recuperar (por evaluador). Puedes editar.
-      </div>
-      <textarea id="evaluacionClientesDes" placeholder="Se llena al recuperar..."></textarea>
     </div>
 
     <div class="field col-12 boxed">
@@ -2084,15 +2075,14 @@ function isKpisComplete(){
     ];
   }
   function getDesempenoExtraRequiredFields(){
-    const ids = [
-      "comentariosColaborador",
-      "evaluacionClientesDes",
-      "fortalezas","oportunidadesMejora",
-      "proyeccionPotencial","necesidadesCapacitacion",
-      "justificacion","comentariosEvaluadorDes","nombreEvaluadorDes"
-    ];
-    return ids.map(id => String($(id)?.value || "").trim());
-  }
+  const ids = [
+    "comentariosColaborador",
+    "fortalezas","oportunidadesMejora",
+    "proyeccionPotencial","necesidadesCapacitacion",
+    "justificacion","comentariosEvaluadorDes","nombreEvaluadorDes"
+  ];
+  return ids.map(id => String($(id)?.value || "").trim());
+}
   function isEvalComplete(){
     if(!isEvalPhase()) return false;
     if(getEvalHeaderRequiredFields().some(v => !v)) return false;
@@ -3278,17 +3268,18 @@ function clearOneOne(){
   clearKpisDetalle_();
   updateGuardarUIState();
 }
-  function clearDesempenoExtra(){
-    [
-      "comentariosColaborador","evaluacionClientesDes","fortalezas","oportunidadesMejora",
-      "proyeccionPotencial","necesidadesCapacitacion","justificacion","comentariosEvaluadorDes","nombreEvaluadorDes"
-    ].forEach(id=>{
-      const el = $(id);
-      if(el) el.value = "";
-    });
-    state.recovered = null;
-    state.recoveredClientes = null;
-  }
+function clearDesempenoExtra(){
+  [
+    "comentariosColaborador","fortalezas","oportunidadesMejora",
+    "proyeccionPotencial","necesidadesCapacitacion","justificacion","comentariosEvaluadorDes","nombreEvaluadorDes"
+  ].forEach(id=>{
+    const el = $(id);
+    if(el) el.value = "";
+  });
+  state.recovered = null;
+  state.recoveredClientes = null;
+}
+  
   function clearAutoExtra(){
     const el = $("comentariosColaboradorAuto");
     if(el) el.value = "";
@@ -3528,16 +3519,15 @@ async function saveKpis(){
 
     const comentariosAuto = isAutoPhase() ? ($("comentariosColaboradorAuto")?.value || "").trim() : "";
     const extrasDesempeno = isDesempenoPhase() ? {
-      comentariosColaborador: ($("comentariosColaborador")?.value || "").trim(),
-      evaluacionClientes: ($("evaluacionClientesDes")?.value || "").trim(),
-      fortalezas: ($("fortalezas")?.value || "").trim(),
-      oportunidadesMejora: ($("oportunidadesMejora")?.value || "").trim(),
-      proyeccionPotencial: ($("proyeccionPotencial")?.value || "").trim(),
-      necesidadesCapacitacion: ($("necesidadesCapacitacion")?.value || "").trim(),
-      justificacion: buildCompatComentarios(),
-      comentariosEvaluador: ($("comentariosEvaluadorDes")?.value || "").trim(),
-      nombreEvaluador: ($("nombreEvaluadorDes")?.value || "").trim()
-    } : null;
+  comentariosColaborador: ($("comentariosColaborador")?.value || "").trim(),
+  fortalezas: ($("fortalezas")?.value || "").trim(),
+  oportunidadesMejora: ($("oportunidadesMejora")?.value || "").trim(),
+  proyeccionPotencial: ($("proyeccionPotencial")?.value || "").trim(),
+  necesidadesCapacitacion: ($("necesidadesCapacitacion")?.value || "").trim(),
+  justificacion: buildCompatComentarios(),
+  comentariosEvaluador: ($("comentariosEvaluadorDes")?.value || "").trim(),
+  nombreEvaluador: ($("nombreEvaluadorDes")?.value || "").trim()
+} : null;
 
     const extrasAuto = isAutoPhase() ? { comentariosColaborador: comentariosAuto } : null;
 
@@ -4276,13 +4266,12 @@ on("btnDevGenerar", "click", ()=>generarDesarrollo_().catch(err=>setApiStatus("e
 });
 
 [
-  "comentariosColaborador","evaluacionClientesDes","fortalezas","oportunidadesMejora",
+  "comentariosColaborador","fortalezas","oportunidadesMejora",
   "proyeccionPotencial","necesidadesCapacitacion","justificacion","comentariosEvaluadorDes","nombreEvaluadorDes"
 ].forEach(id=>{
   on(id,"input", updateGuardarUIState);
   on(id,"change", updateGuardarUIState);
 });
-
 on("comentariosColaboradorAuto","input", updateGuardarUIState);
 on("comentariosColaboradorAuto","change", updateGuardarUIState);
 
