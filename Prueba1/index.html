@@ -599,7 +599,7 @@ button[disabled]{
       <div class="form-grid">
         <div class="field col-8 boxed">
           <div class="lbl">URL Web App Apps Script</div>
-          <input id="webapp" value="https://script.google.com/macros/s/AKfycbxj_x8wjbuPDgn_metKtEFY8nqmuTR7sbvflHAjvFAq3QClM1kCNYU2T4JwkrfWsOY/exec"/>
+          <input id="webapp" value="https://script.google.com/macros/s/AKfycbx-IXfSocLi6c9AJFH1CMoxJk3BJ7xT6HPAaoA3SoOKbI38ZyY-HYHauNLLkKsHQD3J/exec"/>
         </div>
         <div class="field col-4 boxed">
           <div class="lbl">Pruebas API</div>
@@ -1234,9 +1234,29 @@ Dejar de hacer:"></textarea>
       <textarea id="comentariosEvaluadorDes" placeholder="Comentarios del evaluador..."></textarea>
     </div>
 
-    <div class="field col-6 boxed">
+        <div class="field col-6 boxed">
       <div class="lbl">Nombre del evaluador</div>
       <input id="nombreEvaluadorDes" placeholder="Ej: Ana López" />
+    </div>
+
+    <div class="field col-12 boxed" id="obsRecuperadasWrap" style="display:none">
+      <div class="lbl">Observaciones recuperadas</div>
+      <div class="tableWrap">
+        <table id="obsRecuperadasTable">
+          <thead>
+            <tr>
+              <th>Fila</th>
+              <th>Fecha</th>
+              <th>Tipo</th>
+              <th>Responsable</th>
+              <th>Observaciones</th>
+            </tr>
+          </thead>
+          <tbody id="obsRecuperadasTbody">
+            <tr><td colspan="5" class="sub">—</td></tr>
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
 </div>
@@ -1528,7 +1548,7 @@ Dejar de hacer:"></textarea>
 `Empezar a hacer:
 Continuar haciendo:
 Dejar de hacer:`;
-  const DEFAULT_WEBAPP_ = "https://script.google.com/macros/s/AKfycbxj_x8wjbuPDgn_metKtEFY8nqmuTR7sbvflHAjvFAq3QClM1kCNYU2T4JwkrfWsOY/exec";
+  const DEFAULT_WEBAPP_ = "https://script.google.com/macros/s/AKfycbx-IXfSocLi6c9AJFH1CMoxJk3BJ7xT6HPAaoA3SoOKbI38ZyY-HYHauNLLkKsHQD3J/exec";
   const $ = id => document.getElementById(id);
 
 function syncFaseButtonsUI(value){
@@ -2826,6 +2846,7 @@ function renderKpisDetalle_(posicionNivel){
     }
 
     const res = await apiGet({ action:"recover", no, periodo: per, version: ver });
+    state.recoveredObservaciones = Array.isArray(res.observaciones) ? res.observaciones : [];
     const records = res.records || [];
     state.recoveredClientes = Array.isArray(res.clientes) ? res.clientes : [];
     openRecoverModal(records, state.recoveredClientes.length);
@@ -2849,6 +2870,31 @@ function renderKpisDetalle_(posicionNivel){
 
     return lines.join("\n").trim();
   }
+  function renderObservacionesRecuperadas_(arr){
+    const wrap = $("obsRecuperadasWrap");
+    const tbody = $("obsRecuperadasTbody");
+    if(!wrap || !tbody) return;
+
+    const rows = Array.isArray(arr) ? arr : [];
+
+    if(!rows.length){
+      wrap.style.display = "none";
+      tbody.innerHTML = `<tr><td colspan="5" class="sub">Sin observaciones para ese No./Periodo/Versión.</td></tr>`;
+      return;
+    }
+
+    wrap.style.display = "";
+    tbody.innerHTML = rows.map(r => `
+      <tr>
+        <td class="mono">${escapeHtml(String(r.rowNumber ?? ""))}</td>
+        <td class="mono">${escapeHtml(String(r.fecha ?? ""))}</td>
+        <td>${escapeHtml(String(r.tipo ?? ""))}</td>
+        <td>${escapeHtml(String(r.responsable ?? ""))}</td>
+        <td><div class="tdMuted">${escapeHtml(String(r.observaciones ?? ""))}</div></td>
+      </tr>
+    `).join("");
+  }
+  
 
   async function applyRecoveredRecord(rec){
     if(!rec) return;
@@ -2899,6 +2945,7 @@ function renderKpisDetalle_(posicionNivel){
     renderCuestionario(state.form);
 
     $("comentariosColaborador").value = String(rec.comentarios || "").trim();
+    renderObservacionesRecuperadas_(state.recoveredObservaciones || []);
 
     const arr = Array.isArray(state.recoveredClientes) ? state.recoveredClientes : [];
     if(arr.length){
@@ -3268,7 +3315,8 @@ function clearOneOne(){
   clearKpisDetalle_();
   updateGuardarUIState();
 }
-function clearDesempenoExtra(){
+
+  function clearDesempenoExtra(){
   [
     "comentariosColaborador","fortalezas","oportunidadesMejora",
     "proyeccionPotencial","necesidadesCapacitacion","justificacion","comentariosEvaluadorDes","nombreEvaluadorDes"
@@ -3276,10 +3324,13 @@ function clearDesempenoExtra(){
     const el = $(id);
     if(el) el.value = "";
   });
+
   state.recovered = null;
   state.recoveredClientes = null;
+  state.recoveredObservaciones = [];
+
+  renderObservacionesRecuperadas_([]);
 }
-  
   function clearAutoExtra(){
     const el = $("comentariosColaboradorAuto");
     if(el) el.value = "";
