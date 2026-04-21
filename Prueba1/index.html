@@ -4029,9 +4029,9 @@ on("tiposModalBack", "click", (e)=>{
   if(e.target === $("tiposModalBack")) closeTiposModal_();
 });
 
-document.querySelectorAll(".faseBtn").forEach(btn=>{
+document.querySelectorAll(".faseBtn[data-fase]").forEach(btn=>{
   btn.addEventListener("click", ()=>{
-    setFaseFromButton(btn.dataset.fase || "");
+    setFaseFromButton(btn.dataset.fase);
   });
 });
 
@@ -4040,11 +4040,18 @@ on("btnReportesToggle", "click", ()=>{
   const sel  = $("reportesSelect");
   if(!wrap || !sel) return;
 
+  setFaseFromButton("REPORTES");
+  syncFaseButtonsUI("REPORTES");
+
   const hidden = wrap.style.display === "none" || !wrap.style.display;
   wrap.style.display = hidden ? "flex" : "none";
+
+  if($("reportesFiltersCard")) $("reportesFiltersCard").style.display = "";
   if(hidden) sel.focus();
+
+  toggleReportesUI_();
+  updateGuardarUIState();
 });
-  
 on("reportesSelect", "change", (e)=>{
   const view = String(e.target?.value || "");
   state.reportesView = view;
@@ -4062,13 +4069,13 @@ on("reportesSelect", "change", (e)=>{
   updateDevGenerarState_();
   updateGuardarUIState();
 });
-document.querySelectorAll(".faseBtn[data-fase]").forEach(btn=>{
+
+  document.querySelectorAll(".faseBtn[data-fase]").forEach(btn=>{
   btn.addEventListener("click", ()=>{
     const wrap = $("reportesControls");
-    if(wrap) wrap.style.display = "none";
+    if(wrap && btn.dataset.fase !== "REPORTES") wrap.style.display = "none";
   });
 });
-
 on("btnBuscarReporte", "click", async ()=>{
   syncReportFiltersToPhaseInputs_();
   updateCapSaveState_();
