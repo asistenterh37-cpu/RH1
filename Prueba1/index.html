@@ -1394,8 +1394,12 @@ function syncReportFiltersToPhaseInputs_(){
   state.reportesDepto = depto;
   state.reportesPeriodo = per;
   state.reportesVersion = ver;
+
+  if($("noPersonalRes")) $("noPersonalRes").value = no;
+  if($("periodoRes"))    $("periodoRes").value = per;
+  if($("versionRes"))    $("versionRes").value = ver;
 }
-function syncPhaseInputsToReportFilters_(){
+  function syncPhaseInputsToReportFilters_(){
   const no  = $("noPersonalRes")?.value?.trim() || state.reportesNo || "";
   const per = $("periodoRes")?.value?.trim() || $("capPeriodo")?.value?.trim() || state.reportesPeriodo || "";
   const ver = $("versionRes")?.value?.trim() || $("capVersion")?.value?.trim() || state.reportesVersion || "";
@@ -1899,7 +1903,9 @@ function buildCodigosMapFromPesos_(items){
   function isAutoPhase(){ return state.fase === "AUTO"; }
   function isFormulariosPhase(){ return state.fase === "FORMULARIOS"; }
   function isPesosPhase(){ return state.fase === "PESOS"; }
-  function isResultadoPhase(){ return state.fase === "RESULTADO"; }
+  function isResultadoPhase(){
+  return state.fase === "RESULTADO" || (state.fase === "REPORTES" && state.reportesView === "EVAL_RESUMEN");
+}
   function isConsolidadoPhase(){ return state.fase === "CONSOLIDADO"; } // ✅ NUEVO
   function isCapacitacionPhase(){ return state.fase === "CAPACITACION"; }
   function isDesarrolloPhase(){ return state.fase === "DESARROLLO"; } // ✅ NUEVO
@@ -4050,7 +4056,7 @@ on("btnPrintWord", "click", ()=>{
   downloadWordResultado_();
 });
 
-on("btnEnviarReporte", "click", async ()=>{
+  on("btnEnviarReporte", "click", async ()=>{
   const view = String(state.reportesView || "");
   if(view !== "EVAL_RESUMEN"){
     alert("Enviar solo aplica para el reporte: Evaluación del desempeño.");
@@ -4066,6 +4072,8 @@ on("btnEnviarReporte", "click", async ()=>{
     return;
   }
 
+  syncReportFiltersToPhaseInputs_();
+
   if(!state.resultadoCache){
     await recoverResultado();
   }
@@ -4079,7 +4087,6 @@ on("btnEnviarReporte", "click", async ()=>{
 
   openPrintModal();
 });
-  
 on("btnPrintTXT", "click", ()=>{
   if($("printTextArea")){
     $("printTextArea").value = isConsolidadoPhase() ? buildConsolidadoTexto_() : buildResultadoTexto_();
@@ -4166,7 +4173,7 @@ document.querySelectorAll(".faseBtn[data-fase]").forEach(btn=>{
   });
 });
 
-on("btnBuscarReporte", "click", ()=>{
+on("btnBuscarReporte", "click", async ()=>{
   syncReportFiltersToPhaseInputs_();
   updateCapSaveState_();
   updateDevGenerarState_();
@@ -4174,7 +4181,16 @@ on("btnBuscarReporte", "click", ()=>{
 
   const view = String(state.reportesView || "");
 
-  if((view === "EVAL_RESUMEN" || view === "EVAL_CALIFICACIONES") && $("btnRecuperar") && !$("btnRecuperar").disabled){
+  if(view === "EVAL_RESUMEN"){
+    try{
+      await recoverResultado();
+    }catch(err){
+      setApiStatus("err","API: " + (err?.message || err));
+    }
+    return;
+  }
+
+  if(view === "EVAL_CALIFICACIONES" && $("btnRecuperar") && !$("btnRecuperar").disabled){
     $("btnRecuperar").click();
     return;
   }
