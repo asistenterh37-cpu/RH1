@@ -1122,47 +1122,7 @@ Dejar de hacer:"></textarea>
   </div>
 </section>
     <!-- EVAL (AUTO / DESEMPENO) -->
-    <section class="card" id="blockDatos">
-      <div class="card-h">
-        <div>
-          <h2>Datos del colaborador</h2>
-          <div class="sub" id="datosHelp">Completa la información y selecciona una opción (1–5) para cada ítem.</div>
-        </div>
-        <div class="chips" id="datosChipWrap">
-          <span class="chip mono" id="datosChip">Recuperar: llena <b>No personal</b> + <b>Periodo</b> + <b>Versión</b></span>
-        </div>
-      </div>
-
-      <div class="card-b">
-        <!-- ✅ Bloque EVAL (AUTO/DESEMPENO) -->
-        <div id="datosEvalWrap" class="form-grid" style="display:none">
-  <div class="col-12">
-    <div class="evalTopGrid">
-      <div class="field boxed"><div class="lbl">No. de personal</div><input id="noPersonalEval" placeholder="Ej: 1600" /></div>
-      <div class="field boxed"><div class="lbl">Nombre</div><input id="nombreEval" placeholder="Ej: Carlos Paz" /></div>
-      <div class="field boxed"><div class="lbl">Posición</div><input id="posicionEval" placeholder="Ej: Analista" /></div>
-      <div class="field boxed"><div class="lbl">Departamento</div><input id="deptoEval" placeholder="Ej: Contabilidad" /></div>
-      <div class="field boxed"><div class="lbl">Periodo</div><input id="periodoEval" placeholder="Ej: 2025" /></div>
-      <div class="field boxed"><div class="lbl">Versión</div><input id="versionEval" placeholder="Ej: 1" /></div>
-      <div class="field boxed"><div class="lbl">Fecha</div><input id="fechaEval" /></div>
-    </div>
-  </div>
-
-  <div class="sub col-12" style="margin-top:8px">Estado API: <b id="apiMiniEval">—</b></div>
-</div>
-
-        <!-- KPIS se mueve fuera de #blockDatos -->
-        <!-- ✅ Bloque RESULTADO (solo estos 3 campos) -->
-        <div id="datosResultadoWrap" class="form-grid" style="display:none">
-          <div class="field col-4 boxed"><div class="lbl">No. de personal</div><input id="noPersonalRes" placeholder="Ej: 1600" /></div>
-          <div class="field col-4 boxed"><div class="lbl">Periodo</div><input id="periodoRes" placeholder="Ej: 2025" /></div>
-          <div class="field col-4 boxed"><div class="lbl">Versión</div><input id="versionRes" placeholder="Ej: 1" /></div>
-
-          <div class="sub col-12" style="margin-top:8px">Estado API: <b id="apiMiniRes">—</b></div>
-        </div>
-      </div>
-    </section>
-
+    <section class="card" id="blockDatos" style="display:none !important"></section>
 <!-- KPIS / ENTREGABLES -->
 <section class="card" data-phase-block="KPIS" id="blockKpis">
   <div class="card-h">
@@ -4003,15 +3963,14 @@ on("ieModalBack", "click", (e)=>{
   if(e.target && e.target.id === "ieModalBack") closeInformeModalSafe_();
 });
 
-// Header botones
-on("btnRecuperar", "click", ()=>{
-  const fn = isResultadoPhase() ? recoverResultado : recoverSearch;
-  fn().catch(err=>setApiStatus("err","API: " + (err?.message || err)));
-});
+// Header botones eliminados para Reportes
+const btnLimpiarEval = $("btnLimpiarEval");
+const btnPrint = $("btnPrint");
+const btnRecuperar = $("btnRecuperar");
 
-on("btnLimpiarEval", "click", doLimpiar);
-on("btnPrint", "click", openPrintModal);
-
+if(btnLimpiarEval) btnLimpiarEval.remove();
+if(btnPrint) btnPrint.remove();
+if(btnRecuperar) btnRecuperar.remove();
 // Print modal
 on("btnPrintClose", "click", closePrintModal);
 on("printModalBack", "click", (e)=>{
@@ -4024,23 +3983,27 @@ on("btnPrintPDF", "click", ()=>{
 });
 
 function downloadWordResultado_(){
+  const bodyHtml =
+    $("ieModalBody")?.innerHTML ||
+    `<pre style="font-family:Arial,sans-serif;white-space:pre-wrap">${escapeHtml(buildResultadoTexto_())}</pre>`;
+
   const contenido = `
     <html xmlns:o="urn:schemas-microsoft-com:office:office"
           xmlns:w="urn:schemas-microsoft-com:office:word"
           xmlns="http://www.w3.org/TR/REC-html40">
     <head><meta charset="utf-8"></head>
-    <body>
-      <pre style="font-family:Arial,sans-serif;white-space:pre-wrap">${escapeHtml(buildResultadoTexto_())}</pre>
-    </body>
+    <body>${bodyHtml}</body>
     </html>
   `.trim();
 
   const blob = new Blob(["\ufeff", contenido], { type: "application/msword" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
-  const no  = $("repNo")?.value?.trim() || $("noPersonalRes")?.value?.trim() || "reporte";
-  const per = $("repPeriodo")?.value?.trim() || $("periodoRes")?.value?.trim() || "";
-  const ver = $("repVersion")?.value?.trim() || $("versionRes")?.value?.trim() || "";
+
+  const no  = $("reportNoPersonal")?.value?.trim() || "reporte";
+  const per = $("reportPeriodo")?.value?.trim() || "";
+  const ver = $("reportVersion")?.value?.trim() || "";
+
   a.href = url;
   a.download = `Reporte_Evaluacion_${no}_${per}_V${ver}.doc`;
   document.body.appendChild(a);
@@ -4048,7 +4011,7 @@ function downloadWordResultado_(){
   a.remove();
   URL.revokeObjectURL(url);
 }
-
+  
 on("btnPrintWord", "click", ()=>{
   if($("printTextArea")){
     $("printTextArea").value = isConsolidadoPhase() ? buildConsolidadoTexto_() : buildResultadoTexto_();
@@ -4056,37 +4019,26 @@ on("btnPrintWord", "click", ()=>{
   downloadWordResultado_();
 });
 
-  on("btnEnviarReporte", "click", async ()=>{
+on("btnEnviarReporte", "click", async ()=>{
   const view = String(state.reportesView || "");
   if(view !== "EVAL_RESUMEN"){
-    alert("Enviar solo aplica para el reporte: Evaluación del desempeño.");
+    alert("Enviar solo aplica para Evaluación del desempeño.");
     return;
   }
 
-  const no  = $("reportNoPersonal")?.value?.trim() || "";
-  const per = $("reportPeriodo")?.value?.trim() || "";
-  const ver = $("reportVersion")?.value?.trim() || "";
-
-  if(!no || !per || !ver){
-    alert("Completa No. de personal, Periodo y Versión.");
-    return;
-  }
-
-  syncReportFiltersToPhaseInputs_();
-
-  if(!state.resultadoCache){
-    await recoverResultado();
-  }
+  await buscarReporteEvaluacionDesempeno_();
 
   const tipo = String($("reportEnviarTipo")?.value || "PDF").toUpperCase();
   if(tipo === "WORD"){
-    $("printTextArea").value = buildResultadoTexto_();
     downloadWordResultado_();
     return;
   }
 
-  openPrintModal();
+  document.body.classList.add("print-ie");
+  window.print();
+  setTimeout(()=>document.body.classList.remove("print-ie"), 500);
 });
+  
 on("btnPrintTXT", "click", ()=>{
   if($("printTextArea")){
     $("printTextArea").value = isConsolidadoPhase() ? buildConsolidadoTexto_() : buildResultadoTexto_();
@@ -4182,13 +4134,13 @@ on("btnBuscarReporte", "click", async ()=>{
   const view = String(state.reportesView || "");
 
   if(view === "EVAL_RESUMEN"){
-    try{
-      await recoverResultado();
-    }catch(err){
-      setApiStatus("err","API: " + (err?.message || err));
-    }
-    return;
+  try{
+    await buscarReporteEvaluacionDesempeno_();
+  }catch(err){
+    setApiStatus("err","API: " + (err?.message || err));
   }
+  return;
+}
 
   if(view === "EVAL_CALIFICACIONES" && $("btnRecuperar") && !$("btnRecuperar").disabled){
     $("btnRecuperar").click();
@@ -4204,6 +4156,96 @@ on("btnBuscarReporte", "click", async ()=>{
     $("btnDevGenerar").click();
   }
 });
+
+  async function buscarReporteEvaluacionDesempeno_(){
+  const no  = $("reportNoPersonal")?.value?.trim() || "";
+  const per = $("reportPeriodo")?.value?.trim() || "";
+  const ver = $("reportVersion")?.value?.trim() || "";
+
+  if(!no || !per || !ver){
+    alert("Completa No. de personal, Periodo y Versión.");
+    return;
+  }
+
+  const res = await apiGet({ action:"result", no, periodo: per, version: ver });
+  const header = res.header || {};
+  const rows = Array.isArray(res.rows) ? res.rows : [];
+  const pf = res.puntajeFinal ?? "0.00";
+  const cual = res.cualitativo || {};
+
+  if(!rows.length){
+    alert("No se encontraron datos en EvaluacionFinal para ese colaborador.");
+    return;
+  }
+
+  state.resultadoCache = { header, rows, puntajeFinal: pf, cualitativo: cual, no, periodo: per, version: ver };
+
+  const html = `
+    <div style="font-family:Arial,sans-serif;color:#111;background:#fff;padding:24px">
+      <h2 style="margin:0 0 18px 0;text-align:center">Reporte de evaluación del desempeño</h2>
+
+      <table style="width:100%;border-collapse:collapse;margin-bottom:12px">
+        <tr>
+          <td style="padding:6px;border:1px solid #ccc"><b>No. de personal:</b> ${escapeHtml(no)}</td>
+          <td style="padding:6px;border:1px solid #ccc"><b>Nombre:</b> ${escapeHtml(header.nombre || "")}</td>
+          <td style="padding:6px;border:1px solid #ccc"><b>Posición:</b> ${escapeHtml(header.posicion || "")}</td>
+          <td style="padding:6px;border:1px solid #ccc"><b>Departamento:</b> ${escapeHtml(header.depto || "")}</td>
+        </tr>
+        <tr>
+          <td style="padding:6px;border:1px solid #ccc"><b>Periodo:</b> ${escapeHtml(per)}</td>
+          <td style="padding:6px;border:1px solid #ccc"><b>Versión:</b> ${escapeHtml(ver)}</td>
+          <td style="padding:6px;border:1px solid #ccc" colspan="2"><b>Fecha:</b> ${escapeHtml(header.fecha || "")}</td>
+        </tr>
+        <tr>
+          <td style="padding:6px;border:1px solid #ccc" colspan="4"><b>Puntaje final:</b> ${escapeHtml(String(pf))}</td>
+        </tr>
+      </table>
+
+      <table style="width:100%;border-collapse:collapse;margin-bottom:12px">
+        <thead>
+          <tr>
+            <th style="padding:6px;border:1px solid #ccc;text-align:left">Ítem</th>
+            <th style="padding:6px;border:1px solid #ccc;text-align:left">Respuesta</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows.map((r,i)=>`
+            <tr>
+              <td style="padding:6px;border:1px solid #ccc">${escapeHtml(r.item || ("Item " + (i+1)))}</td>
+              <td style="padding:6px;border:1px solid #ccc">${escapeHtml(r.respuesta || "")}</td>
+            </tr>
+          `).join("")}
+        </tbody>
+      </table>
+
+      <table style="width:100%;border-collapse:collapse">
+        <tr><td style="padding:6px;border:1px solid #ccc"><b>Justificación y comentarios</b><br>${escapeHtml(cual.justificacion || "")}</td></tr>
+        <tr><td style="padding:6px;border:1px solid #ccc"><b>Comentarios del colaborador</b><br>${escapeHtml(cual.comentariosColaborador || "")}</td></tr>
+        <tr><td style="padding:6px;border:1px solid #ccc"><b>Fortalezas</b><br>${escapeHtml(cual.fortalezas || "")}</td></tr>
+        <tr><td style="padding:6px;border:1px solid #ccc"><b>Oportunidades de mejora</b><br>${escapeHtml(cual.oportunidadesMejora || "")}</td></tr>
+        <tr><td style="padding:6px;border:1px solid #ccc"><b>Proyección y potencial de desarrollo</b><br>${escapeHtml(cual.proyeccionPotencial || "")}</td></tr>
+        <tr><td style="padding:6px;border:1px solid #ccc"><b>Necesidades de capacitación</b><br>${escapeHtml(cual.necesidadesCapacitacion || "")}</td></tr>
+        <tr><td style="padding:6px;border:1px solid #ccc"><b>Comentarios del evaluador</b><br>${escapeHtml(cual.comentariosEvaluador || "")}</td></tr>
+        <tr>
+          <td style="padding:18px 6px;border:1px solid #ccc">
+            <div style="display:flex;justify-content:space-between;gap:24px;margin-top:20px">
+              <div style="flex:1;text-align:center">_________________________<br>Firma evaluado</div>
+              <div style="flex:1;text-align:center">_________________________<br>Firma del evaluador</div>
+            </div>
+          </td>
+        </tr>
+      </table>
+    </div>
+  `;
+
+  if($("ieTitle")) $("ieTitle").textContent = "Reporte de evaluación del desempeño";
+  if($("ieModalBody")) $("ieModalBody").innerHTML = html;
+  if($("ieTextArea")) $("ieTextArea").value = buildResultadoTexto_();
+  if($("ieHtmlWrap")) $("ieHtmlWrap").style.display = "block";
+  if($("ieTextWrap")) $("ieTextWrap").style.display = "none";
+  if($("ieModalBack")) $("ieModalBack").classList.add("show");
+}
+
   
   ["incNoPersonal","incNombre","incPeriodo","incVersion","incFecha","incIncidencia","incUsuario"].forEach(id=>{
   const el = $(id);
