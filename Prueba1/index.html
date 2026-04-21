@@ -2,7 +2,2641 @@
 <html lang="es">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/**
+ * ==========================
+ * CONFIG
+ * =========================
+ */
+const SPREADSHEET_ID = "19zvT9RQWKKyneeS3WFS5Il7DLDxir3E2PrLNOg1w7lQ";
+
+// ✅ RESP fijo
+const RESP_MAX = 20;
+
+const ALLOWED_SHEETS = new Set(["Formularios", "Pesos"]); // lecturas
+
+const AUTO_SHEET_NAME = "Autoevaluacion";        // guardado AUTO
+const CLIENTES_SHEET_NAME = "Clientes";          // guardado CLIENTES
+const EVAL_FINAL_SHEET_NAME = "EvaluacionFinal"; // guardado DESEMPENO
+const INCIDENCIAS_SHEET_NAME = "Incidencias";    // guardado 
+const ONEONE_SHEET_NAME = "One One";             // guardado ONEONE
+const OBSERVACIONES_SHEET_NAME = "Observaciones"; // guardado CLIENTES / INCIDENCIAS / ONEONE
+
+const KPIS_SHEET_NAME = "Kpis";                  // guardado KPIS
+
+// ✅ destino para informe de capacitación
+const CAP_SHEET_NAME = "Plancapacitacion";
+
+// ✅ OpenAI model (puedes cambiarlo)
+const OPENAI_MODEL = "gpt-4o-mini"; // más compatible en la mayoría de cuentas
+
+const HEADER_ALIASES = {
+  codigo: ["codigo", "código", "code", "cod", "id"],
+  nivel: ["nivel", "level", "niv"],
+  factor: ["factor", "grupo", "categoria", "categoría", "dimension", "dimensión"],
+  item: ["item", "ítem", "pregunta", "indicador", "descripcion", "descripción"],
+  peso: ["peso", "ponderacion", "ponderación", "peso %", "peso(%)", "porcentaje", "%", "weight"],
+  puntajeFinal: ["puntaje final", "puntaje", "score final", "final score"],
+  one: ["1", "01"],
+  two: ["2", "02"],
+  three: ["3", "03"],
+  four: ["4", "04"],
+  five: ["5", "05"],
+};
+
+/**
+ * =========================
+ * WEB APP ENTRYPOINT (JSONP)
+ * =========================
+ * - action=ping
+ * - action=levels&sheet=Formularios|Pesos
+ * - action=items&sheet=Formularios|Pesos&nivel=... (ALL permitido)
+ * - action=form&nivel=1
+ * - action=recover&no=...&periodo=...&version=...             ✅ recupera Autoevaluacion + Clientes
+ * - action=result&no=...&periodo=...&version=...              ✅ arma REPORTE desde EvaluacionFinal + Pesos + Formularios
+ * - action=informeEjecutivo&no=...&periodo=...&version=...     ✅ NUEVO: HTML + OpenAI + todo EvaluacionFinal
+ * - action=desarrolloPlan&no=...&periodo=...&version=...      ✅ arma PLAN desde EvaluacionFinal (Oportunidades + Proyección)
+ * - action=capacitacionList&periodo=...&version=...           ✅ genera informe por periodo/versión (lista)
+ * - action=capacitacionSave&payload=BASE64(JSON)              ✅ guarda informe en hoja Plancapacitacion (append)
+ * - action=capacitacion&no=...&periodo=...&version=...        ✅ (legacy) trae 1 registro
+ * - action=save&payload=BASE64(JSON)                          (CLIENTES / AUTO / DESEMPENO)
+ * - action=savePesos&payload=BASE64(JSON)                     guarda Pesos
+ */
+function doGet(e) {
+  const params = (e && e.parameter) ? e.parameter : {};
+  const action = (params.action || "").trim();
+  const callback = (params.callback || "").trim();
+
+  try {
+    if (action === "ping") {
+      return jsonOut_({ ok: true, action: "ping", v: "1.7.0" }, callback);
+    }
+
+if (action === "pingVersion") {
+  return jsonOut_({ ok: true, action: "pingVersion", v: "fix-botones-sin-factor-2" }, callback);
+}
+
+    if (action === "levels") {
+      const sheetName = sanitizeSheet_(params.sheet);
+      const levels = getDistinctLevels_(sheetName);
+      return jsonOut_({ ok: true, sheet: sheetName, levels }, callback);
+    }
+
+    if (action === "nivelesCatalog") {
+  const rows = getNivelesCatalog_();
+  return jsonOut_({ ok: true, rows }, callback);
+}
+
+    if (action === "items") {
+      const sheetName = sanitizeSheet_(params.sheet);
+      let nivel = (params.nivel || "").toString().trim();
+      if (!nivel || nivel.toUpperCase() === "ALL") nivel = "";
+      const items = getItemsByNivel_(sheetName, nivel);
+      return jsonOut_({ ok: true, sheet: sheetName, nivel: (nivel || "ALL"), items }, callback);
+    }
+
+    if (action === "form") {
+      let nivel = (params.nivel || "").toString().trim();
+      if (!nivel) nivel = "1";
+      const form = buildFormByNivel_(nivel);
+      return jsonOut_({ ok: true, form }, callback);
+    }
+
+if (action === "kpisPosiciones") {
+  const niveles = getKpisPosiciones_();
+  return jsonOut_({ ok: true, items: niveles, posiciones: niveles, niveles }, callback);
+}
+
+if (action === "kpisCatalog") {
+  const out = getKpisCatalog_();
+  return jsonOut_({ ok: true, posiciones: out.posiciones || [], niveles: out.posiciones || [], rows: out.rows || [] }, callback);
+}
+
+    // ✅ recover de Autoevaluacion + Clientes + Observaciones
+    if (action === "recover") {
+      const no = String(params.no || "").trim();
+      const periodo = String(params.periodo || "").trim();
+      const version = String(params.version || "").trim();
+      if (!no || !periodo || !version) throw new Error("Faltan parámetros: no, periodo, version.");
+
+      const records = recoverAuto_(no, periodo, version);
+      const clientes = recoverClientes_(no, periodo, version);
+      const observaciones = recoverObservaciones_(no, periodo, version);
+
+      return jsonOut_({ ok: true, records, clientes, observaciones }, callback);
+    }
+
+    // ✅ RESULTADO: arma el reporte desde EvaluacionFinal + Pesos + Formularios
+    if (action === "result") {
+      const no = String(params.no || "").trim();
+      const periodo = String(params.periodo || "").trim();
+      const version = String(params.version || "").trim();
+      if (!no || !periodo || !version) throw new Error("Faltan parámetros: no, periodo, version.");
+
+      const out = buildResultadoReporte_(no, periodo, version);
+      return jsonOut_({ ok: true, ...out }, callback);
+    }
+
+if (action === "resultCalificaciones") {
+  const no = String(params.no || "").trim();
+  const depto = String(params.depto || "").trim();
+  const periodo = String(params.periodo || "").trim();
+  const version = String(params.version || "").trim();
+
+  if (!no || !depto || !periodo || !version) {
+    throw new Error("Faltan parámetros: no, depto, periodo, version.");
+  }
+
+  const out = buildReporteCalificaciones_(no, depto, periodo, version);
+  return jsonOut_({ ok: true, ...out }, callback);
+}
+
+if (action === "resultProyeccionPotencial") {
+  const no = String(params.no || "").trim();
+  const depto = String(params.depto || "").trim();
+  const periodo = String(params.periodo || "").trim();
+  const version = String(params.version || "").trim();
+
+  if (!no || !depto || !periodo || !version) {
+    throw new Error("Faltan parámetros: no, depto, periodo, version.");
+  }
+
+  const out = buildReporteProyeccionPotencial_(no, depto, periodo, version);
+  return jsonOut_({ ok: true, ...out }, callback);
+}
+
+if (action === "resultOportunidadesMejora") {
+  const no = String(params.no || "").trim();
+  const depto = String(params.depto || "").trim();
+  const periodo = String(params.periodo || "").trim();
+  const version = String(params.version || "").trim();
+
+  if (!no || !depto || !periodo || !version) {
+    throw new Error("Faltan parámetros: no, depto, periodo, version.");
+  }
+
+  const out = buildReporteOportunidadesMejora_(no, depto, periodo, version);
+  return jsonOut_({ ok: true, ...out }, callback);
+}
+
+// ✅ NUEVO: INFORME EJECUTIVO (HTML + OpenAI + todos los campos EvaluacionFinal)
+if (action === "informeEjecutivo" || action === "consolidado") {
+  const no = String(params.no || "").trim();
+  const periodo = String(params.periodo || "").trim();
+  const version = String(params.version || "").trim();
+  if (!no || !periodo || !version) throw new Error("Faltan parámetros: no, periodo, version.");
+
+  // 1) Armado base del reporte
+  let out;
+  try {
+    out = buildResultadoReporte_(no, periodo, version);
+  } catch (eOut) {
+    return jsonOut_({ ok: false, error: String(eOut && eOut.message ? eOut.message : eOut) }, callback);
+  }
+
+  // 2) OpenAI (si falla, no rompe)
+  let openai;
+  try {
+    openai = generateInformeEjecutivoOpenAI_(out);
+  } catch (e) {
+    openai = {
+      analisis: "No disponible (OpenAI bloqueado/no autorizado o error).",
+      conclusiones: "No disponible (OpenAI bloqueado/no autorizado o error).",
+      recomendaciones: "No disponible (OpenAI bloqueado/no autorizado o error).",
+      _debug: String(e && e.message ? e.message : e)
+    };
+  }
+
+  // 3) HTML renderizable
+  let html = "";
+  try {
+    html = buildInformeEjecutivoHtml_(out, openai);
+  } catch (eHtml) {
+    html = `<div class="ie-wrap"><div class="ie-card">
+      <div class="ie-title">Reporte ejecutivo</div>
+      <div class="ie-sub">No se pudo construir el HTML del informe.</div>
+      <div class="ie-block"><div class="ie-k">Detalle</div><div class="ie-v ie-pre">${escapeHtml_(String(eHtml && eHtml.message ? eHtml.message : eHtml))}</div></div>
+    </div></div>`;
+  }
+
+  return jsonOut_({ ok: true, ...out, openai, ia: openai, html }, callback);
+}
+
+    // ✅ DESARROLLO: arma el plan desde EvaluacionFinal (Oportunidades + Proyección)
+    if (action === "desarrolloPlan") {
+      const no = String(params.no || "").trim();
+      const periodo = String(params.periodo || "").trim();
+      const version = String(params.version || "").trim();
+      if (!no || !periodo || !version) throw new Error("Faltan parámetros: no, periodo, version.");
+
+      const out = buildDesarrolloPlan_(no, periodo, version);
+      return jsonOut_({ ok: true, ...out }, callback);
+    }
+
+    // ✅ CAPACITACION LIST: genera por periodo/versión (tabla completa)
+    if (action === "capacitacionList") {
+      const periodo = String(params.periodo || "").trim();
+      const version = String(params.version || "").trim();
+      if (!periodo || !version) throw new Error("Faltan parámetros: periodo, version.");
+
+      const out = buildCapacitacionList_(periodo, version);
+      return jsonOut_({ ok: true, ...out }, callback);
+    }
+
+    // ✅ CAPACITACION SAVE: guarda tabla generada en Plancapacitacion (append)
+    if (action === "capacitacionSave") {
+      const b64 = (params.payload || "").toString().trim();
+      if (!b64) throw new Error("Falta payload (capacitacionSave).");
+
+      let payload;
+      try {
+        const json = Utilities.newBlob(Utilities.base64Decode(b64)).getDataAsString("UTF-8");
+        payload = JSON.parse(json);
+      } catch (parseErr) {
+        throw new Error("Payload inválido (base64/json) en capacitacionSave.");
+      }
+
+      const out = saveCapacitacionSheet_(payload);
+      return jsonOut_({ ok: true, ...out }, callback);
+    }
+
+    // ✅ CAPACITACION legacy: trae 1 registro
+    if (action === "capacitacion") {
+      const no = String(params.no || "").trim();
+      const periodo = String(params.periodo || "").trim();
+      const version = String(params.version || "").trim();
+      if (!no || !periodo || !version) throw new Error("Faltan parámetros: no, periodo, version.");
+
+      const out = buildCapacitacionReporte_(no, periodo, version);
+      return jsonOut_({ ok: true, ...out }, callback);
+    }
+
+        if (action === "save") {
+      const b64 = (params.payload || "").toString().trim();
+      if (!b64) throw new Error("Falta payload.");
+
+      let payload;
+      try {
+        const json = Utilities.newBlob(Utilities.base64Decode(b64)).getDataAsString("UTF-8");
+        payload = JSON.parse(json);
+      } catch (parseErr) {
+        throw new Error("Payload inválido (base64/json).");
+      }
+
+      let fase = String(payload && payload.fase ? payload.fase : "").trim().toUpperCase();
+      let id;
+
+      if (fase !== "CLIENTES" && fase !== "AUTO" && fase !== "DESEMPENO") {
+        const ex = payload && payload.extras ? payload.extras : null;
+        const looksLikeDesempeno =
+          ex && (ex.fortalezas || ex.oportunidadesMejora || ex.proyeccionPotencial || ex.necesidadesCapacitacion || ex.nombreEvaluador);
+        if (looksLikeDesempeno) fase = "DESEMPENO";
+      }
+
+      if (fase === "CLIENTES" || fase === "INCIDENCIAS" || fase === "ONEONE" || fase === "KPIS") {
+        const saved = saveObservacionByFase_(payload);
+        if (saved && typeof saved === "object") {
+          return jsonOut_({ ok: true, ...saved }, callback);
+        }
+        id = saved;
+      } else if (fase === "AUTO") {
+        id = saveAutoevaluacion_(payload);
+      } else if (fase === "DESEMPENO") {
+        id = saveEvaluacionFinal_(payload);
+      } else {
+        id = saveAutoevaluacion_(payload);
+      }
+
+      return jsonOut_({ ok: true, id }, callback);
+    }
+
+    if (action === "saveOneOne") {
+  const payload = {
+    noPersonal: String(params.noPersonal || "").trim(),
+    nombre: String(params.nombre || "").trim(),
+    periodo: String(params.periodo || "").trim(),
+    version: String(params.version || "").trim(),
+    fecha: String(params.fecha || "").trim(),
+    seguimiento: String(params.seguimiento || "").trim(),
+    evaluador: String(params.evaluador || "").trim()
+  };
+
+  const id = saveOneOne_(payload);
+  return jsonOut_({ ok: true, id }, callback);
+}
+
+    if (action === "savePesos") {
+      const b64 = (params.payload || "").toString().trim();
+      if (!b64) throw new Error("Falta payload (Pesos).");
+
+      let payload;
+      try {
+        const json = Utilities.newBlob(Utilities.base64Decode(b64)).getDataAsString("UTF-8");
+        payload = JSON.parse(json);
+      } catch (parseErr) {
+        throw new Error("Payload inválido (base64/json) en Pesos.");
+      }
+
+      const out = savePesos_(payload);
+      return jsonOut_({ ok: true, ...out }, callback);
+    }
+
+    return jsonOut_(
+          { ok: false, error: "Acción no soportada. Usa: ping | pingVersion | levels | items | form | kpisPosiciones | kpisCatalog | recover | result | resultCalificaciones | resultProyeccionPotencial | resultOportunidadesMejora | informeEjecutivo | desarrolloPlan | capacitacionList | capacitacionSave | capacitacion | save | savePesos" },
+      callback
+    );
+  } catch (err) {
+    return jsonOut_({ ok: false, error: String(err && err.message ? err.message : err) }, callback);
+  }
+}
+
+/**
+ * =========================
+ * ✅ OPENAI (Script Properties)
+ * =========================
+ */
+function getOpenAIKey_(){
+  const key = PropertiesService.getScriptProperties().getProperty("OPENAI_API_KEY");
+  if(!key) throw new Error('Falta OPENAI_API_KEY en Script Properties.');
+  return key.trim();
+}
+
+function generateInformeEjecutivoOpenAI_(out){
+  // Prompt EXACTO como lo pediste, pero sin exponer keys
+  const promptBase =
+`Actua como un experto en diseño y elbaoracion de informes tecnicos de evaluacion del desempeño, mediante la informacion que se muestra en la hoja EvaluacionFinal,obtiene las filas correspondientes al No de personal, Periodo y versión solicitadas en el html prepara un Reporte asi: en el orden y la estructura siguiente
+Informe ejecutivo de evaluacion del desempeño,
+No de personal,
+Nombre,
+Posicion
+Departamento
+Periodo
+Version
+Fecha
+Puntaje final
+Analisis e interpretacion
+Conclusiones
+Recomendaciones
+Nombre evaluador`;
+
+  // Datos adjuntos al modelo
+  const payload = {
+    header: out.header,
+    puntajeFinal: out.puntajeFinal,
+    cualitativo: out.cualitativo,
+    detalle: out.rows
+  };
+
+  // Llamada OpenAI (Responses API)
+  const apiKey = getOpenAIKey_();
+  const url = "https://api.openai.com/v1/responses";
+
+  const inputText =
+`${promptBase}
+
+INFORMACION ADJUNTA (JSON):
+${JSON.stringify(payload, null, 2)}
+
+INSTRUCCIONES DE SALIDA:
+- Devuelve SOLO un JSON con las claves: analisis, conclusiones, recomendaciones.
+- Presenta el reporrte asi: No de personal, Nombre y posición en una fila
+- Presenta Departamento, Periodo, Versión y Fecha, en otra fila
+- Para elaborar Analisis e interpretacion, Conclusiones y Recomendaciones considera el puntaje final, las resp del 1 al 20 y los campos Evaluación de clientes	Comentarios del colaborador	Fortalezas	Oportunidades de mejora	Proyección y potencial de desarrollo	Necesidades de capacitación	Comentarios del evaluador
+- No inventes datos personales: usa solo lo adjunto.
+- Redacción profesional, clara, ejecutiva (no demasiado larga).`;
+
+  const body = {
+    model: OPENAI_MODEL,
+    input: inputText
+  };
+
+  const res = UrlFetchApp.fetch(url, {
+    method: "post",
+    contentType: "application/json",
+    headers: { Authorization: "Bearer " + apiKey },
+    payload: JSON.stringify(body),
+    muteHttpExceptions: true
+  });
+
+  const code = res.getResponseCode();
+  const txt = res.getContentText();
+
+   if(code < 200 || code >= 300){
+    // Si OpenAI falla, devolvemos “vacío” para no romper tu UI,
+    // pero dejamos el motivo REAL en _debug (sin exponer claves).
+    const snippet = String(txt || "").slice(0, 800);
+    return {
+      analisis: "No disponible (error al generar con OpenAI).",
+      conclusiones: "No disponible (error al generar con OpenAI).",
+      recomendaciones: "No disponible (error al generar con OpenAI).",
+      _debug: `OpenAI HTTP ${code} | ${snippet}`
+    };
+  }
+
+  const parsed = JSON.parse(txt);
+  const outText = extractResponseText_(parsed);
+
+  // Intentamos parsear el JSON que pedimos
+  try{
+    const j = JSON.parse(outText);
+    return {
+      analisis: String(j.analisis || "").trim(),
+      conclusiones: String(j.conclusiones || "").trim(),
+      recomendaciones: String(j.recomendaciones || "").trim()
+    };
+  } catch(_){
+    // Fallback: si el modelo no obedeció, no te dejo botada
+    return {
+      analisis: String(outText || "").trim(),
+      conclusiones: "",
+      recomendaciones: ""
+    };
+  }
+}
+
+function extractResponseText_(responsesApiJson){
+  // Respuestas API: normalmente trae output_text
+  if(responsesApiJson && typeof responsesApiJson.output_text === "string"){
+    return responsesApiJson.output_text;
+  }
+  // fallback: buscar en output[]
+  try{
+    const out = responsesApiJson.output || [];
+    for(const item of out){
+      const content = item.content || [];
+      for(const c of content){
+        if(c.type === "output_text" && c.text) return c.text;
+      }
+    }
+  } catch(_){}
+  return "";
+}
+
+/**
+ * =========================
+ * ✅ HTML Informe Ejecutivo
+ * - Llena No/Periodo/Version (y todo header)
+ * - Incluye TODOS los campos EvaluacionFinal
+ * - Incluye OpenAI (analisis/conclusiones/recomendaciones)
+ * =========================
+ */
+function buildInformeEjecutivoHtml_(out, openai){
+  const h = out.header || {};
+  const q = out.cualitativo || {};
+  const esc = escapeHtml_;
+
+  const no       = String(h.no || "").trim();
+  const nombre   = String(h.nombre || "").trim();
+  const posicion = String(h.posicion || "").trim();
+
+  const depto   = String(h.depto || "").trim();
+  const periodo = String(h.periodo || "").trim();
+  const version = String(h.version || "").trim();
+  const fecha   = String(h.fecha || "").trim();
+
+  const puntaje = String(out.puntajeFinal ?? "").trim();
+
+  const analisis = String(openai && openai.analisis ? openai.analisis : "").trim();
+  const concl    = String(openai && openai.conclusiones ? openai.conclusiones : "").trim();
+  const recom    = String(openai && openai.recomendaciones ? openai.recomendaciones : "").trim();
+
+  // ✅ TODOS los campos cualitativos (EvaluacionFinal)
+    const justificacion      = String(q.justificacion || "").trim();
+  const evalClientes       = String(q.evaluacionClientes || "").trim();
+  const comColaborador     = String(q.comentariosColaborador || "").trim();
+  const fortalezas         = String(q.fortalezas || "").trim();
+  const oportunidades      = String(q.oportunidadesMejora || "").trim();
+  const proyeccionPot      = String(q.proyeccionPotencial || "").trim();
+  const necesidadesCap     = String(q.necesidadesCapacitacion || "").trim();
+  const comEvaluador       = String(q.comentariosEvaluador || "").trim();
+  const nombreEvaluador    = String(q.nombreEvaluador || "").trim();
+
+  const debug = String(openai && openai._debug ? openai._debug : "").trim();
+
+  const cell = (k,v)=>`
+    <div class="ie-cell">
+      <div class="ie-k">${esc(k)}</div>
+      <div class="ie-v">${esc(v || "—")}</div>
+    </div>`;
+
+  const block = (k,v)=>`
+    <div class="ie-block">
+      <div class="ie-k">${esc(k)}</div>
+      <div class="ie-v ie-pre">${esc(v || "—")}</div>
+    </div>`;
+
+  return `
+  <div class="ie-wrap">
+    <style>
+      .ie-wrap{font-family:Inter,Arial,sans-serif; color:#0f172a; line-height:1.35}
+      .ie-card{border:1px solid #e5e7eb; border-radius:14px; padding:16px; margin:10px 0; background:#fff}
+      .ie-title{font-size:18px; font-weight:900; margin:0 0 8px}
+      .ie-sub{color:#475569; font-size:12.5px; margin:0 0 14px}
+
+      .ie-grid{display:grid; gap:10px; margin:10px 0}
+      .ie-grid-3{grid-template-columns:repeat(3, minmax(0, 1fr))}
+      .ie-grid-4{grid-template-columns:repeat(4, minmax(0, 1fr))}
+      @media (max-width:860px){
+        .ie-grid-3{grid-template-columns:1fr}
+        .ie-grid-4{grid-template-columns:1fr}
+      }
+
+      .ie-cell{border:1px solid #e5e7eb; border-radius:12px; padding:10px; background:#fff}
+      .ie-k{font-size:12px; color:#334155; font-weight:800; margin-bottom:4px}
+      .ie-v{font-size:13.5px; color:#0f172a}
+      .ie-pre{white-space:pre-wrap}
+
+      .ie-score{display:flex; justify-content:space-between; gap:10px; align-items:flex-end; margin:12px 0 6px}
+      .ie-score .ie-v{font-size:18px; font-weight:900}
+
+      .ie-block{border:1px solid #e5e7eb; border-radius:12px; padding:10px; background:#fff; margin-top:10px}
+      .ie-ai{margin-top:10px; font-size:12px; color:#64748b}
+      .ie-debug{margin-top:8px; font-size:12px; color:#b45309}
+    </style>
+
+    <div class="ie-card">
+      <div class="ie-title">Reporte ejecutivo de evaluación del desempeño</div>
+      <div class="ie-sub">Datos desde <b>EvaluacionFinal</b> + redacción <b>OpenAI</b>.</div>
+
+      <!-- Fila 1: No / Nombre / Posición -->
+      <div class="ie-grid ie-grid-3">
+        ${cell("No de personal", no)}
+        ${cell("Nombre", nombre)}
+        ${cell("Posición", posicion)}
+      </div>
+
+      <!-- Fila 2: Depto / Periodo / Versión / Fecha -->
+      <div class="ie-grid ie-grid-4">
+        ${cell("Departamento", depto)}
+        ${cell("Periodo", periodo)}
+        ${cell("Versión", version)}
+        ${cell("Fecha", fecha)}
+      </div>
+
+      <!-- Puntaje final -->
+      <div class="ie-block">
+        <div class="ie-score">
+          <div class="ie-k">Puntaje final</div>
+          <div class="ie-v">${esc(puntaje || "—")}</div>
+        </div>
+      </div>
+
+      <!-- ✅ Campos cualitativos EvaluacionFinal -->
+      ${block("Justificación", justificacion)}
+      ${block("Evaluación de clientes", evalClientes)}
+      ${block("Comentarios del colaborador", comColaborador)}
+      ${block("Fortalezas", fortalezas)}
+      ${block("Oportunidades de mejora", oportunidades)}
+      ${block("Proyección y potencial de desarrollo", proyeccionPot)}
+      ${block("Necesidades de capacitación", necesidadesCap)}
+      ${block("Comentarios del evaluador", comEvaluador)}
+
+      <!-- ✅ OpenAI -->
+      ${block("Análisis e interpretación", analisis)}
+      ${block("Conclusiones", concl)}
+      ${block("Recomendaciones", recom)}
+      ${block("Nombre evaluador", nombreEvaluador)}
+
+      <div class="ie-ai">Generado por OpenAI.</div>
+      ${debug ? `<div class="ie-debug">Debug OpenAI: ${esc(debug)}</div>` : ``}
+    </div>
+  </div>`;
+}
+
+function escapeHtml_(v){
+  const s = String(v ?? "");
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+/**
+ * =========================
+ * CORE SHEET READ (Formularios / Pesos)
+ * =========================
+ */
+
+function getSheetValues_(sheetName) {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sh = ss.getSheetByName(sheetName);
+  if (!sh) throw new Error(`No existe la hoja: ${sheetName}`);
+
+  const values = sh.getDataRange().getValues();
+  if (!values || !values.length) return { headers: [], rows: [], headerIndex: {}, sheet: sh };
+
+  const rawHeaders = values[0].map(h => String(h ?? ""));
+  const headers = rawHeaders.map(h => normalizeHeader_(h));
+  const rows = values.slice(1);
+
+  const headerIndex = buildHeaderIndex_(headers, sheetName);
+
+  if (headerIndex.nivel == null) throw new Error(`Encabezado faltante en "${sheetName}": Nivel`);
+  if (headerIndex.item == null) throw new Error(`Encabezado faltante en "${sheetName}": Item`);
+
+  if (sheetName === "Formularios") {
+    ["one","two","three","four","five"].forEach(k => {
+      if (headerIndex[k] == null) {
+        const label = ({one:"1",two:"2",three:"3",four:"4",five:"5"})[k];
+        throw new Error(`Encabezado faltante en "${sheetName}": ${label}`);
+      }
+    });
+  } else if (sheetName === "Pesos") {
+    if (headerIndex.peso == null) throw new Error(`Encabezado faltante en "${sheetName}": Peso/Ponderación`);
+  }
+
+  return { headers, rows, headerIndex, sheet: sh };
+}
+
+function buildHeaderIndex_(headersNormalized, sheetName){
+  const idx = {};
+  idx.codigo = findIndexByAliases_(headersNormalized, HEADER_ALIASES.codigo);
+  idx.nivel  = findIndexByAliases_(headersNormalized, HEADER_ALIASES.nivel);
+  idx.factor = findIndexByAliases_(headersNormalized, HEADER_ALIASES.factor);
+  idx.item   = findIndexByAliases_(headersNormalized, HEADER_ALIASES.item);
+
+  if (sheetName === "Formularios"){
+    idx.one   = findIndexByAliases_(headersNormalized, HEADER_ALIASES.one);
+    idx.two   = findIndexByAliases_(headersNormalized, HEADER_ALIASES.two);
+    idx.three = findIndexByAliases_(headersNormalized, HEADER_ALIASES.three);
+    idx.four  = findIndexByAliases_(headersNormalized, HEADER_ALIASES.four);
+    idx.five  = findIndexByAliases_(headersNormalized, HEADER_ALIASES.five);
+  } else if (sheetName === "Pesos") {
+    idx.peso = findIndexByAliases_(headersNormalized, HEADER_ALIASES.peso);
+  }
+
+  return idx;
+}
+
+function findIndexByAliases_(headersNormalized, aliases){
+  for (let a of aliases){
+    const an = normalizeHeader_(a);
+    const i = headersNormalized.indexOf(an);
+    if (i >= 0) return i;
+  }
+  for (let a of aliases){
+    const an = normalizeHeader_(a);
+    const i = headersNormalized.findIndex(h => h.includes(an));
+    if (i >= 0) return i;
+  }
+  return null;
+}
+
+/**
+ * =========================
+ * ✅ UPSERT (EVITA DUPLICADOS)
+ * Clave: No + Periodo + Versión
+ * =========================
+ */
+function upsertByKey_(sh, headers, headersNorm, outRow){
+  const idxNo  = findIndexByAliases_(headersNorm, ["no de personal","no. de personal","no personal","numero de personal","n° de personal"]);
+  const idxPer = findIndexByAliases_(headersNorm, ["periodo","período"]);
+  const idxVer = findIndexByAliases_(headersNorm, ["version","versión"]);
+
+  // Si no hay columnas clave, no podemos deduplicar con seguridad -> append
+  if(idxNo == null || idxPer == null || idxVer == null){
+    sh.appendRow(outRow);
+    return { mode:"append", row: sh.getLastRow() };
+  }
+
+  const keyNo  = String(outRow[idxNo]  || "").trim();
+  const keyPer = String(outRow[idxPer] || "").trim();
+  const keyVer = String(outRow[idxVer] || "").trim();
+
+  // Si llave incompleta -> append (no debería pasar si tu UI valida)
+  if(!keyNo || !keyPer || !keyVer){
+    sh.appendRow(outRow);
+    return { mode:"append", row: sh.getLastRow() };
+  }
+
+  const lastRow = sh.getLastRow();
+  if(lastRow < 2){
+    sh.appendRow(outRow);
+    return { mode:"append", row: sh.getLastRow() };
+  }
+
+  const values = sh.getRange(2, 1, lastRow - 1, sh.getLastColumn()).getValues();
+
+  let foundRow = -1;
+  for(let i=0; i<values.length; i++){
+    const r = values[i];
+    const no  = String(r[idxNo]  || "").trim();
+    const per = String(r[idxPer] || "").trim();
+    const ver = String(r[idxVer] || "").trim();
+    if(no === keyNo && per === keyPer && ver === keyVer){
+      foundRow = i + 2; // + header
+      break;
+    }
+  }
+
+  if(foundRow > -1){
+    sh.getRange(foundRow, 1, 1, outRow.length).setValues([outRow]);
+    return { mode:"update", row: foundRow };
+  }
+
+  sh.appendRow(outRow);
+  return { mode:"append", row: sh.getLastRow() };
+}
+
+
+function upsertByKeyAndTipo_(sh, headersNorm, outRow){
+  const idxNo   = findIndexByAliases_(headersNorm, ["no de personal","no. de personal","no personal","numero de personal","n° de personal"]);
+  const idxNom  = findIndexByAliases_(headersNorm, ["nombre"]);
+  const idxPer  = findIndexByAliases_(headersNorm, ["periodo","período"]);
+  const idxVer  = findIndexByAliases_(headersNorm, ["version","versión"]);
+  const idxResp = findIndexByAliases_(headersNorm, ["responsable","evaluador","usuario","user"]);
+  const idxTipo = findIndexByAliases_(headersNorm, ["tipo"]);
+
+  if([idxNo, idxNom, idxPer, idxVer, idxResp, idxTipo].some(i => i == null)){
+    sh.appendRow(outRow);
+    return { mode:"append", row: sh.getLastRow() };
+  }
+
+  const keyNo   = String(outRow[idxNo] || "").trim();
+  const keyNom  = String(outRow[idxNom] || "").trim();
+  const keyPer  = String(outRow[idxPer] || "").trim();
+  const keyVer  = String(outRow[idxVer] || "").trim();
+  const keyResp = String(outRow[idxResp] || "").trim();
+  const keyTipo = String(outRow[idxTipo] || "").trim();
+
+  if(!keyNo || !keyNom || !keyPer || !keyVer || !keyResp || !keyTipo){
+    sh.appendRow(outRow);
+    return { mode:"append", row: sh.getLastRow() };
+  }
+
+  const lastRow = sh.getLastRow();
+  if(lastRow < 2){
+    sh.appendRow(outRow);
+    return { mode:"append", row: sh.getLastRow() };
+  }
+
+  const values = sh.getRange(2, 1, lastRow - 1, sh.getLastColumn()).getValues();
+
+  for(let i = 0; i < values.length; i++){
+    const r = values[i];
+    const no   = String(r[idxNo] || "").trim();
+    const nom  = String(r[idxNom] || "").trim();
+    const per  = String(r[idxPer] || "").trim();
+    const ver  = String(r[idxVer] || "").trim();
+    const resp = String(r[idxResp] || "").trim();
+    const tipo = String(r[idxTipo] || "").trim();
+
+    if(
+      no === keyNo &&
+      nom === keyNom &&
+      per === keyPer &&
+      ver === keyVer &&
+      resp === keyResp &&
+      tipo === keyTipo
+    ){
+      const rowNumber = i + 2;
+      sh.getRange(rowNumber, 1, 1, outRow.length).setValues([outRow]);
+      return { mode:"update", row: rowNumber };
+    }
+  }
+
+  sh.appendRow(outRow);
+  return { mode:"append", row: sh.getLastRow() };
+}
+
+function saveObservacionByFase_(payload){
+  if(!payload) throw new Error("Payload vacío (Observaciones).");
+
+  const fase = String(payload.fase || "").trim().toUpperCase();
+  const tipoMap = {
+    CLIENTES: "Evaluación Clientes",
+    INCIDENCIAS: "Incidencia",
+    ONEONE: "One One",
+    KPIS: "Kpis / entregables"
+  };
+  const tipo = tipoMap[fase] || fase || "Observación";
+
+  const noPersonal = String(payload.noPersonal || payload.no || payload["No de personal"] || "").trim();
+  const nombre = String(payload.nombre || payload["Nombre"] || "").trim();
+  const periodo = String(payload.periodo || payload["Periodo"] || "").trim();
+  const version = String(payload.version || payload["Versión"] || payload["Version"] || "").trim();
+  const fecha = String(payload.fecha || payload["Fecha"] || "").trim();
+
+  const observaciones = String(
+    payload.observaciones ||
+    payload.comentariosEvaluador ||
+    payload.comentariosEvaluadorClientes ||
+    payload.incidencia ||
+    payload.seguimiento ||
+    payload.seguimientoIndividual ||
+    payload["Observaciones"] ||
+    ""
+  ).trim();
+
+  const responsable = String(
+    payload.responsable ||
+    payload.evaluador ||
+    payload.nombreEvaluador ||
+    payload.usuario ||
+    payload.nivel ||
+    payload.posicionNivel ||
+    payload["Responsable"] ||
+    ""
+  ).trim();
+
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  let sh = ss.getSheetByName(OBSERVACIONES_SHEET_NAME);
+  if(!sh) sh = ss.insertSheet(OBSERVACIONES_SHEET_NAME);
+
+  const requiredHeaders = ["No de personal","Nombre","Periodo","Versión","Fecha","Observaciones","Responsable","Tipo"];
+
+  if(sh.getLastRow() === 0 || sh.getLastColumn() === 0){
+    sh.getRange(1,1,1,requiredHeaders.length).setValues([requiredHeaders]);
+    sh.setFrozenRows(1);
+  } else {
+    const current = sh.getRange(1,1,1,Math.max(sh.getLastColumn(), requiredHeaders.length)).getValues()[0]
+      .map(h => String(h || "").trim());
+
+    for(let i = 0; i < requiredHeaders.length; i++){
+      if(!current[i]) current[i] = requiredHeaders[i];
+    }
+
+    sh.getRange(1,1,1,Math.max(current.length, requiredHeaders.length)).setValues([current]);
+  }
+
+  const lastCol = Math.max(sh.getLastColumn(), requiredHeaders.length);
+  const headers = sh.getRange(1,1,1,lastCol).getValues()[0].map(h => String(h || "").trim());
+  const headersNorm = headers.map(h => normalizeHeader_(h));
+
+  const idxNo   = findIndexByAliases_(headersNorm, ["no de personal","no. de personal","no personal","numero de personal","n° de personal"]);
+  const idxNom  = findIndexByAliases_(headersNorm, ["nombre"]);
+  const idxPer  = findIndexByAliases_(headersNorm, ["periodo","período"]);
+  const idxVer  = findIndexByAliases_(headersNorm, ["version","versión"]);
+  const idxFec  = findIndexByAliases_(headersNorm, ["fecha"]);
+  const idxObs  = findIndexByAliases_(headersNorm, ["observaciones","observacion","observación"]);
+  const idxResp = findIndexByAliases_(headersNorm, ["responsable","evaluador","usuario","user"]);
+  const idxTipo = findIndexByAliases_(headersNorm, ["tipo"]);
+
+  if([idxNo, idxNom, idxPer, idxVer, idxFec, idxObs, idxResp, idxTipo].some(i => i == null)){
+    throw new Error('La hoja "Observaciones" debe tener estos encabezados: No de personal | Nombre | Periodo | Versión | Fecha | Observaciones | Responsable | Tipo');
+  }
+
+  if(fase === "KPIS"){
+    const detalles = Array.isArray(payload.detalles) ? payload.detalles : [];
+    const rowsToSave = detalles
+      .map(d => String(d && (d.observacion || d.label || "") || "").trim())
+      .filter(Boolean);
+
+    if(!rowsToSave.length){
+      throw new Error("KPIS sin detalles seleccionados para guardar.");
+    }
+
+    const firstDataRow = Math.max(sh.getLastRow(), 1) + 1;
+
+    rowsToSave.forEach(obs => {
+      const row = new Array(lastCol).fill("");
+      row[idxNo] = noPersonal;
+      row[idxNom] = nombre;
+      row[idxPer] = periodo;
+      row[idxVer] = version;
+      row[idxFec] = fecha;
+      row[idxObs] = obs;
+      row[idxResp] = responsable;
+      row[idxTipo] = tipo;
+      sh.appendRow(row);
+    });
+
+    return {
+      id: `OBS-${firstDataRow}`,
+      rows: rowsToSave.length
+    };
+  }
+
+  const row = new Array(lastCol).fill("");
+  row[idxNo] = noPersonal;
+  row[idxNom] = nombre;
+  row[idxPer] = periodo;
+  row[idxVer] = version;
+  row[idxFec] = fecha;
+  row[idxObs] = observaciones;
+  row[idxResp] = responsable;
+  row[idxTipo] = tipo;
+
+  const res = upsertByKeyAndTipo_(sh, headersNorm, row);
+  return { id: `OBS-${res.row}`, rows: 1 };
+}
+
+/**
+ * =========================
+ * LEVELS + ITEMS (Formularios / Pesos)
+ * =========================
+ */
+function getDistinctLevels_(sheetName) {
+  const { rows, headerIndex } = getSheetValues_(sheetName);
+  const idxNivel = headerIndex.nivel;
+
+  const mapCanonToLabel = new Map();
+  rows.forEach(r => {
+    const raw = (r[idxNivel] ?? "").toString().trim();
+    if (!raw) return;
+    const canon = nivelCanon_(raw);
+    if (!canon) return;
+    if (!mapCanonToLabel.has(canon)) mapCanonToLabel.set(canon, raw);
+  });
+
+  const arr = Array.from(mapCanonToLabel.values());
+  arr.sort((a,b)=>{
+    const na = Number(nivelCanon_(a)), nb = Number(nivelCanon_(b));
+    const aNum = Number.isFinite(na), bNum = Number.isFinite(nb);
+    if (aNum && bNum) return na - nb;
+    return String(a).localeCompare(String(b));
+  });
+  return arr;
+}
+
+function getNivelesCatalog_() {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sh = ss.getSheetByName("Niveles");
+  if (!sh) throw new Error('No existe la hoja: Niveles');
+
+  const values = sh.getDataRange().getValues();
+  if (!values || values.length < 2) return [];
+
+  const headers = values[0].map(h => normalizeHeader_(h));
+  const idxNivel = headers.indexOf("nivel");
+  const idxNombre = headers.indexOf("nombre");
+  const idxDescripcion = headers.indexOf("descripcion");
+  const idxEjemplos = headers.indexOf("ejemplos");
+
+  if ([idxNivel, idxNombre, idxDescripcion, idxEjemplos].some(i => i < 0)) {
+    throw new Error('La hoja Niveles debe tener: Nivel, Nombre, Descripción, Ejemplos');
+  }
+
+  return values.slice(1)
+    .filter(r => String(r[idxNivel] || "").trim() !== "")
+    .map(r => ({
+      Nivel: r[idxNivel] ?? "",
+      Nombre: r[idxNombre] ?? "",
+      "Descripción": r[idxDescripcion] ?? "",
+      Ejemplos: r[idxEjemplos] ?? ""
+    }));
+}
+
+function getItemsByNivel_(sheetName, nivel) {
+  const { rows, headerIndex } = getSheetValues_(sheetName);
+  const targetCanon = nivel ? nivelCanon_(nivel) : "";
+  const out = [];
+
+  rows.forEach(r => {
+    const rawNivel = (r[headerIndex.nivel] ?? "").toString().trim();
+    const rowCanon = nivelCanon_(rawNivel);
+    if (targetCanon && rowCanon !== targetCanon) return;
+
+ if (sheetName === "Formularios") {
+      out.push({
+        Codigo: headerIndex.codigo == null ? "" : (r[headerIndex.codigo] ?? ""),
+        Nivel: r[headerIndex.nivel] ?? "",
+        Factor: headerIndex.factor == null ? "Cuestionario" : (r[headerIndex.factor] ?? "Cuestionario"),
+        Item: r[headerIndex.item] ?? "",
+        "1": r[headerIndex.one] ?? "",
+        "2": r[headerIndex.two] ?? "",
+        "3": r[headerIndex.three] ?? "",
+        "4": r[headerIndex.four] ?? "",
+        "5": r[headerIndex.five] ?? ""
+      });
+    } else if (sheetName === "Pesos") {  
+  out.push({
+    Codigo: headerIndex.codigo == null ? "" : (r[headerIndex.codigo] ?? ""),
+    Nivel: r[headerIndex.nivel] ?? "",
+    Item: r[headerIndex.item] ?? "",
+    Peso: r[headerIndex.peso] ?? ""
+  });
+}
+  });
+
+  return out;
+}
+
+/**
+ * =========================
+ * BUILD FORM BY NIVEL
+ * =========================
+ */
+function buildFormByNivel_(nivel){
+  const items = getItemsByNivel_("Formularios", nivel);
+  const groups = new Map();
+
+  items.forEach(r=>{
+    const item = String(r.Item ?? "").trim() || "Sin ítem";
+    const factor = String(r.Factor ?? "Cuestionario").trim() || "Cuestionario";
+    const key = `${nivelCanon_(r.Nivel ?? nivel)}|${item}`;
+
+    if(!groups.has(factor)) groups.set(factor, []);
+
+    groups.get(factor).push({
+      key,
+      item,
+      rubrica: {
+        "1": r["1"] ?? "",
+        "2": r["2"] ?? "",
+        "3": r["3"] ?? "",
+        "4": r["4"] ?? "",
+        "5": r["5"] ?? ""
+      }
+    });
+  });
+
+  return {
+    nivel: String(nivel),
+    factors: Array.from(groups.entries()).map(([factor, items]) => ({ factor, items }))
+  };
+}
+
+/**
+ * =========================
+ * ✅ Helper: split cursos "A, B, C" -> ["A","B","C"]
+ * =========================
+ */
+function splitCursos_(txt){
+  const s = String(txt ?? "").trim();
+  if(!s) return [];
+  return s
+    .split(/[,;\n]+/g)
+    .map(x => String(x).trim())
+    .filter(Boolean);
+}
+
+/**
+ * =========================
+ * ✅ CAPACITACION LIST (EvaluacionFinal): por periodo/versión
+ * - Devuelve UNA FILA POR CURSO
+ * =========================
+ */
+function buildCapacitacionList_(periodo, version){
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sh = ss.getSheetByName(EVAL_FINAL_SHEET_NAME);
+  if(!sh) throw new Error(`No existe la hoja: ${EVAL_FINAL_SHEET_NAME}`);
+
+  const values = sh.getDataRange().getValues();
+  if(!values || values.length < 2) return { rows: [] };
+
+  const headers = values[0].map(h=>String(h||"").trim());
+  const headersNorm = headers.map(h=>normalizeHeader_(h));
+  const rows = values.slice(1);
+
+  const idxNo  = findIndexByAliases_(headersNorm, ["no de personal","no. de personal","no personal","numero de personal","n° de personal"]);
+  const idxNom = findIndexByAliases_(headersNorm, ["nombre"]);
+  const idxPos = findIndexByAliases_(headersNorm, ["posicion","posición","puesto","cargo"]);
+  const idxDep = findIndexByAliases_(headersNorm, ["departamento","depto"]);
+  const idxPer = findIndexByAliases_(headersNorm, ["periodo","período"]);
+  const idxVer = findIndexByAliases_(headersNorm, ["version","versión"]);
+  const idxCap = findIndexByAliases_(headersNorm, ["necesidades de capacitacion","necesidades de capacitación"]);
+
+  if(idxNo == null || idxPer == null || idxVer == null){
+    throw new Error("EvaluacionFinal: faltan encabezados clave (No/Periodo/Versión).");
+  }
+
+  const tPer = normalizeHeader_(periodo);
+  const tVer = normalizeHeader_(version);
+
+  const out = [];
+  for(let i=0;i<rows.length;i++){
+    const r = rows[i];
+    const vPer = normalizeHeader_(r[idxPer] ?? "");
+    const vVer = normalizeHeader_(r[idxVer] ?? "");
+    if(vPer !== tPer) continue;
+    if(vVer !== tVer) continue;
+
+    const cursosRaw = String(idxCap != null ? (r[idxCap] ?? "") : "").trim();
+    const cursos = splitCursos_(cursosRaw);
+
+    if(!cursos.length) continue;
+
+    cursos.forEach(curso=>{
+      out.push({
+        no: String(r[idxNo] ?? "").trim(),
+        nombre: String(idxNom != null ? (r[idxNom] ?? "") : "").trim(),
+        posicion: String(idxPos != null ? (r[idxPos] ?? "") : "").trim(),
+        depto: String(idxDep != null ? (r[idxDep] ?? "") : "").trim(),
+        periodo: String(r[idxPer] ?? "").trim(),
+        version: String(r[idxVer] ?? "").trim(),
+        curso: String(curso || "").trim()
+      });
+    });
+  }
+
+  return { rows: out };
+}
+
+/**
+ * =========================
+ * ✅ CAPACITACION SAVE: guarda en Plancapacitacion (APPEND)
+ * =========================
+ */
+function saveCapacitacionSheet_(payload){
+  if(!payload) throw new Error("Payload vacío (capacitacionSave).");
+
+  const periodo = String(payload.periodo || "").trim();
+  const version = String(payload.version || "").trim();
+  const rows = Array.isArray(payload.rows) ? payload.rows : [];
+
+  if(!periodo || !version) throw new Error("capacitacionSave: faltan periodo/version.");
+  if(!rows.length) return { sheet: CAP_SHEET_NAME, rows: 0 };
+
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  let sh = ss.getSheetByName(CAP_SHEET_NAME);
+  if(!sh) sh = ss.insertSheet(CAP_SHEET_NAME);
+
+  const headers = ["No de personal","Nombre","Posición","Departamento","Periodo","Versión","Curso"];
+
+  if(sh.getLastRow() === 0 || sh.getLastColumn() === 0){
+    sh.getRange(1,1,1,headers.length).setValues([headers]);
+    sh.setFrozenRows(1);
+  } else {
+    const existing = sh.getRange(1,1,1,Math.max(sh.getLastColumn(), headers.length)).getValues()[0]
+      .map(h=>String(h||"").trim());
+    const norm = existing.map(normalizeHeader_);
+    const need = headers.map(normalizeHeader_);
+    const ok = need.every(h => norm.includes(h));
+    if(!ok){
+      sh.getRange(1,1,1,headers.length).setValues([headers]);
+      sh.setFrozenRows(1);
+    }
+  }
+
+  const startRow = sh.getLastRow() + 1;
+  const data = rows.map(r => ([
+    String(r.no ?? ""),
+    String(r.nombre ?? ""),
+    String(r.posicion ?? ""),
+    String(r.depto ?? ""),
+    String(r.periodo ?? periodo),
+    String(r.version ?? version),
+    String(r.curso ?? "")
+  ]));
+
+  sh.getRange(startRow, 1, data.length, headers.length).setValues(data);
+  return { sheet: CAP_SHEET_NAME, rows: data.length };
+}
+
+/**
+ * =========================
+ * ✅ CAPACITACION: INFORME (legacy 1 registro)
+ * =========================
+ */
+function buildCapacitacionReporte_(no, periodo, version){
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sh = ss.getSheetByName(EVAL_FINAL_SHEET_NAME);
+  if(!sh) throw new Error(`No existe la hoja: ${EVAL_FINAL_SHEET_NAME}`);
+
+  const values = sh.getDataRange().getValues();
+  if(!values || values.length < 2) throw new Error("EvaluacionFinal no tiene datos.");
+
+  const headers = values[0].map(h=>String(h||"").trim());
+  const headersNorm = headers.map(h=>normalizeHeader_(h));
+  const rows = values.slice(1);
+
+  const idxNo = findIndexByAliases_(headersNorm, ["no de personal","no. de personal","no personal","numero de personal","n° de personal"]);
+  const idxPer = findIndexByAliases_(headersNorm, ["periodo","período"]);
+  const idxVer = findIndexByAliases_(headersNorm, ["version","versión"]);
+  const idxNom = findIndexByAliases_(headersNorm, ["nombre"]);
+  const idxPos = findIndexByAliases_(headersNorm, ["posicion","posición","puesto","cargo"]);
+  const idxDep = findIndexByAliases_(headersNorm, ["departamento","depto"]);
+  const idxCap = findIndexByAliases_(headersNorm, ["necesidades de capacitacion","necesidades de capacitación"]);
+
+  if(idxNo == null || idxPer == null || idxVer == null) {
+    throw new Error("EvaluacionFinal: faltan encabezados clave (No/Periodo/Versión).");
+  }
+
+  const targetNo = normalizeHeader_(no);
+  const targetPer = normalizeHeader_(periodo);
+  const targetVer = normalizeHeader_(version);
+
+  let picked = null;
+  let pickedRowNum = -1;
+
+  for(let i=0;i<rows.length;i++){
+    const r = rows[i];
+    const vNo = normalizeHeader_(r[idxNo] ?? "");
+    const vPer = normalizeHeader_(r[idxPer] ?? "");
+    const vVer = normalizeHeader_(r[idxVer] ?? "");
+    if(vNo !== targetNo) continue;
+    if(vPer !== targetPer) continue;
+    if(vVer !== targetVer) continue;
+
+    const rn = i + 2;
+    if(rn > pickedRowNum){
+      pickedRowNum = rn;
+      picked = r;
+    }
+  }
+
+  if(!picked) throw new Error("No se encontró el registro en EvaluacionFinal con esos criterios.");
+
+  const row = {
+    no: String(picked[idxNo] ?? "").trim(),
+    nombre: String(idxNom != null ? (picked[idxNom] ?? "") : "").trim(),
+    posicion: String(idxPos != null ? (picked[idxPos] ?? "") : "").trim(),
+    depto: String(idxDep != null ? (picked[idxDep] ?? "") : "").trim(),
+    periodo: String(picked[idxPer] ?? "").trim(),
+    version: String(picked[idxVer] ?? "").trim(),
+    necesidadesCapacitacion: String(idxCap != null ? (picked[idxCap] ?? "") : "").trim(),
+  };
+
+  return { row };
+}
+
+/**
+ * =========================
+ * ✅ DESARROLLO: PLAN (EvaluacionFinal)
+ * =========================
+ */
+function buildDesarrolloPlan_(no, periodo, version){
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sh = ss.getSheetByName(EVAL_FINAL_SHEET_NAME);
+  if(!sh) throw new Error(`No existe la hoja: ${EVAL_FINAL_SHEET_NAME}`);
+
+  const values = sh.getDataRange().getValues();
+  if(!values || values.length < 2) throw new Error("EvaluacionFinal no tiene datos.");
+
+  const headers = values[0].map(h=>String(h||"").trim());
+  const headersNorm = headers.map(h=>normalizeHeader_(h));
+  const rows = values.slice(1);
+
+  const idxNo  = findIndexByAliases_(headersNorm, ["no de personal","no. de personal","no personal","numero de personal","n° de personal"]);
+  const idxPer = findIndexByAliases_(headersNorm, ["periodo","período"]);
+  const idxVer = findIndexByAliases_(headersNorm, ["version","versión"]);
+
+  const idxOp = findIndexByAliases_(headersNorm, ["oportunidades de mejora"]);
+  const idxProy = findIndexByAliases_(headersNorm, ["proyeccion y potencial de desarrollo","proyección y potencial de desarrollo"]);
+
+  if(idxNo == null || idxPer == null || idxVer == null){
+    throw new Error("EvaluacionFinal: faltan encabezados clave (No/Periodo/Versión).");
+  }
+  if(idxOp == null && idxProy == null){
+    throw new Error("EvaluacionFinal: no encuentro encabezados de Oportunidades/Proyección.");
+  }
+
+  const targetNo = normalizeHeader_(no);
+  const targetPer = normalizeHeader_(periodo);
+  const targetVer = normalizeHeader_(version);
+
+  let picked = null;
+  let pickedRowNum = -1;
+
+  for(let i=0;i<rows.length;i++){
+    const r = rows[i];
+    const vNo = normalizeHeader_(r[idxNo] ?? "");
+    const vPer = normalizeHeader_(r[idxPer] ?? "");
+    const vVer = normalizeHeader_(r[idxVer] ?? "");
+    if(vNo !== targetNo) continue;
+    if(vPer !== targetPer) continue;
+    if(vVer !== targetVer) continue;
+
+    const rn = i + 2;
+    if(rn > pickedRowNum){
+      pickedRowNum = rn;
+      picked = r;
+    }
+  }
+
+  if(!picked) throw new Error("No se encontró el registro en EvaluacionFinal con esos criterios.");
+
+  const opTxt = String(idxOp != null ? (picked[idxOp] ?? "") : "").trim();
+  const proyTxt = String(idxProy != null ? (picked[idxProy] ?? "") : "").trim();
+
+  const out = [];
+
+  splitPlanLines_(opTxt).forEach(line=>{
+    out.push({
+      area: "Oportunidades de mejora",
+      necesidad: line,
+      accion: "",
+      fechaObjetivo: "",
+      responsable: ""
+    });
+  });
+
+  splitPlanLines_(proyTxt).forEach(line=>{
+    out.push({
+      area: "Proyección y potencial de desarrollo",
+      necesidad: line,
+      accion: "",
+      fechaObjetivo: "",
+      responsable: ""
+    });
+  });
+
+  return {
+    oportunidadesMejora: opTxt,
+    proyeccionPotencial: proyTxt,
+    rows: out
+  };
+}
+
+function splitPlanLines_(txt){
+  const s = String(txt ?? "").trim();
+  if(!s) return [];
+  return s
+    .split(/\n+|[,;]+/g)
+    .map(x => String(x).trim())
+    .filter(Boolean);
+}
+
+
+/**
+ * =========================
+ * ✅ RESULTADO: REPORTE (EvaluacionFinal + Pesos + Formularios)
+ * =========================
+ */
+
+function recoverObservaciones_(no, periodo, version){
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sh = ss.getSheetByName(OBSERVACIONES_SHEET_NAME);
+  if(!sh) return [];
+
+  const values = sh.getDataRange().getValues();
+  if(!values || values.length < 2) return [];
+
+  const headers = values[0].map(h => String(h || "").trim());
+  const headersNorm = headers.map(h => normalizeHeader_(h));
+  const rows = values.slice(1);
+
+  const idxNo   = findIndexByAliases_(headersNorm, ["no de personal","no. de personal","no personal","numero de personal","n° de personal"]);
+  const idxNom  = findIndexByAliases_(headersNorm, ["nombre"]);
+  const idxPer  = findIndexByAliases_(headersNorm, ["periodo","período"]);
+  const idxVer  = findIndexByAliases_(headersNorm, ["version","versión"]);
+  const idxFec  = findIndexByAliases_(headersNorm, ["fecha"]);
+  const idxObs  = findIndexByAliases_(headersNorm, ["observaciones","observacion","observación"]);
+  const idxResp = findIndexByAliases_(headersNorm, ["responsable","evaluador","usuario","user"]);
+  const idxTipo = findIndexByAliases_(headersNorm, ["tipo"]);
+
+  if(idxNo == null || idxPer == null || idxVer == null) return [];
+
+  const targetNo  = normalizeHeader_(no);
+  const targetPer = normalizeHeader_(periodo);
+  const targetVer = normalizeHeader_(version);
+
+  const out = [];
+
+  rows.forEach((r, i) => {
+    const vNo  = normalizeHeader_(r[idxNo] ?? "");
+    const vPer = normalizeHeader_(r[idxPer] ?? "");
+    const vVer = normalizeHeader_(r[idxVer] ?? "");
+
+    if(vNo !== targetNo) return;
+    if(vPer !== targetPer) return;
+    if(vVer !== targetVer) return;
+
+    out.push({
+      rowNumber: i + 2,
+      no: String(r[idxNo] ?? "").trim(),
+      nombre: String(idxNom != null ? (r[idxNom] ?? "") : "").trim(),
+      periodo: String(r[idxPer] ?? "").trim(),
+      version: String(r[idxVer] ?? "").trim(),
+      fecha: String(idxFec != null ? (r[idxFec] ?? "") : "").trim(),
+      observaciones: String(idxObs != null ? (r[idxObs] ?? "") : "").trim(),
+      responsable: String(idxResp != null ? (r[idxResp] ?? "") : "").trim(),
+      tipo: String(idxTipo != null ? (r[idxTipo] ?? "") : "").trim()
+    });
+  });
+
+  out.sort((a,b) => Number(b.rowNumber || 0) - Number(a.rowNumber || 0));
+  return out;
+}
+
+function buildResultadoReporte_(no, periodo, version){
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sh = ss.getSheetByName(EVAL_FINAL_SHEET_NAME);
+  if(!sh) throw new Error(`No existe la hoja: ${EVAL_FINAL_SHEET_NAME}`);
+
+  const values = sh.getDataRange().getValues();
+  if(!values || values.length < 2) throw new Error("EvaluacionFinal no tiene datos.");
+
+  const headers = values[0].map(h=>String(h||"").trim());
+  const headersNorm = headers.map(h=>normalizeHeader_(h));
+  const rows = values.slice(1);
+
+  const idxNo = findIndexByAliases_(headersNorm, ["no de personal","no. de personal","no personal","numero de personal","n° de personal"]);
+  const idxPer = findIndexByAliases_(headersNorm, ["periodo","período"]);
+  const idxVer = findIndexByAliases_(headersNorm, ["version","versión"]);
+  const idxNom = findIndexByAliases_(headersNorm, ["nombre"]);
+  const idxPos = findIndexByAliases_(headersNorm, ["posicion","posición","puesto","cargo"]);
+  const idxDep = findIndexByAliases_(headersNorm, ["departamento","depto"]);
+  const idxFec = findIndexByAliases_(headersNorm, ["fecha"]);
+  const idxNivel = findIndexByAliases_(headersNorm, ["nivel"]);
+const idxPFinal = findIndexByAliases_(headersNorm, ["puntaje final","puntaje"]);
+
+  const idxJust = findIndexByAliases_(headersNorm, ["justificacion y comentarios","justificacion","comentarios"]);
+  const idxCli = findIndexByAliases_(headersNorm, ["evaluacion de clientes","evaluación de clientes"]);
+  const idxComCol = findIndexByAliases_(headersNorm, ["comentarios del colaborador"]);
+  const idxFort = findIndexByAliases_(headersNorm, ["fortalezas"]);
+  const idxOp = findIndexByAliases_(headersNorm, ["oportunidades de mejora"]);
+  const idxProy = findIndexByAliases_(headersNorm, ["proyeccion y potencial de desarrollo","proyección y potencial de desarrollo"]);
+  const idxCap = findIndexByAliases_(headersNorm, ["necesidades de capacitacion","necesidades de capacitación"]);
+  const idxComEv = findIndexByAliases_(headersNorm, ["comentarios del evaluador"]);
+  const idxNomEv = findIndexByAliases_(headersNorm, ["nombre del evaluador"]);
+
+  const respIdx = getRespIndexes_(headers);
+
+  const targetNo = normalizeHeader_(no);
+  const targetPer = normalizeHeader_(periodo);
+  const targetVer = normalizeHeader_(version);
+
+  let picked = null;
+  let pickedRowNum = -1;
+
+  for(let i=0;i<rows.length;i++){
+    const r = rows[i];
+    const vNo = normalizeHeader_(r[idxNo] ?? "");
+    const vPer = normalizeHeader_(r[idxPer] ?? "");
+    const vVer = normalizeHeader_(r[idxVer] ?? "");
+    if(vNo !== targetNo) continue;
+    if(vPer !== targetPer) continue;
+    if(vVer !== targetVer) continue;
+
+    const rn = i + 2;
+    if(rn > pickedRowNum){
+      pickedRowNum = rn;
+      picked = r;
+    }
+  }
+
+  if(!picked) throw new Error("No se encontró el registro en EvaluacionFinal con esos criterios.");
+
+  const nivelLabel = String(picked[idxNivel] ?? "").trim();
+  const nivelCanon = nivelCanon_(nivelLabel || "1");
+
+  const respuestas = respIdx.map(ix => String(picked[ix] ?? "").trim());
+
+  const pesosMap = buildPesosMap_(nivelCanon);
+  const form = buildFormByNivel_(nivelCanon);
+
+  const outRows = [];
+  let sum = 0;
+
+  let qIndex = 0;
+  (form.factors || []).forEach(f=>{
+    (f.items || []).forEach(it=>{
+      const respuesta = String(respuestas[qIndex] ?? "").trim();
+      const score = extractScore_(respuesta);
+      const peso = getPesoFromMap_(pesosMap, nivelCanon, f.factor, it.item);
+      const pesoNum = toNumber_(peso);
+
+      const scoreNum = score ? Number(score) : 0;
+      const puntajeItem = (pesoNum && scoreNum) ? ((scoreNum/5) * pesoNum) : 0;
+
+      sum += puntajeItem;
+
+      outRows.push({
+        factor: String(f.factor || "").trim(),
+        item: String(it.item || "").trim(),
+        respuesta: respuesta,
+        peso: (peso == null ? "" : String(peso)),
+        puntajeItem: puntajeItem ? round2_(puntajeItem) : "0"
+      });
+
+      qIndex++;
+    });
+  });
+
+  const header = {
+    no: String(picked[idxNo] ?? "").trim(),
+    nombre: String(picked[idxNom] ?? "").trim(),
+    posicion: String(picked[idxPos] ?? "").trim(),
+    depto: String(picked[idxDep] ?? "").trim(),
+    periodo: String(picked[idxPer] ?? "").trim(),
+    version: String(picked[idxVer] ?? "").trim(),
+    fecha: String(picked[idxFec] ?? "").trim(),
+    nivel: nivelLabel
+  };
+
+  const cualitativo = {
+    justificacion: String(picked[idxJust] ?? "").trim(),
+    evaluacionClientes: String(picked[idxCli] ?? "").trim(),
+    comentariosColaborador: String(picked[idxComCol] ?? "").trim(),
+    fortalezas: String(picked[idxFort] ?? "").trim(),
+    oportunidadesMejora: String(picked[idxOp] ?? "").trim(),
+    proyeccionPotencial: String(picked[idxProy] ?? "").trim(),
+    necesidadesCapacitacion: String(picked[idxCap] ?? "").trim(),
+    comentariosEvaluador: String(picked[idxComEv] ?? "").trim(),
+    nombreEvaluador: String(picked[idxNomEv] ?? "").trim(),
+  };
+
+     // ✅ Si EvaluacionFinal trae Puntaje final, lo usamos (prioridad).
+  // Si está vacío o no numérico, usamos el calculado por pesos/respuestas.
+  let puntajeFinalOut = round2_(sum);
+
+  if(idxPFinal != null){
+    const pfRaw = picked[idxPFinal] ?? "";
+    const pfNum = toNumber_(pfRaw);
+    if(pfNum) puntajeFinalOut = round2_(pfNum);
+  }
+
+  return {
+    header,
+    rows: outRows,
+    puntajeFinal: puntajeFinalOut,
+    cualitativo
+  };
+}
+
+function buildReporteCalificaciones_(no, depto, periodo, version){
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sh = ss.getSheetByName(EVAL_FINAL_SHEET_NAME);
+  if(!sh) throw new Error(`No existe la hoja: ${EVAL_FINAL_SHEET_NAME}`);
+
+  const values = sh.getDataRange().getValues();
+  if(!values || values.length < 2) throw new Error("EvaluacionFinal no tiene datos.");
+
+  const headers = values[0].map(h=>String(h||"").trim());
+  const headersNorm = headers.map(h=>normalizeHeader_(h));
+  const rows = values.slice(1);
+
+  const idxNo = findIndexByAliases_(headersNorm, ["no de personal","no. de personal","no personal","numero de personal","n° de personal"]);
+  const idxPer = findIndexByAliases_(headersNorm, ["periodo","período"]);
+  const idxVer = findIndexByAliases_(headersNorm, ["version","versión"]);
+  const idxNom = findIndexByAliases_(headersNorm, ["nombre"]);
+  const idxPos = findIndexByAliases_(headersNorm, ["posicion","posición","puesto","cargo"]);
+  const idxDep = findIndexByAliases_(headersNorm, ["departamento","depto"]);
+  const idxFec = findIndexByAliases_(headersNorm, ["fecha"]);
+  const idxPFinal = findIndexByAliases_(headersNorm, ["puntaje final","puntaje"]);
+
+  if(idxNo == null || idxPer == null || idxVer == null){
+    throw new Error("EvaluacionFinal: faltan encabezados clave (No/Periodo/Versión).");
+  }
+
+  const targetNo = normalizeHeader_(no);
+  const targetDep = normalizeHeader_(depto);
+  const targetPer = normalizeHeader_(periodo);
+  const targetVer = normalizeHeader_(version);
+
+  const usarTodosNo = targetNo === "todos" || targetNo === "todo";
+  const usarTodosDep = targetDep === "todos" || targetDep === "todo";
+
+  const outRows = rows
+    .map((r, i) => {
+      const vNo = normalizeHeader_(r[idxNo] ?? "");
+      const vPer = normalizeHeader_(r[idxPer] ?? "");
+      const vVer = normalizeHeader_(r[idxVer] ?? "");
+      const vDep = normalizeHeader_(idxDep != null ? (r[idxDep] ?? "") : "");
+
+      if(!usarTodosNo && vNo !== targetNo) return null;
+      if(!usarTodosDep && vDep !== targetDep) return null;
+      if(vPer !== targetPer) return null;
+      if(vVer !== targetVer) return null;
+
+      const pfRaw = idxPFinal != null ? (r[idxPFinal] ?? "") : "";
+      const pfNum = toNumber_(pfRaw);
+
+      return {
+        _row: i + 2,
+        no: String(r[idxNo] ?? "").trim(),
+        nombre: String(idxNom != null ? (r[idxNom] ?? "") : "").trim(),
+        posicion: String(idxPos != null ? (r[idxPos] ?? "") : "").trim(),
+        depto: String(idxDep != null ? (r[idxDep] ?? "") : "").trim(),
+        version: String(r[idxVer] ?? "").trim(),
+        fecha: String(idxFec != null ? (r[idxFec] ?? "") : "").trim(),
+        puntajeFinal: round2_(pfNum)
+      };
+    })
+    .filter(Boolean)
+    .sort((a,b)=>{
+      const noA = String(a.no || "");
+      const noB = String(b.no || "");
+      return noA.localeCompare(noB, undefined, { numeric:true, sensitivity:"base" });
+    });
+
+  if(!outRows.length){
+    throw new Error("No se encontraron registros en EvaluacionFinal con esos filtros.");
+  }
+
+  return { rows: outRows };
+}
+
+function buildReporteProyeccionPotencial_(no, depto, periodo, version){
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sh = ss.getSheetByName(EVAL_FINAL_SHEET_NAME);
+  if(!sh) throw new Error(`No existe la hoja: ${EVAL_FINAL_SHEET_NAME}`);
+
+  const values = sh.getDataRange().getValues();
+  if(!values || values.length < 2) throw new Error("EvaluacionFinal no tiene datos.");
+
+  const headers = values[0].map(h=>String(h||"").trim());
+  const headersNorm = headers.map(h=>normalizeHeader_(h));
+  const rows = values.slice(1);
+
+  const idxNo = findIndexByAliases_(headersNorm, ["no de personal","no. de personal","no personal","numero de personal","n° de personal"]);
+  const idxPer = findIndexByAliases_(headersNorm, ["periodo","período"]);
+  const idxVer = findIndexByAliases_(headersNorm, ["version","versión"]);
+  const idxNom = findIndexByAliases_(headersNorm, ["nombre"]);
+  const idxPos = findIndexByAliases_(headersNorm, ["posicion","posición","puesto","cargo"]);
+  const idxDep = findIndexByAliases_(headersNorm, ["departamento","depto"]);
+  const idxFec = findIndexByAliases_(headersNorm, ["fecha"]);
+  const idxProy = findIndexByAliases_(headersNorm, ["proyeccion y potencial de desarrollo","proyección y potencial de desarrollo"]);
+
+  if(idxNo == null || idxPer == null || idxVer == null){
+    throw new Error("EvaluacionFinal: faltan encabezados clave (No/Periodo/Versión).");
+  }
+  if(idxProy == null){
+    throw new Error("EvaluacionFinal: no encuentro el encabezado de Proyección y potencial de desarrollo.");
+  }
+
+  const targetNo = normalizeHeader_(no);
+  const targetDep = normalizeHeader_(depto);
+  const targetPer = normalizeHeader_(periodo);
+  const targetVer = normalizeHeader_(version);
+
+  const usarTodosNo = targetNo === "todos" || targetNo === "todo";
+  const usarTodosDep = targetDep === "todos" || targetDep === "todo";
+
+  const outRows = rows
+    .map((r, i) => {
+      const vNo  = normalizeHeader_(r[idxNo] ?? "");
+      const vPer = normalizeHeader_(r[idxPer] ?? "");
+      const vVer = normalizeHeader_(r[idxVer] ?? "");
+      const vDep = normalizeHeader_(idxDep != null ? (r[idxDep] ?? "") : "");
+
+      if(!usarTodosNo && vNo !== targetNo) return null;
+      if(!usarTodosDep && vDep !== targetDep) return null;
+      if(vPer !== targetPer) return null;
+      if(vVer !== targetVer) return null;
+
+      return {
+        _row: i + 2,
+        no: String(r[idxNo] ?? "").trim(),
+        nombre: String(idxNom != null ? (r[idxNom] ?? "") : "").trim(),
+        posicion: String(idxPos != null ? (r[idxPos] ?? "") : "").trim(),
+        depto: String(idxDep != null ? (r[idxDep] ?? "") : "").trim(),
+        version: String(r[idxVer] ?? "").trim(),
+        fecha: String(idxFec != null ? (r[idxFec] ?? "") : "").trim(),
+        proyeccionPotencial: String(r[idxProy] ?? "").trim()
+      };
+    })
+    .filter(Boolean)
+    .sort((a,b)=>{
+      const noA = String(a.no || "");
+      const noB = String(b.no || "");
+      return noA.localeCompare(noB, undefined, { numeric:true, sensitivity:"base" });
+    });
+
+  if(!outRows.length){
+    throw new Error("No se encontraron registros en EvaluacionFinal con esos filtros.");
+  }
+
+  return { rows: outRows };
+}
+
+function buildReporteOportunidadesMejora_(no, depto, periodo, version){
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sh = ss.getSheetByName(EVAL_FINAL_SHEET_NAME);
+  if(!sh) throw new Error(`No existe la hoja: ${EVAL_FINAL_SHEET_NAME}`);
+
+  const values = sh.getDataRange().getValues();
+  if(!values || values.length < 2) throw new Error("EvaluacionFinal no tiene datos.");
+
+  const headers = values[0].map(h=>String(h||"").trim());
+  const headersNorm = headers.map(h=>normalizeHeader_(h));
+  const rows = values.slice(1);
+
+  const idxNo = findIndexByAliases_(headersNorm, ["no de personal","no. de personal","no personal","numero de personal","n° de personal"]);
+  const idxPer = findIndexByAliases_(headersNorm, ["periodo","período"]);
+  const idxVer = findIndexByAliases_(headersNorm, ["version","versión"]);
+  const idxNom = findIndexByAliases_(headersNorm, ["nombre"]);
+  const idxPos = findIndexByAliases_(headersNorm, ["posicion","posición","puesto","cargo"]);
+  const idxDep = findIndexByAliases_(headersNorm, ["departamento","depto"]);
+  const idxFec = findIndexByAliases_(headersNorm, ["fecha"]);
+  const idxOp = findIndexByAliases_(headersNorm, ["oportunidades de mejora"]);
+
+  if(idxNo == null || idxPer == null || idxVer == null){
+    throw new Error("EvaluacionFinal: faltan encabezados clave (No/Periodo/Versión).");
+  }
+  if(idxOp == null){
+    throw new Error("EvaluacionFinal: no encuentro el encabezado de Oportunidades de mejora.");
+  }
+
+  const targetNo = normalizeHeader_(no);
+  const targetDep = normalizeHeader_(depto);
+  const targetPer = normalizeHeader_(periodo);
+  const targetVer = normalizeHeader_(version);
+
+  const usarTodosNo = targetNo === "todos" || targetNo === "todo";
+  const usarTodosDep = targetDep === "todos" || targetDep === "todo";
+
+  const outRows = rows
+    .map((r, i) => {
+      const vNo  = normalizeHeader_(r[idxNo] ?? "");
+      const vPer = normalizeHeader_(r[idxPer] ?? "");
+      const vVer = normalizeHeader_(r[idxVer] ?? "");
+      const vDep = normalizeHeader_(idxDep != null ? (r[idxDep] ?? "") : "");
+
+      if(!usarTodosNo && vNo !== targetNo) return null;
+      if(!usarTodosDep && vDep !== targetDep) return null;
+      if(vPer !== targetPer) return null;
+      if(vVer !== targetVer) return null;
+
+      return {
+        _row: i + 2,
+        no: String(r[idxNo] ?? "").trim(),
+        nombre: String(idxNom != null ? (r[idxNom] ?? "") : "").trim(),
+        posicion: String(idxPos != null ? (r[idxPos] ?? "") : "").trim(),
+        depto: String(idxDep != null ? (r[idxDep] ?? "") : "").trim(),
+        version: String(r[idxVer] ?? "").trim(),
+        fecha: String(idxFec != null ? (r[idxFec] ?? "") : "").trim(),
+        oportunidadesMejora: String(r[idxOp] ?? "").trim()
+      };
+    })
+    .filter(Boolean)
+    .sort((a,b)=>{
+      const noA = String(a.no || "");
+      const noB = String(b.no || "");
+      return noA.localeCompare(noB, undefined, { numeric:true, sensitivity:"base" });
+    });
+
+  if(!outRows.length){
+    throw new Error("No se encontraron registros en EvaluacionFinal con esos filtros.");
+  }
+
+  return { rows: outRows };
+}
+    
+function buildPesosMap_(nivelCanon){
+  const items = getItemsByNivel_("Pesos", nivelCanon);
+  const map = new Map();
+  items.forEach(r=>{
+    const key = makePesosKey_(r.Nivel, r.Item);
+    if(!map.has(key)) map.set(key, r.Peso);
+  });
+  return map;
+}
+function getPesoFromMap_(map, nivelCanon, factor, item){
+  const key = makePesosKey_(nivelCanon, item);
+  return map.get(key) ?? "";
+}
+function extractScore_(v){
+  const s = String(v||"").trim();
+  const m = s.match(/^([1-5])\s*[\—\-]/) || s.match(/^([1-5])\b/);
+  return m ? m[1] : "";
+}
+function toNumber_(v){
+  const s = String(v ?? "")
+    .trim()
+    .replace(",", ".")
+    .replace(/%/g, "")
+    .replace(/[^\d.\-]/g, "");
+  const n = Number(s);
+  return Number.isFinite(n) ? n : 0;
+}
+function round2_(n){
+  const x = Number(n);
+  if(!Number.isFinite(x)) return "0.00";
+  return (Math.round(x * 100) / 100).toFixed(2);
+}
+
+/**
+ * =========================
+ * ✅ NUEVO: Calcula puntaje final al GUARDAR (DESEMPENO)
+ * =========================
+ */
+function calcPuntajeFinalOnSave_(nivelRef, respuestasLabelArr, respuestasNumArr, itemKeysOpt){
+  const nivelCanon = nivelCanon_(String(nivelRef || "1").trim() || "1");
+  const pesosMap = buildPesosMap_(nivelCanon);
+
+  // Helper: obtiene score 1..5 desde respuestasNum (preferido) o desde label
+  function getScore_(idx){
+    const rawNum = String((respuestasNumArr && respuestasNumArr[idx]) ?? "").trim();
+    const rawLbl = String((respuestasLabelArr && respuestasLabelArr[idx]) ?? "").trim();
+    const scoreStr = rawNum || extractScore_(rawLbl);
+    let n = scoreStr ? Number(scoreStr) : 0;
+    if(!Number.isFinite(n)) n = 0;
+    if(n < 1 || n > 5) n = 0;
+    return n;
+  }
+
+  let sum = 0;
+
+
+
+  // ✅ 2) Fallback: reconstruye el orden oficial desde Formularios por nivel
+  const form = buildFormByNivel_(nivelCanon);
+  let qIndex = 0;
+
+const keys = Array.isArray(itemKeysOpt) ? itemKeysOpt : [];
+
+if(keys.length){
+  for(let i=0; i<keys.length; i++){
+    const key = String(keys[i] || "");
+    const parts = key.split("|");
+    const factor = (parts[1] ?? "").trim();
+    const item   = (parts.length >= 3 ? parts[2] : parts[1] ?? "").trim();
+
+    const scoreNum = getScore_(i);
+    const peso = getPesoFromMap_(pesosMap, nivelCanon, factor, item);
+    const pesoNum = toNumber_(peso);
+
+    sum += (pesoNum > 0 && scoreNum > 0) ? ((scoreNum/5) * pesoNum) : 0;
+  }
+} else {
+  (form.factors || []).forEach(f=>{
+    (f.items || []).forEach(it=>{
+      const scoreNum = getScore_(qIndex);
+      const peso = getPesoFromMap_(pesosMap, nivelCanon, f.factor, it.item);
+      const pesoNum = toNumber_(peso);
+
+      sum += (pesoNum > 0 && scoreNum > 0) ? ((scoreNum/5) * pesoNum) : 0;
+      qIndex++;
+    });
+  });
+}
+
+return round2_(sum);
+}
+
+/**
+ * =========================
+ * RECOVER: AUTOEVALUACION
+ * =========================
+ */
+function recoverAuto_(no, periodo, version){
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sh = ss.getSheetByName(AUTO_SHEET_NAME);
+  if(!sh) return [];
+
+  const values = sh.getDataRange().getValues();
+  if(!values || values.length < 2) return [];
+
+  const headers = values[0].map(h=>String(h||"").trim());
+  const headersNorm = headers.map(h=>normalizeHeader_(h));
+  const rows = values.slice(1);
+
+  const idxNo = findIndexByAliases_(headersNorm, ["no de personal","no. de personal","no personal","numero de personal","n° de personal"]);
+  const idxPer = findIndexByAliases_(headersNorm, ["periodo","período"]);
+  const idxVer = findIndexByAliases_(headersNorm, ["version","versión"]);
+  const idxNom = findIndexByAliases_(headersNorm, ["nombre"]);
+  const idxPos = findIndexByAliases_(headersNorm, ["posicion","posición","puesto","cargo"]);
+  const idxDep = findIndexByAliases_(headersNorm, ["departamento","depto"]);
+  const idxFec = findIndexByAliases_(headersNorm, ["fecha"]);
+  const idxNivel = findIndexByAliases_(headersNorm, ["nivel"]);
+  const idxCom = findIndexByAliases_(headersNorm, ["comentarios del colaborador","comentarios"]);
+
+  const respIdx = getRespIndexes_(headers);
+
+  const out = [];
+  const targetNo = normalizeHeader_(no);
+  const targetPer = normalizeHeader_(periodo);
+  const targetVer = normalizeHeader_(version);
+
+  for(let i=0;i<rows.length;i++){
+    const r = rows[i];
+    const vNo = normalizeHeader_(r[idxNo] ?? "");
+    const vPer = normalizeHeader_(r[idxPer] ?? "");
+    const vVer = normalizeHeader_(r[idxVer] ?? "");
+    if(vNo !== targetNo) continue;
+    if(vPer !== targetPer) continue;
+    if(vVer !== targetVer) continue;
+
+    const respuestas = respIdx.map(ix => String(r[ix] ?? "").trim()).filter(x => x !== "");
+    out.push({
+      rowNumber: i + 2,
+      no: String(r[idxNo] ?? "").trim(),
+      nombre: String(r[idxNom] ?? "").trim(),
+      posicion: String(r[idxPos] ?? "").trim(),
+      depto: String(r[idxDep] ?? "").trim(),
+      periodo: String(r[idxPer] ?? "").trim(),
+      version: String(r[idxVer] ?? "").trim(),
+      fecha: String(r[idxFec] ?? "").trim(),
+      nivel: String(r[idxNivel] ?? "").trim(),
+      comentarios: String(r[idxCom] ?? "").trim(),
+      respuestas: respuestas
+    });
+  }
+
+  out.sort((a,b)=> (b.rowNumber||0) - (a.rowNumber||0));
+  return out.slice(0, 50);
+}
+
+function getRespIndexes_(headers){
+  const pairs = [];
+  for(let i=0;i<headers.length;i++){
+    const h = String(headers[i]||"").trim();
+    const m = h.match(/^Resp(\d+)$/i);
+    if(m) pairs.push([Number(m[1]), i]);
+  }
+  pairs.sort((a,b)=>a[0]-b[0]);
+  return pairs.map(p=>p[1]);
+}
+
+/**
+ * =========================
+ * ✅ RECOVER: CLIENTES (para SSC)
+ * =========================
+ */
+function recoverClientes_(no, periodo, version){
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sh = ss.getSheetByName(CLIENTES_SHEET_NAME);
+  if(!sh) return [];
+
+  const values = sh.getDataRange().getValues();
+  if(!values || values.length < 2) return [];
+
+  const headers = values[0].map(h=>String(h||"").trim());
+  const headersNorm = headers.map(h=>normalizeHeader_(h));
+  const rows = values.slice(1);
+
+  const idxNo = findIndexByAliases_(headersNorm, ["no de personal","no. de personal","no personal","numero de personal","n° de personal"]);
+  const idxPer = findIndexByAliases_(headersNorm, ["periodo","período"]);
+  const idxVer = findIndexByAliases_(headersNorm, ["version","versión"]);
+  const idxFec = findIndexByAliases_(headersNorm, ["fecha"]);
+  const idxComEval = findIndexByAliases_(headersNorm, ["comentarios del evaluador","comentarios evaluador"]);
+  const idxNomEval = findIndexByAliases_(headersNorm, ["nombre del evaluador","evaluador","nombre evaluador"]);
+
+  if(idxNo == null || idxPer == null || idxVer == null) return [];
+
+  const targetNo = normalizeHeader_(no);
+  const targetPer = normalizeHeader_(periodo);
+  const targetVer = normalizeHeader_(version);
+
+  const out = [];
+  for(let i=0;i<rows.length;i++){
+    const r = rows[i];
+    const vNo = normalizeHeader_(r[idxNo] ?? "");
+    const vPer = normalizeHeader_(r[idxPer] ?? "");
+    const vVer = normalizeHeader_(r[idxVer] ?? "");
+    if(vNo !== targetNo) continue;
+    if(vPer !== targetPer) continue;
+    if(vVer !== targetVer) continue;
+
+    const evaluador = String(r[idxNomEval] ?? "").trim();
+    const comentarios = String(r[idxComEval] ?? "").trim();
+    const fecha = String(r[idxFec] ?? "").trim();
+
+    out.push({
+      rowNumber: i + 2,
+      no: String(r[idxNo] ?? "").trim(),
+      periodo: String(r[idxPer] ?? "").trim(),
+      version: String(r[idxVer] ?? "").trim(),
+      fecha: fecha,
+      evaluador: evaluador,
+      comentariosEvaluador: comentarios,
+      evaluacionClientes: `Nombre del evaluador: ${evaluador || "—"} | Comentarios del evaluador: ${comentarios || "—"}`
+    });
+  }
+
+  out.sort((a,b)=> (b.rowNumber||0) - (a.rowNumber||0));
+  return out.slice(0, 50);
+}
+
+/**
+ * =========================
+ * ✅ SAVE: CLIENTES (NO AGREGA COLUMNAS)
+ * =========================
+ */
+function saveClientes_(payload){
+  if(!payload) throw new Error("Payload vacío (CLIENTES).");
+
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sh = getOrCreateSheet_(ss, CLIENTES_SHEET_NAME);
+
+  ensureClientesHeaders_(sh);
+
+  const headers = sh.getRange(1,1,1,sh.getLastColumn()).getValues()[0].map(h=>String(h||"").trim());
+  const headersNorm = headers.map(h=>normalizeHeader_(h));
+  const outRow = headers.map(_=> "");
+
+  const setByAliases = (aliases, value) => {
+    const idx = findIndexByAliases_(headersNorm, aliases);
+    if (idx != null) outRow[idx] = value;
+  };
+
+  setByAliases(["no de personal","no. de personal","no personal","numero de personal","n° de personal"], payload.no || "");
+  setByAliases(["nombre"], payload.nombre || "");
+  setByAliases(["periodo","período"], payload.periodo || "");
+  setByAliases(["version","versión"], payload.version || "");
+  setByAliases(["fecha"], payload.fecha || "");
+  setByAliases(["comentarios del evaluador","comentarios evaluador"], payload.comentariosEvaluador || "");
+  setByAliases(["nombre del evaluador","evaluador","nombre evaluador"], payload.evaluador || "");
+
+const id = Utilities.getUuid();
+const up = upsertByKey_(sh, headers, headersNorm, outRow);
+return id; // (puedes devolver up.row si luego quieres mostrarlo)
+}
+
+function ensureClientesHeaders_(sh){
+  const required = [
+    "No de personal","Nombre","Posición","Departamento","Periodo","Versión","Fecha",
+    "Comentarios del evaluador","Nombre del evaluador"
+  ];
+
+  const lastCol = sh.getLastColumn();
+  if(lastCol === 0){
+    sh.getRange(1,1,1,required.length).setValues([required]);
+    sh.setFrozenRows(1);
+    return;
+  }
+
+  const headers = sh.getRange(1,1,1,lastCol).getValues()[0].map(h=>String(h||"").trim());
+  const headersNorm = headers.map(h=>normalizeHeader_(h));
+
+  const missing = [];
+  const requireAliases = [
+    ["no de personal","no. de personal","no personal","numero de personal","n° de personal"],
+    ["nombre"],
+    ["posicion","posición","puesto","cargo"],
+    ["departamento","depto"],
+    ["periodo","período"],
+    ["version","versión"],
+    ["fecha"],
+    ["comentarios del evaluador","comentarios evaluador"],
+    ["nombre del evaluador","evaluador","nombre evaluador"]
+  ];
+
+  requireAliases.forEach((aliases, i)=>{
+    const idx = findIndexByAliases_(headersNorm, aliases);
+    if(idx == null) missing.push(required[i]);
+  });
+
+  if(missing.length){
+    throw new Error(
+      `La hoja "${CLIENTES_SHEET_NAME}" no tiene todos los encabezados requeridos (y NO voy a agregar columnas). ` +
+      `Faltan: ${missing.join(", ")}.`
+    );
+  }
+}
+
+function ensureOneOneHeaders_(sh){
+  const required = [
+  "No de personal","Nombre","Periodo","Versión","Fecha",
+  "Comentarios del evaluador","Nombre del evaluador"
+];
+
+  const lastCol = Math.max(sh.getLastColumn(), required.length);
+  const current = lastCol > 0
+    ? sh.getRange(1,1,1,lastCol).getValues()[0].map(h => String(h || "").trim())
+    : [];
+
+  const empty = current.every(v => !v);
+  if (empty) {
+    sh.getRange(1,1,1,required.length).setValues([required]);
+    return;
+  }
+
+  for (let i = 0; i < required.length; i++) {
+    if (!current[i]) current[i] = required[i];
+  }
+  sh.getRange(1,1,1,Math.max(current.length, required.length)).setValues([current]);
+}
+
+/**
+ * =========================
+ * SAVE: AUTO (Resp1..Resp20 fijo)
+ * =========================
+ */
+function saveAutoevaluacion_(payload){
+  if(!payload) throw new Error("Payload vacío.");
+
+  const respuestasRaw = Array.isArray(payload.respuestas) ? payload.respuestas : [];
+  const respuestas = Array.from({length: RESP_MAX}, (_, i) => String(respuestasRaw[i] ?? "").trim());
+
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sh = getOrCreateSheet_(ss, AUTO_SHEET_NAME);
+  ensureAutoHeaders_(sh);
+
+  const id = Utilities.getUuid();
+
+  const headers = sh.getRange(1,1,1,sh.getLastColumn()).getValues()[0].map(h=>String(h||"").trim());
+  const headersNorm = headers.map(h=>normalizeHeader_(h));
+  const outRow = headers.map(_=> "");
+
+  const setByAliases = (aliases, value) => {
+    const idx = findIndexByAliases_(headersNorm, aliases);
+    if (idx != null) outRow[idx] = value;
+  };
+
+  setByAliases(["no de personal","no. de personal","no personal","numero de personal","n° de personal"], payload.no || "");
+  setByAliases(["nombre"], payload.nombre || "");
+  setByAliases(["posicion","posición","puesto","cargo"], payload.posicion || "");
+  setByAliases(["departamento","depto"], payload.depto || "");
+  setByAliases(["periodo","período"], payload.periodo || "");
+  setByAliases(["version","versión"], payload.version || "");
+  setByAliases(["fecha"], payload.fecha || "");
+
+  const nivelRef = String(payload.nivel || "").trim();
+  setByAliases(["nivel"], nivelRef);
+
+    const extras = payload.extras || {};
+  const respuestasNumRaw = Array.isArray(payload.respuestasNum) ? payload.respuestasNum : [];
+  const respuestasNum = Array.from({length: RESP_MAX}, (_, i) => String(respuestasNumRaw[i] ?? "").trim());
+
+  const comentarios = String(payload.comentarios || "").trim() || String(extras.comentariosColaborador || "").trim();
+  setByAliases(["comentarios del colaborador","comentarios"], comentarios);
+
+  for (let i = 1; i <= RESP_MAX; i++) {
+    const colName = `Resp${i}`;
+    const idx = headers.indexOf(colName);
+    if (idx >= 0) outRow[idx] = respuestas[i - 1] ?? "";
+  }
+
+  setByAliases(["puntaje final","puntaje"], calcPuntajeFinalOnSave_(nivelRef, respuestas, respuestasNum, payload.itemKeys || []));
+  setByAliases(["justificacion y comentarios","justificacion","comentarios"], String(extras.justificacion || "").trim());
+  setByAliases(["comentarios del colaborador"], String(extras.comentariosColaborador || payload.comentarios || "").trim());
+  setByAliases(["evaluacion de clientes","evaluación de clientes"], String(extras.evaluacionClientes || "").trim());
+  setByAliases(["fortalezas"], String(extras.fortalezas || "").trim());
+  setByAliases(["oportunidades de mejora"], String(extras.oportunidadesMejora || "").trim());
+  setByAliases(["proyeccion y potencial de desarrollo","proyección y potencial de desarrollo"], String(extras.proyeccionPotencial || "").trim());
+  setByAliases(["necesidades de capacitacion","necesidades de capacitación"], String(extras.necesidadesCapacitacion || "").trim());
+  setByAliases(["comentarios del evaluador"], String(extras.comentariosEvaluador || "").trim());
+  setByAliases(["nombre del evaluador","evaluador","nombre evaluador"], String(extras.nombreEvaluador || payload.evaluador || "").trim());
+
+  upsertByKey_(sh, headers, headersNorm, outRow);
+  return id;
+}
+
+function getKpisPosiciones_() {
+  const out = getKpisCatalog_();
+  return Array.isArray(out.posiciones) ? out.posiciones : [];
+}
+
+function getKpisCatalog_() {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sh = ss.getSheetByName(KPIS_SHEET_NAME);
+  if (!sh) return { posiciones: [], rows: [] };
+
+  const lastRow = sh.getLastRow();
+  const lastCol = sh.getLastColumn();
+  if (lastRow < 2 || lastCol < 2) return { posiciones: [], rows: [] };
+
+  const values = sh.getRange(1, 1, lastRow, lastCol).getValues();
+  const headers = values[0].map(h => String(h || "").trim());
+  const headersNorm = headers.map(h => normalizeHeader_(h));
+  const rows = values.slice(1);
+
+  const idxNivel = findIndexByAliases_(headersNorm, [
+    "nivel",
+    "posicion / categoria",
+    "posición / categoría",
+    "posicion/categoria",
+    "posición/categoría",
+    "posicion / nivel",
+    "posición / nivel"
+  ]);
+
+  const idxIndicador = findIndexByAliases_(headersNorm, [
+    "indicador",
+    "entregable",
+    "kpi",
+    "item",
+    "descripcion",
+    "descripción"
+  ]);
+
+  const idx1 = findIndexByAliases_(headersNorm, ["1", "01"]);
+  const idx2 = findIndexByAliases_(headersNorm, ["2", "02"]);
+  const idx3 = findIndexByAliases_(headersNorm, ["3", "03"]);
+  const idx4 = findIndexByAliases_(headersNorm, ["4", "04"]);
+  const idx5 = findIndexByAliases_(headersNorm, ["5", "05"]);
+
+  if ([idxNivel, idxIndicador, idx1, idx2, idx3, idx4, idx5].some(i => i == null)) {
+    return { posiciones: [], rows: [] };
+  }
+
+  const outRows = [];
+  const posicionesSet = new Set();
+
+  rows.forEach(r => {
+    const nivel = String(r[idxNivel] || "").trim();
+    const indicador = String(r[idxIndicador] || "").trim();
+    if (!nivel) return;
+
+    posicionesSet.add(nivel);
+    outRows.push({
+      nivel: nivel,
+      posicionNivel: nivel,
+      indicador: indicador,
+      "1": String(r[idx1] || "").trim(),
+      "2": String(r[idx2] || "").trim(),
+      "3": String(r[idx3] || "").trim(),
+      "4": String(r[idx4] || "").trim(),
+      "5": String(r[idx5] || "").trim()
+    });
+  });
+
+  return {
+    posiciones: Array.from(posicionesSet).sort((a, b) => a.localeCompare(b, "es")),
+    rows: outRows
+  };
+}
+
+
+function ensureAutoHeaders_(sh){
+  const base = [ "No de personal","Nombre","Posición","Departamento","Periodo","Versión","Fecha","Nivel" ];
+  const commentsHeader = "Comentarios del colaborador";
+  const resp = Array.from({length: RESP_MAX}, (_,i)=>`Resp${i+1}`);
+
+  const lastCol = sh.getLastColumn();
+  if(lastCol === 0){
+    const headers = base.concat(resp).concat([commentsHeader]);
+    sh.getRange(1,1,1,headers.length).setValues([headers]);
+    sh.setFrozenRows(1);
+    return;
+  }
+
+  const headers = sh.getRange(1,1,1,lastCol).getValues()[0].map(h=>String(h||"").trim());
+  const headerSet = new Set(headers);
+  const updated = headers.slice();
+
+  base.concat(resp).concat([commentsHeader]).forEach(h=>{
+    if(!headerSet.has(h)){
+      updated.push(h);
+      headerSet.add(h);
+    }
+  });
+
+  if(updated.length !== headers.length){
+    sh.getRange(1,1,1,updated.length).setValues([updated]);
+    sh.setFrozenRows(1);
+  }
+}
+
+/**
+ * =========================
+ * SAVE: EVALUACION FINAL (DESEMPENO) ✅ Resp1..Resp20 fijo + ✅ Puntaje final
+ * =========================
+ */
+
+function ensureEvaluacionFinalHeaders_(sh){
+  const base = [
+    "No de personal","Nombre","Posición","Departamento","Periodo","Versión","Fecha","Nivel"
+  ];
+
+  const resp = Array.from({length: RESP_MAX}, (_,i)=>`Resp${i+1}`);
+
+  // ✅ Campos cualitativos + Puntaje final
+  const extra = [
+    "Puntaje final",
+    "Justificación y comentarios",
+    "Comentarios del colaborador",
+    "Evaluación de clientes",
+    "Fortalezas",
+    "Oportunidades de mejora",
+    "Proyección y potencial de desarrollo",
+    "Necesidades de capacitación",
+    "Comentarios del evaluador",
+    "Nombre del evaluador"
+  ];
+
+  const required = base.concat(resp).concat(extra);
+
+  const lastCol = sh.getLastColumn();
+  if(lastCol === 0){
+    sh.getRange(1,1,1,required.length).setValues([required]);
+    sh.setFrozenRows(1);
+    return;
+  }
+
+  const headers = sh.getRange(1,1,1,lastCol).getValues()[0].map(h=>String(h||"").trim());
+  const headerSet = new Set(headers);
+  const updated = headers.slice();
+
+  required.forEach(h=>{
+    if(!headerSet.has(h)){
+      updated.push(h);
+      headerSet.add(h);
+    }
+  });
+
+  if(updated.length !== headers.length){
+    sh.getRange(1,1,1,updated.length).setValues([updated]);
+    sh.setFrozenRows(1);
+  }
+}
+
+function saveEvaluacionFinal_(payload){
+  if(!payload) throw new Error("Payload vacío (DESEMPENO).");
+
+  const respuestasRaw = Array.isArray(payload.respuestas) ? payload.respuestas : [];
+  const respuestas = Array.from({length: RESP_MAX}, (_, i) => String(respuestasRaw[i] ?? "").trim());
+
+  // ✅ numéricas 1-5 (preferidas para calcular puntaje)
+  const respuestasNumRaw = Array.isArray(payload.respuestasNum) ? payload.respuestasNum : [];
+  const respuestasNum = Array.from({length: RESP_MAX}, (_, i) => String(respuestasNumRaw[i] ?? "").trim());
+
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sh = getOrCreateSheet_(ss, EVAL_FINAL_SHEET_NAME);
+
+  ensureEvaluacionFinalHeaders_(sh); // ✅ asegura headers
+
+  const id = Utilities.getUuid();
+
+  const headers = sh.getRange(1,1,1,sh.getLastColumn()).getValues()[0].map(h=>String(h||"").trim());
+  const headersNorm = headers.map(h=>normalizeHeader_(h));
+  const outRow = headers.map(_=> "");
+
+  const setByAliases = (aliases, value) => {
+    const idx = findIndexByAliases_(headersNorm, aliases);
+    if (idx != null) outRow[idx] = value;
+  };
+
+  // ✅ Encabezado
+  setByAliases(["no de personal","no. de personal","no personal","numero de personal","n° de personal"], String(payload.no || "").trim());
+  setByAliases(["nombre"], String(payload.nombre || "").trim());
+  setByAliases(["posicion","posición","puesto","cargo"], String(payload.posicion || "").trim());
+  setByAliases(["departamento","depto"], String(payload.depto || "").trim());
+  setByAliases(["periodo","período"], String(payload.periodo || "").trim());
+  setByAliases(["version","versión"], String(payload.version || "").trim());
+  setByAliases(["fecha"], String(payload.fecha || "").trim());
+
+  const nivelRef = String(payload.nivel || "").trim();
+  setByAliases(["nivel"], nivelRef);
+
+  // ✅ Resp1..Resp20 (texto "3 — ...")
+  for(let i=1;i<=RESP_MAX;i++){
+    const colName = `Resp${i}`;
+    const idx = headers.indexOf(colName);
+    if(idx >= 0) outRow[idx] = respuestas[i-1] ?? "";
+  }
+
+  // ✅ Cualitativos (DESEMPENO)
+  const extras = payload.extras || {};
+
+  setByAliases(
+    ["justificacion y comentarios","justificación y comentarios","justificacion","justificación","comentarios"],
+    String(extras.justificacion || payload.comentarios || "").trim()
+  );
+
+  setByAliases(["comentarios del colaborador"], String(extras.comentariosColaborador || "").trim());
+  setByAliases(["evaluacion de clientes","evaluación de clientes"], String(extras.evaluacionClientes || "").trim());
+
+  setByAliases(["fortalezas"], String(extras.fortalezas || "").trim());
+  setByAliases(["oportunidades de mejora"], String(extras.oportunidadesMejora || "").trim());
+  setByAliases(
+    ["proyeccion y potencial de desarrollo","proyección y potencial de desarrollo"],
+    String(extras.proyeccionPotencial || "").trim()
+  );
+  setByAliases(["necesidades de capacitacion","necesidades de capacitación"], String(extras.necesidadesCapacitacion || "").trim());
+  setByAliases(["comentarios del evaluador"], String(extras.comentariosEvaluador || "").trim());
+  setByAliases(["nombre del evaluador","nombre evaluador"], String(extras.nombreEvaluador || "").trim());
+
+  // ✅ Puntaje final:
+  // 1) Si viene del HTML (payload.puntajeFinal), úsalo.
+  // 2) Si no viene, calcula como respaldo.
+  let puntajeFinal = String(payload.puntajeFinal ?? "").trim();
+
+  if(!puntajeFinal){
+    puntajeFinal = calcPuntajeFinalOnSave_(
+      nivelRef,
+      respuestas,        // labels (por si faltan numéricas)
+      respuestasNum,     // numéricas 1..5
+      payload.itemKeys   // claves "nivel|Factor|Item" desde el HTML
+    );
+  }
+  setByAliases(["puntaje final","puntaje","score final","final score"], puntajeFinal);
+const up = upsertByKey_(sh, headers, headersNorm, outRow);
+return id;
+}
+
+/**
+ * =========================
+ * SAVE: PESOS
+ * =========================
+ */
+/**
+ * =========================
+ * SAVE: INCIDENCIAS
+ * =========================
+  * Hoja destino:
+ * No de personal | Nombre | Periodo | Versión | Fecha | Incidencia | Usuario
+ */
+
+function saveIncidencias_(payload){
+  if(!payload) throw new Error("Payload vacío (Incidencias).");
+
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sh = ss.getSheetByName(INCIDENCIAS_SHEET_NAME);
+  if(!sh) throw new Error(`No existe la hoja: ${INCIDENCIAS_SHEET_NAME}`);
+
+  const requiredHeaders = ["No de personal","Nombre","Periodo","Versión","Fecha","Incidencia","Usuario"];
+  const lastCol = Math.max(sh.getLastColumn(), requiredHeaders.length);
+
+  if(sh.getLastRow() === 0 || sh.getLastColumn() === 0){
+    sh.getRange(1,1,1,requiredHeaders.length).setValues([requiredHeaders]);
+    sh.setFrozenRows(1);
+  }
+
+  const headers = sh.getRange(1,1,1,lastCol).getValues()[0].map(h => String(h || "").trim());
+  const headersNorm = headers.map(h => normalizeHeader_(h));
+
+  const idxNo         = findIndexByAliases_(headersNorm, ["no de personal","no. de personal","no personal","numero de personal","n° de personal"]);
+  const idxNombre     = findIndexByAliases_(headersNorm, ["nombre"]);
+  const idxPeriodo    = findIndexByAliases_(headersNorm, ["periodo","período"]);
+  const idxVersion    = findIndexByAliases_(headersNorm, ["version","versión"]);
+  const idxFecha      = findIndexByAliases_(headersNorm, ["fecha"]);
+  const idxIncidencia = findIndexByAliases_(headersNorm, ["incidencia"]);
+  const idxUsuario    = findIndexByAliases_(headersNorm, ["usuario","user"]);
+
+    if ([idxNo, idxNombre, idxPeriodo, idxVersion, idxFecha, idxIncidencia, idxUsuario].some(i => i == null)) {
+    throw new Error('La hoja "Incidencias" debe tener estos encabezados: No de personal | Nombre | Periodo | Versión | Fecha | Incidencia | Usuario');
+  }
+
+   const noPersonal = String(payload.noPersonal || payload.no || payload["No de personal"] || "").trim();
+  const nombre     = String(payload.nombre || payload["Nombre"] || "").trim();
+  const periodo    = String(payload.periodo || payload["Periodo"] || "").trim();
+  const version    = String(payload.version || payload["Versión"] || payload["Version"] || "").trim();
+  const fecha      = String(payload.fecha || payload["Fecha"] || "").trim();
+  const incidencia = String(payload.incidencia || payload["Incidencia"] || "").trim();
+  const usuario    = String(payload.usuario || payload["Usuario"] || "").trim();
+
+  const row = new Array(lastCol).fill("");
+  row[idxNo] = noPersonal;
+  row[idxNombre] = nombre;
+  row[idxPeriodo] = periodo;
+  row[idxVersion] = version;
+  row[idxFecha] = fecha;
+  row[idxIncidencia] = incidencia;
+  row[idxUsuario] = usuario;
+
+  const nextRow = sh.getLastRow() + 1;
+  sh.getRange(nextRow, 1, 1, lastCol).setValues([row]);
+
+  return `INC-${nextRow}`;
+}
+
+/**
+ * =========================
+ * SAVE: ONE ONE
+ * =========================
+ * Hoja destino:
+ * No de personal | Nombre | Período | Versión | Fecha | Seguimiento | Evaluador
+ */
+
+function saveOneOne_(payload){
+  if(!payload) throw new Error("Payload vacío (One One).");
+
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sh = ss.getSheetByName(ONEONE_SHEET_NAME);
+  if(!sh) throw new Error(`No existe la hoja: ${ONEONE_SHEET_NAME}`);
+
+  const required = [
+    "No de personal",
+    "Nombre",
+    "Período",
+    "Versión",
+    "Fecha",
+    "Seguimiento",
+    "Evaluador"
+  ];
+
+  const lastCol = Math.max(sh.getLastColumn(), required.length);
+  const current = lastCol > 0
+    ? sh.getRange(1,1,1,lastCol).getValues()[0].map(h => String(h || "").trim())
+    : [];
+
+  const empty = current.length === 0 || current.every(v => !v);
+  if (empty) {
+    sh.getRange(1,1,1,required.length).setValues([required]);
+    sh.setFrozenRows(1);
+  } else {
+    for (let i = 0; i < required.length; i++) {
+      if (!current[i]) current[i] = required[i];
+    }
+    sh.getRange(1,1,1,Math.max(current.length, required.length)).setValues([current]);
+  }
+
+  const headers = sh.getRange(1,1,1,Math.max(sh.getLastColumn(), required.length)).getValues()[0].map(h => String(h || "").trim());
+  const headersNorm = headers.map(h => normalizeHeader_(h));
+
+  const idxNo          = findIndexByAliases_(headersNorm, ["no de personal","no. de personal","no personal","numero de personal","n° de personal"]);
+  const idxNombre      = findIndexByAliases_(headersNorm, ["nombre"]);
+  const idxPeriodo     = findIndexByAliases_(headersNorm, ["periodo","período"]);
+  const idxVersion     = findIndexByAliases_(headersNorm, ["version","versión"]);
+  const idxFecha       = findIndexByAliases_(headersNorm, ["fecha"]);
+  const idxSeguimiento = findIndexByAliases_(headersNorm, ["seguimiento"]);
+  const idxEvaluador   = findIndexByAliases_(headersNorm, ["evaluador"]);
+
+      if([idxNo, idxNombre, idxPeriodo, idxVersion, idxFecha, idxSeguimiento, idxEvaluador].some(i => i == null)){
+    throw new Error('La hoja "One One" debe tener estos encabezados: No de personal | Nombre | Período | Versión | Fecha | Seguimiento | Evaluador');
+  }
+
+  const noPersonal  = String(payload.noPersonal || payload.no || payload["No de personal"] || "").trim();
+  const nombre      = String(payload.nombre || payload["Nombre"] || "").trim();
+  const periodo     = String(payload.periodo || payload["Período"] || payload["Periodo"] || "").trim();
+  const version     = String(payload.version || payload["Versión"] || payload["Version"] || "").trim();
+  const fecha       = String(payload.fecha || payload["Fecha"] || "").trim();
+  const seguimiento = String(payload.seguimiento || payload.seguimientoIndividual || payload["Seguimiento"] || "").trim();
+  const evaluador   = String(payload.evaluador || payload["Evaluador"] || "").trim();
+
+  if(!noPersonal || !nombre || !periodo || !version || !fecha || !seguimiento || !evaluador){
+    throw new Error("Faltan datos obligatorios para guardar el One One.");
+  }
+
+  const row = new Array(headers.length).fill("");
+  row[idxNo] = noPersonal;
+  row[idxNombre] = nombre;
+  row[idxPeriodo] = periodo;
+  row[idxVersion] = version;
+  row[idxFecha] = fecha;
+  row[idxSeguimiento] = seguimiento;
+  row[idxEvaluador] = evaluador;
+
+  const nextRow = sh.getLastRow() + 1;
+  sh.getRange(nextRow, 1, 1, headers.length).setValues([row]);
+  SpreadsheetApp.flush();
+
+  return `ONE-${nextRow}`;
+}
+function savePesos_(payload){
+  if(!payload) throw new Error("Payload vacío (Pesos).");
+  const items = Array.isArray(payload.items) ? payload.items : [];
+  if(!items.length) throw new Error("No hay items para guardar (Pesos).");
+
+  const { sheet, rows, headerIndex } = getSheetValues_("Pesos");
+  const idxNivel = headerIndex.nivel;
+const idxItem = headerIndex.item;
+const idxPeso = headerIndex.peso;
+
+const keyToRowNumber = new Map();
+for(let i=0;i<rows.length;i++){
+  const r = rows[i];
+  const key = makePesosKey_(r[idxNivel], r[idxItem]);
+  if(!keyToRowNumber.has(key)) keyToRowNumber.set(key, i + 2);
+}
+
+let updated = 0;
+let notFound = 0;
+
+items.forEach(it=>{
+  const key = makePesosKey_(it.Nivel, it.Item);
+  const rowNum = keyToRowNumber.get(key);
+  if(!rowNum){
+    notFound++;
+    return;
+  }
+  const value = (it.Peso == null) ? "" : String(it.Peso);
+  sheet.getRange(rowNum, idxPeso + 1).setValue(value);
+  updated++;
+});
+
+  return { updated, notFound };
+}
+
+function makePesosKey_(nivel, item){
+  const n = String(nivel ?? "").trim();
+  const i = String(item ?? "").trim();
+  return `${normalizeHeader_(n)}||${normalizeHeader_(i)}`;
+}
+
+/**
+ * =========================
+ * HELPERS
+ * =========================
+ */
+function getOrCreateSheet_(ss, name){
+  let sh = ss.getSheetByName(name);
+  if(!sh) sh = ss.insertSheet(name);
+  return sh;
+}
+
+function sanitizeSheet_(sheetName) {
+  const name = (sheetName || "").toString().trim();
+  if (!ALLOWED_SHEETS.has(name)) {
+    throw new Error(`Hoja inválida. Usa: ${Array.from(ALLOWED_SHEETS).join(", ")}`);
+  }
+  return name;
+}
+
+function normalizeHeader_(h) {
+  return String(h || "")
+    .trim()
+    .toLowerCase()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, " ");
+}
+
+function nivelCanon_(v) {
+  const s = String(v || "").trim();
+  const m1 = s.match(/^(\d+)\s*[\.\-)]?/);
+  if (m1 && m1[1]) return String(Number(m1[1]));
+  const m2 = s.match(/(\d+)/);
+  if (m2 && m2[1]) return String(Number(m2[1]));
+  return s.toLowerCase();
+}
+
+/**
+ * =========================
+ * OUTPUT JSON / JSONP
+ * =========================
+ */
+function jsonOut_(obj, callback) {
+  obj.ts = new Date().toISOString();
+  const json = JSON.stringify(obj);
+
+  if (callback) {
+    const safeCb = String(callback).replace(/[^\w$.]/g, "");
+    return ContentService
+      .createTextOutput(`${safeCb}(${json});`)
+      .setMimeType(ContentService.MimeType.JAVASCRIPT);
+  }
+
+  return ContentService
+    .createTextOutput(json)
+    .setMimeType(ContentService.MimeType.JSON);
+}
+/>
   <title>Sistema de Evaluación del Desempeño</title>
   <link rel="icon" href="data:,">
   <style>
@@ -4382,10 +7016,110 @@ Puntaje final: ${pf}`;
     }
     return;
   }
+  if(view === "OPORTUNIDADES_MEJORA"){
+    if(!no || !depto || !per || !ver){
+      alert("Para Generar, llena: No. de personal + Departamento + Periodo + Versión.");
+      return;
+    }
+
+    try{
+      const noNorm = String(no || "").trim();
+      const deptoNorm = String(depto || "").trim();
+      const noQuery = /^(todos|todo)$/i.test(noNorm) ? "TODOS" : noNorm;
+      const deptoQuery = /^(todos|todo)$/i.test(deptoNorm) ? "TODOS" : deptoNorm;
+
+      const res = await apiGet({
+        action: "resultOportunidadesMejora",
+        no: noQuery,
+        depto: deptoQuery,
+        periodo: per,
+        version: ver
+      });
+
+      const rows = Array.isArray(res.rows) ? res.rows : [];
+      const esc = (v)=>escapeHtml(String(v ?? ""));
+      const rowsHtml = rows.length
+        ? rows.map(r => `
+            <tr>
+              <td>${esc(r.no || "—")}</td>
+              <td>${esc(r.nombre || "—")}</td>
+              <td>${esc(r.posicion || "—")}</td>
+              <td>${esc(r.depto || "—")}</td>
+              <td>${esc(r.version || "—")}</td>
+              <td>${esc(formatDateDMY(String(r.fecha || "").trim()) || r.fecha || "—")}</td>
+              <td>${esc(r.oportunidadesMejora || "—")}</td>
+            </tr>
+          `).join("")
+        : `<tr><td colspan="7" class="sub">Sin resultados para esos filtros.</td></tr>`;
+
+      $("ieModalBody").innerHTML = `
+        <div class="ie-wrap">
+          <style>
+            .evalrep{font-family:var(--sans);color:var(--text)}
+            .evalrep .box{border:1px solid rgba(255,255,255,.10);border-radius:16px;padding:14px;background:rgba(11,18,32,.22);margin-bottom:12px}
+            .evalrep h2{margin:0 0 12px 0;font-size:20px}
+            .evalrep table{width:100%;border-collapse:separate;border-spacing:0}
+            .evalrep thead th{background:rgba(15,27,51,.95);padding:10px;text-align:left;border-bottom:1px solid rgba(255,255,255,.10);white-space:nowrap}
+            .evalrep tbody td{padding:10px;border-bottom:1px solid rgba(255,255,255,.06);vertical-align:top}
+          </style>
+
+          <div class="evalrep">
+            <div class="box">
+              <h2>Reporte de evaluación del desempeño</h2>
+              <div class="tableWrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>No. de personal</th>
+                      <th>Nombre</th>
+                      <th>Posición</th>
+                      <th>Departamento</th>
+                      <th>Versión</th>
+                      <th>Fecha</th>
+                      <th>Oportunidades de mejora</th>
+                    </tr>
+                  </thead>
+                  <tbody>${rowsHtml}</tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+
+      $("ieTextArea").value = [
+        "Reporte de evaluación del desempeño",
+        `Filtro No. de personal: ${noQuery}`,
+        `Filtro Departamento: ${deptoQuery}`,
+        `Periodo: ${per}`,
+        `Versión: ${ver}`,
+        "",
+        ...rows.map(r =>
+          [
+            `No. de personal: ${r.no || "—"}`,
+            `Nombre: ${r.nombre || "—"}`,
+            `Posición: ${r.posicion || "—"}`,
+            `Departamento: ${r.depto || "—"}`,
+            `Versión: ${r.version || "—"}`,
+            `Fecha: ${formatDateDMY(String(r.fecha || "").trim()) || r.fecha || "—"}`,
+            `Oportunidades de mejora: ${r.oportunidadesMejora || "—"}`,
+            ""
+          ].join("\n")
+        )
+      ].join("\n");
+
+      $("ieHtmlWrap").style.display = "";
+      $("ieTextWrap").style.display = "none";
+      $("ieModalBack").classList.add("show");
+    }catch(err){
+      alert(err?.message || "No se pudo generar el reporte.");
+    }
+    return;
+  }
 
   alert("Este reporte aún no está configurado.");
 });
-  
+    
 ["reportNoPersonal","reportDepto","reportPeriodo","reportVersion"].forEach(id=>{
   on(id,"input", ()=>{
     syncReportFiltersToPhaseInputs_();
