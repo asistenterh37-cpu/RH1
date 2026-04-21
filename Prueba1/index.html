@@ -4069,178 +4069,217 @@ document.querySelectorAll(".faseBtn[data-fase]").forEach(btn=>{
   });
 });
 
-on("btnBuscarReporte", "click", async ()=>{
+  on("btnBuscarReporte", "click", async ()=>{
   syncReportFiltersToPhaseInputs_();
   updateCapSaveState_();
   updateDevGenerarState_();
   updateGuardarUIState();
 
-  const view = String(state.reportesView || "");
+  const view  = String(state.reportesView || "");
+  const no    = $("reportNoPersonal")?.value?.trim() || "";
+  const depto = $("reportDepto")?.value?.trim() || "";
+  const per   = $("reportPeriodo")?.value?.trim() || "";
+  const ver   = $("reportVersion")?.value?.trim() || "";
 
-  if(view !== "EVAL_RESUMEN"){
-    alert("Este ajuste aplica solo a: Evaluación del desempeño.");
-    return;
-  }
-
-  const no  = $("reportNoPersonal")?.value?.trim() || "";
-  const per = $("reportPeriodo")?.value?.trim() || "";
-  const ver = $("reportVersion")?.value?.trim() || "";
-
-  if(!no || !per || !ver){
-    alert("Para Generar, llena: No. de personal + Periodo + Versión.");
-    return;
-  }
-
-  try{
-    const res = await apiGet({ action:"result", no, periodo: per, version: ver });
-
-    const h = res.header || {};
-    const rows = Array.isArray(res.rows) ? res.rows : [];
-    const q = res.cualitativo || {};
-    const pf = String(res.puntajeFinal ?? "—").trim();
-
-    if(!rows.length){
-      throw new Error("No se encontraron filas para el reporte.");
+  if(view === "EVAL_RESUMEN"){
+    if(!no || !per || !ver){
+      alert("Para Generar, llena: No. de personal + Periodo + Versión.");
+      return;
     }
 
-    const esc = (v)=>escapeHtml(String(v ?? ""));
-    const fecha = formatDateDMY(String(h.fecha || "").trim()) || String(h.fecha || "").trim() || "—";
+    try{
+      const res = await apiGet({ action:"result", no, periodo: per, version: ver });
 
-    const rowsHtml = rows.map((r, i)=>`
-      <tr>
-        <td>${i + 1}</td>
-        <td>${esc(r.item || "—")}</td>
-        <td>${esc(r.respuesta || "—")}</td>
-      </tr>
-    `).join("");
+      const h = res.header || {};
+      const rows = Array.isArray(res.rows) ? res.rows : [];
+      const q = res.cualitativo || {};
+      const pf = String(res.puntajeFinal ?? "—").trim();
 
-    $("ieModalBody").innerHTML = `
-      <div class="ie-wrap">
-        <style>
-          .evalrep{font-family:var(--sans);color:var(--text)}
-          .evalrep .box{border:1px solid rgba(255,255,255,.10);border-radius:16px;padding:14px;background:rgba(11,18,32,.22);margin-bottom:12px}
-          .evalrep h2{margin:0 0 12px 0;font-size:20px}
-          .evalrep .grid4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
-          .evalrep .grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
-          .evalrep .cell{border:1px solid rgba(255,255,255,.10);border-radius:12px;padding:10px;background:rgba(15,27,51,.70)}
-          .evalrep .k{font-size:11px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);margin-bottom:4px}
-          .evalrep .v{white-space:pre-wrap}
-          .evalrep table{width:100%;border-collapse:separate;border-spacing:0;min-width:760px}
-          .evalrep thead th{position:sticky;top:0;background:rgba(15,27,51,.95);padding:10px;text-align:left;border-bottom:1px solid rgba(255,255,255,.10)}
-          .evalrep tbody td{padding:10px;border-bottom:1px solid rgba(255,255,255,.06);vertical-align:top}
-          @media (max-width:860px){
-            .evalrep .grid4,.evalrep .grid3{grid-template-columns:1fr}
-          }
-        </style>
+      if(!rows.length){
+        throw new Error("No se encontraron filas para el reporte.");
+      }
 
-        <div class="evalrep">
-          <div class="box">
-            <h2>Reporte de evaluación del desempeño</h2>
+      const esc = (v)=>escapeHtml(String(v ?? ""));
+      const fecha = formatDateDMY(String(h.fecha || "").trim()) || String(h.fecha || "").trim() || "—";
 
-            <div class="grid4" style="margin-bottom:10px">
-              <div class="cell"><div class="k">No de personal</div><div class="v">${esc(h.no || no || "—")}</div></div>
-              <div class="cell"><div class="k">Nombre</div><div class="v">${esc(h.nombre || "—")}</div></div>
-              <div class="cell"><div class="k">Posición</div><div class="v">${esc(h.posicion || "—")}</div></div>
-              <div class="cell"><div class="k">Departamento</div><div class="v">${esc(h.depto || "—")}</div></div>
+      const rowsHtml = rows.map((r, i)=>`
+        <tr>
+          <td>${i + 1}</td>
+          <td>${esc(r.item || "—")}</td>
+          <td>${esc(r.respuesta || "—")}</td>
+        </tr>
+      `).join("");
+
+      $("ieModalBody").innerHTML = `
+        <div class="ie-wrap">
+          <style>
+            .evalrep{font-family:var(--sans);color:var(--text)}
+            .evalrep .box{border:1px solid rgba(255,255,255,10);border-radius:16px;padding:14px;background:rgba(11,18,32,22);margin-bottom:12px}
+            .evalrep h2{margin:0 0 12px 0;font-size:20px}
+            .evalrep .grid4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+            .evalrep .grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+            .evalrep .cell{border:1px solid rgba(255,255,255,10);border-radius:12px;padding:10px;background:rgba(15,27,51,70)}
+            .evalrep .k{font-size:11px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);margin-bottom:4px}
+            .evalrep .v{white-space:pre-wrap}
+            .evalrep table{width:100%;border-collapse:separate;border-spacing:0;min-width:760px}
+            .evalrep thead th{position:sticky;top:0;background:rgba(15,27,51,95);padding:10px;text-align:left;border-bottom:1px solid rgba(255,255,255,10)}
+            .evalrep tbody td{padding:10px;border-bottom:1px solid rgba(255,255,255,06);vertical-align:top}
+            @media (max-width:860px){
+              .evalrep .grid4,.evalrep .grid3{grid-template-columns:1fr}
+            }
+          </style>
+
+          <div class="evalrep">
+            <div class="box">
+              <h2>Reporte de evaluación del desempeño</h2>
+
+              <div class="grid4" style="margin-bottom:10px">
+                <div class="cell"><div class="k">No. de personal</div><div class="v">${esc(no)}</div></div>
+                <div class="cell"><div class="k">Nombre</div><div class="v">${esc(h.nombre || "—")}</div></div>
+                <div class="cell"><div class="k">Posición</div><div class="v">${esc(h.posicion || "—")}</div></div>
+                <div class="cell"><div class="k">Departamento</div><div class="v">${esc(h.depto || "—")}</div></div>
+              </div>
+
+              <div class="grid3" style="margin-bottom:10px">
+                <div class="cell"><div class="k">Periodo</div><div class="v">${esc(per)}</div></div>
+                <div class="cell"><div class="k">Versión</div><div class="v">${esc(ver)}</div></div>
+                <div class="cell"><div class="k">Fecha</div><div class="v">${esc(fecha)}</div></div>
+              </div>
+
+              <div class="cell" style="margin-bottom:12px">
+                <div class="k">Puntaje final</div>
+                <div class="v"><b>${esc(pf)}</b></div>
+              </div>
+
+              <div class="tableWrap" style="margin-bottom:12px">
+                <table>
+                  <thead>
+                    <tr>
+                      <th style="width:70px">#</th>
+                      <th>Ítem</th>
+                      <th style="width:260px">Respuesta</th>
+                    </tr>
+                  </thead>
+                  <tbody>${rowsHtml}</tbody>
+                </table>
+              </div>
+
+              <div class="grid3">
+                <div class="cell"><div class="k">Justificación y comentarios</div><div class="v">${esc(q.justificacion || "—")}</div></div>
+                <div class="cell"><div class="k">Comentarios del colaborador</div><div class="v">${esc(q.comentariosColaborador || "—")}</div></div>
+                <div class="cell"><div class="k">Comentarios del evaluador</div><div class="v">${esc(q.comentariosEvaluador || "—")}</div></div>
+              </div>
             </div>
-
-            <div class="grid3" style="margin-bottom:10px">
-              <div class="cell"><div class="k">Periodo</div><div class="v">${esc(h.periodo || per || "—")}</div></div>
-              <div class="cell"><div class="k">Versión</div><div class="v">${esc(h.version || ver || "—")}</div></div>
-              <div class="cell"><div class="k">Fecha</div><div class="v">${esc(fecha)}</div></div>
-            </div>
-
-            <div class="cell">
-              <div class="k">Puntaje final</div>
-              <div class="v"><b>${esc(pf)}</b></div>
-            </div>
-          </div>
-
-          <div class="box">
-            <div class="tableWrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th style="width:80px">Item</th>
-                    <th>Descripción</th>
-                    <th>Respuesta</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  ${rowsHtml}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          <div class="box"><div class="k">Justificación y comentarios</div><div class="v">${esc(q.justificacion || "—")}</div></div>
-          <div class="box"><div class="k">Comentarios del colaborador</div><div class="v">${esc(q.comentariosColaborador || "—")}</div></div>
-          <div class="box"><div class="k">Fortalezas</div><div class="v">${esc(q.fortalezas || "—")}</div></div>
-          <div class="box"><div class="k">Oportunidades de mejora</div><div class="v">${esc(q.oportunidadesMejora || "—")}</div></div>
-          <div class="box"><div class="k">Proyección y potencial de desarrollo</div><div class="v">${esc(q.proyeccionPotencial || "—")}</div></div>
-          <div class="box"><div class="k">Necesidades de capacitación</div><div class="v">${esc(q.necesidadesCapacitacion || "—")}</div></div>
-          <div class="box"><div class="k">Comentarios del evaluador</div><div class="v">${esc(q.comentariosEvaluador || "—")}</div></div>
-
-          <div class="grid3">
-            <div class="cell"><div class="k">Firma evaluado</div><div class="v">________________________</div></div>
-            <div class="cell"><div class="k">Firma del evaluador</div><div class="v">________________________</div></div>
-            <div class="cell"><div class="k">Nombre evaluador</div><div class="v">${esc(q.nombreEvaluador || "—")}</div></div>
           </div>
         </div>
-      </div>
-    `;
+      `;
 
-    $("ieTextArea").value =
+      $("ieTextArea").value =
 `Reporte de evaluación del desempeño
+No. de personal: ${no}
+Nombre: ${h.nombre || "—"}
+Posición: ${h.posicion || "—"}
+Departamento: ${h.depto || "—"}
+Periodo: ${per}
+Versión: ${ver}
+Fecha: ${fecha}
+Puntaje final: ${pf}`;
 
-No de personal: ${String(h.no || no || "—")}
-Nombre: ${String(h.nombre || "—")}
-Posición: ${String(h.posicion || "—")}
-Departamento: ${String(h.depto || "—")}
-
-Periodo: ${String(h.periodo || per || "—")}
-Versión: ${String(h.version || ver || "—")}
-Fecha: ${String(fecha || "—")}
-
-Puntaje final: ${pf}
-
-${rows.map((r, i)=>`Item ${i + 1}: ${String(r.respuesta || "—")} | ${String(r.item || "—")}`).join("\n")}
-
-Justificación y comentarios:
-${String(q.justificacion || "—")}
-
-Comentarios del colaborador:
-${String(q.comentariosColaborador || "—")}
-
-Fortalezas:
-${String(q.fortalezas || "—")}
-
-Oportunidades de mejora:
-${String(q.oportunidadesMejora || "—")}
-
-Proyección y potencial de desarrollo:
-${String(q.proyeccionPotencial || "—")}
-
-Necesidades de capacitación:
-${String(q.necesidadesCapacitacion || "—")}
-
-Comentarios del evaluador:
-${String(q.comentariosEvaluador || "—")}
-
-Firma evaluado: ________________________
-Firma del evaluador: ________________________
-Nombre evaluador: ${String(q.nombreEvaluador || "—")}`;
-
-    $("ieHtmlWrap") && ($("ieHtmlWrap").style.display = "block");
-    $("ieTextWrap") && ($("ieTextWrap").style.display = "none");
-    $("ieModalBack")?.classList.add("show");
-    setApiStatus("ok", "API: reporte generado");
-  }catch(err){
-    setApiStatus("err","API: " + (err?.message || err));
-    alert(err?.message || "No se pudo generar el reporte.");
+      $("ieHtmlWrap").style.display = "";
+      $("ieTextWrap").style.display = "none";
+      $("ieModalBack").classList.add("show");
+    }catch(err){
+      alert(err?.message || "No se pudo generar el reporte.");
+    }
+    return;
   }
+
+  if(view === "EVAL_CALIFICACIONES"){
+    if(!no || !depto || !per || !ver){
+      alert("Para Generar, llena: No. de personal + Departamento + Periodo + Versión.");
+      return;
+    }
+
+    try{
+      const res = await apiGet({ action:"result", no, depto, periodo: per, version: ver });
+
+      const h = res.header || {};
+      const pf = String(res.puntajeFinal ?? "—").trim();
+      const deptoRes = String(h.depto || "").trim();
+      const fecha = formatDateDMY(String(h.fecha || "").trim()) || String(h.fecha || "").trim() || "—";
+      const esc = (v)=>escapeHtml(String(v ?? ""));
+
+      if(deptoRes && deptoRes.toLowerCase() !== depto.toLowerCase()){
+        throw new Error("No se encontró el registro en EvaluacionFinal con No. de personal, Departamento, Periodo y Versión.");
+      }
+
+      $("ieModalBody").innerHTML = `
+        <div class="ie-wrap">
+          <style>
+            .evalrep{font-family:var(--sans);color:var(--text)}
+            .evalrep .box{border:1px solid rgba(255,255,255,10);border-radius:16px;padding:14px;background:rgba(11,18,32,22);margin-bottom:12px}
+            .evalrep h2{margin:0 0 12px 0;font-size:20px}
+            .evalrep table{width:100%;border-collapse:separate;border-spacing:0}
+            .evalrep thead th{background:rgba(15,27,51,95);padding:10px;text-align:left;border-bottom:1px solid rgba(255,255,255,10);white-space:nowrap}
+            .evalrep tbody td{padding:10px;border-bottom:1px solid rgba(255,255,255,06);vertical-align:top}
+          </style>
+
+          <div class="evalrep">
+            <div class="box">
+              <h2>Reporte de evaluación del desempeño</h2>
+
+              <div class="tableWrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>No. de personal</th>
+                      <th>Nombre</th>
+                      <th>Posición</th>
+                      <th>Departamento</th>
+                      <th>Versión</th>
+                      <th>Fecha</th>
+                      <th>Puntaje final</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>${esc(no)}</td>
+                      <td>${esc(h.nombre || "—")}</td>
+                      <td>${esc(h.posicion || "—")}</td>
+                      <td>${esc(deptoRes || depto || "—")}</td>
+                      <td>${esc(ver)}</td>
+                      <td>${esc(fecha)}</td>
+                      <td><b>${esc(pf)}</b></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+
+      $("ieTextArea").value =
+`Reporte de evaluación del desempeño
+No. de personal: ${no}
+Nombre: ${h.nombre || "—"}
+Posición: ${h.posicion || "—"}
+Departamento: ${deptoRes || depto || "—"}
+Versión: ${ver}
+Fecha: ${fecha}
+Puntaje final: ${pf}`;
+
+      $("ieHtmlWrap").style.display = "";
+      $("ieTextWrap").style.display = "none";
+      $("ieModalBack").classList.add("show");
+    }catch(err){
+      alert(err?.message || "No se pudo generar el reporte de calificaciones.");
+    }
+    return;
+  }
+
+  alert("Este reporte aún no está configurado.");
 });
-  
 ["reportNoPersonal","reportDepto","reportPeriodo","reportVersion"].forEach(id=>{
   on(id,"input", ()=>{
     syncReportFiltersToPhaseInputs_();
