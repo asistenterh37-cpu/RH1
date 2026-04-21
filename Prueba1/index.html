@@ -898,13 +898,13 @@ button[disabled]{
             <div class="field boxed" id="reportBuscarWrap">
         <div class="lbl">Acción</div>
         <div class="controls" style="width:100%;gap:8px;flex-wrap:nowrap">
-          <button type="button" id="btnBuscarReporte" class="btn-blue" style="flex:1 1 auto">Buscar</button>
-          <select id="reportEnviarTipo" style="min-width:120px;flex:0 0 120px">
-            <option value="PDF">PDF</option>
-            <option value="WORD">Word</option>
-          </select>
-          <button type="button" id="btnEnviarReporte" class="btn-ok" style="flex:1 1 auto">Enviar</button>
-        </div>
+  <button type="button" id="btnBuscarReporte" class="btn-blue" style="flex:1 1 auto">Buscar</button>
+  <select id="reportEnviarTipo" style="min-width:120px;flex:0 0 120px;display:none">
+    <option value="PDF">PDF</option>
+    <option value="WORD">Word</option>
+  </select>
+  <button type="button" id="btnEnviarReporte" class="btn-ok" style="flex:1 1 auto;display:none">Enviar</button>
+</div>
       </div>
     </div>
     </div>
@@ -1341,9 +1341,14 @@ function toggleReportesUI_(){
   const ctl  = $("reportesControls");
   if(card) card.style.display = isReportesPhase_() ? "" : "none";
   if(ctl && !isReportesPhase_() && !$("reportesSelect")?.value) ctl.style.display = "none";
+  if(!isReportesPhase_()) setReporteEnviarVisible_(false);
   updateReportFiltersLayout_();
 }
-
+function setReporteEnviarVisible_(visible){
+  if($("reportEnviarTipo")) $("reportEnviarTipo").style.display = visible ? "" : "none";
+  if($("btnEnviarReporte")) $("btnEnviarReporte").style.display = visible ? "" : "none";
+}
+  
 function syncReportFiltersToPhaseInputs_(){
   const no    = $("reportNoPersonal")?.value?.trim() || "";
   const depto = $("reportDepto")?.value?.trim() || "";
@@ -4026,9 +4031,15 @@ on("btnEnviarReporte", "click", async ()=>{
     return;
   }
 
-  await buscarReporteEvaluacionDesempeno_();
+  if(!state.resultadoCache || !Array.isArray(state.resultadoCache.rows) || !state.resultadoCache.rows.length){
+    await buscarReporteEvaluacionDesempeno_();
+    if(!state.resultadoCache || !Array.isArray(state.resultadoCache.rows) || !state.resultadoCache.rows.length){
+      return;
+    }
+  }
 
   const tipo = String($("reportEnviarTipo")?.value || "PDF").toUpperCase();
+
   if(tipo === "WORD"){
     downloadWordResultado_();
     return;
@@ -4101,9 +4112,16 @@ on("reportesSelect", "change", (e)=>{
   toggleReportesUI_();
   updateCapSaveState_();
   updateDevGenerarState_();
-  updateGuardarUIState();
+
+  if($("btnGuardar")){
+    $("btnGuardar").style.display = (view === "EVAL_RESUMEN") ? "none" : "";
+    $("btnGuardar").disabled = true;
+  }
+
+  if($("reportEnviarTipo")) $("reportEnviarTipo").style.display = "none";
+  if($("btnEnviarReporte")) $("btnEnviarReporte").style.display = "none";
 });
-document.querySelectorAll(".faseBtn[data-fase]").forEach(btn=>{
+  document.querySelectorAll(".faseBtn[data-fase]").forEach(btn=>{
   btn.addEventListener("click", ()=>{
     const wrap = $("reportesControls");
     if(wrap) wrap.style.display = "none";
@@ -4129,18 +4147,18 @@ on("btnBuscarReporte", "click", async ()=>{
   syncReportFiltersToPhaseInputs_();
   updateCapSaveState_();
   updateDevGenerarState_();
-  updateGuardarUIState();
 
   const view = String(state.reportesView || "");
 
-  if(view === "EVAL_RESUMEN"){
-  try{
-    await buscarReporteEvaluacionDesempeno_();
-  }catch(err){
-    setApiStatus("err","API: " + (err?.message || err));
+  if($("btnGuardar") && view === "EVAL_RESUMEN"){
+    $("btnGuardar").style.display = "none";
+    $("btnGuardar").disabled = true;
   }
-  return;
-}
+
+  if(view === "EVAL_RESUMEN"){
+    await buscarReporteEvaluacionDesempeno_();
+    return;
+  }
 
   if(view === "EVAL_CALIFICACIONES" && $("btnRecuperar") && !$("btnRecuperar").disabled){
     $("btnRecuperar").click();
@@ -4156,7 +4174,7 @@ on("btnBuscarReporte", "click", async ()=>{
     $("btnDevGenerar").click();
   }
 });
-
+  
   async function buscarReporteEvaluacionDesempeno_(){
   const no  = $("reportNoPersonal")?.value?.trim() || "";
   const per = $("reportPeriodo")?.value?.trim() || "";
@@ -4167,18 +4185,36 @@ on("btnBuscarReporte", "click", async ()=>{
     return;
   }
 
-  const res = await apiGet({ action:"result", no, periodo: per, version: ver });
+  let res;
+  try{
+    res = await apiGet({ action:"result", no, periodo: per, version: ver });
+  }catch(err){
+    setApiStatus("err", "API: " + (err?.message || err));
+    return;
+  }
+
   const header = res.header || {};
   const rows = Array.isArray(res.rows) ? res.rows : [];
   const pf = res.puntajeFinal ?? "0.00";
   const cual = res.cualitativo || {};
+  const fecha = formatDateDMY(header.fecha || "") || todayLocal();
 
   if(!rows.length){
-    alert("No se encontraron datos en EvaluacionFinal para ese colaborador.");
+    if($("reportEnviarTipo")) $("reportEnviarTipo").style.display = "none";
+    if($("btnEnviarReporte")) $("btnEnviarReporte").style.display = "none";
+    alert("No se encontraron datos en EvaluacionFinal para ese colaborador con No. de personal, Periodo y Versión.");
     return;
   }
 
-  state.resultadoCache = { header, rows, puntajeFinal: pf, cualitativo: cual, no, periodo: per, version: ver };
+  state.resultadoCache = {
+    header,
+    rows,
+    puntajeFinal: pf,
+    cualitativo: cual,
+    no,
+    periodo: per,
+    version: ver
+  };
 
   const html = `
     <div style="font-family:Arial,sans-serif;color:#111;background:#fff;padding:24px">
@@ -4194,7 +4230,7 @@ on("btnBuscarReporte", "click", async ()=>{
         <tr>
           <td style="padding:6px;border:1px solid #ccc"><b>Periodo:</b> ${escapeHtml(per)}</td>
           <td style="padding:6px;border:1px solid #ccc"><b>Versión:</b> ${escapeHtml(ver)}</td>
-          <td style="padding:6px;border:1px solid #ccc" colspan="2"><b>Fecha:</b> ${escapeHtml(header.fecha || "")}</td>
+          <td style="padding:6px;border:1px solid #ccc" colspan="2"><b>Fecha:</b> ${escapeHtml(fecha)}</td>
         </tr>
         <tr>
           <td style="padding:6px;border:1px solid #ccc" colspan="4"><b>Puntaje final:</b> ${escapeHtml(String(pf))}</td>
@@ -4204,6 +4240,7 @@ on("btnBuscarReporte", "click", async ()=>{
       <table style="width:100%;border-collapse:collapse;margin-bottom:12px">
         <thead>
           <tr>
+            <th style="padding:6px;border:1px solid #ccc;text-align:left;width:70px">#</th>
             <th style="padding:6px;border:1px solid #ccc;text-align:left">Ítem</th>
             <th style="padding:6px;border:1px solid #ccc;text-align:left">Respuesta</th>
           </tr>
@@ -4211,6 +4248,7 @@ on("btnBuscarReporte", "click", async ()=>{
         <tbody>
           ${rows.map((r,i)=>`
             <tr>
+              <td style="padding:6px;border:1px solid #ccc">Item ${i+1}</td>
               <td style="padding:6px;border:1px solid #ccc">${escapeHtml(r.item || ("Item " + (i+1)))}</td>
               <td style="padding:6px;border:1px solid #ccc">${escapeHtml(r.respuesta || "")}</td>
             </tr>
@@ -4244,8 +4282,17 @@ on("btnBuscarReporte", "click", async ()=>{
   if($("ieHtmlWrap")) $("ieHtmlWrap").style.display = "block";
   if($("ieTextWrap")) $("ieTextWrap").style.display = "none";
   if($("ieModalBack")) $("ieModalBack").classList.add("show");
-}
 
+  if($("reportEnviarTipo")) $("reportEnviarTipo").style.display = "";
+  if($("btnEnviarReporte")) $("btnEnviarReporte").style.display = "";
+
+  if($("btnGuardar")){
+    $("btnGuardar").style.display = "none";
+    $("btnGuardar").disabled = true;
+  }
+
+  setApiStatus("ok", "API: reporte cargado desde EvaluacionFinal");
+}
   
   ["incNoPersonal","incNombre","incPeriodo","incVersion","incFecha","incIncidencia","incUsuario"].forEach(id=>{
   const el = $(id);
