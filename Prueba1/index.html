@@ -3668,14 +3668,15 @@ function buildResultadoTexto_(){
 /* ================= ✅ INFORME EJECUTIVO (CONSOLIDADO) ================= */
 
 // abre modal
-function updateInformeButtons_(){
-  const isCalificaciones = String(state.reportesView || "") === "EVAL_CALIFICACIONES";
 
-  if($("btnIEExcel"))    $("btnIEExcel").style.display    = isCalificaciones ? "" : "none";
-  if($("btnIEPrintPDF")) $("btnIEPrintPDF").style.display = isCalificaciones ? "none" : "";
-  if($("btnIEText"))     $("btnIEText").style.display     = isCalificaciones ? "none" : "";
+  function updateInformeButtons_(){
+  const view = String(state.reportesView || "");
+  const usaExcel = ["EVAL_CALIFICACIONES","PROYECCION_POTENCIAL"].includes(view);
+
+  if($("btnIEExcel"))    $("btnIEExcel").style.display    = usaExcel ? "" : "none";
+  if($("btnIEPrintPDF")) $("btnIEPrintPDF").style.display = usaExcel ? "none" : "";
+  if($("btnIEText"))     $("btnIEText").style.display     = usaExcel ? "none" : "";
 }
-
 function openInformeModal_(){
   $("ieHtmlWrap") && ($("ieHtmlWrap").style.display = "block");
   $("ieTextWrap") && ($("ieTextWrap").style.display = "none");
@@ -3705,7 +3706,7 @@ function iePrintPdf_(){
   window.print();
 }
 
-function exportIEReportToExcel_(){
+  function exportIEReportToExcel_(){
   const wrap = $("ieModalBody");
   const table = wrap?.querySelector?.("table");
   if(!table){
@@ -3713,11 +3714,19 @@ function exportIEReportToExcel_(){
     return;
   }
 
-  const titulo = "Calificaciones de evaluación del desempeño";
+  const view = String(state.reportesView || "");
   const no   = ($("reportNoPersonal")?.value || "TODOS").trim();
   const dep  = ($("reportDepto")?.value || "TODOS").trim();
   const per  = ($("reportPeriodo")?.value || "").trim();
   const ver  = ($("reportVersion")?.value || "").trim();
+
+  const titulo = view === "PROYECCION_POTENCIAL"
+    ? "Proyección y potencial de desarrollo"
+    : "Calificaciones de evaluación del desempeño";
+
+  const archivoBase = view === "PROYECCION_POTENCIAL"
+    ? "Proyeccion_potencial_desarrollo"
+    : "Calificaciones";
 
   const html = `
     <html xmlns:o="urn:schemas-microsoft-com:office:office"
@@ -3746,13 +3755,12 @@ function exportIEReportToExcel_(){
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `Calificaciones_${no || "TODOS"}_${dep || "TODOS"}_${per || "PERIODO"}_V${ver || "1"}.xls`;
+  a.download = `${archivoBase}_${no || "TODOS"}_${dep || "TODOS"}_${per || "PERIODO"}_V${ver || "1"}.xls`;
   document.body.appendChild(a);
   a.click();
   a.remove();
   setTimeout(()=>URL.revokeObjectURL(url), 1000);
 }
-  
 // al terminar impresión, limpia la clase
 window.addEventListener("afterprint", ()=>{
   document.body.classList.remove("print-ie");
@@ -4231,9 +4239,7 @@ Versión: ${ver}
 Fecha: ${fecha}
 Puntaje final: ${pf}`;
 
-      $("ieHtmlWrap").style.display = "";
-      $("ieTextWrap").style.display = "none";
-      $("ieModalBack").classList.add("show");
+  openInformeModal_();
     }catch(err){
       alert(err?.message || "No se pudo generar el reporte.");
     }
