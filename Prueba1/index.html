@@ -874,6 +874,10 @@ button[disabled]{
         <div class="lbl">Versión</div>
         <input id="reportVersion" placeholder="Ej: 1" />
       </div>
+      <div class="field col-3 boxed" id="reportBuscarWrap">
+        <div class="lbl">Acción</div>
+        <button id="btnBuscarReporte" type="button" class="btn-blue">Generar</button>
+      </div>
     </div>
   </div>
 </section>
@@ -1377,13 +1381,15 @@ function syncPhaseInputsToReportFilters_(){
 function updateReportFiltersLayout_(){
   const view = String(state.reportesView || "");
   const help = $("reportesFiltersHelp");
+  const row  = $("reportesFiltersRow");
 
   const wrapNo   = $("reportNoPersonalWrap");
   const wrapDep  = $("reportDeptoWrap");
   const wrapPer  = $("reportPeriodoWrap");
   const wrapVer  = $("reportVersionWrap");
+  const wrapBtn  = $("reportBuscarWrap");
 
-  if(!wrapNo || !wrapDep || !wrapPer || !wrapVer) return;
+  if(!wrapNo || !wrapDep || !wrapPer || !wrapVer || !wrapBtn || !row) return;
 
   const showDepto = [
     "EVAL_CALIFICACIONES",
@@ -1392,24 +1398,31 @@ function updateReportFiltersLayout_(){
     "OPORTUNIDADES_MEJORA"
   ].includes(view);
 
-  wrapNo.className  = "field boxed " + (showDepto ? "col-3" : "col-4");
-  wrapPer.className = "field boxed " + (showDepto ? "col-3" : "col-4");
-  wrapVer.className = "field boxed " + (showDepto ? "col-3" : "col-4");
+  row.style.display = "grid";
+  row.style.gap = "10px";
+  row.style.gridTemplateColumns = showDepto
+    ? "repeat(5, minmax(0, 1fr))"
+    : "repeat(4, minmax(0, 1fr))";
+
+  wrapNo.className  = "field boxed";
+  wrapDep.className = "field boxed";
+  wrapPer.className = "field boxed";
+  wrapVer.className = "field boxed";
+  wrapBtn.className = "field boxed";
 
   wrapDep.style.display = showDepto ? "" : "none";
-  wrapDep.className = "field boxed col-3";
 
   if(help){
     if(view === "EVAL_RESUMEN"){
-      help.innerHTML = 'Evaluación del desempeño: <b>No. de personal</b>, <b>Periodo</b> y <b>Versión</b>.';
+      help.innerHTML = 'Evaluación del desempeño: <b>No. de personal</b>, <b>Periodo</b>, <b>Versión</b> y <b>Generar</b>.';
     }else if(view === "EVAL_CALIFICACIONES"){
-      help.innerHTML = 'Calificaciones de evaluaciones del desempeño: <b>No. de personal</b>, <b>Departamento</b>, <b>Periodo</b> y <b>Versión</b>.';
+      help.innerHTML = 'Calificaciones de evaluaciones del desempeño: <b>No. de personal</b>, <b>Departamento</b>, <b>Periodo</b>, <b>Versión</b> y <b>Generar</b>.';
     }else if(view === "NECESIDADES_CAP"){
-      help.innerHTML = 'Necesidades de capacitación: <b>No. de personal</b>, <b>Departamento</b>, <b>Periodo</b> y <b>Versión</b>.';
+      help.innerHTML = 'Necesidades de capacitación: <b>No. de personal</b>, <b>Departamento</b>, <b>Periodo</b>, <b>Versión</b> y <b>Generar</b>.';
     }else if(view === "PROYECCION_POTENCIAL"){
-      help.innerHTML = 'Proyección y potencial de desarrollo: <b>No. de personal</b>, <b>Departamento</b>, <b>Periodo</b> y <b>Versión</b>.';
+      help.innerHTML = 'Proyección y potencial de desarrollo: <b>No. de personal</b>, <b>Departamento</b>, <b>Periodo</b>, <b>Versión</b> y <b>Generar</b>.';
     }else if(view === "OPORTUNIDADES_MEJORA"){
-      help.innerHTML = 'Oportunidades de mejora: <b>No. de personal</b>, <b>Departamento</b>, <b>Periodo</b> y <b>Versión</b>.';
+      help.innerHTML = 'Oportunidades de mejora: <b>No. de personal</b>, <b>Departamento</b>, <b>Periodo</b>, <b>Versión</b> y <b>Generar</b>.';
     }else{
       help.innerHTML = 'Completa los filtros requeridos para el reporte seleccionado.';
     }
@@ -4009,7 +4022,7 @@ on("btnReportesToggle", "click", ()=>{
   wrap.style.display = hidden ? "flex" : "none";
   if(hidden) sel.focus();
 });
-
+  
 on("reportesSelect", "change", (e)=>{
   const view = String(e.target?.value || "");
   state.reportesView = view;
@@ -4034,6 +4047,38 @@ document.querySelectorAll(".faseBtn[data-fase]").forEach(btn=>{
   });
 });
 
+on("btnBuscarReporte", "click", async ()=>{
+  syncReportFiltersToPhaseInputs_();
+  updateCapSaveState_();
+  updateDevGenerarState_();
+  updateGuardarUIState();
+
+  const view = String(state.reportesView || "");
+
+  if(view === "EVAL_RESUMEN"){
+    try{
+      await buscarReporteEvaluacionDesempeno_();
+    }catch(err){
+      setApiStatus("err","API: " + (err?.message || err));
+    }
+    return;
+  }
+
+  if(view === "EVAL_CALIFICACIONES" && $("btnRecuperar") && !$("btnRecuperar").disabled){
+    $("btnRecuperar").click();
+    return;
+  }
+
+  if(view === "NECESIDADES_CAP" && $("btnCapGenerar") && !$("btnCapGenerar").disabled){
+    $("btnCapGenerar").click();
+    return;
+  }
+
+  if((view === "PROYECCION_POTENCIAL" || view === "OPORTUNIDADES_MEJORA") && $("btnDevGenerar") && !$("btnDevGenerar").disabled){
+    $("btnDevGenerar").click();
+  }
+});
+  
 ["reportNoPersonal","reportDepto","reportPeriodo","reportVersion"].forEach(id=>{
   on(id,"input", ()=>{
     syncReportFiltersToPhaseInputs_();
