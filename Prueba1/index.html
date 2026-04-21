@@ -700,12 +700,13 @@ button[disabled]{
         Tip: si el PDF sale feo, no eres tú: es el “modo impresora” haciendo lo suyo 😄
       </div>
 
-      <div class="controls" style="margin-bottom:12px;justify-content:flex-start">
+            <div class="controls" style="margin-bottom:12px;justify-content:flex-start">
         <button id="btnPrintPDF" class="btn-blue">PDF</button>
+        <button id="btnPrintWord" class="btn-blue">Word</button>
         <button id="btnPrintTXT" class="btn-ghost">Generar texto</button>
         <button id="btnCopyText" class="btn-ok">Copiar texto</button>
       </div>
-
+        
       <div class="field boxed">
         <div class="lbl">Texto del reporte</div>
         <textarea id="printTextArea" placeholder="Aquí aparecerá el reporte en texto..."></textarea>
@@ -894,10 +895,18 @@ button[disabled]{
         <div class="lbl">Versión</div>
         <input id="reportVersion" placeholder="Ej: 1" />
       </div>
-      <div class="field boxed" id="reportBuscarWrap">
+            <div class="field boxed" id="reportBuscarWrap">
         <div class="lbl">Acción</div>
-        <button type="button" id="btnBuscarReporte" class="btn-blue">Buscar</button>
+        <div class="controls" style="width:100%;gap:8px;flex-wrap:nowrap">
+          <button type="button" id="btnBuscarReporte" class="btn-blue" style="flex:1 1 auto">Buscar</button>
+          <select id="reportEnviarTipo" style="min-width:120px;flex:0 0 120px">
+            <option value="PDF">PDF</option>
+            <option value="WORD">Word</option>
+          </select>
+          <button type="button" id="btnEnviarReporte" class="btn-ok" style="flex:1 1 auto">Enviar</button>
+        </div>
       </div>
+    </div>
     </div>
   </div>
 </section>
@@ -2909,16 +2918,37 @@ if ($("repPeriodo"))  $("repPeriodo").value = per || "—";
 if ($("repVersion"))  $("repVersion").value = ver || "—";
 if ($("repFecha"))    $("repFecha").value = fechaDMY || "—";
 
-    // ✅ Tabla
-  $("resultadoTbody").innerHTML = rows.map(r=>{
-  return `
-    <tr>
-      <td>${escapeHtml(r.item ?? "")}</td>
-      <td>${escapeHtml(r.respuesta ?? "—")}</td>
-    </tr>
-  `;
-}).join("");
+        // ✅ Tabla
+    $("resultadoTbody").innerHTML = rows.map((r, i)=>{
+      const itemLabel = `Item ${i + 1}: ${String(r.item ?? "").trim()}`;
+      return `
+        <tr>
+          <td>${escapeHtml(r.factor ?? "")}</td>
+          <td>${escapeHtml(itemLabel)}</td>
+          <td>${escapeHtml(r.respuesta ?? "—")}</td>
+        </tr>
+      `;
+    }).join("");
 
+    if ($("resultadoMeta")) {
+      $("resultadoMeta").textContent =
+        `Reporte de evaluación del desempeño | No: ${no} | Periodo: ${per} | Versión: ${ver} | Registros: ${rows.length}`;
+    }
+
+    if ($("puntajeFinal")) $("puntajeFinal").value = pf || "—";
+
+    if ($("resJustificacion")) $("resJustificacion").value = String(cual.justificacion || "").trim();
+    if ($("resEvalClientes")) $("resEvalClientes").value = String(cual.evaluacionClientes || "").trim();
+    if ($("resComColab")) $("resComColab").value = String(cual.comentariosColaborador || "").trim();
+    if ($("resFortalezas")) $("resFortalezas").value = String(cual.fortalezas || "").trim();
+    if ($("resOportunidades")) $("resOportunidades").value = String(cual.oportunidadesMejora || "").trim();
+    if ($("resProyeccion")) $("resProyeccion").value = String(cual.proyeccionPotencial || "").trim();
+    if ($("resCapacitacion")) $("resCapacitacion").value = String(cual.necesidadesCapacitacion || "").trim();
+    if ($("resComEval")) $("resComEval").value = String(cual.comentariosEvaluador || "").trim();
+    if ($("resNomEval")) $("resNomEval").value = String(cual.nombreEvaluador || "").trim();
+
+    state.resultadoCache = { header, rows, puntajeFinal: pf, cualitativo: cual };
+    updateGuardarUIState();
     // ✅ Puntaje Final
     $("puntajeFinal").value = String(pf);
 
@@ -3623,35 +3653,33 @@ function buildResultadoTexto_(){
   const fecha    = $("repFecha")?.value?.trim() || "—";
 
   let out = `REPORTE DE EVALUACIÓN DEL DESEMPEÑO\n\n`;
-
-  // ✅ datos del colaborador(2 filas)
   out += `No. de personal: ${no} | Nombre: ${nombre} | Posición: ${posicion}\n`;
-  out += `Departamento: ${depto} | Periodo: ${per} | Versión: ${ver} | Fecha: ${fecha}\n`;
-  out += `Puntaje final: ${pf}\n\n`;
+  out += `Periodo: ${per} | Versión: ${ver} | Fecha: ${fecha}\n`;
+  out += `Departamento: ${depto}\n\n`;
+  out += `PUNTAJE FINAL: ${pf}\n\n`;
 
-  out += `DETALLE POR ÍTEM:\n`;
   const trs = Array.from($("resultadoTbody")?.querySelectorAll("tr") || []);
-  trs.forEach(tr=>{
+  trs.forEach((tr, idx)=>{
     const tds = tr.querySelectorAll("td");
     if(tds.length === 3){
-      const factor = tds[0].innerText.trim();
-      const item   = tds[1].innerText.trim();
-      const resp   = tds[2].innerText.trim();
-      out += `- ${factor} | ${item} | Resp: ${resp}\n`;
+      const item = tds[1].innerText.trim();
+      const resp = tds[2].innerText.trim();
+      out += `Item ${idx + 1}: ${item}\nRespuesta: ${resp}\n\n`;
     }
   });
 
-  out += `\nCUALITATIVO (EVALUACIONFINAL):\n`;
   out += `Justificación y comentarios:\n${($("resJustificacion")?.value || "").trim()}\n\n`;
-  out += `Evaluación de clientes (SSC):\n${($("resEvalClientes")?.value || "").trim()}\n\n`;
   out += `Comentarios del colaborador:\n${($("resComColab")?.value || "").trim()}\n\n`;
   out += `Fortalezas:\n${($("resFortalezas")?.value || "").trim()}\n\n`;
   out += `Oportunidades de mejora:\n${($("resOportunidades")?.value || "").trim()}\n\n`;
   out += `Proyección y potencial de desarrollo:\n${($("resProyeccion")?.value || "").trim()}\n\n`;
   out += `Necesidades de capacitación:\n${($("resCapacitacion")?.value || "").trim()}\n\n`;
   out += `Comentarios del evaluador:\n${($("resComEval")?.value || "").trim()}\n\n`;
-  out += `Nombre del evaluador: ${($("resNomEval")?.value || "").trim()}\n`;
+  out += `Firma evaluador: __________________________\n`;
+  out += `Firma evaluado: __________________________\n`;
 
+  return out;
+}
   return out.trim();
 }
 /* ================= ✅ INFORME EJECUTIVO (CONSOLIDADO) ================= */
@@ -3991,6 +4019,67 @@ on("btnPrintPDF", "click", ()=>{
   window.print();
 });
 
+function downloadWordResultado_(){
+  const contenido = `
+    <html xmlns:o="urn:schemas-microsoft-com:office:office"
+          xmlns:w="urn:schemas-microsoft-com:office:word"
+          xmlns="http://www.w3.org/TR/REC-html40">
+    <head><meta charset="utf-8"></head>
+    <body>
+      <pre style="font-family:Arial,sans-serif;white-space:pre-wrap">${escapeHtml(buildResultadoTexto_())}</pre>
+    </body>
+    </html>
+  `.trim();
+
+  const blob = new Blob(["\ufeff", contenido], { type: "application/msword" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  const no  = $("repNo")?.value?.trim() || $("noPersonalRes")?.value?.trim() || "reporte";
+  const per = $("repPeriodo")?.value?.trim() || $("periodoRes")?.value?.trim() || "";
+  const ver = $("repVersion")?.value?.trim() || $("versionRes")?.value?.trim() || "";
+  a.href = url;
+  a.download = `Reporte_Evaluacion_${no}_${per}_V${ver}.doc`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+on("btnPrintWord", "click", ()=>{
+  $("printTextArea").value = isConsolidadoPhase() ? buildConsolidadoTexto_() : buildResultadoTexto_();
+  downloadWordResultado_();
+});
+
+on("btnEnviarReporte", "click", async ()=>{
+  const view = String(state.reportesView || "");
+  if(view !== "EVAL_RESUMEN"){
+    alert("Enviar solo aplica para el reporte: Evaluación del desempeño.");
+    return;
+  }
+
+  const no  = $("reportNoPersonal")?.value?.trim() || "";
+  const per = $("reportPeriodo")?.value?.trim() || "";
+  const ver = $("reportVersion")?.value?.trim() || "";
+
+  if(!no || !per || !ver){
+    alert("Completa No. de personal, Periodo y Versión.");
+    return;
+  }
+
+  if(!state.resultadoCache){
+    await recoverResultado();
+  }
+
+  const tipo = String($("reportEnviarTipo")?.value || "PDF").toUpperCase();
+  if(tipo === "WORD"){
+    $("printTextArea").value = buildResultadoTexto_();
+    downloadWordResultado_();
+    return;
+  }
+
+  openPrintModal();
+});
+  
 on("btnPrintTXT", "click", ()=>{
   $("printTextArea").value = isConsolidadoPhase() ? buildConsolidadoTexto_() : buildResultadoTexto_();
 });
