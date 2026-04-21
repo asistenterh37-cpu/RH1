@@ -705,7 +705,8 @@ button[disabled]{
     <div class="modalNote">Generado con la hoja <b>EvaluacionFinal</b> + <b>OpenAI</b>.</div>
   </div>
 
-  <div class="modalActions">
+    <div class="modalActions">
+    <button id="btnIEExcel" class="btn-ok" style="display:none">Enviar a Excel</button>
     <button id="btnIEPrintPDF" class="btn-blue">Imprimir: PDF</button>
     <button id="btnIEText" class="btn-ghost">Imprimir: Texto</button>
     <button id="btnIEClose" class="btn-ghost">Cerrar</button>
@@ -3667,9 +3668,18 @@ function buildResultadoTexto_(){
 /* ================= ✅ INFORME EJECUTIVO (CONSOLIDADO) ================= */
 
 // abre modal
+function updateInformeButtons_(){
+  const isCalificaciones = String(state.reportesView || "") === "EVAL_CALIFICACIONES";
+
+  if($("btnIEExcel"))    $("btnIEExcel").style.display    = isCalificaciones ? "" : "none";
+  if($("btnIEPrintPDF")) $("btnIEPrintPDF").style.display = isCalificaciones ? "none" : "";
+  if($("btnIEText"))     $("btnIEText").style.display     = isCalificaciones ? "none" : "";
+}
+
 function openInformeModal_(){
   $("ieHtmlWrap") && ($("ieHtmlWrap").style.display = "block");
   $("ieTextWrap") && ($("ieTextWrap").style.display = "none");
+  updateInformeButtons_();
   $("ieModalBack")?.classList.add("show");
 }
 
@@ -3678,11 +3688,12 @@ function closeInformeModal_(){
   document.body.classList.remove("print-ie");
 }
 
+updateInformeButtons_();
 // muestra texto
 function ieShowTexto_(){
   $("ieTextWrap") && ($("ieTextWrap").style.display = "block");
   $("ieHtmlWrap") && ($("ieHtmlWrap").style.display = "none");
-  // si no hay texto aún, lo construimos desde inputs con*
+  updateInformeButtons_();
   if($("ieTextArea") && !String($("ieTextArea").value||"").trim()){
     $("ieTextArea").value = buildConsolidadoTexto_();
   }
@@ -3694,6 +3705,54 @@ function iePrintPdf_(){
   window.print();
 }
 
+function exportIEReportToExcel_(){
+  const wrap = $("ieModalBody");
+  const table = wrap?.querySelector?.("table");
+  if(!table){
+    alert("No hay tabla para exportar.");
+    return;
+  }
+
+  const titulo = "Calificaciones de evaluación del desempeño";
+  const no   = ($("reportNoPersonal")?.value || "TODOS").trim();
+  const dep  = ($("reportDepto")?.value || "TODOS").trim();
+  const per  = ($("reportPeriodo")?.value || "").trim();
+  const ver  = ($("reportVersion")?.value || "").trim();
+
+  const html = `
+    <html xmlns:o="urn:schemas-microsoft-com:office:office"
+          xmlns:x="urn:schemas-microsoft-com:office:excel"
+          xmlns="http://www.w3.org/TR/REC-html40">
+      <head>
+        <meta charset="utf-8">
+        <style>
+          table{border-collapse:collapse;width:100%}
+          th,td{border:1px solid #000;padding:6px;text-align:left;vertical-align:top}
+          th{font-weight:700;background:#dbeafe}
+        </style>
+      </head>
+      <body>
+        <h2>${titulo}</h2>
+        <p><b>No. de personal:</b> ${escapeHtml(no)}<br>
+           <b>Departamento:</b> ${escapeHtml(dep)}<br>
+           <b>Periodo:</b> ${escapeHtml(per)}<br>
+           <b>Versión:</b> ${escapeHtml(ver)}</p>
+        ${table.outerHTML}
+      </body>
+    </html>
+  `;
+
+  const blob = new Blob(["\ufeff" + html], { type: "application/vnd.ms-excel;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `Calificaciones_${no || "TODOS"}_${dep || "TODOS"}_${per || "PERIODO"}_V${ver || "1"}.xls`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url), 1000);
+}
+  
 // al terminar impresión, limpia la clase
 window.addEventListener("afterprint", ()=>{
   document.body.classList.remove("print-ie");
@@ -3976,7 +4035,7 @@ on("btnGenInforme", "click", ()=>{
 on("btnIEText", "click", ieShowTextoSafe_);
 on("btnIEClose", "click", closeInformeModalSafe_);
 on("btnIEPrintPDF", "click", iePrintPdfSafe_);
-
+on("btnIEExcel", "click", exportIEReportToExcel_);
 on("ieModalBack", "click", (e)=>{
   if(e.target && e.target.id === "ieModalBack") closeInformeModalSafe_();
 });
@@ -4374,9 +4433,7 @@ Puntaje final: ${pf}`;
         )
       ].join("\n");
 
-      $("ieHtmlWrap").style.display = "";
-      $("ieTextWrap").style.display = "none";
-      $("ieModalBack").classList.add("show");
+            openInformeModal_();
     }catch(err){
       alert(err?.message || "No se pudo generar el reporte.");
     }
@@ -4509,6 +4566,7 @@ Puntaje final: ${pf}`;
 });
 // Fase / Nivel
 on("faseSelect", "change", async (e)=>{
+    updateInformeButtons_();
   const fase = e.target.value;
   syncFaseButtonsUI(fase);
   setPhase(fase);
