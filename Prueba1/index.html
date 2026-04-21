@@ -599,7 +599,7 @@ button[disabled]{
       <div class="form-grid">
         <div class="field col-8 boxed">
           <div class="lbl">URL Web App Apps Script</div>
-          <input id="webapp" value="https://script.google.com/macros/s/AKfycbygAqaB5eSE7vu9mSB1MZymGO6X6noq_-hpYWlsnqsDbDL7akozThu6uglugvLeHYNm/exec"/>
+          <input id="webapp" value="https://script.google.com/macros/s/AKfycbyCEQlp2RR52_dE336mYxKNWlq6imRTLyUs75PSlHEpVOp3ZmoPLfPfR7-KADPHWpLJ/exec"/>
         </div>
         <div class="field col-4 boxed">
           <div class="lbl">Pruebas API</div>
@@ -1311,7 +1311,7 @@ Dejar de hacer:"></textarea>
 `Empezar a hacer:
 Continuar haciendo:
 Dejar de hacer:`;
-  const DEFAULT_WEBAPP_ = "https://script.google.com/macros/s/AKfycbygAqaB5eSE7vu9mSB1MZymGO6X6noq_-hpYWlsnqsDbDL7akozThu6uglugvLeHYNm/exec";
+  const DEFAULT_WEBAPP_ = "https://script.google.com/macros/s/AKfycbyCEQlp2RR52_dE336mYxKNWlq6imRTLyUs75PSlHEpVOp3ZmoPLfPfR7-KADPHWpLJ/exec";
   const $ = id => document.getElementById(id);
 
 function syncFaseButtonsUI(value){
@@ -4282,7 +4282,7 @@ Puntaje final: ${pf}`;
     return;
   }
 
-  if(view === "PROYECCION_POTENCIAL"){
+      if(view === "PROYECCION_POTENCIAL"){
     if(!no || !depto || !per || !ver){
       alert("Para Generar, llena: No. de personal + Departamento + Periodo + Versión.");
       return;
@@ -4383,9 +4383,109 @@ Puntaje final: ${pf}`;
     return;
   }
 
+  if(view === "OPORTUNIDADES_MEJORA"){
+    if(!no || !depto || !per || !ver){
+      alert("Para Generar, llena: No. de personal + Departamento + Periodo + Versión.");
+      return;
+    }
+
+    try{
+      const noNorm = String(no || "").trim();
+      const deptoNorm = String(depto || "").trim();
+      const noQuery = /^(todos|todo)$/i.test(noNorm) ? "TODOS" : noNorm;
+      const deptoQuery = /^(todos|todo)$/i.test(deptoNorm) ? "TODOS" : deptoNorm;
+
+      const res = await apiGet({
+        action: "resultOportunidadesMejora",
+        no: noQuery,
+        depto: deptoQuery,
+        periodo: per,
+        version: ver
+      });
+
+      const rows = Array.isArray(res.rows) ? res.rows : [];
+      const esc = (v)=>escapeHtml(String(v ?? ""));
+      const rowsHtml = rows.length
+        ? rows.map(r => `
+            <tr>
+              <td>${esc(r.no || "—")}</td>
+              <td>${esc(r.nombre || "—")}</td>
+              <td>${esc(r.posicion || "—")}</td>
+              <td>${esc(r.depto || "—")}</td>
+              <td>${esc(r.version || "—")}</td>
+              <td>${esc(formatDateDMY(String(r.fecha || "").trim()) || r.fecha || "—")}</td>
+              <td>${esc(r.oportunidadesMejora || "—")}</td>
+            </tr>
+          `).join("")
+        : `<tr><td colspan="7" class="sub">Sin resultados para esos filtros.</td></tr>`;
+
+      $("ieModalBody").innerHTML = `
+        <div class="ie-wrap">
+          <style>
+            .evalrep{font-family:var(--sans);color:var(--text)}
+            .evalrep .box{border:1px solid rgba(255,255,255,.10);border-radius:16px;padding:14px;background:rgba(11,18,32,.22);margin-bottom:12px}
+            .evalrep h2{margin:0 0 12px 0;font-size:20px}
+            .evalrep table{width:100%;border-collapse:separate;border-spacing:0}
+            .evalrep thead th{background:rgba(15,27,51,.95);padding:10px;text-align:left;border-bottom:1px solid rgba(255,255,255,.10);white-space:nowrap}
+            .evalrep tbody td{padding:10px;border-bottom:1px solid rgba(255,255,255,.06);vertical-align:top}
+          </style>
+
+          <div class="evalrep">
+            <div class="box">
+              <h2>Reporte de evaluación del desempeño</h2>
+              <div class="tableWrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>No. de personal</th>
+                      <th>Nombre</th>
+                      <th>Posición</th>
+                      <th>Departamento</th>
+                      <th>Versión</th>
+                      <th>Fecha</th>
+                      <th>Oportunidades de mejora</th>
+                    </tr>
+                  </thead>
+                  <tbody>${rowsHtml}</tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+
+      $("ieTextArea").value = [
+        "Reporte de evaluación del desempeño",
+        `Filtro No. de personal: ${noQuery}`,
+        `Filtro Departamento: ${deptoQuery}`,
+        `Periodo: ${per}`,
+        `Versión: ${ver}`,
+        "",
+        ...rows.map(r =>
+          [
+            `No. de personal: ${r.no || "—"}`,
+            `Nombre: ${r.nombre || "—"}`,
+            `Posición: ${r.posicion || "—"}`,
+            `Departamento: ${r.depto || "—"}`,
+            `Versión: ${r.version || "—"}`,
+            `Fecha: ${formatDateDMY(String(r.fecha || "").trim()) || r.fecha || "—"}`,
+            `Oportunidades de mejora: ${r.oportunidadesMejora || "—"}`,
+            ""
+          ].join("\n")
+        )
+      ].join("\n");
+
+      $("ieHtmlWrap").style.display = "";
+      $("ieTextWrap").style.display = "none";
+      $("ieModalBack").classList.add("show");
+    }catch(err){
+      alert(err?.message || "No se pudo generar el reporte.");
+    }
+    return;
+  }
+
   alert("Este reporte aún no está configurado.");
 });
-  
 ["reportNoPersonal","reportDepto","reportPeriodo","reportVersion"].forEach(id=>{
   on(id,"input", ()=>{
     syncReportFiltersToPhaseInputs_();
