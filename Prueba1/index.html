@@ -4081,6 +4081,15 @@ on("btnBuscarReporte", "click", async ()=>{
   const per   = $("reportPeriodo")?.value?.trim() || "";
   const ver   = $("reportVersion")?.value?.trim() || "";
 
+  if(!view){
+    alert("Selecciona un tipo de reporte.");
+    return;
+  }
+
+  const esc = (v)=>escapeHtml(String(v ?? ""));
+  const noQuery    = /^(todos|todo)$/i.test(no) ? "TODOS" : no;
+  const deptoQuery = /^(todos|todo)$/i.test(depto) ? "TODOS" : depto;
+
   if(view === "EVAL_RESUMEN"){
     if(!no || !per || !ver){
       alert("Para Generar, llena: No. de personal + Periodo + Versión.");
@@ -4088,13 +4097,398 @@ on("btnBuscarReporte", "click", async ()=>{
     }
 
     try{
+      const res = await apiGet({ action:"result", no:noQuery, periodo:per, version:ver });
+      const h   = res.header || {};
+      const pf  = String(res.puntajeFinal || "0.00");
+      const q   = res.cualitativo || {};
+      const fecha = formatDateDMY(String(h.fecha || "").trim()) || h.fecha || "—";
+
+      $("ieModalBody").innerHTML = `
+        <div class="tableWrap">
+          <table>
+            <thead>
+              <tr>
+                <th>No. de personal</th>
+                <th>Nombre</th>
+                <th>Posición</th>
+                <th>Departamento</th>
+                <th>Versión</th>
+                <th>Fecha</th>
+                <th>Puntaje final</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>${esc(noQuery)}</td>
+                <td>${esc(h.nombre || "—")}</td>
+                <td>${esc(h.posicion || "—")}</td>
+                <td>${esc(h.depto || "—")}</td>
+                <td>${esc(ver)}</td>
+                <td>${esc(fecha)}</td>
+                <td>${esc(pf)}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div style="margin-top:14px" class="tableWrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Justificación y comentarios</th>
+                <th>Comentarios del colaborador</th>
+                <th>Comentarios del evaluador</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>${esc(q.justificacion || "—")}</td>
+                <td>${esc(q.comentariosColaborador || "—")}</td>
+                <td>${esc(q.comentariosEvaluador || "—")}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      `;
+
+      $("ieTextArea").value =
+`Reporte de evaluación del desempeño
+No. de personal: ${noQuery}
+Nombre: ${h.nombre || "—"}
+Posición: ${h.posicion || "—"}
+Departamento: ${h.depto || "—"}
+Periodo: ${per}
+Versión: ${ver}
+Fecha: ${fecha}
+Puntaje final: ${pf}`;
+
+      $("ieHtmlWrap").style.display = "";
+      $("ieTextWrap").style.display = "none";
+      $("ieModalBack").classList.add("show");
+    }catch(err){
+      alert(err?.message || "No se pudo generar el reporte.");
+    }
+    return;
+  }
+
+  if(view === "EVAL_CALIFICACIONES"){
+    if(!no || !depto || !per || !ver){
+      alert("Para Generar, llena: No. de personal + Departamento + Periodo + Versión.");
+      return;
+    }
+
+    try{
       const res = await apiGet({
-        action: "result",
-        no,
+        action: "resultCalificaciones",
+        no: noQuery,
+        depto: deptoQuery,
         periodo: per,
         version: ver
       });
 
+      const rows = Array.isArray(res.rows) ? res.rows : [];
+      const rowsHtml = rows.length
+        ? rows.map(r => `
+            <tr>
+              <td>${esc(r.no || "—")}</td>
+              <td>${esc(r.nombre || "—")}</td>
+              <td>${esc(r.posicion || "—")}</td>
+              <td>${esc(r.depto || "—")}</td>
+              <td>${esc(r.version || "—")}</td>
+              <td>${esc(formatDateDMY(String(r.fecha || "").trim()) || r.fecha || "—")}</td>
+              <td>${esc(r.puntajeFinal || "0.00")}</td>
+            </tr>
+          `).join("")
+        : `<tr><td colspan="7" class="sub">Sin resultados para esos filtros.</td></tr>`;
+
+      $("ieModalBody").innerHTML = `
+        <div class="tableWrap">
+          <table>
+            <thead>
+              <tr>
+                <th>No. de personal</th>
+                <th>Nombre</th>
+                <th>Posición</th>
+                <th>Departamento</th>
+                <th>Versión</th>
+                <th>Fecha</th>
+                <th>Puntaje final</th>
+              </tr>
+            </thead>
+            <tbody>${rowsHtml}</tbody>
+          </table>
+        </div>
+      `;
+
+      $("ieTextArea").value = [
+        "Reporte de evaluación del desempeño",
+        `Filtro No. de personal: ${noQuery}`,
+        `Filtro Departamento: ${deptoQuery}`,
+        `Periodo: ${per}`,
+        `Versión: ${ver}`,
+        "",
+        ...rows.map(r =>
+          [
+            `No. de personal: ${r.no || "—"}`,
+            `Nombre: ${r.nombre || "—"}`,
+            `Posición: ${r.posicion || "—"}`,
+            `Departamento: ${r.depto || "—"}`,
+            `Versión: ${r.version || "—"}`,
+            `Fecha: ${formatDateDMY(String(r.fecha || "").trim()) || r.fecha || "—"}`,
+            `Puntaje final: ${r.puntajeFinal || "0.00"}`,
+            ""
+          ].join("\n")
+        )
+      ].join("\n");
+
+      $("ieHtmlWrap").style.display = "";
+      $("ieTextWrap").style.display = "none";
+      $("ieModalBack").classList.add("show");
+    }catch(err){
+      alert(err?.message || "No se pudo generar el reporte.");
+    }
+    return;
+  }
+
+  if(view === "NECESIDADES_CAP"){
+    if(!no || !depto || !per || !ver){
+      alert("Para Generar, llena: No. de personal + Departamento + Periodo + Versión.");
+      return;
+    }
+
+    try{
+      const res = await apiGet({
+        action: "resultNecesidadesCap",
+        no: noQuery,
+        depto: deptoQuery,
+        periodo: per,
+        version: ver
+      });
+
+      const rows = Array.isArray(res.rows) ? res.rows : [];
+      const rowsHtml = rows.length
+        ? rows.map(r => `
+            <tr>
+              <td>${esc(r.no || "—")}</td>
+              <td>${esc(r.nombre || "—")}</td>
+              <td>${esc(r.posicion || "—")}</td>
+              <td>${esc(r.depto || "—")}</td>
+              <td>${esc(r.version || "—")}</td>
+              <td>${esc(formatDateDMY(String(r.fecha || "").trim()) || r.fecha || "—")}</td>
+              <td>${esc(r.necesidadesCapacitacion || "—")}</td>
+            </tr>
+          `).join("")
+        : `<tr><td colspan="7" class="sub">Sin resultados para esos filtros.</td></tr>`;
+
+      $("ieModalBody").innerHTML = `
+        <div class="tableWrap">
+          <table>
+            <thead>
+              <tr>
+                <th>No. de personal</th>
+                <th>Nombre</th>
+                <th>Posición</th>
+                <th>Departamento</th>
+                <th>Versión</th>
+                <th>Fecha</th>
+                <th>Necesidades de capacitación</th>
+              </tr>
+            </thead>
+            <tbody>${rowsHtml}</tbody>
+          </table>
+        </div>
+      `;
+
+      $("ieTextArea").value = [
+        "Reporte de evaluación del desempeño",
+        `Filtro No. de personal: ${noQuery}`,
+        `Filtro Departamento: ${deptoQuery}`,
+        `Periodo: ${per}`,
+        `Versión: ${ver}`,
+        "",
+        ...rows.map(r =>
+          [
+            `No. de personal: ${r.no || "—"}`,
+            `Nombre: ${r.nombre || "—"}`,
+            `Posición: ${r.posicion || "—"}`,
+            `Departamento: ${r.depto || "—"}`,
+            `Versión: ${r.version || "—"}`,
+            `Fecha: ${formatDateDMY(String(r.fecha || "").trim()) || r.fecha || "—"}`,
+            `Necesidades de capacitación: ${r.necesidadesCapacitacion || "—"}`,
+            ""
+          ].join("\n")
+        )
+      ].join("\n");
+
+      $("ieHtmlWrap").style.display = "";
+      $("ieTextWrap").style.display = "none";
+      $("ieModalBack").classList.add("show");
+    }catch(err){
+      alert(err?.message || "No se pudo generar el reporte.");
+    }
+    return;
+  }
+
+  if(view === "PROYECCION_POTENCIAL"){
+    if(!no || !depto || !per || !ver){
+      alert("Para Generar, llena: No. de personal + Departamento + Periodo + Versión.");
+      return;
+    }
+
+    try{
+      const res = await apiGet({
+        action: "resultProyeccionPotencial",
+        no: noQuery,
+        depto: deptoQuery,
+        periodo: per,
+        version: ver
+      });
+
+      const rows = Array.isArray(res.rows) ? res.rows : [];
+      const rowsHtml = rows.length
+        ? rows.map(r => `
+            <tr>
+              <td>${esc(r.no || "—")}</td>
+              <td>${esc(r.nombre || "—")}</td>
+              <td>${esc(r.posicion || "—")}</td>
+              <td>${esc(r.depto || "—")}</td>
+              <td>${esc(r.version || "—")}</td>
+              <td>${esc(formatDateDMY(String(r.fecha || "").trim()) || r.fecha || "—")}</td>
+              <td>${esc(r.proyeccionPotencial || "—")}</td>
+            </tr>
+          `).join("")
+        : `<tr><td colspan="7" class="sub">Sin resultados para esos filtros.</td></tr>`;
+
+      $("ieModalBody").innerHTML = `
+        <div class="tableWrap">
+          <table>
+            <thead>
+              <tr>
+                <th>No. de personal</th>
+                <th>Nombre</th>
+                <th>Posición</th>
+                <th>Departamento</th>
+                <th>Versión</th>
+                <th>Fecha</th>
+                <th>Proyección y potencial de desarrollo</th>
+              </tr>
+            </thead>
+            <tbody>${rowsHtml}</tbody>
+          </table>
+        </div>
+      `;
+
+      $("ieTextArea").value = [
+        "Reporte de evaluación del desempeño",
+        `Filtro No. de personal: ${noQuery}`,
+        `Filtro Departamento: ${deptoQuery}`,
+        `Periodo: ${per}`,
+        `Versión: ${ver}`,
+        "",
+        ...rows.map(r =>
+          [
+            `No. de personal: ${r.no || "—"}`,
+            `Nombre: ${r.nombre || "—"}`,
+            `Posición: ${r.posicion || "—"}`,
+            `Departamento: ${r.depto || "—"}`,
+            `Versión: ${r.version || "—"}`,
+            `Fecha: ${formatDateDMY(String(r.fecha || "").trim()) || r.fecha || "—"}`,
+            `Proyección y potencial de desarrollo: ${r.proyeccionPotencial || "—"}`,
+            ""
+          ].join("\n")
+        )
+      ].join("\n");
+
+      $("ieHtmlWrap").style.display = "";
+      $("ieTextWrap").style.display = "none";
+      $("ieModalBack").classList.add("show");
+    }catch(err){
+      alert(err?.message || "No se pudo generar el reporte.");
+    }
+    return;
+  }
+
+  if(view === "OPORTUNIDADES_MEJORA"){
+    if(!no || !depto || !per || !ver){
+      alert("Para Generar, llena: No. de personal + Departamento + Periodo + Versión.");
+      return;
+    }
+
+    try{
+      const res = await apiGet({
+        action: "resultOportunidadesMejora",
+        no: noQuery,
+        depto: deptoQuery,
+        periodo: per,
+        version: ver
+      });
+
+      const rows = Array.isArray(res.rows) ? res.rows : [];
+      const rowsHtml = rows.length
+        ? rows.map(r => `
+            <tr>
+              <td>${esc(r.no || "—")}</td>
+              <td>${esc(r.nombre || "—")}</td>
+              <td>${esc(r.posicion || "—")}</td>
+              <td>${esc(r.depto || "—")}</td>
+              <td>${esc(r.version || "—")}</td>
+              <td>${esc(formatDateDMY(String(r.fecha || "").trim()) || r.fecha || "—")}</td>
+              <td>${esc(r.oportunidadesMejora || "—")}</td>
+            </tr>
+          `).join("")
+        : `<tr><td colspan="7" class="sub">Sin resultados para esos filtros.</td></tr>`;
+
+      $("ieModalBody").innerHTML = `
+        <div class="tableWrap">
+          <table>
+            <thead>
+              <tr>
+                <th>No. de personal</th>
+                <th>Nombre</th>
+                <th>Posición</th>
+                <th>Departamento</th>
+                <th>Versión</th>
+                <th>Fecha</th>
+                <th>Oportunidades de mejora</th>
+              </tr>
+            </thead>
+            <tbody>${rowsHtml}</tbody>
+          </table>
+        </div>
+      `;
+
+      $("ieTextArea").value = [
+        "Reporte de evaluación del desempeño",
+        `Filtro No. de personal: ${noQuery}`,
+        `Filtro Departamento: ${deptoQuery}`,
+        `Periodo: ${per}`,
+        `Versión: ${ver}`,
+        "",
+        ...rows.map(r =>
+          [
+            `No. de personal: ${r.no || "—"}`,
+            `Nombre: ${r.nombre || "—"}`,
+            `Posición: ${r.posicion || "—"}`,
+            `Departamento: ${r.depto || "—"}`,
+            `Versión: ${r.version || "—"}`,
+            `Fecha: ${formatDateDMY(String(r.fecha || "").trim()) || r.fecha || "—"}`,
+            `Oportunidades de mejora: ${r.oportunidadesMejora || "—"}`,
+            ""
+          ].join("\n")
+        )
+      ].join("\n");
+
+      $("ieHtmlWrap").style.display = "";
+      $("ieTextWrap").style.display = "none";
+      $("ieModalBack").classList.add("show");
+    }catch(err){
+      alert(err?.message || "No se pudo generar el reporte.");
+    }
+    return;
+  }
+
+  alert("Tipo de reporte no soportado.");
+});
       const h = res.header || {};
       const q = res.cualitativo || {};
       const pf = String(res.puntajeFinal || "0.00");
