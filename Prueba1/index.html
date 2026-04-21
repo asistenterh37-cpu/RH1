@@ -856,31 +856,30 @@ button[disabled]{
   <div class="card-h">
     <div>
       <h2>Filtros de reportes</h2>
-      <div class="sub">Puedes escribir un No. de personal específico o <b>TODOS</b>. Igual para <b>Departamento</b>.</div>
+      <div class="sub" id="reportesFiltersHelp">Completa los filtros requeridos para el reporte seleccionado.</div>
     </div>
   </div>
   <div class="card-b">
-    <div class="form-grid">
-      <div class="field col-3 boxed">
+    <div class="form-grid" id="reportesFiltersRow">
+      <div class="field col-3 boxed" id="reportNoPersonalWrap">
         <div class="lbl">No. de personal</div>
         <input id="reportNoPersonal" placeholder="Ej: 1600 o TODOS" />
       </div>
-      <div class="field col-3 boxed">
+      <div class="field col-3 boxed" id="reportDeptoWrap">
         <div class="lbl">Departamento</div>
         <input id="reportDepto" placeholder="Ej: RRHH o TODOS" />
       </div>
-      <div class="field col-3 boxed">
+      <div class="field col-3 boxed" id="reportPeriodoWrap">
         <div class="lbl">Periodo</div>
         <input id="reportPeriodo" placeholder="Ej: 2025" />
       </div>
-      <div class="field col-3 boxed">
+      <div class="field col-3 boxed" id="reportVersionWrap">
         <div class="lbl">Versión</div>
         <input id="reportVersion" placeholder="Ej: 1" />
       </div>
     </div>
   </div>
 </section>
-
     
     <!-- ✅ NIVELES -->
     <section class="card" data-phase-block="NIVELES" id="blockNiveles">
@@ -1662,6 +1661,7 @@ function toggleReportesUI_(){
   const ctl  = $("reportesControls");
   if(card) card.style.display = isReportesPhase_() ? "" : "none";
   if(ctl && !isReportesPhase_() && !$("reportesSelect")?.value) ctl.style.display = "none";
+  updateReportFiltersLayout_();
 }
 
 function syncReportFiltersToPhaseInputs_(){
@@ -1692,6 +1692,53 @@ function syncPhaseInputsToReportFilters_(){
   if($("reportDepto"))      $("reportDepto").value = state.reportesDepto || "";
   if($("reportPeriodo"))    $("reportPeriodo").value = per;
   if($("reportVersion"))    $("reportVersion").value = ver;
+}
+
+function updateReportFiltersLayout_(){
+  const view = String(state.reportesView || "");
+  const help = $("reportesFiltersHelp");
+
+  const wrapNo   = $("reportNoPersonalWrap");
+  const wrapDep  = $("reportDeptoWrap");
+  const wrapPer  = $("reportPeriodoWrap");
+  const wrapVer  = $("reportVersionWrap");
+
+  if(!wrapNo || !wrapDep || !wrapPer || !wrapVer) return;
+
+  const showDepto = [
+    "EVAL_CALIFICACIONES",
+    "NECESIDADES_CAP",
+    "PROYECCION_POTENCIAL",
+    "OPORTUNIDADES_MEJORA"
+  ].includes(view);
+
+  wrapNo.className  = "field boxed " + (showDepto ? "col-3" : "col-4");
+  wrapPer.className = "field boxed " + (showDepto ? "col-3" : "col-4");
+  wrapVer.className = "field boxed " + (showDepto ? "col-3" : "col-4");
+
+  wrapDep.style.display = showDepto ? "" : "none";
+  wrapDep.className = "field boxed col-3";
+
+  if(help){
+    if(view === "EVAL_RESUMEN"){
+      help.innerHTML = 'Evaluación del desempeño: <b>No. de personal</b>, <b>Periodo</b> y <b>Versión</b>.';
+    }else if(view === "EVAL_CALIFICACIONES"){
+      help.innerHTML = 'Calificaciones de evaluaciones del desempeño: <b>No. de personal</b>, <b>Departamento</b>, <b>Periodo</b> y <b>Versión</b>.';
+    }else if(view === "NECESIDADES_CAP"){
+      help.innerHTML = 'Necesidades de capacitación: <b>No. de personal</b>, <b>Departamento</b>, <b>Periodo</b> y <b>Versión</b>.';
+    }else if(view === "PROYECCION_POTENCIAL"){
+      help.innerHTML = 'Proyección y potencial de desarrollo: <b>No. de personal</b>, <b>Departamento</b>, <b>Periodo</b> y <b>Versión</b>.';
+    }else if(view === "OPORTUNIDADES_MEJORA"){
+      help.innerHTML = 'Oportunidades de mejora: <b>No. de personal</b>, <b>Departamento</b>, <b>Periodo</b> y <b>Versión</b>.';
+    }else{
+      help.innerHTML = 'Completa los filtros requeridos para el reporte seleccionado.';
+    }
+  }
+
+  if(!showDepto && $("reportDepto")){
+    $("reportDepto").value = "";
+    state.reportesDepto = "";
+  }
 }
   
 function normalizeWebApp(raw){
@@ -4287,6 +4334,7 @@ on("reportesSelect", "change", (e)=>{
   const view = String(e.target?.value || "");
   state.reportesView = view;
   applyReportesView_();
+  updateReportFiltersLayout_();
 
   const fase = REPORTES_PHASE_MAP[view] || "";
   if(!fase) return;
@@ -4299,7 +4347,6 @@ on("reportesSelect", "change", (e)=>{
   updateDevGenerarState_();
   updateGuardarUIState();
 });
-
 document.querySelectorAll(".faseBtn[data-fase]").forEach(btn=>{
   btn.addEventListener("click", ()=>{
     const wrap = $("reportesControls");
@@ -4591,7 +4638,7 @@ clearKpisDetalle_();
     updateDevGenerarState_();
     syncPhaseInputsToReportFilters_();
     toggleReportesUI_();
-
+    updateReportFiltersLayout_();
   [
   "kpNoPersonal","kpNombre","kpPeriodo","kpVersion","kpFecha","kpPosicionNivel"
 ].forEach(id=>{
