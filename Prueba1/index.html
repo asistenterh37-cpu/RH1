@@ -1314,6 +1314,12 @@ Dejar de hacer:`;
   const DEFAULT_WEBAPP_ = "https://script.google.com/macros/s/AKfycbygAqaB5eSE7vu9mSB1MZymGO6X6noq_-hpYWlsnqsDbDL7akozThu6uglugvLeHYNm/exec";
   const $ = id => document.getElementById(id);
 
+function on(id, evt, handler){
+  const el = $(id);
+  if(!el || typeof el.addEventListener !== "function") return;
+  el.addEventListener(evt, handler);
+}
+  
 function syncFaseButtonsUI(value){
   document.querySelectorAll(".faseBtn").forEach(btn=>{
     btn.classList.toggle("active", btn.dataset.fase === String(value || ""));
@@ -4043,16 +4049,14 @@ on("btnReportesToggle", "click", ()=>{
   setFaseFromButton("REPORTES");
   syncFaseButtonsUI("REPORTES");
 
-  const hidden = wrap.style.display === "none" || !wrap.style.display;
-  wrap.style.display = hidden ? "flex" : "none";
-
+  wrap.style.display = "flex";
   if($("reportesFiltersCard")) $("reportesFiltersCard").style.display = "";
-  if(hidden) sel.focus();
+  sel.focus();
 
   toggleReportesUI_();
   updateGuardarUIState();
 });
-on("reportesSelect", "change", (e)=>{
+  on("reportesSelect", "change", (e)=>{
   const view = String(e.target?.value || "");
   state.reportesView = view;
   applyReportesView_();
@@ -5001,14 +5005,16 @@ on("comentariosColaboradorAuto","change", updateGuardarUIState);
   on(id,"input", updateCapSaveState_);
   on(id,"change", updateCapSaveState_);
 });
-
-["ooNoPersonal","ooNombre","ooPosicion","ooDepto","ooPeriodo","ooVersion","ooFecha","ooSeguimiento","ooEvaluador"].forEach(id=>{
+  ["ooNoPersonal","ooNombre","ooPeriodo","ooVersion","ooFecha","ooSeguimiento","ooEvaluador"].forEach(id=>{
   on(id,"input", updateGuardarUIState);
   on(id,"change", updateGuardarUIState);
 });
   
 /* ================= BOOT (SAFE) ================= */
 (function boot(){
+    if(typeof on !== "function"){
+    throw new Error('Falta helper "on"');
+  }
   try{
     // defaults de fechas
    if($("fecha")) $("fecha").value = todayLocal();
