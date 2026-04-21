@@ -809,7 +809,9 @@ button[disabled]{
    <button type="button" class="faseBtn" data-fase="KPIS">Kpis/entregables</button>
     <button type="button" class="faseBtn" data-fase="DESEMPENO">Evaluación desempeño</button>
   <button type="button" id="btnReportesToggle" class="faseBtn">Reportes</button>
-  <select id="reportesSelect" style="display:none;min-width:320px">
+
+<div id="reportesControls" style="display:none;align-items:center;gap:10px;flex-wrap:wrap">
+  <select id="reportesSelect" style="min-width:320px">
     <option value="">Seleccionar</option>
     <option value="EVAL_RESUMEN">1. Evaluación del desempeño</option>
     <option value="EVAL_CALIFICACIONES">2. Calificaciones de evaluación del desempeño</option>
@@ -817,6 +819,7 @@ button[disabled]{
     <option value="PROYECCION_POTENCIAL">4. Proyección y potencial de desarrollo</option>
     <option value="OPORTUNIDADES_MEJORA">5. Oportunidades de mejora</option>
   </select>
+</div>
 </div>
 
   <!-- Se mantiene oculto para no romper el JS actual -->
@@ -849,6 +852,36 @@ button[disabled]{
         </div>
       </div>
     </section>
+<section class="card" id="reportesFiltersCard" style="display:none">
+  <div class="card-h">
+    <div>
+      <h2>Filtros de reportes</h2>
+      <div class="sub">Puedes escribir un No. de personal específico o <b>TODOS</b>. Igual para <b>Departamento</b>.</div>
+    </div>
+  </div>
+  <div class="card-b">
+    <div class="form-grid">
+      <div class="field col-3 boxed">
+        <div class="lbl">No. de personal</div>
+        <input id="reportNoPersonal" placeholder="Ej: 1600 o TODOS" />
+      </div>
+      <div class="field col-3 boxed">
+        <div class="lbl">Departamento</div>
+        <input id="reportDepto" placeholder="Ej: RRHH o TODOS" />
+      </div>
+      <div class="field col-3 boxed">
+        <div class="lbl">Periodo</div>
+        <input id="reportPeriodo" placeholder="Ej: 2025" />
+      </div>
+      <div class="field col-3 boxed">
+        <div class="lbl">Versión</div>
+        <input id="reportVersion" placeholder="Ej: 1" />
+      </div>
+    </div>
+  </div>
+</section>
+
+    
     <!-- ✅ NIVELES -->
     <section class="card" data-phase-block="NIVELES" id="blockNiveles">
   <div class="card-h">
@@ -1618,6 +1651,47 @@ function applyReportesView_(){
 
   opp.style.display = "";
   proy.style.display = "";
+}
+
+function isReportesPhase_(){
+  return ["RESULTADO","CONSOLIDADO","CAPACITACION","DESARROLLO"].includes(String(state.fase || ""));
+}
+
+function toggleReportesUI_(){
+  const card = $("reportesFiltersCard");
+  const ctl  = $("reportesControls");
+  if(card) card.style.display = isReportesPhase_() ? "" : "none";
+  if(ctl && !isReportesPhase_() && !$("reportesSelect")?.value) ctl.style.display = "none";
+}
+
+function syncReportFiltersToPhaseInputs_(){
+  const no    = $("reportNoPersonal")?.value?.trim() || "";
+  const depto = $("reportDepto")?.value?.trim() || "";
+  const per   = $("reportPeriodo")?.value?.trim() || "";
+  const ver   = $("reportVersion")?.value?.trim() || "";
+
+  if($("noPersonalRes")) $("noPersonalRes").value = no;
+  if($("periodoRes"))    $("periodoRes").value = per;
+  if($("versionRes"))    $("versionRes").value = ver;
+
+  if($("capPeriodo"))    $("capPeriodo").value = per;
+  if($("capVersion"))    $("capVersion").value = ver;
+
+  state.reportesNo = no;
+  state.reportesDepto = depto;
+  state.reportesPeriodo = per;
+  state.reportesVersion = ver;
+}
+
+function syncPhaseInputsToReportFilters_(){
+  const no  = $("noPersonalRes")?.value?.trim() || state.reportesNo || "";
+  const per = $("periodoRes")?.value?.trim() || $("capPeriodo")?.value?.trim() || state.reportesPeriodo || "";
+  const ver = $("versionRes")?.value?.trim() || $("capVersion")?.value?.trim() || state.reportesVersion || "";
+
+  if($("reportNoPersonal")) $("reportNoPersonal").value = no;
+  if($("reportDepto"))      $("reportDepto").value = state.reportesDepto || "";
+  if($("reportPeriodo"))    $("reportPeriodo").value = per;
+  if($("reportVersion"))    $("reportVersion").value = ver;
 }
   
 function normalizeWebApp(raw){
@@ -4200,10 +4274,12 @@ document.querySelectorAll(".faseBtn").forEach(btn=>{
 });
 
 on("btnReportesToggle", "click", ()=>{
-  const sel = $("reportesSelect");
-  if(!sel) return;
-  const hidden = sel.style.display === "none" || !sel.style.display;
-  sel.style.display = hidden ? "inline-block" : "none";
+  const wrap = $("reportesControls");
+  const sel  = $("reportesSelect");
+  if(!wrap || !sel) return;
+
+  const hidden = wrap.style.display === "none" || !wrap.style.display;
+  wrap.style.display = hidden ? "flex" : "none";
   if(hidden) sel.focus();
 });
 
@@ -4216,12 +4292,33 @@ on("reportesSelect", "change", (e)=>{
   if(!fase) return;
 
   setFaseFromButton(fase);
+  syncPhaseInputsToReportFilters_();
+  syncReportFiltersToPhaseInputs_();
+  toggleReportesUI_();
+  updateCapSaveState_();
+  updateDevGenerarState_();
+  updateGuardarUIState();
 });
 
 document.querySelectorAll(".faseBtn[data-fase]").forEach(btn=>{
   btn.addEventListener("click", ()=>{
-    const sel = $("reportesSelect");
-    if(sel) sel.style.display = "none";
+    const wrap = $("reportesControls");
+    if(wrap) wrap.style.display = "none";
+  });
+});
+
+["reportNoPersonal","reportDepto","reportPeriodo","reportVersion"].forEach(id=>{
+  on(id,"input", ()=>{
+    syncReportFiltersToPhaseInputs_();
+    updateCapSaveState_();
+    updateDevGenerarState_();
+    updateGuardarUIState();
+  });
+  on(id,"change", ()=>{
+    syncReportFiltersToPhaseInputs_();
+    updateCapSaveState_();
+    updateDevGenerarState_();
+    updateGuardarUIState();
   });
 });
   
@@ -4238,6 +4335,9 @@ on("faseSelect", "change", async (e)=>{
   setPhase(fase);
   syncReportesSelectUIByPhase();
   applyReportesView_();
+  syncPhaseInputsToReportFilters_();
+  syncReportFiltersToPhaseInputs_();
+  toggleReportesUI_();
   if(fase === "TIPOS"){
     openTiposModal_();
     return;
@@ -4485,10 +4585,12 @@ clearKpisDetalle_();
     }
   }
 })();
-    updateGuardarUIState();
+       updateGuardarUIState();
     updatePesosSaveState();
     updateCapSaveState_();
     updateDevGenerarState_();
+    syncPhaseInputsToReportFilters_();
+    toggleReportesUI_();
 
   [
   "kpNoPersonal","kpNombre","kpPeriodo","kpVersion","kpFecha","kpPosicionNivel"
