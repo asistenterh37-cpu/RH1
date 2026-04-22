@@ -1617,7 +1617,7 @@ function apiGetJsonp(params, timeoutMs = 15000){
   });
 }
 
-async function apiGetFetch(params, timeoutMs = 15000){
+async function apiGetFetch(params, timeoutMs = 6000){
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
 
@@ -1657,42 +1657,6 @@ async function apiGetFetch(params, timeoutMs = 15000){
     clearTimeout(timer);
   }
 }
-  
-  async function apiGetFetch(params, timeoutMs = 6000){
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
-
-  try{
-    const url = build(params, null);
-    const res = await fetch(url, {
-      method: "GET",
-      redirect: "follow",
-      mode: "cors",
-      cache: "no-store",
-      signal: controller.signal,
-      headers: { "Accept": "application/json, text/plain, */*" }
-    });
-
-    const text = await res.text();
-    let parsed;
-
-    try{
-      parsed = JSON.parse(text);
-    }catch(_){
-      if (/^\s*</.test(text)) {
-        throw new Error("La API devolvió HTML, no JSON");
-      }
-      throw new Error("La API no devolvió JSON válido");
-    }
-
-    const data = normalizeApiResponse(parsed);
-    if (data.ok !== true) throw new Error(data.error || "Respuesta fetch inválida");
-    return data;
-  } finally {
-    clearTimeout(timer);
-  }
-}
-
 async function apiGet(params, timeoutMs = 10000){
   setApiStatus("", "API: consultando…");
 
