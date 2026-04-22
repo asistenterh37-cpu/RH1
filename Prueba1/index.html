@@ -599,7 +599,7 @@ button[disabled]{
       <div class="form-grid">
         <div class="field col-8 boxed">
           <div class="lbl">URL Web App Apps Script</div>
-          <input id="webapp" value="https://script.google.com/macros/s/AKfycbz4oe30sAyx66nxO0lxD5sW9EtDovQ6h3ME-jMkTtNHqNHpsI7WaJFTIIyVFePZGXD-/exec"/>
+          <input id="webapp" value="https://script.google.com/macros/s/AKfycbzDGDt5RDbnESsCvChJdYIxcjVcNdRbOiIoCWWgbavD--YP4wE7o694wpFFal4B2jUT/exec"/>
         </div>
         <div class="field col-4 boxed">
           <div class="lbl">Pruebas API</div>
@@ -706,11 +706,9 @@ button[disabled]{
   </div>
 
     <div class="modalActions">
-    <button id="btnIEExcel" class="btn-ok" style="display:none">Enviar a Excel</button>
-    <button id="btnIEPrintPDF" class="btn-blue">Imprimir: PDF</button>
-    <button id="btnIEText" class="btn-ghost">Imprimir: Texto</button>
-    <button id="btnIEClose" class="btn-ghost">Cerrar</button>
-  </div>
+  <button id="btnIEExcel" class="btn-ok" style="display:none">Enviar a Excel</button>
+  <button id="btnIEClose" class="btn-ghost">Cerrar</button>
+</div>
 </div>
 
 <div class="modal-b">
@@ -1312,7 +1310,7 @@ Dejar de hacer:"></textarea>
 `Empezar a hacer:
 Continuar haciendo:
 Dejar de hacer:`;
-  const DEFAULT_WEBAPP_ = "https://script.google.com/macros/s/AKfycbz4oe30sAyx66nxO0lxD5sW9EtDovQ6h3ME-jMkTtNHqNHpsI7WaJFTIIyVFePZGXD-/exec";
+  const DEFAULT_WEBAPP_ = "https://script.google.com/macros/s/AKfycbzDGDt5RDbnESsCvChJdYIxcjVcNdRbOiIoCWWgbavD--YP4wE7o694wpFFal4B2jUT/exec";
   const $ = id => document.getElementById(id);
 
 function syncFaseButtonsUI(value){
@@ -4556,7 +4554,118 @@ Puntaje final: ${pf}`;
     }
     return;
   }
+  if(view === "NECESIDADES_CAP"){
+    if(!no || !depto || !per || !ver){
+      alert("Para Generar, llena: No. de personal + Departamento + Periodo + Versión.");
+      return;
+    }
 
+    try{
+      const noNorm = String(no || "").trim();
+      const deptoNorm = String(depto || "").trim();
+      const noQuery = /^(todos|todo)$/i.test(noNorm) ? "TODOS" : noNorm;
+      const deptoQuery = /^(todos|todo)$/i.test(deptoNorm) ? "TODOS" : deptoNorm;
+
+      const res = await apiGet({
+        action: "resultNecesidadesCap",
+        no: noQuery,
+        depto: deptoQuery,
+        periodo: per,
+        version: ver
+      });
+
+      const rows = Array.isArray(res.rows) ? res.rows : [];
+      const esc = v => escapeHtml(String(v ?? ""));
+      const rowsHtml = rows.length
+        ? rows.map(r => `
+            <tr>
+              <td>${esc(r.no || "—")}</td>
+              <td>${esc(r.nombre || "—")}</td>
+              <td>${esc(r.posicion || "—")}</td>
+              <td>${esc(r.departamento || "—")}</td>
+              <td>${esc(r.periodo || "—")}</td>
+              <td>${esc(r.version || "—")}</td>
+              <td>${esc(formatDateDMY(String(r.fecha || "").trim()) || r.fecha || "—")}</td>
+              <td>${esc(r.necesidades || "—")}</td>
+            </tr>
+          `).join("")
+        : `<tr><td colspan="8" class="sub">Sin resultados para esos filtros.</td></tr>`;
+
+      $("ieTitle").textContent = "Reporte de necesidades de capacitación";
+      const note = document.querySelector("#ieModalBack .modalNote");
+      if(note) note.innerHTML = "Generado con la hoja <b>EvaluacionFinal</b>.";
+
+      $("ieModalBody").innerHTML = `
+        <div class="ie-wrap">
+          <style>
+            .evalrep{font-family:var(--sans);color:var(--text)}
+            .evalrep .box{border:1px solid rgba(255,255,255,.10);border-radius:16px;padding:14px;background:rgba(11,18,32,.22);margin-bottom:12px}
+            .evalrep h2{margin:0 0 12px 0;font-size:20px}
+            .evalrep table{width:100%;border-collapse:separate;border-spacing:0}
+            .evalrep thead th{background:rgba(15,27,51,.95);padding:10px;text-align:left;border-bottom:1px solid rgba(255,255,255,.10);white-space:nowrap}
+            .evalrep tbody td{padding:10px;border-bottom:1px solid rgba(255,255,255,.06);vertical-align:top}
+          </style>
+
+          <div class="evalrep">
+            <div class="box">
+              <h2>Reporte de necesidades de capacitación</h2>
+              <div class="tableWrap">
+                <table id="tablaNecesidadesCap">
+                  <thead>
+                    <tr>
+                      <th>No</th>
+                      <th>Nombre</th>
+                      <th>Posición</th>
+                      <th>Departamento</th>
+                      <th>Periodo</th>
+                      <th>Versión</th>
+                      <th>Fecha</th>
+                      <th>Necesidades de capacitación</th>
+                    </tr>
+                  </thead>
+                  <tbody>${rowsHtml}</tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+
+      $("ieTextArea").value = [
+        "Reporte de necesidades de capacitación",
+        `Filtro No. de personal: ${noQuery}`,
+        `Filtro Departamento: ${deptoQuery}`,
+        `Periodo: ${per}`,
+        `Versión: ${ver}`,
+        "",
+        ...rows.map(r =>
+          [
+            `No. de personal: ${r.no || "—"}`,
+            `Nombre: ${r.nombre || "—"}`,
+            `Posición: ${r.posicion || "—"}`,
+            `Departamento: ${r.departamento || "—"}`,
+            `Periodo: ${r.periodo || "—"}`,
+            `Versión: ${r.version || "—"}`,
+            `Fecha: ${formatDateDMY(String(r.fecha || "").trim()) || r.fecha || "—"}`,
+            `Necesidades de capacitación: ${r.necesidades || "—"}`,
+            ""
+          ].join("\n")
+        )
+      ].join("\n");
+
+      window.__capRowsExcel = rows.slice();
+
+      if($("btnIEExcel")) $("btnIEExcel").style.display = rows.length ? "" : "none";
+      if($("ieHtmlWrap")) $("ieHtmlWrap").style.display = "";
+      if($("ieTextWrap")) $("ieTextWrap").style.display = "none";
+
+      openInformeModal_();
+    }catch(err){
+      alert(err?.message || "No se pudo generar el reporte.");
+    }
+    return;
+  }
+  
   alert("Este reporte aún no está configurado.");
 });
 ["reportNoPersonal","reportDepto","reportPeriodo","reportVersion"].forEach(id=>{
@@ -4861,79 +4970,77 @@ clearKpisDetalle_();
 })();
  </script>
 <script>
-async function generarReporteCapacitacion(){
-  const no = document.getElementById("reportNoPersonal").value.trim();
-  const depto = document.getElementById("reportDepto").value.trim();
-  const periodo = document.getElementById("reportPeriodo").value.trim();
-  const version = document.getElementById("reportVersion").value.trim();
-
-  const url = document.getElementById("webapp").value;
-
-  const fullUrl = `${url}?action=resultNecesidadesCap&no=${no}&depto=${depto}&periodo=${periodo}&version=${version}`;
-
-  const res = await fetch(fullUrl);
-  const data = await res.json();
-
-  if(!data.ok){
-    alert("Error: " + data.error);
+  <script>
+function exportIEReportToExcel_(){
+  const table = document.querySelector("#ieModalBody table");
+  if(!table){
+    alert("No hay datos para exportar.");
     return;
   }
 
-  renderTablaCapacitacion(data.rows || []);
-}
+  const view = String(state.reportesView || "");
+  const no   = ($("reportNoPersonal")?.value || "TODOS").trim();
+  const dep  = ($("reportDepto")?.value || "TODOS").trim();
+  const per  = ($("reportPeriodo")?.value || "").trim();
+  const ver  = ($("reportVersion")?.value || "").trim();
 
-function renderTablaCapacitacion(rows){
-  let html = `
-  <div style="overflow:auto">
-    <button onclick="exportarTablaExcel()" class="btn-ok" style="margin-bottom:10px">Enviar a Excel</button>
-    <table border="1" style="width:100%; border-collapse:collapse">
-      <thead>
-        <tr>
-          <th>No</th>
-          <th>Nombre</th>
-          <th>Posición</th>
-          <th>Departamento</th>
-          <th>Periodo</th>
-          <th>Versión</th>
-          <th>Fecha</th>
-          <th>Necesidades de capacitación</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${rows.map(r => `
-          <tr>
-            <td>${r.no}</td>
-            <td>${r.nombre}</td>
-            <td>${r.posicion}</td>
-            <td>${r.departamento}</td>
-            <td>${r.periodo}</td>
-            <td>${r.version}</td>
-            <td>${r.fecha}</td>
-            <td>${r.necesidades}</td>
-          </tr>
-        `).join("")}
-      </tbody>
-    </table>
-  </div>`;
+  const reportMeta = {
+    EVAL_CALIFICACIONES: {
+      titulo: "Calificaciones de evaluación del desempeño",
+      baseFile: "Calificaciones"
+    },
+    PROYECCION_POTENCIAL: {
+      titulo: "Proyección y potencial de desarrollo",
+      baseFile: "Proyeccion_potencial"
+    },
+    OPORTUNIDADES_MEJORA: {
+      titulo: "Oportunidades de mejora",
+      baseFile: "Oportunidades_mejora"
+    },
+    NECESIDADES_CAP: {
+      titulo: "Necesidades de capacitación",
+      baseFile: "Necesidades_capacitacion"
+    }
+  };
 
-  document.getElementById("ieModalBody").innerHTML = html;
-  document.getElementById("ieModalBack").classList.add("show");
-}
+  const meta = reportMeta[view] || reportMeta.NECESIDADES_CAP;
+  const titulo = meta.titulo;
+  const baseFile = meta.baseFile;
 
-function exportarTablaExcel(){
-  let table = document.querySelector("#ieModalBody table");
-  let html = table.outerHTML;
+  const html = `
+    <html xmlns:o="urn:schemas-microsoft-com:office:office"
+          xmlns:x="urn:schemas-microsoft-com:office:excel"
+          xmlns="http://www.w3.org/TR/REC-html40">
+      <head>
+        <meta charset="utf-8">
+        <style>
+          table{border-collapse:collapse;width:100%}
+          th,td{border:1px solid #000;padding:6px;text-align:left;vertical-align:top}
+          th{font-weight:700;background:#dbeafe}
+        </style>
+      </head>
+      <body>
+        <h2>${titulo}</h2>
+        <p><b>No. de personal:</b> ${escapeHtml(no)}<br>
+           <b>Departamento:</b> ${escapeHtml(dep)}<br>
+           <b>Periodo:</b> ${escapeHtml(per)}<br>
+           <b>Versión:</b> ${escapeHtml(ver)}</p>
+        ${table.outerHTML}
+      </body>
+    </html>
+  `;
 
-  let blob = new Blob([html], { type: "application/vnd.ms-excel" });
-  let url = URL.createObjectURL(blob);
-
-  let a = document.createElement("a");
+  const blob = new Blob(["\ufeff" + html], { type: "application/vnd.ms-excel;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
   a.href = url;
-  a.download = "reporte_capacitacion.xls";
+  a.download = `${baseFile}_${no || "TODOS"}_${dep || "TODOS"}_${per || "PERIODO"}_V${ver || "1"}.xls`;
+  document.body.appendChild(a);
   a.click();
+  a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url), 1000);
 }
 </script>
-  
 </body>
 </html>
 
