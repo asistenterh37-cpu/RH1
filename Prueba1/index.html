@@ -599,7 +599,7 @@ button[disabled]{
       <div class="form-grid">
         <div class="field col-8 boxed">
           <div class="lbl">URL Web App Apps Script</div>
-          <input id="webapp" value="https://script.google.com/macros/s/AKfycbyCEQlp2RR52_dE336mYxKNWlq6imRTLyUs75PSlHEpVOp3ZmoPLfPfR7-KADPHWpLJ/exec"/>
+          <input id="webapp" value="https://script.google.com/macros/s/AKfycbz4oe30sAyx66nxO0lxD5sW9EtDovQ6h3ME-jMkTtNHqNHpsI7WaJFTIIyVFePZGXD-/exec"/>
         </div>
         <div class="field col-4 boxed">
           <div class="lbl">Pruebas API</div>
@@ -877,7 +877,7 @@ button[disabled]{
       </div>
       <div class="field col-3 boxed" id="reportBuscarWrap">
         <div class="lbl">Acción</div>
-        <button id="btnBuscarReporte" type="button" class="btn-blue">Generar</button>
+        <button id="btnBuscarReporte" type="button" class="btn-blue" onclick="generarReporteCapacitacion()">Generar</button>
       </div>
     </div>
   </div>
@@ -1312,7 +1312,7 @@ Dejar de hacer:"></textarea>
 `Empezar a hacer:
 Continuar haciendo:
 Dejar de hacer:`;
-  const DEFAULT_WEBAPP_ = "https://script.google.com/macros/s/AKfycbyCEQlp2RR52_dE336mYxKNWlq6imRTLyUs75PSlHEpVOp3ZmoPLfPfR7-KADPHWpLJ/exec";
+  const DEFAULT_WEBAPP_ = "https://script.google.com/macros/s/AKfycbz4oe30sAyx66nxO0lxD5sW9EtDovQ6h3ME-jMkTtNHqNHpsI7WaJFTIIyVFePZGXD-/exec";
   const $ = id => document.getElementById(id);
 
 function syncFaseButtonsUI(value){
@@ -4860,6 +4860,79 @@ clearKpisDetalle_();
   }
 })();
  </script>
+<script>
+async function generarReporteCapacitacion(){
+  const no = document.getElementById("reportNoPersonal").value.trim();
+  const depto = document.getElementById("reportDepto").value.trim();
+  const periodo = document.getElementById("reportPeriodo").value.trim();
+  const version = document.getElementById("reportVersion").value.trim();
+
+  const url = document.getElementById("webapp").value;
+
+  const fullUrl = `${url}?action=resultNecesidadesCap&no=${no}&depto=${depto}&periodo=${periodo}&version=${version}`;
+
+  const res = await fetch(fullUrl);
+  const data = await res.json();
+
+  if(!data.ok){
+    alert("Error: " + data.error);
+    return;
+  }
+
+  renderTablaCapacitacion(data.rows || []);
+}
+
+function renderTablaCapacitacion(rows){
+  let html = `
+  <div style="overflow:auto">
+    <button onclick="exportarTablaExcel()" class="btn-ok" style="margin-bottom:10px">Enviar a Excel</button>
+    <table border="1" style="width:100%; border-collapse:collapse">
+      <thead>
+        <tr>
+          <th>No</th>
+          <th>Nombre</th>
+          <th>Posición</th>
+          <th>Departamento</th>
+          <th>Periodo</th>
+          <th>Versión</th>
+          <th>Fecha</th>
+          <th>Necesidades de capacitación</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rows.map(r => `
+          <tr>
+            <td>${r.no}</td>
+            <td>${r.nombre}</td>
+            <td>${r.posicion}</td>
+            <td>${r.departamento}</td>
+            <td>${r.periodo}</td>
+            <td>${r.version}</td>
+            <td>${r.fecha}</td>
+            <td>${r.necesidades}</td>
+          </tr>
+        `).join("")}
+      </tbody>
+    </table>
+  </div>`;
+
+  document.getElementById("ieModalBody").innerHTML = html;
+  document.getElementById("ieModalBack").classList.add("show");
+}
+
+function exportarTablaExcel(){
+  let table = document.querySelector("#ieModalBody table");
+  let html = table.outerHTML;
+
+  let blob = new Blob([html], { type: "application/vnd.ms-excel" });
+  let url = URL.createObjectURL(blob);
+
+  let a = document.createElement("a");
+  a.href = url;
+  a.download = "reporte_capacitacion.xls";
+  a.click();
+}
+</script>
   
 </body>
 </html>
