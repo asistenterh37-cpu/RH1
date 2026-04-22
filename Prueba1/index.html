@@ -3052,16 +3052,16 @@ async function generarDesarrollo_(){
   }
 }
 
-  function splitCursos_(txt){
-    const s = String(txt ?? "").trim();
-    if(!s) return [];
-    // soporta coma, ; y saltos de línea
-    return s
-      .split(/[,;\n]+/g)
-      .map(x => String(x).trim())
-      .filter(Boolean);
-  }
+function splitCursos_(txt){
+  const s = String(txt ?? "").trim();
+  if(!s) return [];
 
+  return s
+    .split(/\s*(?:,|;|\n|\/|\||\s-\s)\s*/g)
+    .map(x => String(x).trim())
+    .filter(Boolean);
+}
+  
   function explodeCapRows_(rows){
     const arr = Array.isArray(rows) ? rows : [];
     const out = [];
@@ -4591,6 +4591,36 @@ Puntaje final: ${pf}`;
           `).join("")
         : `<tr><td colspan="8" class="sub">Sin resultados para esos filtros.</td></tr>`;
 
+            const explodedRows = (Array.isArray(rows) ? rows : []).flatMap(r => {
+        const cursos = splitCursos_(r.necesidades || "");
+        if(!cursos.length) return [];
+        return cursos.map(curso => ({
+          no: r.no || "",
+          nombre: r.nombre || "",
+          posicion: r.posicion || "",
+          departamento: r.departamento || "",
+          periodo: r.periodo || "",
+          version: r.version || "",
+          fecha: r.fecha || "",
+          curso
+        }));
+      });
+
+      const rowsHtml = explodedRows.length
+        ? explodedRows.map(r => `
+            <tr>
+              <td>${escapeHtml(r.no)}</td>
+              <td>${escapeHtml(r.nombre)}</td>
+              <td>${escapeHtml(r.posicion)}</td>
+              <td>${escapeHtml(r.departamento)}</td>
+              <td>${escapeHtml(r.periodo)}</td>
+              <td>${escapeHtml(r.version)}</td>
+              <td>${escapeHtml(formatDateDMY(String(r.fecha || "").trim()) || r.fecha || "—")}</td>
+              <td>${escapeHtml(r.curso)}</td>
+            </tr>
+          `).join("")
+        : `<tr><td colspan="8" class="sub">Sin datos para los filtros indicados.</td></tr>`;
+
       $("ieTitle").textContent = "Reporte de necesidades de capacitación";
       const note = document.querySelector("#ieModalBack .modalNote");
       if(note) note.innerHTML = "Generado con la hoja <b>EvaluacionFinal</b>.";
@@ -4620,7 +4650,7 @@ Puntaje final: ${pf}`;
                       <th>Periodo</th>
                       <th>Versión</th>
                       <th>Fecha</th>
-                      <th>Necesidades de capacitación</th>
+                      <th>Necesidad de capacitación</th>
                     </tr>
                   </thead>
                   <tbody>${rowsHtml}</tbody>
@@ -4638,7 +4668,7 @@ Puntaje final: ${pf}`;
         `Periodo: ${per}`,
         `Versión: ${ver}`,
         "",
-        ...rows.map(r =>
+        ...explodedRows.map(r =>
           [
             `No. de personal: ${r.no || "—"}`,
             `Nombre: ${r.nombre || "—"}`,
@@ -4647,15 +4677,15 @@ Puntaje final: ${pf}`;
             `Periodo: ${r.periodo || "—"}`,
             `Versión: ${r.version || "—"}`,
             `Fecha: ${formatDateDMY(String(r.fecha || "").trim()) || r.fecha || "—"}`,
-            `Necesidades de capacitación: ${r.necesidades || "—"}`,
+            `Necesidad de capacitación: ${r.curso || "—"}`,
             ""
           ].join("\n")
         )
       ].join("\n");
 
-      window.__capRowsExcel = rows.slice();
+      window.__capRowsExcel = explodedRows.slice();
 
-      if($("btnIEExcel")) $("btnIEExcel").style.display = rows.length ? "" : "none";
+      if($("btnIEExcel")) $("btnIEExcel").style.display = explodedRows.length ? "" : "none";
       if($("ieHtmlWrap")) $("ieHtmlWrap").style.display = "";
       if($("ieTextWrap")) $("ieTextWrap").style.display = "none";
 
