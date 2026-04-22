@@ -805,6 +805,7 @@ button[disabled]{
         <div class="controls" style="width:100%; justify-content:space-between">
 <div class="controls" style="gap:10px; width:100%; flex-wrap:nowrap; overflow-x:auto">
  <div class="faseButtonsWrap" id="faseButtonsWrap" aria-label="Selector de fases">
+  <button type="button" class="faseBtn" data-fase="INICIO">Inicio</button>
   <button type="button" class="faseBtn" data-fase="NIVELES">Niveles</button>
   <button type="button" class="faseBtn" data-fase="FORMULARIOS">Formularios</button>
   <button type="button" class="faseBtn" data-fase="PESOS">Pesos</button>
@@ -831,6 +832,7 @@ button[disabled]{
   <!-- Se mantiene oculto para no romper el JS actual -->
  <select id="faseSelect" style="display:none">
   <option value="">Seleccione fase</option>
+  <option value="INICIO">Inicio</option>
   <option value="NIVELES">Niveles</option>
   <option value="FORMULARIOS">Formularios</option>
   <option value="PESOS">Pesos</option>
@@ -856,6 +858,34 @@ button[disabled]{
       </div>
     </section>
 <section class="card" id="reportesFiltersCard" style="display:none">
+  <section class="card" data-phase-block="INICIO" id="blockInicio">
+  <div class="card-h">
+    <div>
+      <h2>Inicio</h2>
+      <div class="sub">Resumen general del sistema</div>
+    </div>
+  </div>
+  <div class="card-b">
+    <div class="hint" style="margin-bottom:12px">
+      Vista introductoria del sistema de evaluación del desempeño.
+    </div>
+
+    <div class="field col-12 boxed">
+      <div class="lbl">Descripción general</div>
+      <div style="line-height:1.7;color:rgba(232,238,252,.92)">
+        <p>Este sistema de evaluación del desempeño es una plataforma integral diseñada para gestionar de forma estructurada el rendimiento del talento dentro de la organización. Centraliza todas las fases del proceso, desde la definición de criterios hasta la generación de reportes, permitiendo una visión clara y estratégica del desempeño individual y organizacional.</p>
+
+        <p>Desde una perspectiva gerencial, el sistema alinea el desempeño de los colaboradores con los objetivos del negocio, proporcionando información confiable para la toma de decisiones. La estructura basada en niveles, formularios y ponderaciones estandariza la evaluación, reduce la subjetividad y garantiza criterios homogéneos, fortaleciendo la transparencia del proceso.</p>
+
+        <p>El modelo cubre todo el ciclo de gestión del desempeño. Inicia con la definición metodológica (niveles, rúbricas y pesos), continúa con la ejecución de evaluaciones (autoevaluación, evaluación de clientes y evaluación formal), y se complementa con indicadores de resultados como KPIs y entregables. Además, integra herramientas de seguimiento como incidencias y sesiones One to One, que aportan contexto cualitativo y enriquecen la interpretación del desempeño.</p>
+
+        <p>Desde el enfoque de Recursos Humanos, el sistema trasciende la evaluación y se convierte en una herramienta de desarrollo del talento. Incorpora elementos como fortalezas, oportunidades de mejora, proyección y necesidades de capacitación, facilitando la identificación de brechas y la planificación de acciones formativas alineadas al negocio. Asimismo, genera evidencia documentada que respalda decisiones organizacionales y procesos de auditoría.</p>
+
+        <p>Finalmente, la generación de reportes dinámicos permite transformar los datos en información accionable, facilitando el análisis por persona, área o periodo. En conjunto, el sistema impulsa una gestión de Recursos Humanos más analítica, estratégica y orientada a resultados, consolidándose como una herramienta clave para la mejora continua organizacional.</p>
+      </div>
+    </div>
+  </div>
+</section>
   <div class="card-h">
     <div>
       <h2>Filtros de reportes</h2>
@@ -1900,8 +1930,9 @@ function buildCodigosMapFromPesos_(items){
   }
 
   /* ================= PHASE HELPERS ================= */
-   function isEvalPhase(){ return state.fase === "AUTO" || state.fase === "DESEMPENO"; }
-  function isClientesPhase(){ return state.fase === "CLIENTES"; }
+   function isInicioPhase(){ return state.fase === "INICIO"; }
+function isEvalPhase(){ return state.fase === "AUTO" || state.fase === "DESEMPENO"; }
+function isClientesPhase(){ return state.fase === "CLIENTES"; }
   function isDesempenoPhase(){ return state.fase === "DESEMPENO"; }
   function isAutoPhase(){ return state.fase === "AUTO"; }
   function isFormulariosPhase(){ return state.fase === "FORMULARIOS"; }
@@ -2108,10 +2139,9 @@ const nivelWrap = $("nivelWrap");
 if(nivelWrap){
 
   const hideNivel =
-  isClientesPhase() || isResultadoPhase() || isConsolidadoPhase() ||
+  isInicioPhase() || isClientesPhase() || isResultadoPhase() || isConsolidadoPhase() ||
   isCapacitacionPhase() || isDesarrolloPhase() || isTiposPhase() ||
   state.fase === "NIVELES" || state.fase === "KPIS";
-
   nivelWrap.classList.toggle("hide", hideNivel);
 }
   // habilitar select nivel solo cuando toca
@@ -2134,17 +2164,18 @@ if(blockDatos){
   // ayuda del bloque Datos
   const datosHelp = $("datosHelp");
   if(datosHelp){
-    if(isResultadoPhase()){
-      datosHelp.textContent = "Para Recuperar el resultado, llena: No personal + Periodo + Versión.";
-    } else if(isDesarrolloPhase()){
-      datosHelp.textContent = "Para Generar el plan de desarrollo, llena: No personal + Periodo + Versión.";
-    } else if(isConsolidadoPhase()){
-      datosHelp.textContent = "Para el Informe ejecutivo, llena: No personal + Periodo + Versión.";
-    } else {
-      datosHelp.textContent = "Completa la información y selecciona una opción (1–5) para cada ítem.";
-    }
+  if(isInicioPhase()){
+    datosHelp.textContent = "Selecciona una fase para desplegar el formulario.";
+  } else if(isResultadoPhase()){
+    datosHelp.textContent = "Para Recuperar el resultado, llena: No personal + Periodo + Versión.";
+  } else if(isDesarrolloPhase()){
+    datosHelp.textContent = "Para Generar el plan de desarrollo, llena: No personal + Periodo + Versión.";
+  } else if(isConsolidadoPhase()){
+    datosHelp.textContent = "Para el Informe ejecutivo, llena: No personal + Periodo + Versión.";
+  } else {
+    datosHelp.textContent = "Completa la información y selecciona una opción (1–5) para cada ítem.";
   }
-
+}
   // si entro a DESARROLLO, limpio y recalculo el botón
   if(isDesarrolloPhase()){
     clearDesarrollo_();
@@ -2164,6 +2195,13 @@ if(blockDatos){
 
   if ($("btnNuevo")) $("btnNuevo").style.display = hideNuevo ? "none" : "inline-block";
 
+const faseHelp = $("faseHelp");
+if(faseHelp){
+  faseHelp.textContent = isInicioPhase()
+    ? "Vista general del sistema."
+    : "Selecciona una fase para desplegar el formulario.";
+}
+  
   // recalcular botones
   updateGuardarUIState();
   updatePesosSaveState();
