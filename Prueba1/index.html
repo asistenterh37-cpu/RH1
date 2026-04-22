@@ -713,8 +713,8 @@ button[disabled]{
 
     <div class="modalActions">
   <button id="btnIEExcel" class="btn-ok" style="display:none">Enviar a Excel</button>
-<button id="btnIEWord" class="btn-blue">Enviar a Word</button>
-<button id="btnIEClose" class="btn-ghost">Cerrar</button>
+  <button id="btnIEWord" class="btn-blue" style="display:none">Enviar a Word</button>
+  <button id="btnIEClose" class="btn-ghost">Cerrar</button>
 </div>
 </div>
 
@@ -3677,8 +3677,10 @@ function buildResultadoTexto_(){
 function updateInformeButtons_(){
   const view = String(state.reportesView || "");
   const usaExcel = ["EVAL_CALIFICACIONES","PROYECCION_POTENCIAL","OPORTUNIDADES_MEJORA","NECESIDADES_CAP"].includes(view);
+  const usaWord  = (view === "EVAL_RESUMEN");
 
   if($("btnIEExcel"))    $("btnIEExcel").style.display    = usaExcel ? "" : "none";
+  if($("btnIEWord"))     $("btnIEWord").style.display     = usaWord ? "" : "none";
   if($("btnIEPrintPDF")) $("btnIEPrintPDF").style.display = usaExcel ? "none" : "";
   if($("btnIEText"))     $("btnIEText").style.display     = usaExcel ? "none" : "";
 }
@@ -3712,6 +3714,57 @@ function iePrintPdf_(){
   window.print();
 }
 
+  function exportIEReportToWord_(){
+  const wrap = $("ieModalBody");
+  if(!wrap || !String(wrap.innerHTML || "").trim()){
+    alert("No hay contenido para exportar.");
+    return;
+  }
+
+  const no  = ($("reportNoPersonal")?.value || "").trim();
+  const per = ($("reportPeriodo")?.value || "").trim();
+  const ver = ($("reportVersion")?.value || "").trim();
+
+  const titulo = "Evaluación del desempeño";
+  const nombreArchivo = `Evaluacion_desempeno_${no || "SIN_NO"}_${per || "SIN_PERIODO"}_V${ver || "SIN_VERSION"}.doc`;
+
+  const html = `
+    <html xmlns:o="urn:schemas-microsoft-com:office:office"
+          xmlns:w="urn:schemas-microsoft-com:office:word"
+          xmlns="http://www.w3.org/TR/REC-html40">
+      <head>
+        <meta charset="utf-8">
+        <title>${titulo}</title>
+        <style>
+          body{font-family:Arial,sans-serif;color:#000;padding:18px}
+          .ie-wrap,.ie-card,.ie-cell,.ie-block{box-sizing:border-box}
+          .ie-card{border:1px solid #d1d5db;border-radius:12px;padding:14px;background:#fff}
+          .ie-title{font-size:18px;font-weight:700;margin-bottom:8px}
+          .ie-sub{font-size:12px;color:#444;margin-bottom:12px}
+          .ie-grid{width:100%;margin:10px 0}
+          .ie-cell,.ie-block{border:1px solid #d1d5db;border-radius:10px;padding:10px;margin-bottom:10px}
+          .ie-k{font-size:12px;font-weight:700;margin-bottom:4px}
+          .ie-v{font-size:13px}
+          .ie-pre{white-space:pre-wrap}
+          .ie-score .ie-v{font-size:18px;font-weight:700}
+        </style>
+      </head>
+      <body>
+        ${wrap.innerHTML}
+      </body>
+    </html>
+  `;
+
+  const blob = new Blob(["\ufeff", html], { type: "application/msword" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = nombreArchivo;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url), 1000);
+}
 
   function exportIEReportToExcel_(){
   const wrap = $("ieModalBody");
@@ -4061,10 +4114,10 @@ on("btnIEText", "click", ieShowTextoSafe_);
 on("btnIEClose", "click", closeInformeModalSafe_);
 on("btnIEPrintPDF", "click", iePrintPdfSafe_);
 on("btnIEExcel", "click", exportIEReportToExcel_);
+on("btnIEWord", "click", exportIEReportToWord_);
 on("ieModalBack", "click", (e)=>{
   if(e.target && e.target.id === "ieModalBack") closeInformeModalSafe_();
 });
-
 // Header botones
 on("btnRecuperar", "click", ()=>{
   const fn = isResultadoPhase() ? recoverResultado : recoverSearch;
@@ -4977,7 +5030,6 @@ clearKpisDetalle_();
 })();
  </script>
 <script>
-  <script>
 function exportIEReportToExcel_(){
   const table = document.querySelector("#ieModalBody table");
   if(!table){
