@@ -875,7 +875,7 @@ button[disabled]{
       </div>
       <div class="field col-3 boxed" id="reportBuscarWrap">
         <div class="lbl">Acción</div>
-        <button id="btnBuscarReporte" type="button" class="btn-blue" onclick="generarReporteCapacitacion()">Generar</button>
+        <button id="btnBuscarReporte" type="button" class="btn-blue">Generar</button>
       </div>
     </div>
   </div>
@@ -3052,34 +3052,31 @@ async function generarDesarrollo_(){
   }
 }
 
-  function splitCursos_(txt){
-    const s = String(txt ?? "").trim();
-    if(!s) return [];
-    // soporta coma, ; y saltos de línea
-    return s
-      .split(/[,;\n]+/g)
-      .map(x => String(x).trim())
-      .filter(Boolean);
-  }
-
-  function explodeCapRows_(rows){
-    const arr = Array.isArray(rows) ? rows : [];
-    const out = [];
-
-    arr.forEach(r=>{
-      const cursos = splitCursos_(r.curso);
-      if(!cursos.length) return; // si está vacío, no genera fila (coincide con tu tip del UI)
-      cursos.forEach(c=>{
-        out.push({
-          ...r,
-          curso: c
-        });
+function splitCursos_(txt){
+  const s = String(txt ?? "").trim();
+  if(!s) return [];
+  return s
+    .replace(/\r/g, "\n")
+    .split(/\s*(?:,|;|\||\/|\n|\s-\s)\s*/g)
+    .map(x => String(x).trim())
+    .filter(Boolean);
+}
+function explodeCapRows_(rows, fieldName = "curso"){
+  const arr = Array.isArray(rows) ? rows : [];
+  const out = [];
+  arr.forEach(r=>{
+    const cursos = splitCursos_(r?.[fieldName]);
+    if(!cursos.length) return;
+    cursos.forEach(c=>{
+      out.push({
+        ...r,
+        [fieldName]: c
       });
     });
-
-    return out;
-  }
-
+  });
+  return out;
+}
+  
   function renderCapacitacionTable_(rows, periodo, version){
     // ✅ por si el backend aún no explota, lo hacemos aquí también
     const exploded = explodeCapRows_(rows);
@@ -4277,21 +4274,21 @@ Puntaje final: ${pf}`;
       });
 
       const rows = Array.isArray(res.rows) ? res.rows : [];
-      const esc = (v)=>escapeHtml(String(v ?? ""));
-      const rowsHtml = rows.length
-        ? rows.map(r => `
-            <tr>
-              <td>${esc(r.no || "—")}</td>
-              <td>${esc(r.nombre || "—")}</td>
-              <td>${esc(r.posicion || "—")}</td>
-              <td>${esc(r.depto || "—")}</td>
-              <td>${esc(r.version || "—")}</td>
-              <td>${esc(formatDateDMY(String(r.fecha || "").trim()) || r.fecha || "—")}</td>
-              <td>${esc(r.puntajeFinal || "0.00")}</td>
-            </tr>
-          `).join("")
-        : `<tr><td colspan="7" class="sub">Sin resultados para esos filtros.</td></tr>`;
-
+const esc = v => escapeHtml(String(v ?? ""));
+const rowsHtml = rows.length
+  ? rows.map(r => `
+      <tr>
+        <td>${esc(r.no || "—")}</td>
+        <td>${esc(r.nombre || "—")}</td>
+        <td>${esc(r.posicion || "—")}</td>
+        <td>${esc(r.departamento || "—")}</td>
+        <td>${esc(r.periodo || "—")}</td>
+        <td>${esc(r.version || "—")}</td>
+        <td>${esc(formatDateDMY(String(r.fecha || "").trim()) || r.fecha || "—")}</td>
+        <td>${esc(r.necesidades || "—")}</td>
+      </tr>
+    `).join("")
+  : `<tr><td colspan="8" class="sub">Sin resultados para esos filtros.</td></tr>`;
       $("ieModalBody").innerHTML = `
         <div class="ie-wrap">
           <style>
@@ -4477,21 +4474,22 @@ Puntaje final: ${pf}`;
       });
 
       const rows = Array.isArray(res.rows) ? res.rows : [];
-      const esc = (v)=>escapeHtml(String(v ?? ""));
-      const rowsHtml = rows.length
-        ? rows.map(r => `
-            <tr>
-              <td>${esc(r.no || "—")}</td>
-              <td>${esc(r.nombre || "—")}</td>
-              <td>${esc(r.posicion || "—")}</td>
-              <td>${esc(r.depto || "—")}</td>
-              <td>${esc(r.version || "—")}</td>
-              <td>${esc(formatDateDMY(String(r.fecha || "").trim()) || r.fecha || "—")}</td>
-              <td>${esc(r.oportunidadesMejora || "—")}</td>
-            </tr>
-          `).join("")
-        : `<tr><td colspan="7" class="sub">Sin resultados para esos filtros.</td></tr>`;
-
+const rowsExploded = explodeCapRows_(rows, "necesidades");
+const esc = v => escapeHtml(String(v ?? ""));
+const rowsHtml = rowsExploded.length
+  ? rowsExploded.map(r => `
+      <tr>
+        <td>${esc(r.no || "—")}</td>
+        <td>${esc(r.nombre || "—")}</td>
+        <td>${esc(r.posicion || "—")}</td>
+        <td>${esc(r.departamento || "—")}</td>
+        <td>${esc(r.periodo || "—")}</td>
+        <td>${esc(r.version || "—")}</td>
+        <td>${esc(formatDateDMY(String(r.fecha || "").trim()) || r.fecha || "—")}</td>
+        <td>${esc(r.necesidades || "—")}</td>
+      </tr>
+    `).join("")
+  : `<tr><td colspan="8" class="sub">Sin resultados para esos filtros.</td></tr>`;
       $("ieModalBody").innerHTML = `
         <div class="ie-wrap">
           <style>
@@ -4632,30 +4630,28 @@ Puntaje final: ${pf}`;
       `;
 
       $("ieTextArea").value = [
-        "Reporte de necesidades de capacitación",
-        `Filtro No. de personal: ${noQuery}`,
-        `Filtro Departamento: ${deptoQuery}`,
-        `Periodo: ${per}`,
-        `Versión: ${ver}`,
-        "",
-        ...rows.map(r =>
-          [
-            `No. de personal: ${r.no || "—"}`,
-            `Nombre: ${r.nombre || "—"}`,
-            `Posición: ${r.posicion || "—"}`,
-            `Departamento: ${r.departamento || "—"}`,
-            `Periodo: ${r.periodo || "—"}`,
-            `Versión: ${r.version || "—"}`,
-            `Fecha: ${formatDateDMY(String(r.fecha || "").trim()) || r.fecha || "—"}`,
-            `Necesidades de capacitación: ${r.necesidades || "—"}`,
-            ""
-          ].join("\n")
-        )
-      ].join("\n");
-
-      window.__capRowsExcel = rows.slice();
-
-      if($("btnIEExcel")) $("btnIEExcel").style.display = rows.length ? "" : "none";
+  "Reporte de necesidades de capacitación",
+  `Filtro No. de personal: ${noQuery}`,
+  `Filtro Departamento: ${deptoQuery}`,
+  `Periodo: ${per}`,
+  `Versión: ${ver}`,
+  "",
+  ...rowsExploded.map(r =>
+    [
+      `No. de personal: ${r.no || "—"}`,
+      `Nombre: ${r.nombre || "—"}`,
+      `Posición: ${r.posicion || "—"}`,
+      `Departamento: ${r.departamento || "—"}`,
+      `Periodo: ${r.periodo || "—"}`,
+      `Versión: ${r.version || "—"}`,
+      `Fecha: ${formatDateDMY(String(r.fecha || "").trim()) || r.fecha || "—"}`,
+      `Necesidades de capacitación: ${r.necesidades || "—"}`,
+      ""
+    ].join("\n")
+  )
+].join("\n");
+window.__capRowsExcel = rowsExploded.slice();
+if($("btnIEExcel")) $("btnIEExcel").style.display = rowsExploded.length ? "" : "none";
       if($("ieHtmlWrap")) $("ieHtmlWrap").style.display = "";
       if($("ieTextWrap")) $("ieTextWrap").style.display = "none";
 
