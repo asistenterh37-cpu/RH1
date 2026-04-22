@@ -3669,14 +3669,15 @@ function buildResultadoTexto_(){
 
 // abre modal
 
-  function updateInformeButtons_(){
+function updateInformeButtons_(){
   const view = String(state.reportesView || "");
-  const usaExcel = ["EVAL_CALIFICACIONES","PROYECCION_POTENCIAL"].includes(view);
+  const usaExcel = ["EVAL_CALIFICACIONES","PROYECCION_POTENCIAL","OPORTUNIDADES_MEJORA"].includes(view);
 
   if($("btnIEExcel"))    $("btnIEExcel").style.display    = usaExcel ? "" : "none";
   if($("btnIEPrintPDF")) $("btnIEPrintPDF").style.display = usaExcel ? "none" : "";
   if($("btnIEText"))     $("btnIEText").style.display     = usaExcel ? "none" : "";
 }
+  
 function openInformeModal_(){
   $("ieHtmlWrap") && ($("ieHtmlWrap").style.display = "block");
   $("ieTextWrap") && ($("ieTextWrap").style.display = "none");
@@ -3721,14 +3722,24 @@ function iePrintPdf_(){
   const per  = ($("reportPeriodo")?.value || "").trim();
   const ver  = ($("reportVersion")?.value || "").trim();
 
-  const titulo = view === "OPORTUNIDADES_MEJORA"
-    ? "Oportunidades de mejora"
-    : "Calificaciones de evaluación del desempeño";
+    const reportMeta = {
+    EVAL_CALIFICACIONES: {
+      titulo: "Calificaciones de evaluación del desempeño",
+      baseFile: "Calificaciones"
+    },
+    PROYECCION_POTENCIAL: {
+      titulo: "Proyección y potencial de desarrollo",
+      baseFile: "Proyeccion_potencial"
+    },
+    OPORTUNIDADES_MEJORA: {
+      titulo: "Oportunidades de mejora",
+      baseFile: "Oportunidades_mejora"
+    }
+  };
 
-  const baseFile = view === "OPORTUNIDADES_MEJORA"
-    ? "Oportunidades_mejora"
-    : "Calificaciones";
-
+  const meta = reportMeta[view] || reportMeta.EVAL_CALIFICACIONES;
+  const titulo = meta.titulo;
+  const baseFile = meta.baseFile;
   const html = `
     <html xmlns:o="urn:schemas-microsoft-com:office:office"
           xmlns:x="urn:schemas-microsoft-com:office:excel"
