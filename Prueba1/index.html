@@ -1658,26 +1658,74 @@ async function apiGetFetch(params, timeoutMs = 15000){
   }
 }
   
-async function apiGet(params, timeoutMs = 15000){
-  setApiStatus("", "API: consultando…");
+  async function apiGetFetch(params, timeoutMs = 6000){
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
 
   try{
-    const data = await apiGetFetch(params, timeoutMs);
-    setApiStatus("ok", "API: conectada");
-    return data;
-  }catch(fetchErr){
+    const url = build(params, null);
+    const res = await fetch(url, {
+      method: "GET",
+      redirect: "follow",
+      mode: "cors",
+      cache: "no-store",
+      signal: controller.signal,
+      headers: { "Accept": "application/json, text/plain, */*" }
+    });
+
+    const text = await res.text();
+    let parsed;
+
     try{
-      const data = await apiGetJsonp(params, timeoutMs);
-      setApiStatus("ok", "API: conectada");
-      return data;
-    }catch(jsonpErr){
-      const msg = jsonpErr?.message || fetchErr?.message || "desconectada";
-      setApiStatus("err", "API: " + msg);
-      throw jsonpErr;
+      parsed = JSON.parse(text);
+    }catch(_){
+      if (/^\s*</.test(text)) {
+        throw new Error("La API devolvió HTML, no JSON");
+      }
+      throw new Error("La API no devolvió JSON válido");
     }
+
+    const data = normalizeApiResponse(parsed);
+    if (data.ok !== true) throw new Error(data.error || "Respuesta fetch inválida");
+    return data;
+  } finally {
+    clearTimeout(timer);
   }
 }
-  
+
+async function apiGet(params, timeoutMs = 10000){
+  setApiStatus("", "API: consultando…");
+
+  const webapp = getWebApp();
+  if(!/^https:\/\/script\.google\.com\/macros\/s\/[^/]+\/exec/i.test(webapp)){
+    const err = new Error("URL Web App inválida");
+    setApiStatus("err", "API: " + err.message);
+    throw err;
+  }
+
+  let fetchErr = null;
+
+  try{
+    const data = await apiGetFetch(params, Math.min(timeoutMs, 6000));
+    setApiStatus("ok", "API: conectada");
+    return data;
+  }catch(err){
+    fetchErr = err;
+  }
+
+  try{
+    const data = await apiGetJsonp(params, Math.min(timeoutMs, 7000));
+    setApiStatus("ok", "API: conectada");
+    return data;
+  }catch(jsonpErr){
+    const msg =
+      jsonpErr?.message ||
+      fetchErr?.message ||
+      "sin conexión";
+    setApiStatus("err", "API: " + msg);
+    throw new Error(msg);
+  }
+}
 function todayLocal(){
   const d = new Date();
   const yyyy = d.getFullYear();
@@ -4003,20 +4051,23 @@ on("webapp", "blur", async ()=>{
   
 // Ping / Probar (si existen)
 on("btnAbrirPing", "click", ()=>{
+  ensureWebAppVisibleValue_();
   const base = getWebApp();
   const raw = base + (base.includes("?") ? "&" : "?") + "action=ping&_=" + Date.now();
   window.open(raw, "_blank", "noopener,noreferrer");
 });
 
 on("btnProbarApi", "click", async ()=>{
+  ensureWebAppVisibleValue_();
   try{
-    await apiGet({ action:"ping" });
+    const out = await apiGet({ action:"ping" });
+    if(!out || out.ok !== true) throw new Error("Ping inválido");
     setApiStatus("ok", "API: conectada");
   }catch(e){
     setApiStatus("err","API: " + (e?.message || e));
   }
 });
-async function assertBackendVersion_(){
+  async function assertBackendVersion_(){
   return true;
 }
   
@@ -4948,41 +4999,31 @@ clearKpisDetalle_();
     clearCapacitacion();
     if (typeof clearNivelesTable === "function") clearNivelesTable();
 
-    // webapp
+        // webapp
     ensureWebAppVisibleValue_();
+
     // ping inicial
     (async ()=>{
-  try{
-    await apiGet({ action:"ping" });
-    setApiStatus("ok","API: lista");
-    if($("cuestionario")){
-      $("cuestionario").innerHTML = `<div class="hint">Selecciona una fase para iniciar.</div>`;
-    }
-  }catch(e1){
-    setApiStatus("err","API: sin conexión (probando URL por defecto)");
+      try{
+        const out = await apiGet({ action:"ping" });
+        if(!out || out.ok !== true) throw new Error("Ping inválido");
 
-    try{
-      setWebApp(DEFAULT_WEBAPP_);
-      localStorage.setItem(LS_KEY_, DEFAULT_WEBAPP_);
-      await apiGet({ action:"ping" });
-      setApiStatus("ok","API: lista");
-
-      if($("cuestionario")){
-        $("cuestionario").innerHTML = `<div class="hint">Selecciona una fase para iniciar.</div>`;
+        setApiStatus("ok","API: lista");
+        if($("cuestionario")){
+          $("cuestionario").innerHTML = `<div class="hint">Selecciona una fase para iniciar.</div>`;
+        }
+      }catch(e){
+        setApiStatus("err","API: " + (e?.message || e));
+        if($("cuestionario")){
+          $("cuestionario").innerHTML = `
+            <div class="hint">
+              No se pudo conectar con la API.<br>
+              Revisa la URL real del deploy, que sea <code>/exec</code>, permisos de la Web App y que el backend responda a <code>action=ping</code>.
+            </div>
+          `;
+        }
       }
-    }catch(e2){
-      setApiStatus("err","API: " + (e2?.message || e2));
-      if($("cuestionario")){
-        $("cuestionario").innerHTML = `
-          <div class="hint">
-            No se pudo conectar con la API.<br>
-            Revisa la URL del deploy, permisos de la Web App y que el backend responda a <code>action=ping</code>.
-          </div>
-        `;
-      }
-    }
-  }
-})();
+    })();
        updateGuardarUIState();
     updatePesosSaveState();
     updateCapSaveState_();
