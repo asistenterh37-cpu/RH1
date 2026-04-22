@@ -1665,10 +1665,16 @@ async function apiGet(params, timeoutMs = 15000){
     const data = await apiGetFetch(params, timeoutMs);
     setApiStatus("ok", "API: conectada");
     return data;
-  }catch(err){
-    const msg = err?.message || "desconectada";
-    setApiStatus("err", "API: " + msg);
-    throw err;
+  }catch(fetchErr){
+    try{
+      const data = await apiGetJsonp(params, timeoutMs);
+      setApiStatus("ok", "API: conectada");
+      return data;
+    }catch(jsonpErr){
+      const msg = jsonpErr?.message || fetchErr?.message || "desconectada";
+      setApiStatus("err", "API: " + msg);
+      throw jsonpErr;
+    }
   }
 }
   
@@ -5000,7 +5006,6 @@ clearKpisDetalle_();
 })();
  </script>
 <script>
-  <script>
 function exportIEReportToExcel_(){
   const table = document.querySelector("#ieModalBody table");
   if(!table){
