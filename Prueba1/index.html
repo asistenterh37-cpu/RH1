@@ -336,18 +336,28 @@ button[disabled]{
   font-weight:700;
   margin-bottom:6px;
 }
+
 .appSidebar #nivelWrap{
-  display:flex;
+  display:none;
   width:100%;
 }
 .appSidebar #nivelSelect{
   width:100%;
   min-width:0;
 }
+.appSidebar .nivelWrapLabel{
+  display:none;
+}
+.appSidebar.show-nivel #nivelWrap{
+  display:flex;
+}
+.appSidebar.show-nivel .nivelWrapLabel{
+  display:block;
+}
 .appSidebar.collapsed #nivelWrap{
   display:none !important;
 }
-.appContent{
+    .appContent{
   flex:1 1 auto;
   min-width:0;
 }
@@ -371,15 +381,18 @@ button[disabled]{
     width:100%;
     min-width:100%;
   }
+
   .appSidebar.collapsed .navTitle,
-  .appSidebar.collapsed .navLabel,
-  .appSidebar.collapsed #faseHelp,
-  .appSidebar.collapsed .nivelWrapLabel{
-    display:block;
-  }
-  .appSidebar.collapsed #nivelWrap{
-    display:flex !important;
-  }
+.appSidebar.collapsed .navLabel,
+.appSidebar.collapsed #faseHelp{
+  display:block;
+}
+.appSidebar.collapsed.show-nivel .nivelWrapLabel{
+  display:block;
+}
+.appSidebar.collapsed.show-nivel #nivelWrap{
+  display:flex !important;
+}
   .appSidebar.collapsed .sidebarNav .faseBtn,
   .appSidebar.collapsed .sidebarBtn{
     justify-content:flex-start;
@@ -1634,20 +1647,17 @@ function isReportesPhase_(){
 function toggleReportesUI_(){
   const fase = String(state.fase || "");
   const isRep = fase === "REPORTES";
+  const showNivel = ["FORMULARIOS","PESOS","AUTO"].includes(fase);
 
   const card = $("reportesFiltersCard");
   const ctl  = $("reportesControls");
-  const nivelWrap = $("nivelWrap");
+  const sidebar = $("blockFaseNivel");
+  const faseHelp = $("faseHelp");
 
   if(card) card.style.display = isRep ? "" : "none";
   if(ctl) ctl.classList.toggle("show", isRep);
-
-  // ✅ MOSTRAR NIVEL SOLO EN ESTAS FASES
-  const fasesConNivel = ["FORMULARIOS","PESOS","AUTO"];
-
-  if(nivelWrap){
-    nivelWrap.style.display = fasesConNivel.includes(fase) ? "" : "none";
-  }
+  if(sidebar) sidebar.classList.toggle("show-nivel", showNivel);
+  if(faseHelp) faseHelp.style.display = showNivel ? "none" : "";
 
   updateReportFiltersLayout_();
 }
