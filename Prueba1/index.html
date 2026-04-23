@@ -1036,7 +1036,7 @@ body.sidebar-collapsed .sidebarActionBtn::before{
       </div>
       <div class="field col-3 boxed" id="reportBuscarWrap">
         <div class="lbl">Acción</div>
-        <button id="btnBuscarReporte" type="button" class="btn-blue" onclick="generarReporteCapacitacion()">Generar</button>
+        <button id="btnBuscarReporte" type="button" class="btn-blue">Generar</button>
       </div>
     </div>
   </div>
@@ -4374,49 +4374,13 @@ on("btnReportesToggle", "click", ()=>{
   wrap.style.display = hidden ? "flex" : "none";
   if(hidden) sel.focus();
 });
-  
-on("reportesSelect", "change", (e)=>{
-  const view = String(e.target?.value || "");
-  state.reportesView = view;
-  applyReportesView_();
-  updateReportFiltersLayout_();
 
-  const fase = REPORTES_PHASE_MAP[view] || "";
-  if(!fase) return;
-
-  setFaseFromButton(fase);
-  syncPhaseInputsToReportFilters_();
-  syncReportFiltersToPhaseInputs_();
-  toggleReportesUI_();
-  updateCapSaveState_();
-  updateDevGenerarState_();
-  updateGuardarUIState();
-});
-document.querySelectorAll(".faseBtn[data-fase]").forEach(btn=>{
-  btn.addEventListener("click", ()=>{
-    const wrap = $("reportesControls");
-    if(wrap) wrap.style.display = "none";
-  });
+  on("btnReportesToggle", "click", ()=>{
+  state.reportesView = "";
+  if($("reportesSelect")) $("reportesSelect").value = "";
+  if($("reportesFiltersCard")) $("reportesFiltersCard").style.display = "none";
 });
 
-on("btnSidebarToggle", "click", ()=>{
-  setSidebarCollapsed_(!document.body.classList.contains("sidebar-collapsed"));
-});
-
-on("btnSalir", "click", ()=>{
-  const ok = confirm("¿Deseas salir del sistema?");
-  if(!ok) return;
-
-  try{ doLimpiar(); }catch(_){}
-  try{ state.reportesView = ""; }catch(_){}
-
-  if(window.history.length > 1){
-    window.history.back();
-    return;
-  }
-
-  window.location.replace("about:blank");
-});
 on("btnBuscarReporte", "click", async ()=>{
   syncReportFiltersToPhaseInputs_();
   updateCapSaveState_();
@@ -4428,6 +4392,11 @@ on("btnBuscarReporte", "click", async ()=>{
   const depto = $("reportDepto")?.value?.trim() || "";
   const per   = $("reportPeriodo")?.value?.trim() || "";
   const ver   = $("reportVersion")?.value?.trim() || "";
+
+  if(!view){
+    alert("Selecciona un reporte antes de generar.");
+    return;
+  }
 
   if(view === "EVAL_RESUMEN"){
     if(!no || !per || !ver){
@@ -4461,13 +4430,13 @@ on("btnBuscarReporte", "click", async ()=>{
         <div class="ie-wrap">
           <style>
             .evalrep{font-family:var(--sans);color:var(--text)}
-            .evalrep .box{border:1px solid rgba(255,255,255,.10);border-radius:16px;padding:14px;background:rgba(11,18,32,.22);margin-bottom:12px}
+            .evalrep .box{border:1px solid rgba(255,255,255,10);border-radius:16px;padding:14px;background:rgba(11,18,32,22);margin-bottom:12px}
             .evalrep h2{margin:0 0 12px 0;font-size:20px}
             .evalrep table{width:100%;border-collapse:separate;border-spacing:0}
-            .evalrep thead th{background:rgba(15,27,51,.95);padding:10px;text-align:left;border-bottom:1px solid rgba(255,255,255,.10);white-space:nowrap}
-            .evalrep tbody td{padding:10px;border-bottom:1px solid rgba(255,255,255,.06);vertical-align:top}
+            .evalrep thead th{background:rgba(15,27,51,95);padding:10px;text-align:left;border-bottom:1px solid rgba(255,255,255,10);white-space:nowrap}
+            .evalrep tbody td{padding:10px;border-bottom:1px solid rgba(255,255,255,06);vertical-align:top}
             .grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
-            .cell{border:1px solid rgba(255,255,255,.10);border-radius:14px;padding:12px;background:rgba(11,18,32,.18)}
+            .cell{border:1px solid rgba(255,255,255,10);border-radius:14px;padding:12px;background:rgba(11,18,32,18)}
             .k{font-weight:800;margin-bottom:6px}
             .v{white-space:pre-wrap}
           </style>
@@ -4477,466 +4446,48 @@ on("btnBuscarReporte", "click", async ()=>{
               <h2>Reporte de evaluación del desempeño</h2>
 
               <div class="grid3" style="margin-bottom:12px">
-                <div class="cell"><div class="k">No. de personal</div><div class="v">${esc(no)}</div></div>
+                <div class="cell"><div class="k">No. personal</div><div class="v">${esc(h.noPersonal || no)}</div></div>
                 <div class="cell"><div class="k">Nombre</div><div class="v">${esc(h.nombre || "—")}</div></div>
                 <div class="cell"><div class="k">Posición</div><div class="v">${esc(h.posicion || "—")}</div></div>
-                <div class="cell"><div class="k">Departamento</div><div class="v">${esc(h.depto || "—")}</div></div>
-                <div class="cell"><div class="k">Versión</div><div class="v">${esc(ver)}</div></div>
+                <div class="cell"><div class="k">Departamento</div><div class="v">${esc(h.departamento || "—")}</div></div>
+                <div class="cell"><div class="k">Periodo</div><div class="v">${esc(h.periodo || per)}</div></div>
+                <div class="cell"><div class="k">Versión</div><div class="v">${esc(h.version || ver)}</div></div>
                 <div class="cell"><div class="k">Fecha</div><div class="v">${esc(fecha)}</div></div>
                 <div class="cell"><div class="k">Puntaje final</div><div class="v">${esc(pf)}</div></div>
+                <div class="cell"><div class="k">Nivel</div><div class="v">${esc(h.nivel || "—")}</div></div>
               </div>
 
-              <div class="tableWrap" style="margin-bottom:12px">
-                <table>
-                  <thead>
-                    <tr>
-                      <th style="width:70px">#</th>
-                      <th>Ítem</th>
-                      <th style="width:260px">Respuesta</th>
-                    </tr>
-                  </thead>
-                  <tbody>${rowsHtml}</tbody>
-                </table>
+              <div class="box">
+                <h2>Detalle de respuestas</h2>
+                <div class="tableWrap">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>#</th>
+                        <th>Ítem</th>
+                        <th>Respuesta</th>
+                      </tr>
+                    </thead>
+                    <tbody>${rowsHtml || '<tr><td colspan="3">—</td></tr>'}</tbody>
+                  </table>
+                </div>
               </div>
 
-              <div class="grid1">
-  <div class="cell"><div class="k">Justificación y comentarios</div><div class="v">${esc(q.justificacion || "—")}</div></div>
-  <div class="cell"><div class="k">Comentarios del colaborador</div><div class="v">${esc(q.comentariosColaborador || "—")}</div></div>
-  <div class="cell"><div class="k">Comentarios del evaluador</div><div class="v">${esc(q.comentariosEvaluador || "—")}</div></div>
-  <div class="cell"><div class="k">Fortalezas</div><div class="v">${esc(q.fortalezas || "—")}</div></div>
-  <div class="cell"><div class="k">Oportunidades de mejora</div><div class="v">${esc(q.oportunidadesMejora || "—")}</div></div>
-  <div class="cell"><div class="k">Proyección y potencial de desarrollo</div><div class="v">${esc(q.proyeccionPotencial || "—")}</div></div>
-  <div class="cell"><div class="k">Necesidades de capacitación</div><div class="v">${esc(q.necesidadesCapacitacion || "—")}</div></div>
-</div>
-            </div>
-          </div>
-        </div>
-      `;
-
-      $("ieTextArea").value =
-`Reporte de evaluación del desempeño
-No. de personal: ${no}
-Nombre: ${h.nombre || "—"}
-Posición: ${h.posicion || "—"}
-Departamento: ${h.depto || "—"}
-Periodo: ${per}
-Versión: ${ver}
-Fecha: ${fecha}
-Puntaje final: ${pf}`;
-
-  openInformeModal_();
-    }catch(err){
-      alert(err?.message || "No se pudo generar el reporte.");
-    }
-    return;
-  }
-
-  if(view === "EVAL_CALIFICACIONES"){
-    if(!no || !depto || !per || !ver){
-      alert("Para Generar, llena: No. de personal + Departamento + Periodo + Versión.");
-      return;
-    }
-
-    try{
-      const noNorm = String(no || "").trim();
-      const deptoNorm = String(depto || "").trim();
-      const noQuery = /^(todos|todo)$/i.test(noNorm) ? "TODOS" : noNorm;
-      const deptoQuery = /^(todos|todo)$/i.test(deptoNorm) ? "TODOS" : deptoNorm;
-
-      const res = await apiGet({
-        action: "resultCalificaciones",
-        no: noQuery,
-        depto: deptoQuery,
-        periodo: per,
-        version: ver
-      });
-
-      const rows = Array.isArray(res.rows) ? res.rows : [];
-      const esc = (v)=>escapeHtml(String(v ?? ""));
-      const rowsHtml = rows.length
-        ? rows.map(r => `
-            <tr>
-              <td>${esc(r.no || "—")}</td>
-              <td>${esc(r.nombre || "—")}</td>
-              <td>${esc(r.posicion || "—")}</td>
-              <td>${esc(r.depto || "—")}</td>
-              <td>${esc(r.version || "—")}</td>
-              <td>${esc(formatDateDMY(String(r.fecha || "").trim()) || r.fecha || "—")}</td>
-              <td>${esc(r.puntajeFinal || "0.00")}</td>
-            </tr>
-          `).join("")
-        : `<tr><td colspan="7" class="sub">Sin resultados para esos filtros.</td></tr>`;
-
-      $("ieModalBody").innerHTML = `
-        <div class="ie-wrap">
-          <style>
-            .evalrep{font-family:var(--sans);color:var(--text)}
-            .evalrep .box{border:1px solid rgba(255,255,255,.10);border-radius:16px;padding:14px;background:rgba(11,18,32,.22);margin-bottom:12px}
-            .evalrep h2{margin:0 0 12px 0;font-size:20px}
-            .evalrep table{width:100%;border-collapse:separate;border-spacing:0}
-            .evalrep thead th{background:rgba(15,27,51,.95);padding:10px;text-align:left;border-bottom:1px solid rgba(255,255,255,.10);white-space:nowrap}
-            .evalrep tbody td{padding:10px;border-bottom:1px solid rgba(255,255,255,.06);vertical-align:top}
-          </style>
-
-          <div class="evalrep">
-            <div class="box">
-              <h2>Reporte de evaluación del desempeño</h2>
-              <div class="tableWrap">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>No. de personal</th>
-                      <th>Nombre</th>
-                      <th>Posición</th>
-                      <th>Departamento</th>
-                      <th>Versión</th>
-                      <th>Fecha</th>
-                      <th>Puntaje final</th>
-                    </tr>
-                  </thead>
-                  <tbody>${rowsHtml}</tbody>
-                </table>
+              <div class="grid3">
+                <div class="cell"><div class="k">Justificación y comentarios</div><div class="v">${esc(q.justificacion || "—")}</div></div>
+                <div class="cell"><div class="k">Evaluación de clientes</div><div class="v">${esc(q.evaluacionClientes || "—")}</div></div>
+                <div class="cell"><div class="k">Comentarios del colaborador</div><div class="v">${esc(q.comentariosColaborador || "—")}</div></div>
+                <div class="cell"><div class="k">Fortalezas</div><div class="v">${esc(q.fortalezas || "—")}</div></div>
+                <div class="cell"><div class="k">Oportunidades de mejora</div><div class="v">${esc(q.oportunidadesMejora || "—")}</div></div>
+                <div class="cell"><div class="k">Proyección y potencial</div><div class="v">${esc(q.proyeccionPotencial || "—")}</div></div>
+                <div class="cell"><div class="k">Necesidades de capacitación</div><div class="v">${esc(q.necesidadesCapacitacion || "—")}</div></div>
+                <div class="cell"><div class="k">Comentarios del evaluador</div><div class="v">${esc(q.comentariosEvaluador || "—")}</div></div>
+                <div class="cell"><div class="k">Nombre del evaluador</div><div class="v">${esc(q.nombreEvaluador || "—")}</div></div>
               </div>
             </div>
           </div>
         </div>
       `;
-
-      $("ieTextArea").value = [
-        "Reporte de evaluación del desempeño",
-        `Filtro No. de personal: ${noQuery}`,
-        `Filtro Departamento: ${deptoQuery}`,
-        `Periodo: ${per}`,
-        `Versión: ${ver}`,
-        "",
-        ...rows.map(r =>
-          [
-            `No. de personal: ${r.no || "—"}`,
-            `Nombre: ${r.nombre || "—"}`,
-            `Posición: ${r.posicion || "—"}`,
-            `Departamento: ${r.depto || "—"}`,
-            `Versión: ${r.version || "—"}`,
-            `Fecha: ${formatDateDMY(String(r.fecha || "").trim()) || r.fecha || "—"}`,
-            `Puntaje final: ${r.puntajeFinal || "0.00"}`,
-            ""
-          ].join("\n")
-        )
-      ].join("\n");
-
-      $("ieHtmlWrap").style.display = "";
-      $("ieTextWrap").style.display = "none";
-      $("ieModalBack").classList.add("show");
-    }catch(err){
-      alert(err?.message || "No se pudo generar el reporte.");
-    }
-    return;
-  }
-
-      if(view === "PROYECCION_POTENCIAL"){
-    if(!no || !depto || !per || !ver){
-      alert("Para Generar, llena: No. de personal + Departamento + Periodo + Versión.");
-      return;
-    }
-
-    try{
-      const noNorm = String(no || "").trim();
-      const deptoNorm = String(depto || "").trim();
-      const noQuery = /^(todos|todo)$/i.test(noNorm) ? "TODOS" : noNorm;
-      const deptoQuery = /^(todos|todo)$/i.test(deptoNorm) ? "TODOS" : deptoNorm;
-
-      const res = await apiGet({
-        action: "resultProyeccionPotencial",
-        no: noQuery,
-        depto: deptoQuery,
-        periodo: per,
-        version: ver
-      });
-
-      const rows = Array.isArray(res.rows) ? res.rows : [];
-      const esc = (v)=>escapeHtml(String(v ?? ""));
-      const rowsHtml = rows.length
-        ? rows.map(r => `
-            <tr>
-              <td>${esc(r.no || "—")}</td>
-              <td>${esc(r.nombre || "—")}</td>
-              <td>${esc(r.posicion || "—")}</td>
-              <td>${esc(r.depto || "—")}</td>
-              <td>${esc(r.version || "—")}</td>
-              <td>${esc(formatDateDMY(String(r.fecha || "").trim()) || r.fecha || "—")}</td>
-              <td>${esc(r.proyeccionPotencial || "—")}</td>
-            </tr>
-          `).join("")
-        : `<tr><td colspan="7" class="sub">Sin resultados para esos filtros.</td></tr>`;
-
-      $("ieModalBody").innerHTML = `
-        <div class="ie-wrap">
-          <style>
-            .evalrep{font-family:var(--sans);color:var(--text)}
-            .evalrep .box{border:1px solid rgba(255,255,255,.10);border-radius:16px;padding:14px;background:rgba(11,18,32,.22);margin-bottom:12px}
-            .evalrep h2{margin:0 0 12px 0;font-size:20px}
-            .evalrep table{width:100%;border-collapse:separate;border-spacing:0}
-            .evalrep thead th{background:rgba(15,27,51,.95);padding:10px;text-align:left;border-bottom:1px solid rgba(255,255,255,.10);white-space:nowrap}
-            .evalrep tbody td{padding:10px;border-bottom:1px solid rgba(255,255,255,.06);vertical-align:top}
-          </style>
-
-          <div class="evalrep">
-            <div class="box">
-              <h2>Reporte de evaluación del desempeño</h2>
-              <div class="tableWrap">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>No. de personal</th>
-                      <th>Nombre</th>
-                      <th>Posición</th>
-                      <th>Departamento</th>
-                      <th>Versión</th>
-                      <th>Fecha</th>
-                      <th>Proyección y potencial de desarrollo</th>
-                    </tr>
-                  </thead>
-                  <tbody>${rowsHtml}</tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        </div>
-      `;
-
-      $("ieTextArea").value = [
-        "Reporte de evaluación del desempeño",
-        `Filtro No. de personal: ${noQuery}`,
-        `Filtro Departamento: ${deptoQuery}`,
-        `Periodo: ${per}`,
-        `Versión: ${ver}`,
-        "",
-        ...rows.map(r =>
-          [
-            `No. de personal: ${r.no || "—"}`,
-            `Nombre: ${r.nombre || "—"}`,
-            `Posición: ${r.posicion || "—"}`,
-            `Departamento: ${r.depto || "—"}`,
-            `Versión: ${r.version || "—"}`,
-            `Fecha: ${formatDateDMY(String(r.fecha || "").trim()) || r.fecha || "—"}`,
-            `Proyección y potencial de desarrollo: ${r.proyeccionPotencial || "—"}`,
-            ""
-          ].join("\n")
-        )
-      ].join("\n");
-
-            openInformeModal_();
-    }catch(err){
-      alert(err?.message || "No se pudo generar el reporte.");
-    }
-    return;
-  }
-
-  if(view === "OPORTUNIDADES_MEJORA"){
-    if(!no || !depto || !per || !ver){
-      alert("Para Generar, llena: No. de personal + Departamento + Periodo + Versión.");
-      return;
-    }
-
-    try{
-      const noNorm = String(no || "").trim();
-      const deptoNorm = String(depto || "").trim();
-      const noQuery = /^(todos|todo)$/i.test(noNorm) ? "TODOS" : noNorm;
-      const deptoQuery = /^(todos|todo)$/i.test(deptoNorm) ? "TODOS" : deptoNorm;
-
-      const res = await apiGet({
-        action: "resultOportunidadesMejora",
-        no: noQuery,
-        depto: deptoQuery,
-        periodo: per,
-        version: ver
-      });
-
-      const rows = Array.isArray(res.rows) ? res.rows : [];
-      const esc = (v)=>escapeHtml(String(v ?? ""));
-      const rowsHtml = rows.length
-        ? rows.map(r => `
-            <tr>
-              <td>${esc(r.no || "—")}</td>
-              <td>${esc(r.nombre || "—")}</td>
-              <td>${esc(r.posicion || "—")}</td>
-              <td>${esc(r.depto || "—")}</td>
-              <td>${esc(r.version || "—")}</td>
-              <td>${esc(formatDateDMY(String(r.fecha || "").trim()) || r.fecha || "—")}</td>
-              <td>${esc(r.oportunidadesMejora || "—")}</td>
-            </tr>
-          `).join("")
-        : `<tr><td colspan="7" class="sub">Sin resultados para esos filtros.</td></tr>`;
-
-      $("ieModalBody").innerHTML = `
-        <div class="ie-wrap">
-          <style>
-            .evalrep{font-family:var(--sans);color:var(--text)}
-            .evalrep .box{border:1px solid rgba(255,255,255,.10);border-radius:16px;padding:14px;background:rgba(11,18,32,.22);margin-bottom:12px}
-            .evalrep h2{margin:0 0 12px 0;font-size:20px}
-            .evalrep table{width:100%;border-collapse:separate;border-spacing:0}
-            .evalrep thead th{background:rgba(15,27,51,.95);padding:10px;text-align:left;border-bottom:1px solid rgba(255,255,255,.10);white-space:nowrap}
-            .evalrep tbody td{padding:10px;border-bottom:1px solid rgba(255,255,255,.06);vertical-align:top}
-            .evalrep .grid1{display:grid;grid-template-columns:1fr;gap:12px}
-.evalrep .cell{border:1px solid rgba(255,255,255,.10);border-radius:14px;padding:12px;background:rgba(15,27,51,.22)}
-.evalrep .k{font-weight:800;margin-bottom:6px}
-.evalrep .v{white-space:pre-wrap}
-          </style>
-
-          <div class="evalrep">
-            <div class="box">
-              <h2>Reporte de evaluación del desempeño</h2>
-              <div class="tableWrap">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>No. de personal</th>
-                      <th>Nombre</th>
-                      <th>Posición</th>
-                      <th>Departamento</th>
-                      <th>Versión</th>
-                      <th>Fecha</th>
-                      <th>Oportunidades de mejora</th>
-                    </tr>
-                  </thead>
-                  <tbody>${rowsHtml}</tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        </div>
-      `;
-
-      $("ieTextArea").value = [
-        "Reporte de evaluación del desempeño",
-        `Filtro No. de personal: ${noQuery}`,
-        `Filtro Departamento: ${deptoQuery}`,
-        `Periodo: ${per}`,
-        `Versión: ${ver}`,
-        "",
-        ...rows.map(r =>
-          [
-            `No. de personal: ${r.no || "—"}`,
-            `Nombre: ${r.nombre || "—"}`,
-            `Posición: ${r.posicion || "—"}`,
-            `Departamento: ${r.depto || "—"}`,
-            `Versión: ${r.version || "—"}`,
-            `Fecha: ${formatDateDMY(String(r.fecha || "").trim()) || r.fecha || "—"}`,
-            `Oportunidades de mejora: ${r.oportunidadesMejora || "—"}`,
-            ""
-          ].join("\n")
-        )
-      ].join("\n");
-
-    openInformeModal_();
-    }catch(err){
-      alert(err?.message || "No se pudo generar el reporte.");
-    }
-    return;
-  }
-  if(view === "NECESIDADES_CAP"){
-    if(!no || !depto || !per || !ver){
-      alert("Para Generar, llena: No. de personal + Departamento + Periodo + Versión.");
-      return;
-    }
-
-    try{
-      const noNorm = String(no || "").trim();
-      const deptoNorm = String(depto || "").trim();
-      const noQuery = /^(todos|todo)$/i.test(noNorm) ? "TODOS" : noNorm;
-      const deptoQuery = /^(todos|todo)$/i.test(deptoNorm) ? "TODOS" : deptoNorm;
-
-      const res = await apiGet({
-        action: "resultNecesidadesCap",
-        no: noQuery,
-        depto: deptoQuery,
-        periodo: per,
-        version: ver
-      });
-
-      const rows = Array.isArray(res.rows) ? res.rows : [];
-      const esc = v => escapeHtml(String(v ?? ""));
-      const rowsHtml = rows.length
-        ? rows.map(r => `
-            <tr>
-              <td>${esc(r.no || "—")}</td>
-              <td>${esc(r.nombre || "—")}</td>
-              <td>${esc(r.posicion || "—")}</td>
-              <td>${esc(r.departamento || "—")}</td>
-              <td>${esc(r.periodo || "—")}</td>
-              <td>${esc(r.version || "—")}</td>
-              <td>${esc(formatDateDMY(String(r.fecha || "").trim()) || r.fecha || "—")}</td>
-              <td>${esc(r.necesidades || "—")}</td>
-            </tr>
-          `).join("")
-        : `<tr><td colspan="8" class="sub">Sin resultados para esos filtros.</td></tr>`;
-
-      $("ieTitle").textContent = "Reporte de necesidades de capacitación";
-      const note = document.querySelector("#ieModalBack .modalNote");
-      if(note) note.innerHTML = "Generado con la hoja <b>EvaluacionFinal</b>.";
-
-      $("ieModalBody").innerHTML = `
-        <div class="ie-wrap">
-          <style>
-            .evalrep{font-family:var(--sans);color:var(--text)}
-            .evalrep .box{border:1px solid rgba(255,255,255,.10);border-radius:16px;padding:14px;background:rgba(11,18,32,.22);margin-bottom:12px}
-            .evalrep h2{margin:0 0 12px 0;font-size:20px}
-            .evalrep table{width:100%;border-collapse:separate;border-spacing:0}
-            .evalrep thead th{background:rgba(15,27,51,.95);padding:10px;text-align:left;border-bottom:1px solid rgba(255,255,255,.10);white-space:nowrap}
-            .evalrep tbody td{padding:10px;border-bottom:1px solid rgba(255,255,255,.06);vertical-align:top}
-          </style>
-
-          <div class="evalrep">
-            <div class="box">
-              <h2>Reporte de necesidades de capacitación</h2>
-              <div class="tableWrap">
-                <table id="tablaNecesidadesCap">
-                  <thead>
-                    <tr>
-                      <th>No</th>
-                      <th>Nombre</th>
-                      <th>Posición</th>
-                      <th>Departamento</th>
-                      <th>Periodo</th>
-                      <th>Versión</th>
-                      <th>Fecha</th>
-                      <th>Necesidades de capacitación</th>
-                    </tr>
-                  </thead>
-                  <tbody>${rowsHtml}</tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        </div>
-      `;
-
-      $("ieTextArea").value = [
-        "Reporte de necesidades de capacitación",
-        `Filtro No. de personal: ${noQuery}`,
-        `Filtro Departamento: ${deptoQuery}`,
-        `Periodo: ${per}`,
-        `Versión: ${ver}`,
-        "",
-        ...rows.map(r =>
-          [
-            `No. de personal: ${r.no || "—"}`,
-            `Nombre: ${r.nombre || "—"}`,
-            `Posición: ${r.posicion || "—"}`,
-            `Departamento: ${r.departamento || "—"}`,
-            `Periodo: ${r.periodo || "—"}`,
-            `Versión: ${r.version || "—"}`,
-            `Fecha: ${formatDateDMY(String(r.fecha || "").trim()) || r.fecha || "—"}`,
-            `Necesidades de capacitación: ${r.necesidades || "—"}`,
-            ""
-          ].join("\n")
-        )
-      ].join("\n");
-
-      window.__capRowsExcel = rows.slice();
-
-      if($("btnIEExcel")) $("btnIEExcel").style.display = rows.length ? "" : "none";
-      if($("ieHtmlWrap")) $("ieHtmlWrap").style.display = "";
-      if($("ieTextWrap")) $("ieTextWrap").style.display = "none";
 
       openInformeModal_();
     }catch(err){
@@ -4944,7 +4495,55 @@ Puntaje final: ${pf}`;
     }
     return;
   }
-  
+
+  if(["EVAL_CALIFICACIONES","NECESIDADES_CAP","PROYECCION_POTENCIAL","OPORTUNIDADES_MEJORA"].includes(view)){
+    if(!per || !ver){
+      alert("Para Generar, llena al menos: Periodo + Versión.");
+      return;
+    }
+
+    try{
+      const res = await apiGet({
+        action: "reportes",
+        reporte: view,
+        no,
+        departamento: depto,
+        periodo: per,
+        version: ver
+      });
+
+      const rows = Array.isArray(res.rows) ? res.rows : [];
+      if(!rows.length){
+        alert("No se encontraron datos para ese reporte.");
+        return;
+      }
+
+      const cols = Object.keys(rows[0] || {});
+      const esc = (v)=>escapeHtml(String(v ?? ""));
+
+      $("ieModalBody").innerHTML = `
+        <div class="ie-wrap">
+          <div class="tableWrap">
+            <table>
+              <thead>
+                <tr>${cols.map(c=>`<th>${esc(c)}</th>`).join("")}</tr>
+              </thead>
+              <tbody>
+                ${rows.map(r=>`<tr>${cols.map(c=>`<td>${esc(r[c])}</td>`).join("")}</tr>`).join("")}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+
+      window.__capRowsExcel = rows.slice();
+      openInformeModal_();
+    }catch(err){
+      alert(err?.message || "No se pudo generar el reporte.");
+    }
+    return;
+  }
+
   alert("Este reporte aún no está configurado.");
 });
 ["reportNoPersonal","reportDepto","reportPeriodo","reportVersion"].forEach(id=>{
