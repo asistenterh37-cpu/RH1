@@ -243,6 +243,36 @@ button[disabled]{
   border-color:#60a5fa;
   box-shadow:0 0 0 3px rgba(147,197,253,.18);
 }
+
+.reportesMenu{
+  position:relative;
+  flex:0 0 auto;
+}
+
+#reportesControls{
+  display:none;
+  position:absolute;
+  top:calc(100% + 8px);
+  left:0;
+  z-index:30;
+  min-width:340px;
+  padding:10px;
+  border:1px solid rgba(255,255,255,.12);
+  border-radius:14px;
+  background:rgba(15,27,51,.98);
+  box-shadow:0 14px 28px rgba(0,0,0,.35);
+}
+
+#reportesControls.show{
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+
+#reportesControls select{
+  width:100%;
+  min-width:320px;
+}
     
     /* CUESTIONARIO */
     .factor{
@@ -814,17 +844,19 @@ button[disabled]{
   <button type="button" class="faseBtn" data-fase="ONEONE">One One</button>
    <button type="button" class="faseBtn" data-fase="KPIS">Kpis/entregables</button>
     <button type="button" class="faseBtn" data-fase="DESEMPENO">Evaluación desempeño</button>
+  <div class="reportesMenu" id="reportesMenu">
   <button type="button" id="btnReportesToggle" class="faseBtn">Reportes</button>
 
-<div id="reportesControls" style="display:none;align-items:center;gap:10px;flex-wrap:wrap">
-  <select id="reportesSelect" style="min-width:320px">
-    <option value="">Seleccionar</option>
-    <option value="EVAL_RESUMEN">1. Evaluación del desempeño</option>
-    <option value="EVAL_CALIFICACIONES">2. Calificaciones de evaluación del desempeño</option>
-    <option value="NECESIDADES_CAP">3. Necesidades de capacitación</option>
-    <option value="PROYECCION_POTENCIAL">4. Proyección y potencial de desarrollo</option>
-    <option value="OPORTUNIDADES_MEJORA">5. Oportunidades de mejora</option>
-  </select>
+  <div id="reportesControls">
+    <select id="reportesSelect" style="min-width:320px">
+      <option value="">Seleccionar</option>
+      <option value="EVAL_RESUMEN">1. Evaluación del desempeño</option>
+      <option value="EVAL_CALIFICACIONES">2. Calificaciones de evaluación del desempeño</option>
+      <option value="NECESIDADES_CAP">3. Necesidades de capacitación</option>
+      <option value="PROYECCION_POTENCIAL">4. Proyección y potencial de desarrollo</option>
+      <option value="OPORTUNIDADES_MEJORA">5. Oportunidades de mejora</option>
+    </select>
+  </div>
 </div>
 </div>
 
@@ -1410,7 +1442,7 @@ function toggleReportesUI_(){
   const card = $("reportesFiltersCard");
   const ctl  = $("reportesControls");
   if(card) card.style.display = isReportesPhase_() ? "" : "none";
-  if(ctl && !isReportesPhase_() && !$("reportesSelect")?.value) ctl.style.display = "none";
+  if(ctl && !isReportesPhase_()) ctl.classList.remove("show");
   updateReportFiltersLayout_();
 }
 
@@ -4213,14 +4245,14 @@ document.querySelectorAll(".faseBtn").forEach(btn=>{
   });
 });
 
-on("btnReportesToggle", "click", ()=>{
+on("btnReportesToggle", "click", (e)=>{
+  e.stopPropagation();
   const wrap = $("reportesControls");
   const sel  = $("reportesSelect");
   if(!wrap || !sel) return;
 
-  const hidden = wrap.style.display === "none" || !wrap.style.display;
-  wrap.style.display = hidden ? "flex" : "none";
-  if(hidden) sel.focus();
+  const open = wrap.classList.toggle("show");
+  if(open) sel.focus();
 });
   
 on("reportesSelect", "change", (e)=>{
@@ -4228,6 +4260,9 @@ on("reportesSelect", "change", (e)=>{
   state.reportesView = view;
   applyReportesView_();
   updateReportFiltersLayout_();
+
+  const wrap = $("reportesControls");
+  if(wrap) wrap.classList.remove("show");
 
   const fase = REPORTES_PHASE_MAP[view] || "";
   if(!fase) return;
@@ -4243,10 +4278,16 @@ on("reportesSelect", "change", (e)=>{
 document.querySelectorAll(".faseBtn[data-fase]").forEach(btn=>{
   btn.addEventListener("click", ()=>{
     const wrap = $("reportesControls");
-    if(wrap) wrap.style.display = "none";
+    if(wrap) wrap.classList.remove("show");
   });
 });
-
+document.addEventListener("click", (e)=>{
+  const menu = $("reportesMenu");
+  const wrap = $("reportesControls");
+  if(!menu || !wrap) return;
+  if(!menu.contains(e.target)) wrap.classList.remove("show");
+});
+  
 on("btnBuscarReporte", "click", async ()=>{
   syncReportFiltersToPhaseInputs_();
   updateCapSaveState_();
