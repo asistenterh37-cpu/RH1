@@ -201,7 +201,10 @@ button[disabled]{
     [data-phase-block]{display:none}
     [data-phase-block].show{display:block}
     .nivelWrap{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-    .nivelWrap.hide{display:none}
+.nivelWrap.hide{display:none}
+.nivelWrap[style*="display: none"]{
+  display:none !important;
+}
 /* ✅ BOTONES DE FASE EN UNA SOLA FILA */
 .faseButtonsWrap{
   display:flex;
@@ -247,7 +250,6 @@ button[disabled]{
     .reportesMenu{
   flex:0 0 auto;
 }
-
 #reportesControls{
   display:none;
   width:100%;
@@ -258,10 +260,35 @@ button[disabled]{
   display:block;
 }
 
-#reportesControls select{
+#reportesControls .reportesInlineRow{
+  display:grid;
+  grid-template-columns:1.35fr 1fr 1fr 1fr .8fr .85fr;
+  gap:10px;
+  align-items:end;
+}
+
+#reportesControls select,
+#reportesControls input,
+#reportesControls button{
   width:100%;
   min-width:0;
 }
+
+#reportesControls .field{
+  min-width:0;
+}
+
+@media (max-width:1100px){
+  #reportesControls .reportesInlineRow{
+    grid-template-columns:repeat(3,minmax(0,1fr));
+  }
+}
+@media (max-width:860px){
+  #reportesControls .reportesInlineRow{
+    grid-template-columns:1fr;
+  }
+}
+
     /* CUESTIONARIO */
     .factor{
       border:1px solid rgba(255,255,255,.10);
@@ -902,41 +929,46 @@ button[disabled]{
     </div>
   </div>
   <div class="card-b">
-    <div id="reportesControls" class="show">
-  <div class="field col-12 boxed">
-    <div class="lbl">Tipo de reporte</div>
-    <select id="reportesSelect">
-      <option value="">Seleccionar</option>
-      <option value="EVAL_RESUMEN">1. Evaluación del desempeño</option>
-      <option value="EVAL_CALIFICACIONES">2. Calificaciones de evaluación del desempeño</option>
-      <option value="NECESIDADES_CAP">3. Necesidades de capacitación</option>
-      <option value="PROYECCION_POTENCIAL">4. Proyección y potencial de desarrollo</option>
-      <option value="OPORTUNIDADES_MEJORA">5. Oportunidades de mejora</option>
-    </select>
-  </div>
-</div>
-    <div class="form-grid" id="reportesFiltersRow">
-      <div class="field col-3 boxed" id="reportNoPersonalWrap">
-        <div class="lbl">No. de personal</div>
-        <input id="reportNoPersonal" placeholder="Ej: 1600 o TODOS" />
-      </div>
-      <div class="field col-3 boxed" id="reportDeptoWrap">
-        <div class="lbl">Departamento</div>
-        <input id="reportDepto" placeholder="Ej: RRHH o TODOS" />
-      </div>
-      <div class="field col-3 boxed" id="reportPeriodoWrap">
-        <div class="lbl">Periodo</div>
-        <input id="reportPeriodo" placeholder="Ej: 2025" />
-      </div>
-      <div class="field col-3 boxed" id="reportVersionWrap">
-        <div class="lbl">Versión</div>
-        <input id="reportVersion" placeholder="Ej: 1" />
-      </div>
-      <div class="field col-3 boxed" id="reportBuscarWrap">
-        <div class="lbl">Acción</div>
-        <button id="btnBuscarReporte" type="button" class="btn-blue" onclick="generarReporteCapacitacion()">Generar</button>
-      </div>
+   <div id="reportesControls" class="show">
+  <div class="reportesInlineRow" id="reportesFiltersRow">
+    <div class="field boxed" id="reportesSelectWrap">
+      <div class="lbl">Tipo de reporte</div>
+      <select id="reportesSelect">
+        <option value="">Seleccionar</option>
+        <option value="EVAL_RESUMEN">1. Evaluación del desempeño</option>
+        <option value="EVAL_CALIFICACIONES">2. Calificaciones de evaluación del desempeño</option>
+        <option value="NECESIDADES_CAP">3. Necesidades de capacitación</option>
+        <option value="PROYECCION_POTENCIAL">4. Proyección y potencial de desarrollo</option>
+        <option value="OPORTUNIDADES_MEJORA">5. Oportunidades de mejora</option>
+      </select>
     </div>
+
+    <div class="field boxed" id="reportNoPersonalWrap">
+      <div class="lbl">No. de personal</div>
+      <input id="reportNoPersonal" placeholder="Ej: 1600 o TODOS" />
+    </div>
+
+    <div class="field boxed" id="reportDeptoWrap">
+      <div class="lbl">Departamento</div>
+      <input id="reportDepto" placeholder="Ej: RRHH o TODOS" />
+    </div>
+
+    <div class="field boxed" id="reportPeriodoWrap">
+      <div class="lbl">Periodo</div>
+      <input id="reportPeriodo" placeholder="Ej: 2025" />
+    </div>
+
+    <div class="field boxed" id="reportVersionWrap">
+      <div class="lbl">Versión</div>
+      <input id="reportVersion" placeholder="Ej: 1" />
+    </div>
+
+    <div class="field boxed" id="reportBuscarWrap">
+      <div class="lbl">Acción</div>
+      <button id="btnBuscarReporte" type="button" class="btn-blue" onclick="generarReporteCapacitacion()">Generar</button>
+    </div>
+  </div>
+</div> 
   </div>
 </section>
     
@@ -1468,18 +1500,19 @@ function syncPhaseInputsToReportFilters_(){
   if($("reportVersion"))    $("reportVersion").value = ver;
 }
 
-function updateReportFiltersLayout_(){
+  function updateReportFiltersLayout_(){
   const view = String(state.reportesView || "");
   const help = $("reportesFiltersHelp");
   const row  = $("reportesFiltersRow");
 
+  const wrapTipo = $("reportesSelectWrap");
   const wrapNo   = $("reportNoPersonalWrap");
   const wrapDep  = $("reportDeptoWrap");
   const wrapPer  = $("reportPeriodoWrap");
   const wrapVer  = $("reportVersionWrap");
   const wrapBtn  = $("reportBuscarWrap");
 
-  if(!wrapNo || !wrapDep || !wrapPer || !wrapVer || !wrapBtn || !row) return;
+  if(!wrapTipo || !wrapNo || !wrapDep || !wrapPer || !wrapVer || !wrapBtn || !row) return;
 
   const showDepto = [
     "EVAL_CALIFICACIONES",
@@ -1491,28 +1524,29 @@ function updateReportFiltersLayout_(){
   row.style.display = "grid";
   row.style.gap = "10px";
   row.style.gridTemplateColumns = showDepto
-    ? "repeat(5, minmax(0, 1fr))"
-    : "repeat(4, minmax(0, 1fr))";
+    ? "1.35fr 1fr 1fr 1fr .8fr .85fr"
+    : "1.35fr 1fr 1fr 1fr .85fr";
 
-  wrapNo.className  = "field boxed";
-  wrapDep.className = "field boxed";
-  wrapPer.className = "field boxed";
-  wrapVer.className = "field boxed";
-  wrapBtn.className = "field boxed";
+  wrapTipo.className = "field boxed";
+  wrapNo.className   = "field boxed";
+  wrapDep.className  = "field boxed";
+  wrapPer.className  = "field boxed";
+  wrapVer.className  = "field boxed";
+  wrapBtn.className  = "field boxed";
 
   wrapDep.style.display = showDepto ? "" : "none";
 
   if(help){
     if(view === "EVAL_RESUMEN"){
-      help.innerHTML = 'Evaluación del desempeño: <b>No. de personal</b>, <b>Periodo</b>, <b>Versión</b> y <b>Generar</b>.';
+      help.innerHTML = 'Evaluación del desempeño: <b>Tipo de reporte</b>, <b>No. de personal</b>, <b>Periodo</b>, <b>Versión</b> y <b>Generar</b>.';
     }else if(view === "EVAL_CALIFICACIONES"){
-      help.innerHTML = 'Calificaciones de evaluaciones del desempeño: <b>No. de personal</b>, <b>Departamento</b>, <b>Periodo</b>, <b>Versión</b> y <b>Generar</b>.';
+      help.innerHTML = 'Calificaciones de evaluaciones del desempeño: <b>Tipo de reporte</b>, <b>No. de personal</b>, <b>Departamento</b>, <b>Periodo</b>, <b>Versión</b> y <b>Generar</b>.';
     }else if(view === "NECESIDADES_CAP"){
-      help.innerHTML = 'Necesidades de capacitación: <b>No. de personal</b>, <b>Departamento</b>, <b>Periodo</b>, <b>Versión</b> y <b>Generar</b>.';
+      help.innerHTML = 'Necesidades de capacitación: <b>Tipo de reporte</b>, <b>No. de personal</b>, <b>Departamento</b>, <b>Periodo</b>, <b>Versión</b> y <b>Generar</b>.';
     }else if(view === "PROYECCION_POTENCIAL"){
-      help.innerHTML = 'Proyección y potencial de desarrollo: <b>No. de personal</b>, <b>Departamento</b>, <b>Periodo</b>, <b>Versión</b> y <b>Generar</b>.';
+      help.innerHTML = 'Proyección y potencial de desarrollo: <b>Tipo de reporte</b>, <b>No. de personal</b>, <b>Departamento</b>, <b>Periodo</b>, <b>Versión</b> y <b>Generar</b>.';
     }else if(view === "OPORTUNIDADES_MEJORA"){
-      help.innerHTML = 'Oportunidades de mejora: <b>No. de personal</b>, <b>Departamento</b>, <b>Periodo</b>, <b>Versión</b> y <b>Generar</b>.';
+      help.innerHTML = 'Oportunidades de mejora: <b>Tipo de reporte</b>, <b>No. de personal</b>, <b>Departamento</b>, <b>Periodo</b>, <b>Versión</b> y <b>Generar</b>.';
     }else{
       help.innerHTML = 'Completa los filtros requeridos para el reporte seleccionado.';
     }
@@ -1523,7 +1557,6 @@ function updateReportFiltersLayout_(){
     state.reportesDepto = "";
   }
 }
-  
 function normalizeWebApp(raw){
   let v = String(raw || "").trim();
   if(!v) return DEFAULT_WEBAPP_;
