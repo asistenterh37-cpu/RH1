@@ -337,25 +337,38 @@ button[disabled]{
   margin-bottom:6px;
 }
 
-.appSidebar #nivelWrap{
-  display:none;
-  width:100%;
+.appSidebar #nivelWrap,
+.appSidebar .nivelWrapLabel{
+  display:none !important;
 }
+
 .appSidebar #nivelSelect{
   width:100%;
   min-width:0;
 }
-.appSidebar .nivelWrapLabel{
+
+.inlineNivelHost{
+  width:100%;
+  margin-top:10px;
   display:none;
 }
-.appSidebar.show-nivel #nivelWrap{
-  display:flex;
-}
-.appSidebar.show-nivel .nivelWrapLabel{
+
+.inlineNivelHost.show{
   display:block;
 }
-.appSidebar.collapsed #nivelWrap{
-  display:none !important;
+
+.inlineNivelHost .lbl{
+  margin-bottom:6px;
+}
+
+.inlineNivelHost .nivelWrap{
+  display:flex !important;
+  width:100%;
+}
+
+.inlineNivelHost .nivelWrap select{
+  width:100%;
+  min-width:0;
 }
     .appContent{
   flex:1 1 auto;
@@ -1190,7 +1203,9 @@ button[disabled]{
   <button id="btnLimpiarForm" class="btn-warn">Limpiar</button>
 </div>
 
-<div id="nivelFormContainer"></div>
+<div id="nivelFormContainer" class="inlineNivelHost">
+  <div class="lbl">Nivel</div>
+</div>
       </div>
       <div class="card-b">
         <div class="hint" style="margin-bottom:12px">
@@ -1232,7 +1247,9 @@ button[disabled]{
   <button id="btnGuardarPesos" class="btn-ok" disabled>Guardar</button>
 </div>
 
-<div id="nivelPesosContainer"></div>
+<div id="nivelPesosContainer" class="inlineNivelHost">
+  <div class="lbl">Nivel</div>
+</div>
       </div>
       <div class="card-b">
         <div class="hint" style="margin-bottom:12px">
@@ -1476,7 +1493,9 @@ Dejar de hacer:"></textarea>
     <!-- AUTO: Comentarios -->
     <section class="card" data-phase-block="AUTO" id="blockAutoComentarios">
       <div class="card-h">
-        <div id="nivelAutoContainer"></div>
+        <div id="nivelAutoContainer" class="inlineNivelHost">
+  <div class="lbl">Nivel</div>
+</div>
         <div>
           <h2>Comentarios del colaborador</h2>
           <div class="sub">Aplica solo en: <b>Autoevaluación</b>.</div>
@@ -1648,25 +1667,43 @@ function syncReportesSelectUIByPhase(){
 function isReportesPhase_(){
   return String(state.fase || "") === "REPORTES";
 }
+function mountInlineNivelSelector_(){
+  const wrap = $("nivelWrap");
+  if(!wrap) return;
 
-function toggleReportesUI_(){
+  const containers = {
+    FORMULARIOS: $("nivelFormContainer"),
+    PESOS: $("nivelPesosContainer"),
+    AUTO: $("nivelAutoContainer")
+  };
+
+  Object.values(containers).forEach(el=>{
+    if(el) el.classList.remove("show");
+  });
+
+  const target = containers[String(state.fase || "")];
+  if(!target) return;
+
+  target.appendChild(wrap);
+  target.classList.add("show");
+}
+  
+  function toggleReportesUI_(){
   const fase = String(state.fase || "");
   const isRep = fase === "REPORTES";
   const showNivel = ["FORMULARIOS","PESOS","AUTO"].includes(fase);
 
   const card = $("reportesFiltersCard");
   const ctl  = $("reportesControls");
-  const sidebar = $("blockFaseNivel");
   const faseHelp = $("faseHelp");
 
   if(card) card.style.display = isRep ? "" : "none";
   if(ctl) ctl.classList.toggle("show", isRep);
-  if(sidebar) sidebar.classList.toggle("show-nivel", showNivel);
   if(faseHelp) faseHelp.style.display = showNivel ? "none" : "";
 
+  mountInlineNivelSelector_();
   updateReportFiltersLayout_();
 }
-  
 function syncReportFiltersToPhaseInputs_(){
   const no    = $("reportNoPersonal")?.value?.trim() || "";
   const depto = $("reportDepto")?.value?.trim() || "";
