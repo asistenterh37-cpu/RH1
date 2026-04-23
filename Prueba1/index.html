@@ -244,36 +244,24 @@ button[disabled]{
   box-shadow:0 0 0 3px rgba(147,197,253,.18);
 }
 
-.reportesMenu{
-  position:relative;
+    .reportesMenu{
   flex:0 0 auto;
 }
 
 #reportesControls{
   display:none;
-  position:absolute;
-  top:calc(100% + 8px);
-  left:0;
-  z-index:30;
-  min-width:340px;
-  padding:10px;
-  border:1px solid rgba(255,255,255,.12);
-  border-radius:14px;
-  background:rgba(15,27,51,.98);
-  box-shadow:0 14px 28px rgba(0,0,0,.35);
+  width:100%;
+  margin-bottom:12px;
 }
 
 #reportesControls.show{
-  display:flex;
-  align-items:center;
-  gap:10px;
+  display:block;
 }
 
 #reportesControls select{
   width:100%;
-  min-width:320px;
+  min-width:0;
 }
-    
     /* CUESTIONARIO */
     .factor{
       border:1px solid rgba(255,255,255,.10);
@@ -846,17 +834,6 @@ button[disabled]{
     <button type="button" class="faseBtn" data-fase="DESEMPENO">Evaluación desempeño</button>
   <div class="reportesMenu" id="reportesMenu">
   <button type="button" id="btnReportesToggle" class="faseBtn">Reportes</button>
-
-  <div id="reportesControls">
-    <select id="reportesSelect" style="min-width:320px">
-      <option value="">Seleccionar</option>
-      <option value="EVAL_RESUMEN">1. Evaluación del desempeño</option>
-      <option value="EVAL_CALIFICACIONES">2. Calificaciones de evaluación del desempeño</option>
-      <option value="NECESIDADES_CAP">3. Necesidades de capacitación</option>
-      <option value="PROYECCION_POTENCIAL">4. Proyección y potencial de desarrollo</option>
-      <option value="OPORTUNIDADES_MEJORA">5. Oportunidades de mejora</option>
-    </select>
-  </div>
 </div>
 </div>
 
@@ -925,6 +902,19 @@ button[disabled]{
     </div>
   </div>
   <div class="card-b">
+    <div id="reportesControls" class="show">
+  <div class="field col-12 boxed">
+    <div class="lbl">Tipo de reporte</div>
+    <select id="reportesSelect">
+      <option value="">Seleccionar</option>
+      <option value="EVAL_RESUMEN">1. Evaluación del desempeño</option>
+      <option value="EVAL_CALIFICACIONES">2. Calificaciones de evaluación del desempeño</option>
+      <option value="NECESIDADES_CAP">3. Necesidades de capacitación</option>
+      <option value="PROYECCION_POTENCIAL">4. Proyección y potencial de desarrollo</option>
+      <option value="OPORTUNIDADES_MEJORA">5. Oportunidades de mejora</option>
+    </select>
+  </div>
+</div>
     <div class="form-grid" id="reportesFiltersRow">
       <div class="field col-3 boxed" id="reportNoPersonalWrap">
         <div class="lbl">No. de personal</div>
@@ -1383,11 +1373,15 @@ Dejar de hacer:`;
   const $ = id => document.getElementById(id);
 
 function syncFaseButtonsUI(value){
+  const fase = String(value || "");
   document.querySelectorAll(".faseBtn").forEach(btn=>{
-    btn.classList.toggle("active", btn.dataset.fase === String(value || ""));
+    const btnFase = String(btn.dataset.fase || "");
+    const isReportesBtn = btn.id === "btnReportesToggle";
+    btn.classList.toggle("active",
+      btnFase === fase || (isReportesBtn && fase === "REPORTES")
+    );
   });
 }
-
 function setFaseFromButton(value){
   const sel = $("faseSelect");
   if(!sel) return;
@@ -1438,14 +1432,20 @@ function syncReportesSelectUIByPhase(){
 function isReportesPhase_(){
   return String(state.fase || "") === "REPORTES";
 }
+
 function toggleReportesUI_(){
+  const isRep = isReportesPhase_();
   const card = $("reportesFiltersCard");
   const ctl  = $("reportesControls");
-  if(card) card.style.display = isReportesPhase_() ? "" : "none";
-  if(ctl && !isReportesPhase_()) ctl.classList.remove("show");
+  const nivelWrap = $("nivelWrap");
+
+  if(card) card.style.display = isRep ? "" : "none";
+  if(ctl) ctl.classList.toggle("show", isRep);
+  if(nivelWrap) nivelWrap.style.display = isRep ? "none" : "";
+
   updateReportFiltersLayout_();
 }
-
+  
 function syncReportFiltersToPhaseInputs_(){
   const no    = $("reportNoPersonal")?.value?.trim() || "";
   const depto = $("reportDepto")?.value?.trim() || "";
@@ -4245,26 +4245,20 @@ document.querySelectorAll(".faseBtn").forEach(btn=>{
   });
 });
 
-on("btnReportesToggle", "click", (e)=>{
-  e.stopPropagation();
-  const wrap = $("reportesControls");
-  const sel  = $("reportesSelect");
-  if(!wrap || !sel) return;
 
-  const open = wrap.classList.toggle("show");
-  if(open) sel.focus();
+  on("btnReportesToggle", "click", ()=>{
+  setFaseFromButton("REPORTES");
+  toggleReportesUI_();
+  const sel = $("reportesSelect");
+  if(sel) sel.focus();
 });
-  
 on("reportesSelect", "change", (e)=>{
   const view = String(e.target?.value || "");
   state.reportesView = view;
   applyReportesView_();
   updateReportFiltersLayout_();
 
-  const wrap = $("reportesControls");
-  if(wrap) wrap.classList.remove("show");
-
-  const fase = REPORTES_PHASE_MAP[view] || "";
+    const fase = REPORTES_PHASE_MAP[view] || "";
   if(!fase) return;
 
   setFaseFromButton(fase);
@@ -4275,19 +4269,14 @@ on("reportesSelect", "change", (e)=>{
   updateDevGenerarState_();
   updateGuardarUIState();
 });
-document.querySelectorAll(".faseBtn[data-fase]").forEach(btn=>{
+  document.querySelectorAll(".faseBtn[data-fase]").forEach(btn=>{
   btn.addEventListener("click", ()=>{
-    const wrap = $("reportesControls");
-    if(wrap) wrap.classList.remove("show");
+    if(btn.dataset.fase !== "REPORTES"){
+      const ctl = $("reportesControls");
+      if(ctl) ctl.classList.remove("show");
+    }
   });
 });
-document.addEventListener("click", (e)=>{
-  const menu = $("reportesMenu");
-  const wrap = $("reportesControls");
-  if(!menu || !wrap) return;
-  if(!menu.contains(e.target)) wrap.classList.remove("show");
-});
-  
 on("btnBuscarReporte", "click", async ()=>{
   syncReportFiltersToPhaseInputs_();
   updateCapSaveState_();
