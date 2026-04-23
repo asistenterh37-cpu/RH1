@@ -128,8 +128,33 @@ button[disabled]{
   100%{ box-shadow:0 0 0 0 rgba(96,165,250,0); }
 }
 
-    main{padding:18px}
-    .grid{max-width:1180px;margin:0 auto;display:grid;gap:14px}
+    :root{
+  --header-offset:78px;
+  --sidebar-w:220px;
+  --sidebar-w-collapsed:70px;
+}
+
+main{
+  padding:18px 18px 18px calc(var(--sidebar-w) + 36px);
+  transition:padding-left .22s ease;
+}
+
+body.sidebar-collapsed main{
+  padding-left:calc(var(--sidebar-w-collapsed) + 36px);
+}
+
+.grid{
+  max-width:none;
+  margin:0;
+  display:grid;
+  gap:14px;
+}
+
+@media (max-width:860px){
+  main{
+    padding:14px 14px 14px calc(var(--sidebar-w-collapsed) + 26px);
+  }
+}
     .card{
       background:linear-gradient(180deg, rgba(18,31,61,.9), rgba(15,27,51,.92));
       border:1px solid var(--line);border-radius:var(--radius2);
@@ -200,39 +225,105 @@ button[disabled]{
     }
     [data-phase-block]{display:none}
     [data-phase-block].show{display:block}
-    .nivelWrap{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-    .nivelWrap.hide{display:none}
-/* ✅ BOTONES DE FASE EN UNA SOLA FILA */
-.faseButtonsWrap{
+.nivelWrap{
   display:flex;
   gap:10px;
-  flex-wrap:nowrap;
-  overflow-x:auto;
-  white-space:nowrap;
-  padding-bottom:4px;
+  align-items:center;
+  flex-wrap:wrap;
+}
+.nivelWrap.hide{display:none}
+
+#blockFaseNivel{
+  position:fixed;
+  left:18px;
+  top:calc(var(--header-offset) + 14px);
+  bottom:18px;
+  width:var(--sidebar-w);
+  z-index:40;
+  overflow:hidden;
+  transition:width .22s ease, transform .22s ease;
+}
+
+body.sidebar-collapsed #blockFaseNivel{
+  width:var(--sidebar-w-collapsed);
+}
+
+#blockFaseNivel .card-h,
+#blockFaseNivel .card-b{
+  padding:12px;
+}
+
+#blockFaseNivel .card-b{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  height:100%;
+  overflow:auto;
+}
+
+.sidebarTop{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+}
+
+.sidebarTitle{
+  font-weight:800;
+  font-size:14px;
+  color:var(--text);
+}
+
+.sidebarToggle,
+.sidebarActionBtn{
+  width:100%;
+  justify-content:flex-start;
+  border:2px solid rgba(147,197,253,.45);
+  background:rgba(15,27,51,.88);
+  color:var(--text) !important;
+  font-weight:700;
+}
+
+.sidebarToggle{
+  width:44px;
+  min-width:44px;
+  padding:10px;
+  justify-content:center;
+}
+
+.faseButtonsWrap{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  overflow:auto;
+  white-space:normal;
+  padding-right:2px;
   scrollbar-width:thin;
 }
 
 .faseButtonsWrap::-webkit-scrollbar{
-  height:8px;
+  width:8px;
 }
 .faseButtonsWrap::-webkit-scrollbar-thumb{
   background:rgba(147,197,253,.35);
   border-radius:999px;
 }
 
-.faseBtn{
-  flex:0 0 auto;
-  min-width:max-content;
+.faseBtn,
+.sidebarActionBtn{
+  width:100%;
+  min-height:44px;
   border:2px solid rgba(147,197,253,.45);
   background:rgba(15,27,51,.88);
   color:var(--text) !important;
   font-weight:700;
   border-radius:14px;
   padding:10px 14px;
+  text-align:left;
 }
 
-.faseBtn:hover{
+.faseBtn:hover,
+.sidebarActionBtn:hover{
   border-color:rgba(147,197,253,.95);
   transform:translateY(-1px);
 }
@@ -242,6 +333,47 @@ button[disabled]{
   color:#000 !important;
   border-color:#60a5fa;
   box-shadow:0 0 0 3px rgba(147,197,253,.18);
+}
+
+#reportesControls{
+  width:100%;
+  margin-top:2px;
+}
+#reportesControls select,
+#nivelWrap,
+#nivelSelect{
+  width:100%;
+  min-width:0;
+}
+
+body.sidebar-collapsed .sidebarTitle,
+body.sidebar-collapsed #faseHelp,
+body.sidebar-collapsed #nivelWrap,
+body.sidebar-collapsed #reportesControls{
+  display:none !important;
+}
+
+body.sidebar-collapsed .faseBtn,
+body.sidebar-collapsed .sidebarActionBtn{
+  padding:10px 8px;
+  text-align:center;
+  font-size:0;
+}
+
+body.sidebar-collapsed .faseBtn::before,
+body.sidebar-collapsed .sidebarActionBtn::before{
+  content:attr(data-short);
+  font-size:11px;
+  font-weight:800;
+  letter-spacing:.04em;
+}
+
+@media (max-width:860px){
+  #blockFaseNivel{
+    left:14px;
+    top:calc(var(--header-offset) + 10px);
+    bottom:14px;
+  }
 }
     
     /* CUESTIONARIO */
@@ -786,62 +918,68 @@ button[disabled]{
 
     <!-- FASE + NIVEL -->
     <section class="card" id="blockFaseNivel">
-      <div class="card-h">
-        <div class="controls" style="width:100%; justify-content:space-between">
-<div class="controls" style="gap:10px; width:100%; flex-wrap:nowrap; overflow-x:auto">
- <div class="faseButtonsWrap" id="faseButtonsWrap" aria-label="Selector de fases">
-  <button type="button" class="faseBtn" data-fase="INICIO">Inicio</button>
-  <button type="button" class="faseBtn" data-fase="NIVELES">Niveles</button>
-  <button type="button" class="faseBtn" data-fase="FORMULARIOS">Formularios</button>
-  <button type="button" class="faseBtn" data-fase="PESOS">Pesos</button>
-  <button type="button" class="faseBtn" data-fase="AUTO">Autoevaluación</button>
-  <button type="button" class="faseBtn" data-fase="CLIENTES">Evaluación clientes</button>
-  <button type="button" class="faseBtn" data-fase="INCIDENCIAS">Incidencias</button>
-  <button type="button" class="faseBtn" data-fase="ONEONE">One One</button>
-   <button type="button" class="faseBtn" data-fase="KPIS">Kpis/entregables</button>
-    <button type="button" class="faseBtn" data-fase="DESEMPENO">Evaluación desempeño</button>
-  <button type="button" id="btnReportesToggle" class="faseBtn">Reportes</button>
+  <div class="card-h">
+    <div class="sidebarTop" style="width:100%">
+      <div class="sidebarTitle">Menú</div>
+      <button type="button" id="btnSidebarToggle" class="sidebarToggle" title="Colapsar / expandir">☰</button>
+    </div>
+  </div>
 
-<div id="reportesControls" style="display:none;align-items:center;gap:10px;flex-wrap:wrap">
-  <select id="reportesSelect" style="min-width:320px">
-    <option value="">Seleccionar</option>
-    <option value="EVAL_RESUMEN">1. Evaluación del desempeño</option>
-    <option value="EVAL_CALIFICACIONES">2. Calificaciones de evaluación del desempeño</option>
-    <option value="NECESIDADES_CAP">3. Necesidades de capacitación</option>
-    <option value="PROYECCION_POTENCIAL">4. Proyección y potencial de desarrollo</option>
-    <option value="OPORTUNIDADES_MEJORA">5. Oportunidades de mejora</option>
-  </select>
-</div>
-</div>
+  <div class="card-b">
+    <div class="faseButtonsWrap" id="faseButtonsWrap" aria-label="Selector de fases">
+      <button type="button" class="faseBtn" data-fase="INICIO" data-short="INI" title="Inicio">Inicio</button>
+      <button type="button" class="faseBtn" data-fase="NIVELES" data-short="NIV" title="Niveles">Niveles</button>
+      <button type="button" class="faseBtn" data-fase="FORMULARIOS" data-short="FOR" title="Formularios">Formularios</button>
+      <button type="button" class="faseBtn" data-fase="PESOS" data-short="PES" title="Pesos">Pesos</button>
+      <button type="button" class="faseBtn" data-fase="AUTO" data-short="AUT" title="Autoevaluación">Autoevaluación</button>
+      <button type="button" class="faseBtn" data-fase="CLIENTES" data-short="CLI" title="Evaluación clientes">Evaluación clientes</button>
+      <button type="button" class="faseBtn" data-fase="INCIDENCIAS" data-short="INC" title="Incidencias">Incidencias</button>
+      <button type="button" class="faseBtn" data-fase="ONEONE" data-short="121" title="One to One">One to One</button>
+      <button type="button" class="faseBtn" data-fase="KPIS" data-short="KPI" title="KPIs / entregables">KPIs / entregables</button>
+      <button type="button" class="faseBtn" data-fase="DESEMPENO" data-short="EVD" title="Evaluación desempeño">Evaluación desempeño</button>
+      <button type="button" id="btnReportesToggle" class="faseBtn" data-short="REP" title="Reportes">Reportes</button>
 
-  <!-- Se mantiene oculto para no romper el JS actual -->
- <select id="faseSelect" style="display:none">
-  <option value="">Seleccione fase</option>
-  <option value="INICIO">Inicio</option>
-  <option value="NIVELES">Niveles</option>
-  <option value="FORMULARIOS">Formularios</option>
-  <option value="PESOS">Pesos</option>
-  <option value="AUTO">Formulario de autoevaluación</option>
-  <option value="CLIENTES">Formulario de evaluación de clientes</option>
-  <option value="INCIDENCIAS">Incidencias</option>
-  <option value="ONEONE">One One</option>
-   <option value="KPIS">Kpis/entregables</option>
-    <option value="DESEMPENO">Formulario de evaluación del desempeño</option>
-   <option value="REPORTES">Reportes</option>
-</select>
-
-  <span class="nivelWrap" id="nivelWrap">
-   <select id="nivelSelect" disabled>
-  <option value="">Selecciona una fase</option>
-</select>
-  </span>
-</div>
-          <div class="sub" id="faseHelp" style="max-width:520px; text-align:right; flex:1 1 auto">
-            Selecciona una fase para desplegar el formulario.
-          </div>
-        </div>
+      <div id="reportesControls" style="display:none;align-items:center;gap:10px;flex-wrap:wrap">
+        <select id="reportesSelect">
+          <option value="">Seleccionar</option>
+          <option value="EVAL_RESUMEN">1. Evaluación del desempeño</option>
+          <option value="EVAL_CALIFICACIONES">2. Calificaciones de evaluación del desempeño</option>
+          <option value="NECESIDADES_CAP">3. Necesidades de capacitación</option>
+          <option value="PROYECCION_POTENCIAL">4. Proyección y potencial de desarrollo</option>
+          <option value="OPORTUNIDADES_MEJORA">5. Oportunidades de mejora</option>
+        </select>
       </div>
-    </section>
+
+      <button type="button" id="btnSalir" class="sidebarActionBtn" data-short="SAL" title="Salir del sistema">Salir</button>
+    </div>
+
+    <!-- Se mantiene oculto para no romper el JS actual -->
+    <select id="faseSelect" style="display:none">
+      <option value="">Seleccione fase</option>
+      <option value="INICIO">Inicio</option>
+      <option value="NIVELES">Niveles</option>
+      <option value="FORMULARIOS">Formularios</option>
+      <option value="PESOS">Pesos</option>
+      <option value="AUTO">Formulario de autoevaluación</option>
+      <option value="CLIENTES">Formulario de evaluación de clientes</option>
+      <option value="INCIDENCIAS">Incidencias</option>
+      <option value="ONEONE">One One</option>
+      <option value="KPIS">Kpis/entregables</option>
+      <option value="DESEMPENO">Formulario de evaluación del desempeño</option>
+      <option value="REPORTES">Reportes</option>
+    </select>
+
+    <span class="nivelWrap" id="nivelWrap">
+      <select id="nivelSelect" disabled>
+        <option value="">Selecciona una fase</option>
+      </select>
+    </span>
+
+    <div class="sub" id="faseHelp">
+      Selecciona una fase para desplegar el formulario.
+    </div>
+  </div>
+</section>
 <section class="card" data-phase-block="INICIO" id="blockInicio">
   <div class="card-h">
     <div>
@@ -1352,6 +1490,38 @@ function setFaseFromButton(value){
   sel.dispatchEvent(new Event("change", { bubbles:true }));
 }
 
+const SIDEBAR_LS_KEY = "ED_SIDEBAR_COLLAPSED";
+
+function updateShellLayout_(){
+  const h = document.querySelector("header");
+  const headerH = h ? h.offsetHeight : 78;
+  document.documentElement.style.setProperty("--header-offset", headerH + "px");
+}
+
+function setSidebarCollapsed_(collapsed){
+  document.body.classList.toggle("sidebar-collapsed", !!collapsed);
+  try{
+    localStorage.setItem(SIDEBAR_LS_KEY, collapsed ? "1" : "0");
+  }catch(_){}
+  updateShellLayout_();
+}
+
+window.addEventListener("resize", updateShellLayout_);
+window.addEventListener("load", ()=>{
+  updateShellLayout_();
+  let saved = "0";
+  try{
+    saved = localStorage.getItem(SIDEBAR_LS_KEY) || "";
+  }catch(_){}
+  if(saved){
+    setSidebarCollapsed_(saved === "1");
+  }else if(window.innerWidth <= 860){
+    setSidebarCollapsed_(true);
+  }else{
+    updateShellLayout_();
+  }
+});
+  
 const REPORTES_PHASE_MAP = {
   EVAL_RESUMEN: "REPORTES",
   EVAL_CALIFICACIONES: "REPORTES",
@@ -4190,12 +4360,11 @@ on("tiposModalBack", "click", (e)=>{
   if(e.target === $("tiposModalBack")) closeTiposModal_();
 });
 
-document.querySelectorAll(".faseBtn").forEach(btn=>{
+document.querySelectorAll(".faseBtn[data-fase]").forEach(btn=>{
   btn.addEventListener("click", ()=>{
     setFaseFromButton(btn.dataset.fase || "");
   });
 });
-
 on("btnReportesToggle", "click", ()=>{
   const wrap = $("reportesControls");
   const sel  = $("reportesSelect");
@@ -4230,6 +4399,24 @@ document.querySelectorAll(".faseBtn[data-fase]").forEach(btn=>{
   });
 });
 
+on("btnSidebarToggle", "click", ()=>{
+  setSidebarCollapsed_(!document.body.classList.contains("sidebar-collapsed"));
+});
+
+on("btnSalir", "click", ()=>{
+  const ok = confirm("¿Deseas salir del sistema?");
+  if(!ok) return;
+
+  try{ doLimpiar(); }catch(_){}
+  try{ state.reportesView = ""; }catch(_){}
+
+  if(window.history.length > 1){
+    window.history.back();
+    return;
+  }
+
+  window.location.replace("about:blank");
+});
 on("btnBuscarReporte", "click", async ()=>{
   syncReportFiltersToPhaseInputs_();
   updateCapSaveState_();
