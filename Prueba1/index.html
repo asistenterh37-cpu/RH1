@@ -1679,6 +1679,29 @@ Dejar de hacer:`;
   const DEFAULT_WEBAPP_ = "https://script.google.com/macros/s/AKfycbyQbEXXHSDLX5LpioYQxqZXUElu-yCcNmPcj8tQJy4WzdEKIT5O5hfEbn3Fh4QTtafP/exec";
   const $ = id => document.getElementById(id);
 
+  /* ===== SEGURIDAD BÁSICA: BLOQUEO DE LECTURA CASUAL ===== */
+(function seguridadFrontend_(){
+  document.addEventListener("contextmenu", e => e.preventDefault());
+
+  document.addEventListener("keydown", e => {
+    const k = String(e.key || "").toLowerCase();
+
+    if (
+      k === "f12" ||
+      (e.ctrlKey && k === "u") ||
+      (e.ctrlKey && k === "s") ||
+      (e.ctrlKey && e.shiftKey && ["i","j","c"].includes(k))
+    ){
+      e.preventDefault();
+      e.stopPropagation();
+      alert("Acción no permitida.");
+      return false;
+    }
+  }, true);
+
+  document.addEventListener("dragstart", e => e.preventDefault());
+})();
+
 function syncFaseButtonsUI(value){
   const fase = String(value || "");
   document.querySelectorAll(".faseBtn").forEach(btn=>{
@@ -5606,6 +5629,16 @@ function exportIEReportToExcel_(){
           table{border-collapse:collapse;width:100%}
           th,td{border:1px solid #000;padding:6px;text-align:left;vertical-align:top}
           th{font-weight:700;background:#dbeafe}
+        /* ===== SEGURIDAD BÁSICA FRONTEND ===== */
+body{
+  -webkit-user-select:none;
+  user-select:none;
+}
+
+input, textarea, select{
+  -webkit-user-select:text;
+  user-select:text;
+}
         </style>
       </head>
       <body>
