@@ -884,7 +884,7 @@ button[disabled]{
       <div class="form-grid">
         <div class="field col-8 boxed">
           <div class="lbl">URL Web App Apps Script</div>
-          <input id="webapp" value="https://script.google.com/macros/s/AKfycbyBlgKR-dHMx4ZvXovQXKGUhupXVyEHmOsCcHE4wAKSHGzUepriP7S4ZwYqtIvg6vJd/exec"/>
+          <input id="webapp" value="https://script.google.com/macros/s/AKfycbyQbEXXHSDLX5LpioYQxqZXUElu-yCcNmPcj8tQJy4WzdEKIT5O5hfEbn3Fh4QTtafP/exec"/>
         </div>
         <div class="field col-4 boxed">
           <div class="lbl">Pruebas API</div>
@@ -1680,7 +1680,7 @@ Dejar de hacer:"></textarea>
 `Empezar a hacer:
 Continuar haciendo:
 Dejar de hacer:`;
-  const DEFAULT_WEBAPP_ = "https://script.google.com/macros/s/AKfycbyBlgKR-dHMx4ZvXovQXKGUhupXVyEHmOsCcHE4wAKSHGzUepriP7S4ZwYqtIvg6vJd/exec";
+  const DEFAULT_WEBAPP_ = "https://script.google.com/macros/s/AKfycbyQbEXXHSDLX5LpioYQxqZXUElu-yCcNmPcj8tQJy4WzdEKIT5O5hfEbn3Fh4QTtafP/exec";
   const $ = id => document.getElementById(id);
 
 function syncFaseButtonsUI(value){
@@ -1693,13 +1693,24 @@ function syncFaseButtonsUI(value){
     );
   });
 }
+
+function accesoAutorizado_(){
+  return sessionStorage.getItem("ED_ACCESO_OK") === "1";
+}
+
 function setFaseFromButton(value){
+  const fase = String(value || "");
+
+  if(fase !== "INICIO" && !accesoAutorizado_()){
+    alert("Acceso no autorizado");
+    return;
+  }
+
   const sel = $("faseSelect");
   if(!sel) return;
 
-  sel.value = String(value || "");
+  sel.value = fase;
   syncFaseButtonsUI(sel.value);
-
   sel.dispatchEvent(new Event("change", { bubbles:true }));
 }
 
@@ -4600,17 +4611,30 @@ on("btnAccesibilidad", "click", ()=>{
   }
 });
 
-on("btnAcceder", "click", ()=>{
+on("btnAcceder", "click", async ()=>{
   const acceso = $("accesoInput")?.value?.trim() || "";
+
   if(!acceso){
     alert("Ingresa el acceso.");
     $("accesoInput")?.focus?.();
     return;
   }
 
-  alert("Acceso registrado.");
-});
+  try{
+    const r = await apiGet({ action:"verificarAcceso", acceso });
 
+    if(r && r.ok && r.autorizado){
+      sessionStorage.setItem("ED_ACCESO_OK", "1");
+      alert("Acceso autorizado");
+    }else{
+      sessionStorage.removeItem("ED_ACCESO_OK");
+      alert("Acceso no autorizado");
+    }
+  }catch(err){
+    sessionStorage.removeItem("ED_ACCESO_OK");
+    alert("Acceso no autorizado");
+  }
+});
 on("btnSalir", "click", ()=>{
   const salir = confirm("¿Deseas salir del sistema?");
   if(!salir) return;
