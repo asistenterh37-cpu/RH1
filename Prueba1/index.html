@@ -5200,9 +5200,21 @@ Puntaje final: ${pf}`;
         version: ver
       });
 
-      const rows = Array.isArray(res.rows) ? res.rows : [];
-      const esc = v => escapeHtml(String(v ?? ""));
-      const rowsHtml = rows.length
+      const rowsBase = Array.isArray(res.rows) ? res.rows : [];
+const esc = v => escapeHtml(String(v ?? ""));
+
+const rows = rowsBase.flatMap(r => {
+  const cursos = String(r.necesidades || "")
+    .split(",")
+    .map(x => x.trim())
+    .filter(Boolean);
+
+  return cursos.length
+    ? cursos.map(curso => ({ ...r, necesidades: curso }))
+    : [{ ...r, necesidades: "—" }];
+});
+
+const rowsHtml = rows.length
         ? rows.map(r => `
             <tr>
               <td>${esc(r.no || "—")}</td>
