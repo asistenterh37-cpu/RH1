@@ -3179,32 +3179,58 @@ function renderKpisDetalle_(posicionNivel){
 
     return lines.join("\n").trim();
   }
-  function renderObservacionesRecuperadas_(arr){
-    const wrap = $("obsRecuperadasWrap");
-    const tbody = $("obsRecuperadasTbody");
-    if(!wrap || !tbody) return;
+function obsTipoOrden_(tipo){
+  const t = String(tipo || "").toLowerCase();
+  if(t.includes("kpi")) return 1;
+  if(t.includes("evaluacion") || t.includes("evaluación")) return 2;
+  if(t.includes("one")) return 3;
+  if(t.includes("incid")) return 4;
+  return 9;
+}
 
-    const rows = Array.isArray(arr) ? arr : [];
+function obsCorrelativo_(r){
+  const txt = String(r.indicador || r.item || r.observaciones || "").trim();
+  const n = txt.match(/^\s*(\d+)(?:[\.\)\-–—:]|\s)/);
+  return n ? Number(n[1]) : 999999;
+}
 
-    if(!rows.length){
-      wrap.style.display = "none";
-      tbody.innerHTML = `<tr><td colspan="5" class="sub">Sin observaciones para ese No./Periodo/Versión.</td></tr>`;
-      return;
+function renderObservacionesRecuperadas_(arr){
+  const wrap = $("obsRecuperadasWrap");
+  const tbody = $("obsRecuperadasTbody");
+  if(!wrap || !tbody) return;
+
+  const rows = (Array.isArray(arr) ? arr : []).slice().sort((a,b)=>{
+    const oa = obsTipoOrden_(a.tipo);
+    const ob = obsTipoOrden_(b.tipo);
+    if(oa !== ob) return oa - ob;
+
+    if(oa === 1){
+      const ca = obsCorrelativo_(a);
+      const cb = obsCorrelativo_(b);
+      if(ca !== cb) return ca - cb;
     }
 
-    wrap.style.display = "";
-    tbody.innerHTML = rows.map(r => `
-      <tr>
-        <td class="mono">${escapeHtml(String(r.rowNumber ?? ""))}</td>
-        <td class="mono">${escapeHtml(String(r.fecha ?? ""))}</td>
-        <td>${escapeHtml(String(r.tipo ?? ""))}</td>
-        <td>${escapeHtml(String(r.responsable ?? ""))}</td>
-        <td><div class="tdMuted">${escapeHtml(String(r.observaciones ?? ""))}</div></td>
-      </tr>
-    `).join("");
-  }
-  
+    return String(a.responsable || "").localeCompare(String(b.responsable || ""), "es", {numeric:true, sensitivity:"base"});
+  });
 
+  if(!rows.length){
+    wrap.style.display = "none";
+    tbody.innerHTML = `<tr><td colspan="5" class="sub">Sin observaciones para ese No./Periodo/Versión.</td></tr>`;
+    return;
+  }
+
+  wrap.style.display = "";
+  tbody.innerHTML = rows.map(r => `
+    <tr>
+      <td class="mono">${escapeHtml(String(r.rowNumber ?? ""))}</td>
+      <td class="mono">${escapeHtml(String(r.fecha ?? ""))}</td>
+      <td>${escapeHtml(String(r.tipo ?? ""))}</td>
+      <td>${escapeHtml(String(r.responsable ?? ""))}</td>
+      <td><div class="tdMuted">${escapeHtml(String(r.observaciones ?? ""))}</div></td>
+    </tr>
+  `).join("");
+}
+  
   async function applyRecoveredRecord(rec){
     if(!rec) return;
 
