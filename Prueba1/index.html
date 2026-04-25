@@ -7,6 +7,7 @@
     =1" />
   <title>Sistema de Evaluación del Desempeño</title>
   <link rel="icon" href="data:,">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     :root{
       --bg:#0b1220; --panel:#0f1b33; --panel2:#121f3d;
@@ -1266,8 +1267,8 @@ button[disabled]{
 
    <div class="field boxed" id="reportBuscarWrap">
   <div class="lbl">Acción</div>
-  <button id="btnBuscarReporte" type="button" class="btn-blue" onclick="generarDashboard()">Generar</button>
-</div> 
+  <button id="btnBuscarReporte" type="button" class="btn-blue">Generar</button>
+</div>
   </div>
 </div> 
   </div>
@@ -4788,7 +4789,96 @@ on("btnBuscarReporte", "click", async ()=>{
   const depto = $("reportDepto")?.value?.trim() || "";
   const per   = $("reportPeriodo")?.value?.trim() || "";
   const ver   = $("reportVersion")?.value?.trim() || "";
+  if(view === "DASHBOARD"){
+    if(!no || !depto || !per || !ver){
+      alert("Para Generar, llena: No. de personal + Departamento + Periodo + Versión.");
+      return;
+    }
 
+    try{
+      const noQuery = /^(todos|todo)$/i.test(no) ? "TODOS" : no;
+      const deptoQuery = /^(todos|todo)$/i.test(depto) ? "TODOS" : depto;
+
+      const res = await apiGet({
+        action: "resultCalificaciones",
+        no: noQuery,
+        depto: deptoQuery,
+        periodo: per,
+        version: ver
+      });
+
+      const rows = Array.isArray(res.rows) ? res.rows : [];
+      const puntajes = rows
+        .map(r => Number(r.puntajeFinal || r["Puntaje final"] || 0))
+        .filter(n => !isNaN(n) && n > 0);
+
+      if(!puntajes.length){
+        alert("No hay puntajes para graficar con esos filtros.");
+        return;
+      }
+
+      const freq = {};
+      puntajes.forEach(p=>{
+        const key = Number(p).toFixed(2);
+        freq[key] = (freq[key] || 0) + 1;
+      });
+
+      const x = Object.keys(freq).map(Number).sort((a,b)=>a-b);
+      const y = x.map(v => freq[v.toFixed(2)]);
+
+      const media = puntajes.reduce((a,b)=>a+b,0) / puntajes.length;
+      const desviacion = Math.sqrt(
+        puntajes.reduce((a,b)=>a + Math.pow(b - media, 2), 0) / puntajes.length
+      ) || 1;
+
+      const gaussY = x.map(val =>
+        (1 / (desviacion * Math.sqrt(2 * Math.PI))) *
+        Math.exp(-Math.pow(val - media, 2) / (2 * Math.pow(desviacion, 2)))
+      );
+
+      const maxY = Math.max(...y);
+      const maxGauss = Math.max(...gaussY) || 1;
+      const gaussEscalada = gaussY.map(v => v * (maxY / maxGauss));
+
+      $("dashboardCard").style.display = "block";
+
+      if(window.dashboardChart){
+        window.dashboardChart.destroy();
+      }
+
+      window.dashboardChart = new Chart($("graficoGauss"), {
+        data: {
+          labels: x.map(v => v.toFixed(2)),
+          datasets: [
+            {
+              type: "bar",
+              label: "Frecuencia",
+              data: y
+            },
+            {
+              type: "line",
+              label: "Campana de Gauss",
+              data: gaussEscalada,
+              tension: .35
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            x: { title: { display: true, text: "Puntaje final" } },
+            y: { beginAtZero: true, title: { display: true, text: "Frecuencia" } }
+          }
+        }
+      });
+
+    }catch(err){
+      alert(err?.message || "No se pudo generar el dashboard.");
+    }
+    return;
+  }
+  
   if(view === "EVAL_RESUMEN"){
     if(!no || !per || !ver){
       alert("Para Generar, llena: No. de personal + Periodo + Versión.");
@@ -5697,23 +5787,8 @@ clearKpisDetalle_();
     data: {
       labels: x,
       datasets: [
-        {
-          label: "Frecuencia",
-          data: y
-        },
-        {
-          label: "Campana de Gauss",
-          data: gaussEscalada,
-          type: "line"
-        }
-      ]
-    },
-    options: {
-      responsive: true
-    }
-  });
-}
-<script>
+  </script>
+<script>      
 function exportIEReportToExcel_(){
   const table = document.querySelector("#ieModalBody table");
   if(!table){
