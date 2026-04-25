@@ -4826,40 +4826,25 @@ on("btnBuscarReporte", "click", async ()=>{
       const x = Object.keys(freq).map(Number).sort((a,b)=>a-b);
       const y = x.map(v => freq[v.toFixed(2)]);
 
-      const media = puntajes.reduce((a,b)=>a+b,0) / puntajes.length;
-      const desviacion = Math.sqrt(
-        puntajes.reduce((a,b)=>a + Math.pow(b - media, 2), 0) / puntajes.length
-      ) || 1;
-
-      const gaussY = x.map(val =>
-        (1 / (desviacion * Math.sqrt(2 * Math.PI))) *
-        Math.exp(-Math.pow(val - media, 2) / (2 * Math.pow(desviacion, 2)))
-      );
-
-      const maxY = Math.max(...y);
-      const maxGauss = Math.max(...gaussY) || 1;
-      const gaussEscalada = gaussY.map(v => v * (maxY / maxGauss));
-
-      $("dashboardCard").style.display = "block";
+           $("dashboardCard").style.display = "block";
 
       if(window.dashboardChart){
         window.dashboardChart.destroy();
       }
 
       window.dashboardChart = new Chart($("graficoGauss"), {
+        type: "scatter",
         data: {
-          labels: x.map(v => v.toFixed(2)),
           datasets: [
             {
-              type: "bar",
-              label: "Frecuencia",
-              data: y
-            },
-            {
-              type: "line",
-              label: "Campana de Gauss",
-              data: gaussEscalada,
-              tension: .35
+              label: "Frecuencia por puntaje",
+              data: x.map((v, i) => ({
+                x: v,
+                y: y[i]
+              })),
+              pointRadius: 6,
+              pointHoverRadius: 8,
+              showLine: false
             }
           ]
         },
@@ -4867,12 +4852,18 @@ on("btnBuscarReporte", "click", async ()=>{
           responsive: true,
           maintainAspectRatio: false,
           scales: {
-            x: { title: { display: true, text: "Puntaje final" } },
-            y: { beginAtZero: true, title: { display: true, text: "Frecuencia" } }
+            x: {
+              type: "linear",
+              title: { display: true, text: "Puntaje final" }
+            },
+            y: {
+              beginAtZero: true,
+              ticks: { precision: 0 },
+              title: { display: true, text: "Frecuencia" }
+            }
           }
         }
-      });
-
+      }); 
     }catch(err){
       alert(err?.message || "No se pudo generar el dashboard.");
     }
