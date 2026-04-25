@@ -4808,16 +4808,20 @@ on("btnBuscarReporte", "click", async ()=>{
       });
 
       const rows = Array.isArray(res.rows) ? res.rows : [];
-      const puntajes = rows
-        .map(r => Number(r.puntajeFinal || r["Puntaje final"] || 0))
-        .filter(n => !isNaN(n) && n > 0);
 
-      if(!puntajes.length){
-        alert("No hay puntajes para graficar con esos filtros.");
-        return;
-      }
+const datosDashboard = rows
+  .map(r => ({
+    nombre: String(r.nombre || r.Nombre || r["Nombre"] || "Sin nombre").trim(),
+    puntaje: Number(r.puntajeFinal || r["Puntaje final"] || 0)
+  }))
+  .filter(r => !isNaN(r.puntaje) && r.puntaje > 0);
 
-      const rangos = [
+if(!datosDashboard.length){
+  alert("No hay puntajes para graficar con esos filtros.");
+  return;
+}
+
+const rangos = [
   { label:"0-10", min:0, max:10 },
   { label:"11-20", min:11, max:20 },
   { label:"21-30", min:21, max:30 },
@@ -4830,8 +4834,16 @@ on("btnBuscarReporte", "click", async ()=>{
   { label:"91-100", min:91, max:100 }
 ];
 
+const rangosConNombre = new Set(["0-10", "11-20", "21-30", "81-90", "91-100"]);
+
 const frecuencias = rangos.map(r =>
-  puntajes.filter(p => p >= r.min && p <= r.max).length
+  datosDashboard.filter(d => d.puntaje >= r.min && d.puntaje <= r.max).length
+);
+
+const nombresPorRango = rangos.map(r =>
+  datosDashboard
+    .filter(d => d.puntaje >= r.min && d.puntaje <= r.max)
+    .map(d => d.nombre)
 );
 
 $("dashboardCard").style.display = "block";
@@ -4856,6 +4868,27 @@ window.dashboardChart = new Chart($("graficoGauss"), {
   options: {
     responsive: true,
     maintainAspectRatio: false,
+    plugins: {
+      tooltip: {
+        callbacks: {
+          label: function(context){
+            const rango = context.label || "";
+            const frecuencia = context.raw || 0;
+            const lineas = [`Frecuencia: ${frecuencia}`];
+
+            if(rangosConNombre.has(rango)){
+              const nombres = nombresPorRango[context.dataIndex] || [];
+              if(nombres.length){
+                lineas.push("Nombres:");
+                nombres.forEach(n => lineas.push(`• ${n}`));
+              }
+            }
+
+            return lineas;
+          }
+        }
+      }
+    },
     scales: {
       x: {
         title: { display: true, text: "Rangos de puntaje final" }
