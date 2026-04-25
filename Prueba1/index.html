@@ -5762,68 +5762,6 @@ clearKpisDetalle_();
     try{ console.error("BOOT CRASH:", err); }catch(_){}
   }
 })();
- </script>
-  async function generarDashboard(){
-
-  const depto = $("reportDepto").value || "";
-  const periodo = $("reportPeriodo").value || "";
-  const version = $("reportVersion").value || "";
-
-  const url = $("webapp").value;
-
-  const res = await fetch(url, {
-    method: "POST",
-    body: JSON.stringify({
-      action: "GET_EVALUACION_FINAL",
-      departamento: depto,
-      periodo: periodo,
-      version: version
-    })
-  });
-
-  const data = await res.json();
-
-  if(!data || !data.length){
-    alert("No hay datos");
-    return;
-  }
-
-  const puntajes = data.map(r => Number(r["Puntaje final"])).filter(n => !isNaN(n));
-
-  const freq = {};
-  puntajes.forEach(p=>{
-    freq[p] = (freq[p] || 0) + 1;
-  });
-
-  const x = Object.keys(freq).map(Number).sort((a,b)=>a-b);
-  const y = x.map(v => freq[v]);
-
-  const media = puntajes.reduce((a,b)=>a+b,0)/puntajes.length;
-
-  const desviacion = Math.sqrt(
-    puntajes.reduce((a,b)=>a + Math.pow(b-media,2),0)/puntajes.length
-  );
-
-  const gaussY = x.map(val=>{
-    return (1/(desviacion*Math.sqrt(2*Math.PI))) *
-      Math.exp(-Math.pow(val-media,2)/(2*Math.pow(desviacion,2)));
-  });
-
-  const maxY = Math.max(...y);
-  const maxGauss = Math.max(...gaussY);
-  const gaussEscalada = gaussY.map(v => v * (maxY/maxGauss));
-
-  $("dashboardCard").style.display = "block";
-
-  const ctx = document.getElementById("graficoGauss");
-
-  if(window.chart) window.chart.destroy();
-
-  window.chart = new Chart(ctx, {
-    type: "bar",
-    data: {
-      labels: x,
-      datasets: [
   </script>
 <script>      
 function exportIEReportToExcel_(){
