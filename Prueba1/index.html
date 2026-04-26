@@ -5957,23 +5957,58 @@ input, textarea, select{
     if (!("speechSynthesis" in window)) return;
 
     speechSynthesis.cancel();
+  function reproducirBienvenida(){
+    const mensaje = "Bienvenido a su sistema de planificación y organización del desempeño SíPodés";
+
+    if (!("speechSynthesis" in window)) return;
+
+    speechSynthesis.cancel();
 
     const voz = new SpeechSynthesisUtterance(mensaje);
     voz.lang = "es-ES";
-    voz.rate = 0.9;
-    voz.pitch = 1;
+
+    // ✅ Aquí cambias el tono de voz
+    voz.rate = 0.9;   // velocidad: más bajo = más lento
+    voz.pitch = 1.25; // tono: más alto = más femenino/agudo
+    voz.volume = 1;
+
+    // ✅ Intenta seleccionar una voz femenina en español si el navegador la tiene
+    const voces = speechSynthesis.getVoices();
+
+    const vozFemenina = voces.find(v =>
+      /es/i.test(v.lang) &&
+      /female|mujer|helena|sabina|mónica|monica|paulina|laura|lucia|lucía|maria|maría|google español/i.test(v.name)
+    );
+
+    if (vozFemenina) {
+      voz.voice = vozFemenina;
+      voz.lang = vozFemenina.lang;
+    }
 
     speechSynthesis.speak(voz);
   }
 
-  window.addEventListener("load", function(){
-    setTimeout(reproducirBienvenida, 800);
-  });
+  function iniciarAudioBienvenida(){
+    if (!("speechSynthesis" in window)) return;
+
+    const ejecutar = () => {
+      setTimeout(reproducirBienvenida, 800);
+    };
+
+    if (speechSynthesis.getVoices().length) {
+      ejecutar();
+    } else {
+      speechSynthesis.onvoiceschanged = ejecutar;
+    }
+  }
+
+  window.addEventListener("load", iniciarAudioBienvenida);
 
   document.addEventListener("click", function activarAudioBienvenida(){
     reproducirBienvenida();
     document.removeEventListener("click", activarAudioBienvenida);
   }, { once:true });
+    
 </script>
 </body>
 </html>
