@@ -538,6 +538,16 @@ button[disabled]{
   min-width:0;
 }
 
+#dashboardCard .card-b,
+#dashboardDeptoCard .card-b{
+  height:360px;
+}
+
+#graficoGauss,
+#graficoDeptos{
+  width:100% !important;
+  height:100% !important;
+}
 @media (max-width:1100px){
   #reportesControls .reportesInlineRow{
     grid-template-columns:repeat(3,minmax(0,1fr));
@@ -4918,71 +4928,124 @@ window.dashboardChart = new Chart($("graficoGauss"), {
     }
   }
 });
-const promediosDepto = calcularPromediosPorDepto(data);
-renderGraficoDeptos(promediosDepto);
-      
-function calcularPromediosPorDepto(rows){
-  const map = {};
+      $("dashboardDeptoCard").style.display = "block";
 
-  rows.forEach(r=>{
-    const depto = r.departamento || "Sin depto";
-    const puntaje = Number(r.puntajeFinal || 0);
+const promedioLabelPlugin = {
+  id: "promedioLabelPlugin",
+  afterDatasetsDraw(chart){
+    const { ctx } = chart;
+    const meta = chart.getDatasetMeta(0);
 
-    if(!map[depto]){
-      map[depto] = { total:0, count:0 };
-    }
+    ctx.save();
+    meta.data.forEach((bar, index)=>{
+      const valor = Number(chart.data.datasets[0].data[index] || 0).toFixed(2);
+      const texto = valor;
 
-    map[depto].total += puntaje;
-    map[depto].count++;
-  });
+      ctx.font = "bold 12px system-ui";
+      const paddingX = 8;
+      const paddingY = 5;
+      const textWidth = ctx.measureText(texto).width;
+      const boxWidth = textWidth + paddingX * 2;
+      const boxHeight = 24;
 
-  return Object.keys(map).map(d => ({
-    departamento: d,
-    promedio: map[d].total / map[d].count
-  }));
-}
-function renderGraficoDeptos(data){
-  const ctx = document.getElementById('graficoDeptos');
-  if(!ctx) return;
+      const x = bar.x - boxWidth / 2;
+      const y = bar.y - boxHeight - 8;
 
-  const labels = data.map(d => d.departamento);
-  const valores = data.map(d => d.promedio);
+      ctx.fillStyle = "rgba(15,27,51,.96)";
+      ctx.strokeStyle = "rgba(147,197,253,.85)";
+      ctx.lineWidth = 1.5;
 
-  if(window.graficoDeptosInstance){
-    window.graficoDeptosInstance.destroy();
+      ctx.beginPath();
+      ctx.roundRect(x, y, boxWidth, boxHeight, 8);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.fillStyle = "#e8eefc";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(texto, bar.x, y + boxHeight / 2);
+    });
+    ctx.restore();
+  }
+};
+
+const deptoMap = {};
+
+rows.forEach(r=>{
+  const departamento = String(
+    r.departamento || 
+    r.Departamento || 
+    r["Departamento"] || 
+    "Sin departamento"
+  ).trim();
+
+  const puntaje = Number(
+    r.puntajeFinal || 
+    r["Puntaje final"] || 
+    r["Puntaje Final"] || 
+    0
+  );
+
+  if(!departamento || isNaN(puntaje) || puntaje <= 0) return;
+
+  if(!deptoMap[departamento]){
+    deptoMap[departamento] = { total:0, count:0 };
   }
 
-  window.graficoDeptosInstance = new Chart(ctx, {
-    type: 'bar',
-    data: {
-      labels: labels,
-      datasets: [{
-        label: 'Promedio',
-        data: valores,
-        borderWidth: 1
-      }]
+  deptoMap[departamento].total += puntaje;
+  deptoMap[departamento].count++;
+});
+
+const promediosDepto = Object.keys(deptoMap).map(depto => ({
+  departamento: depto,
+  promedio: deptoMap[depto].total / deptoMap[depto].count
+}));
+
+if(window.graficoDeptosInstance){
+  window.graficoDeptosInstance.destroy();
+}
+
+window.graficoDeptosInstance = new Chart($("graficoDeptos"), {
+  type: "bar",
+  data: {
+    labels: promediosDepto.map(d => d.departamento),
+    datasets: [{
+      label: "Promedio de puntaje final",
+      data: promediosDepto.map(d => Number(d.promedio.toFixed(2))),
+      borderWidth: 1
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    layout: {
+      padding: {
+        top: 34
+      }
     },
-    options: {
-      responsive: true,
-      plugins: {
-        tooltip: {
-          callbacks: {
-            label: function(context){
-              return 'Promedio: ' + context.raw.toFixed(2);
-            }
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: {
+          label: function(context){
+            return "Promedio: " + Number(context.raw || 0).toFixed(2);
           }
-        },
-        legend: { display: false }
-      },
-      scales: {
-        y: {
-          beginAtZero: true
         }
       }
+    },
+    scales: {
+      x: {
+        title: { display: true, text: "Departamento" }
+      },
+      y: {
+        beginAtZero: true,
+        suggestedMax: 100,
+        title: { display: true, text: "Promedio de puntaje final" }
+      }
     }
-  });
-}
-      
+  },
+  plugins: [promedioLabelPlugin]
+});
     }catch(err){
       alert(err?.message || "No se pudo generar el dashboard.");
     }
