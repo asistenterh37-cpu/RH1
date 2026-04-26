@@ -4874,7 +4874,7 @@ const nombresPorRango = rangos.map(r =>
 );
 
 $("dashboardCard").style.display = "block";
-
+$("dashboardDeptoCard").style.display = "block";
 if(window.dashboardChart){
   window.dashboardChart.destroy();
 }
@@ -5046,6 +5046,45 @@ window.graficoDeptosInstance = new Chart($("graficoDeptos"), {
   },
   plugins: [promedioLabelPlugin]
 });
+
+const promediosDepto = calcularPromediosPorDepto(rows);
+renderGraficoDeptos(promediosDepto);
+      
+function calcularPromediosPorDepto(rows){
+  const map = {};
+
+  (Array.isArray(rows) ? rows : []).forEach(r=>{
+    const depto = String(
+      r.departamento ||
+      r.Departamento ||
+      r["Departamento"] ||
+      "Sin depto"
+    ).trim() || "Sin depto";
+
+    const rawPuntaje =
+      r.puntajeFinal ??
+      r["Puntaje final"] ??
+      r["Puntaje Final"] ??
+      r.puntaje ??
+      0;
+
+    const puntaje = Number(String(rawPuntaje).replace(",", "."));
+
+    if(!Number.isFinite(puntaje) || puntaje <= 0) return;
+
+    if(!map[depto]){
+      map[depto] = { total:0, count:0 };
+    }
+
+    map[depto].total += puntaje;
+    map[depto].count++;
+  });
+
+  return Object.keys(map).map(d => ({
+    departamento: d,
+    promedio: map[d].total / map[d].count
+  }));
+}
     }catch(err){
       alert(err?.message || "No se pudo generar el dashboard.");
     }
