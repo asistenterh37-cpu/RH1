@@ -1280,6 +1280,11 @@ button[disabled]{
   </div>
   <div class="card-b">
     <canvas id="graficoGauss"></canvas>
+
+    <div style="margin-top:26px">
+      <h2 style="font-size:16px;margin:0 0 12px 0">Dashboard - Promedio de Puntaje Final por Departamento</h2>
+      <canvas id="graficoPromedioDepto"></canvas>
+    </div>
   </div>
 </section>
       
@@ -4860,6 +4865,9 @@ $("dashboardCard").style.display = "block";
 if(window.dashboardChart){
   window.dashboardChart.destroy();
 }
+if(window.dashboardDeptoChart){
+  window.dashboardDeptoChart.destroy();
+}
 
 window.dashboardChart = new Chart($("graficoGauss"), {
   type: "bar",
@@ -4906,6 +4914,67 @@ window.dashboardChart = new Chart($("graficoGauss"), {
         beginAtZero: true,
         ticks: { precision: 0 },
         title: { display: true, text: "Frecuencia" }
+      }
+    }
+  }
+});
+  const datosDeptoDashboard = rows
+  .map(r => ({
+    depto: String(r.depto || r.departamento || r.Departamento || r["Departamento"] || "Sin departamento").trim() || "Sin departamento",
+    puntaje: Number(r.puntajeFinal || r["Puntaje final"] || 0)
+  }))
+  .filter(r => !isNaN(r.puntaje) && r.puntaje > 0);
+
+const deptosMap = new Map();
+
+datosDeptoDashboard.forEach(r => {
+  if(!deptosMap.has(r.depto)){
+    deptosMap.set(r.depto, { suma:0, cantidad:0 });
+  }
+
+  const item = deptosMap.get(r.depto);
+  item.suma += r.puntaje;
+  item.cantidad += 1;
+});
+
+const deptoLabels = Array.from(deptosMap.keys()).sort();
+
+const deptoPromedios = deptoLabels.map(depto => {
+  const item = deptosMap.get(depto);
+  return Number((item.suma / item.cantidad).toFixed(2));
+});
+
+window.dashboardDeptoChart = new Chart($("graficoPromedioDepto"), {
+  type: "bar",
+  data: {
+    labels: deptoLabels,
+    datasets: [
+      {
+        label: "Promedio de puntaje final por departamento",
+        data: deptoPromedios
+      }
+    ]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      tooltip: {
+        callbacks: {
+          label: function(context){
+            return `Promedio: ${context.raw}`;
+          }
+        }
+      }
+    },
+    scales: {
+      x: {
+        title: { display: true, text: "Departamento" }
+      },
+      y: {
+        beginAtZero: true,
+        max: 100,
+        title: { display: true, text: "Promedio de puntaje final" }
       }
     }
   }
