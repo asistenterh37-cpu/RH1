@@ -1282,7 +1282,15 @@ button[disabled]{
     <canvas id="graficoGauss"></canvas>
   </div>
 </section>
-      
+
+    <section class="card" data-phase-block="REPORTES" id="dashboardDeptoCard" style="display:none">
+  <div class="card-h">
+    <h2>Promedio de Puntaje Final por Departamento</h2>
+  </div>
+  <div class="card-b">
+    <canvas id="graficoDeptos"></canvas>
+  </div>
+</section>
     
     <!-- ✅ NIVELES -->
     <section class="card" data-phase-block="NIVELES" id="blockNiveles">
@@ -4910,6 +4918,71 @@ window.dashboardChart = new Chart($("graficoGauss"), {
     }
   }
 });
+const promediosDepto = calcularPromediosPorDepto(data);
+renderGraficoDeptos(promediosDepto);
+      
+function calcularPromediosPorDepto(rows){
+  const map = {};
+
+  rows.forEach(r=>{
+    const depto = r.departamento || "Sin depto";
+    const puntaje = Number(r.puntajeFinal || 0);
+
+    if(!map[depto]){
+      map[depto] = { total:0, count:0 };
+    }
+
+    map[depto].total += puntaje;
+    map[depto].count++;
+  });
+
+  return Object.keys(map).map(d => ({
+    departamento: d,
+    promedio: map[d].total / map[d].count
+  }));
+}
+function renderGraficoDeptos(data){
+  const ctx = document.getElementById('graficoDeptos');
+  if(!ctx) return;
+
+  const labels = data.map(d => d.departamento);
+  const valores = data.map(d => d.promedio);
+
+  if(window.graficoDeptosInstance){
+    window.graficoDeptosInstance.destroy();
+  }
+
+  window.graficoDeptosInstance = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'Promedio',
+        data: valores,
+        borderWidth: 1
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        tooltip: {
+          callbacks: {
+            label: function(context){
+              return 'Promedio: ' + context.raw.toFixed(2);
+            }
+          }
+        },
+        legend: { display: false }
+      },
+      scales: {
+        y: {
+          beginAtZero: true
+        }
+      }
+    }
+  });
+}
+      
     }catch(err){
       alert(err?.message || "No se pudo generar el dashboard.");
     }
