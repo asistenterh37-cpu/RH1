@@ -1153,6 +1153,7 @@ button[disabled]{
             <button type="button" class="faseBtn" data-fase="KPIS"><span class="navLabel">KPIs / entregables</span></button>
             <button type="button" class="faseBtn" data-fase="INCIDENCIAS"><span class="navLabel">Incidencias</span></button>
             <button type="button" class="faseBtn" data-fase="ONEONE"><span class="navLabel">One to One</span></button>
+<button type="button" class="faseBtn" data-fase="CALIBRACION"><span class="navLabel">Calibración</span></button>
           </div>
 
           <div class="navGroup">
@@ -1176,6 +1177,7 @@ button[disabled]{
           <option value="CLIENTES">Formulario de evaluación de clientes</option>
           <option value="INCIDENCIAS">Incidencias</option>
           <option value="ONEONE">One One</option>
+<option value="CALIBRACION">Calibración</option>
           <option value="KPIS">Kpis/entregables</option>
           <option value="DESEMPENO">Formulario de evaluación del desempeño</option>
           <option value="REPORTES">Reportes</option>
@@ -1496,7 +1498,39 @@ Dejar de hacer:"></textarea>
     <div class="sub" style="margin-top:10px">Estado API: <b id="apiMiniOneOne">—</b></div>
   </div>
 </section>
-    <!-- EVAL (AUTO / DESEMPENO) -->
+    <!-- EVAL (AUTO / DESEMPENO) --
+<!-- CALIBRACIÓN -->
+<section class="card" data-phase-block="CALIBRACION" id="blockCalibracion">
+  <div class="card-h">
+    <div>
+      <h2>Registro de calibraciones</h2>
+      <div class="sub"></div>
+    </div>
+  </div>
+
+  <div class="card-b">
+    <div class="form-grid">
+      <div class="col-12">
+        <div class="form-grid-6r">
+          <div class="field boxed"><div class="lbl">No de personal</div><input id="calNoPersonal" placeholder="Ej: 1600" /></div>
+          <div class="field boxed"><div class="lbl">Nombre</div><input id="calNombre" placeholder="Ej: Carlos Paz" /></div>
+          <div class="field boxed"><div class="lbl">Período</div><input id="calPeriodo" placeholder="Ej: 2025" /></div>
+          <div class="field boxed"><div class="lbl">Versión</div><input id="calVersion" placeholder="Ej: 1" /></div>
+          <div class="field boxed"><div class="lbl">Fecha</div><input id="calFecha" type="date" /></div>
+          <div class="field boxed"><div class="lbl">Responsable</div><input id="calResponsable" placeholder="Ej: avalle / Valentina" /></div>
+        </div>
+      </div>
+
+      <div class="field col-12 boxed">
+        <div class="lbl">Observaciones</div>
+        <textarea id="calObservaciones" placeholder="Ingrese observaciones de la calibración del desempeño..." style="min-height:110px;"></textarea>
+      </div>
+    </div>
+
+    <div class="sub" style="margin-top:10px">Estado API: <b id="apiMiniCal">—</b></div>
+  </div>
+</section>
+        
     <section class="card" id="blockDatos">
       <div class="card-h">
         <div>
@@ -2395,9 +2429,9 @@ function isClientesPhase(){ return state.fase === "CLIENTES"; }
   function isDesarrolloPhase(){ return state.fase === "DESARROLLO"; } // ✅ NUEVO
   function isTiposPhase(){ return state.fase === "TIPOS"; }
   function isIncidenciasPhase(){ return state.fase === "INCIDENCIAS"; }
-function isOneOnePhase(){ return state.fase === "ONEONE"; }
+  function isOneOnePhase(){ return state.fase === "ONEONE"; }
+function isCalibracionPhase(){ return state.fase === "CALIBRACION"; }
 function isKpisPhase(){ return state.fase === "KPIS"; }
-  
   /* ================= VALIDATION ================= */
   function getClientesRequiredFields(){
     return [
@@ -2441,6 +2475,23 @@ function isKpisPhase(){ return state.fase === "KPIS"; }
 function isOneOneComplete(){
   if(!isOneOnePhase()) return false;
   return !getOneOneRequiredFields().some(v => !v);
+}
+
+function getCalibracionRequiredFields(){
+  return [
+    $("calNoPersonal")?.value.trim(),
+    $("calNombre")?.value.trim(),
+    $("calPeriodo")?.value.trim(),
+    $("calVersion")?.value.trim(),
+    $("calFecha")?.value.trim(),
+    $("calObservaciones")?.value.trim(),
+    $("calResponsable")?.value.trim(),
+  ];
+}
+
+function isCalibracionComplete(){
+  if(!isCalibracionPhase()) return false;
+  return !getCalibracionRequiredFields().some(v => !v);
 }
 
 function getKpisRequiredFields(){
@@ -2509,7 +2560,7 @@ function isKpisComplete(){
     const btnP = $("btnPrint");
 
     // ✅ Limpiar se muestra en: EVAL / CLIENTES / RESULTADO / CONSOLIDADO
-    const showLimpiar = isEvalPhase() || isClientesPhase() || isIncidenciasPhase() || isOneOnePhase() || isResultadoPhase() || isConsolidadoPhase();
+   const showLimpiar = isEvalPhase() || isClientesPhase() || isIncidenciasPhase() || isOneOnePhase() || isCalibracionPhase() || isResultadoPhase() || isConsolidadoPhase();
     const showLimpiarFinal = showLimpiar || isKpisPhase();
       btnL.style.display = showLimpiarFinal ? "inline-block" : "none";
 
@@ -2527,7 +2578,8 @@ const showGuardar =
   isDesempenoPhase() ||
   state.fase === "INCIDENCIAS" ||
   state.fase === "ONEONE" ||
-  state.fase === "KPIS";
+state.fase === "CALIBRACION" ||
+state.fase === "KPIS";
       btnG.style.display = showGuardar ? "inline-block" : "none";
 // si está oculto, igual lo dejamos deshabilitado por seguridad
 if(!showGuardar){
@@ -2548,6 +2600,11 @@ if(state.fase === "INCIDENCIAS"){
 }
 if(state.fase === "ONEONE"){
   btnG.disabled = !isOneOneComplete();
+  return;
+}
+
+if(state.fase === "CALIBRACION"){
+  btnG.disabled = !isCalibracionComplete();
   return;
 }
 if(state.fase === "KPIS"){
@@ -3719,6 +3776,14 @@ function clearOneOne(){
   updateGuardarUIState();
 }
 
+  function clearCalibracion(){
+  ["calNoPersonal","calNombre","calPeriodo","calVersion","calObservaciones","calResponsable"].forEach(id=>{
+    const el = $(id);
+    if(el) el.value = "";
+  });
+  if($("calFecha")) $("calFecha").value = todayLocal();
+  updateGuardarUIState();
+}
   function clearKpis(){
   ["kpNoPersonal","kpNombre","kpPeriodo","kpVersion"].forEach(id=>{
     const el = $(id);
@@ -3885,7 +3950,41 @@ console.log("DEBUG ONE ONE:", payload);
     btn.textContent = "Guardar";
   }
 }
+async function saveCalibracion(){
+  if(!isCalibracionPhase()){
+    alert("Para guardar Calibración, selecciona la fase Calibración.");
+    return;
+  }
 
+  if(!isCalibracionComplete()){
+    alert("Aún faltan campos. Completa No de personal, Nombre, Período, Versión, Fecha, Observaciones y Responsable.");
+    return;
+  }
+
+  const payload = {
+    fase: "CALIBRACION",
+    noPersonal: $("calNoPersonal").value.trim(),
+    no: $("calNoPersonal").value.trim(),
+    nombre: $("calNombre").value.trim(),
+    periodo: $("calPeriodo").value.trim(),
+    version: $("calVersion").value.trim(),
+    fecha: formatDateDMY($("calFecha").value),
+    observaciones: $("calObservaciones").value.trim(),
+    responsable: $("calResponsable").value.trim()
+  };
+
+  const b64 = btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
+  const out = await apiGet({ action:"save", payload:b64 });
+
+  if(!out || out.ok !== true){
+    throw new Error(out?.error || "No se pudo guardar la calibración.");
+  }
+
+  clearCalibracion();
+  setApiStatus("ok","API: calibración guardada");
+  alert("Calibración guardada ✅\nID: " + (out.id || "—"));
+}
+  
     function getKpisDetalleSelections_(){
   return Array.from(document.querySelectorAll(".kpNivelDetalle"))
     .map((sel, i)=>{
@@ -5588,6 +5687,13 @@ const rowsHtml = rows.length
   el.addEventListener("input", updateGuardarUIState);
   el.addEventListener("change", updateGuardarUIState);
 });
+["calNoPersonal","calNombre","calPeriodo","calVersion","calFecha","calObservaciones","calResponsable"].forEach(id=>{
+  const el = $(id);
+  if(!el) return;
+  el.addEventListener("input", updateGuardarUIState);
+  el.addEventListener("change", updateGuardarUIState);
+});
+  
 // Fase / Nivel
 on("faseSelect", "change", async (e)=>{
     updateInformeButtons_();
@@ -5617,6 +5723,11 @@ on("faseSelect", "change", async (e)=>{
 
     if(fase === "ONEONE"){
   clearOneOne();
+  updateGuardarUIState();
+}
+
+if(fase === "CALIBRACION"){
+  clearCalibracion();
   updateGuardarUIState();
 }
 
@@ -5701,8 +5812,10 @@ on("btnGuardar", "click", async ()=>{
         if(isIncidenciasPhase()){
       await saveIncidencias();
     }else if(isOneOnePhase()){
-      await saveOneOne();
-    }else if(isKpisPhase()){
+  await saveOneOne();
+}else if(isCalibracionPhase()){
+  await saveCalibracion();
+}else if(isKpisPhase()){
       await saveKpis();
     }else{
       await doGuardar();
