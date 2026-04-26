@@ -1278,8 +1278,17 @@ button[disabled]{
   <div class="card-h">
     <h2>Dashboard - Histograma de Puntajes</h2>
   </div>
-  <div class="card-b">
+  <div class="card-b" style="height:360px">
     <canvas id="graficoGauss"></canvas>
+  </div>
+</section>
+
+<section class="card" data-phase-block="REPORTES" id="dashboardDeptoCard" style="display:none">
+  <div class="card-h">
+    <h2>Dashboard - Promedio de Puntaje Final por Departamento</h2>
+  </div>
+  <div class="card-b" style="height:360px">
+    <canvas id="graficoPromedioDepto"></canvas>
   </div>
 </section>
       
@@ -1798,9 +1807,16 @@ const REPORTES_PHASE_MAP = {
         : "Completa los filtros requeridos para el reporte seleccionado.";
   }
 
-  if($("dashboardCard")){
+    if($("dashboardCard")){
     $("dashboardCard").style.display =
       (state.fase === "REPORTES" && view === "DASHBOARD" && window.dashboardChart)
+        ? "block"
+        : "none";
+  }
+
+  if($("dashboardDeptoCard")){
+    $("dashboardDeptoCard").style.display =
+      (state.fase === "REPORTES" && view === "DASHBOARD" && window.dashboardDeptoChart)
         ? "block"
         : "none";
   }
@@ -2553,9 +2569,13 @@ function setPhase(phase){
     const p = el.getAttribute("data-phase-block");
     el.classList.toggle("show", p === state.fase);
   });
-
-  if($("dashboardCard") && state.fase !== "REPORTES"){
+const datosDashboard = rows
+    if($("dashboardCard") && state.fase !== "REPORTES"){
     $("dashboardCard").style.display = "none";
+  }
+
+  if($("dashboardDeptoCard") && state.fase !== "REPORTES"){
+    $("dashboardDeptoCard").style.display = "none";
   }
   if(state.fase === "KPIS"){
     loadKpisPosiciones().catch(err=>{
@@ -4821,10 +4841,16 @@ on("btnBuscarReporte", "click", async ()=>{
 const datosDashboard = rows
   .map(r => ({
     nombre: String(r.nombre || r.Nombre || r["Nombre"] || "Sin nombre").trim(),
+    departamento: String(
+      r.depto ||
+      r.departamento ||
+      r.Departamento ||
+      r["Departamento"] ||
+      "Sin departamento"
+    ).trim(),
     puntaje: Number(r.puntajeFinal || r["Puntaje final"] || 0)
   }))
   .filter(r => !isNaN(r.puntaje) && r.puntaje > 0);
-
 if(!datosDashboard.length){
   alert("No hay puntajes para graficar con esos filtros.");
   return;
@@ -4861,6 +4887,9 @@ if(window.dashboardChart){
   window.dashboardChart.destroy();
 }
 
+if(window.dashboardDeptoChart){
+  window.dashboardDeptoChart.destroy();
+}
 window.dashboardChart = new Chart($("graficoGauss"), {
   type: "bar",
   data: {
@@ -4906,6 +4935,71 @@ window.dashboardChart = new Chart($("graficoGauss"), {
         beginAtZero: true,
         ticks: { precision: 0 },
         title: { display: true, text: "Frecuencia" }
+      }
+    }
+  }
+});
+      const deptosMap = new Map();
+
+datosDashboard.forEach(d => {
+  const depto = d.departamento || "Sin departamento";
+
+  if(!deptosMap.has(depto)){
+    deptosMap.set(depto, { suma: 0, cantidad: 0 });
+  }
+
+  const item = deptosMap.get(depto);
+  item.suma += d.puntaje;
+  item.cantidad += 1;
+});
+
+/*
+  Fórmula aplicada:
+  Promedio por departamento = suma de puntajes finales del departamento / cantidad de colaboradores del departamento
+*/
+
+const promediosDepto = Array.from(deptosMap.entries())
+  .map(([departamento, data]) => ({
+    departamento,
+    promedio: data.cantidad ? Number((data.suma / data.cantidad).toFixed(2)) : 0
+  }))
+  .sort((a, b) => b.promedio - a.promedio);
+
+$("dashboardDeptoCard").style.display = "block";
+
+window.dashboardDeptoChart = new Chart($("graficoPromedioDepto"), {
+  type: "bar",
+  data: {
+    labels: promediosDepto.map(d => d.departamento),
+    datasets: [
+      {
+        label: "Promedio de puntaje final",
+        data: promediosDepto.map(d => d.promedio),
+        barPercentage: .75,
+        categoryPercentage: .75
+      }
+    ]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      tooltip: {
+        callbacks: {
+          label: function(context){
+            return `Promedio: ${context.raw}`;
+          }
+        }
+      }
+    },
+    scales: {
+      x: {
+        title: { display: true, text: "Departamento" }
+      },
+      y: {
+        beginAtZero: true,
+        max: 100,
+        title: { display: true, text: "Promedio de puntaje final" }
       }
     }
   }
