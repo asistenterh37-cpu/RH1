@@ -389,9 +389,59 @@ button[disabled]{
 .accessBtn{
   height:40px;
   padding:8px 12px;
-} 
+}
+
+/* ✅ PANTALLA INICIAL DE ACCESO */
+#accessGate{
+  position:fixed;
+  inset:0;
+  z-index:99999;
+  display:grid;
+  place-items:center;
+  padding:24px;
+  background:
+    radial-gradient(900px 500px at 10% 0%, rgba(79,124,255,.25), transparent 55%),
+    radial-gradient(900px 500px at 90% 10%, rgba(34,197,94,.18), transparent 55%),
+    var(--bg);
+}
+
+#accessGate.hide{
+  display:none !important;
+}
+
+.accessGateCard{
+  width:min(520px,100%);
+  text-align:center;
+}
+
+.accessGateTitle{
+  font-size:24px;
+  font-weight:900;
+  line-height:1.3;
+  margin-bottom:18px;
+}
+
+.accessGateCard input{
+  text-align:center;
+  font-size:20px;
+  letter-spacing:.25em;
+  font-weight:900;
+}
+
+.accessGateMsg{
+  margin-top:10px;
+  color:#fca5a5;
+  font-weight:800;
+  min-height:20px;
+}
+
+body:not(.access-ok) header,
+body:not(.access-ok) main{
+  display:none !important;
+}
+
 .navLabel{
-  display:inline-block;
+    display:inline-block;
 }
 .appSidebar.collapsed .navTitle,
 .appSidebar.collapsed .navLabel,
@@ -912,14 +962,35 @@ button[disabled]{
   </style>
 </head>
 
-<body>
+  <body>
+  <div id="accessGate">
+    <div class="card accessGateCard">
+      <div class="card-b">
+        <div class="accessGateTitle">
+          Bienvenido a su sistema de planificación y evaluación del desempeño, <b>SíPodés</b>
+        </div>
+
+        <div class="field boxed">
+          <div class="lbl">Acceso</div>
+          <input id="gateAccesoInput" maxlength="4" inputmode="numeric" placeholder="Ingrese clave" />
+        </div>
+
+        <button type="button" id="btnGateIngresar" class="btn-ok" style="width:100%;margin-top:12px">
+          Ingresar
+        </button>
+
+        <div id="gateAccessMsg" class="accessGateMsg"></div>
+      </div>
+    </div>
+  </div>
+
   <div class="wrap" style="padding-top:10px;padding-bottom:0; display:none;">
   <div class="card" style="margin-bottom:12px">
     <div class="card-b">
       <div class="form-grid">
         <div class="field col-8 boxed">
           <div class="lbl">URL Web App Apps Script</div>
-          <input id="webapp" value="https://script.google.com/macros/s/AKfycbzT3xhiVnVsfw8Ns7GW4ndlHpSrcfDIbBj7WWkXEcYkukjdvlXmKO2p5kpsRRNFellf/exec"/>
+          <input id="webapp" value="https://script.google.com/macros/s/AKfycbxZZ5w7oa-JAiszFdDIWkr1w52BOaCWDX4LYvNXFAMhn8fZ3HfY7OcFamRVRUQmKTnx/exec"/>
         </div>
         <div class="field col-4 boxed">
           <div class="lbl">Pruebas API</div>
@@ -1126,17 +1197,8 @@ button[disabled]{
             <button type="button" class="faseBtn" data-fase="INICIO"><span class="navLabel">Inicio</span></button>
           </div>
 
-          <div class="navGroup">
+                    <div class="navGroup">
             <div class="navTitle">Configuración</div>
-            <button type="button" id="btnAccesibilidad" class="sidebarBtn"><span class="navLabel">Accesibilidad</span></button>
-
-<div id="accesibilidadPanel" class="accessRow">
-  <div class="field boxed accessField">
-    <div class="lbl">Acceso</div>
-    <input id="accesoInput" placeholder="Ingrese acceso" />
-  </div>
-  <button type="button" id="btnAcceder" class="btn-ok accessBtn">Acceder</button>
-</div>
             <button type="button" class="faseBtn" data-fase="NIVELES"><span class="navLabel">Niveles</span></button>
             <button type="button" class="faseBtn" data-fase="FORMULARIOS"><span class="navLabel">Formularios</span></button>
             <button type="button" class="faseBtn" data-fase="PESOS"><span class="navLabel">Pesos</span></button>
@@ -1749,7 +1811,7 @@ Dejar de hacer:"></textarea>
 `Empezar a hacer:
 Continuar haciendo:
 Dejar de hacer:`;
-  const DEFAULT_WEBAPP_ = "https://script.google.com/macros/s/AKfycbzT3xhiVnVsfw8Ns7GW4ndlHpSrcfDIbBj7WWkXEcYkukjdvlXmKO2p5kpsRRNFellf/exec";
+  const DEFAULT_WEBAPP_ = "https://script.google.com/macros/s/AKfycbxZZ5w7oa-JAiszFdDIWkr1w52BOaCWDX4LYvNXFAMhn8fZ3HfY7OcFamRVRUQmKTnx/exec";
   const $ = id => document.getElementById(id);
 
   /* ===== SEGURIDAD BÁSICA: BLOQUEO DE LECTURA CASUAL ===== */
@@ -4819,24 +4881,27 @@ document.querySelectorAll(".faseBtn[data-fase]").forEach(btn=>{
 on("btnSidebarToggle", "click", ()=>{
   $("blockFaseNivel")?.classList.toggle("collapsed");
 });
-on("btnAccesibilidad", "click", ()=>{
-  const panel = $("accesibilidadPanel");
-  if(!panel) return;
+function mostrarSistemaAutorizado_(){
+  sessionStorage.setItem("ED_ACCESO_OK", "1");
+  document.body.classList.add("access-ok");
+  $("accessGate")?.classList.add("hide");
+}
 
-  panel.classList.toggle("show");
+function bloquearSistema_(){
+  sessionStorage.removeItem("ED_ACCESO_OK");
+  document.body.classList.remove("access-ok");
+  $("accessGate")?.classList.remove("hide");
+}
 
-  if(panel.classList.contains("show")){
-    $("accesoInput")?.focus?.();
-  }
-});
-
-on("btnAcceder", "click", async ()=>{
-  const panel = $("accesibilidadPanel");
-  const input = $("accesoInput");
+on("btnGateIngresar", "click", async ()=>{
+  const input = $("gateAccesoInput");
+  const msg = $("gateAccessMsg");
   const acceso = input?.value?.trim() || "";
 
-  if(!acceso){
-    alert("Ingresa el acceso.");
+  if(msg) msg.textContent = "";
+
+  if(!/^\d{4}$/.test(acceso)){
+    if(msg) msg.textContent = "Ingrese una clave de 4 dígitos.";
     input?.focus?.();
     return;
   }
@@ -4845,20 +4910,33 @@ on("btnAcceder", "click", async ()=>{
     const r = await apiGet({ action:"verificarAcceso", acceso });
 
     if(r && r.ok && r.autorizado){
-      sessionStorage.setItem("ED_ACCESO_OK", "1");
-      alert("Acceso autorizado");
+      if(input) input.value = "";
+      mostrarSistemaAutorizado_();
     }else{
-      sessionStorage.removeItem("ED_ACCESO_OK");
-      alert("Acceso no autorizado");
+      bloquearSistema_();
+      if(msg) msg.textContent = "Acceso denegado";
+      input?.focus?.();
     }
   }catch(err){
-    sessionStorage.removeItem("ED_ACCESO_OK");
-    alert("Acceso no autorizado");
-  }finally{
-    if(input) input.value = "";
-    panel?.classList.remove("show");
+    bloquearSistema_();
+    if(msg) msg.textContent = "Acceso denegado";
+    input?.focus?.();
   }
 });
+
+on("gateAccesoInput", "keydown", (e)=>{
+  if(e.key === "Enter"){
+    e.preventDefault();
+    $("btnGateIngresar")?.click?.();
+  }
+});
+
+if(accesoAutorizado_()){
+  mostrarSistemaAutorizado_();
+}else{
+  bloquearSistema_();
+}
+
 on("btnSalir", "click", ()=>{
   const salir = confirm("¿Deseas salir del sistema?");
   if(!salir) return;
