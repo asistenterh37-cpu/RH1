@@ -791,11 +791,38 @@ body:not(.access-ok) main{
     tbody tr:hover td{ background:rgba(79,124,255,.06); }
     .tdMuted{color:var(--muted); font-size:12px; margin-top:4px}
     .mono{font-family:var(--mono)}
-    .sr-hidden{
+      .sr-hidden{
       position:absolute !important;
       width:1px;height:1px;
       padding:0;margin:-1px;
       overflow:hidden;clip:rect(0,0,0,0);
+            /* ✅ Seguridad visual: dificulta selección/copias casuales */
+    body{
+      -webkit-user-select:none;
+      user-select:none;
+      -webkit-touch-callout:none;
+    }
+
+    input,
+    textarea,
+    select{
+      -webkit-user-select:text;
+      user-select:text;
+    }
+
+    .no-print-security *{
+      display:none !important;
+    }
+
+    .no-print-security::before{
+      content:"Impresión bloqueada por seguridad.";
+      display:grid;
+      place-items:center;
+      min-height:100vh;
+      color:#000;
+      background:#fff;
+      font:700 22px system-ui;
+    }
       white-space:nowrap;border:0;
     }
     .pesoInput{
@@ -1814,29 +1841,79 @@ Dejar de hacer:`;
   const DEFAULT_WEBAPP_ = "https://script.google.com/macros/s/AKfycbxZZ5w7oa-JAiszFdDIWkr1w52BOaCWDX4LYvNXFAMhn8fZ3HfY7OcFamRVRUQmKTnx/exec";
   const $ = id => document.getElementById(id);
 
-  /* ===== SEGURIDAD BÁSICA: BLOQUEO DE LECTURA CASUAL ===== */
-(function seguridadFrontend_(){
-  document.addEventListener("contextmenu", e => e.preventDefault());
+    /* ===== SEGURIDAD REFORZADA FRONTEND: BLOQUEO DE LECTURA / COPIA CASUAL ===== */
+(function seguridadFrontendReforzada_(){
+  const mensajeBloqueo_ = "Acción no permitida por seguridad.";
+
+  function estaAutorizado_(){
+    try{
+      return sessionStorage.getItem("ED_ACCESO_OK") === "1";
+    }catch(_){
+      return false;
+    }
+  }
+
+  function bloquearEvento_(e, mostrarAlerta = false){
+    e.preventDefault();
+    e.stopPropagation();
+    e.stopImmediatePropagation?.();
+    if(mostrarAlerta) alert(mensajeBloqueo_);
+    return false;
+  }
+
+  document.addEventListener("contextmenu", e => bloquearEvento_(e), true);
+  document.addEventListener("dragstart", e => bloquearEvento_(e), true);
+  document.addEventListener("selectstart", e => {
+    const tag = String(e.target?.tagName || "").toLowerCase();
+    if(["input","textarea","select"].includes(tag)) return;
+    return bloquearEvento_(e);
+  }, true);
+
+  document.addEventListener("copy", e => {
+    const tag = String(e.target?.tagName || "").toLowerCase();
+    const permitido = e.target?.id === "printTextArea" || e.target?.id === "ieTextArea";
+    if(["input","textarea"].includes(tag) && permitido) return;
+    e.clipboardData?.setData("text/plain", "Copia bloqueada por seguridad.");
+    return bloquearEvento_(e);
+  }, true);
+
+  document.addEventListener("cut", e => bloquearEvento_(e), true);
 
   document.addEventListener("keydown", e => {
     const k = String(e.key || "").toLowerCase();
+    const bloqueadas = [
+      k === "f12",
+      e.ctrlKey && ["u","s","p","c","x"].includes(k),
+      e.metaKey && ["u","s","p","c","x"].includes(k),
+      e.ctrlKey && e.shiftKey && ["i","j","c","k"].includes(k),
+      e.metaKey && e.altKey && ["i","j","c"].includes(k)
+    ];
 
-    if (
-      k === "f12" ||
-      (e.ctrlKey && k === "u") ||
-      (e.ctrlKey && k === "s") ||
-      (e.ctrlKey && e.shiftKey && ["i","j","c"].includes(k))
-    ){
-      e.preventDefault();
-      e.stopPropagation();
-      alert("Acción no permitida.");
-      return false;
+    if(bloqueadas.some(Boolean)){
+      return bloquearEvento_(e, true);
     }
   }, true);
 
-  document.addEventListener("dragstart", e => e.preventDefault());
-})();
+  document.addEventListener("visibilitychange", ()=>{
+    if(document.hidden && !estaAutorizado_()){
+      document.body.classList.remove("access-ok");
+    }
+  });
 
+  window.addEventListener("beforeprint", e => {
+    const autorizado = estaAutorizado_();
+    const impresionPermitida = document.body.classList.contains("print-ie");
+
+    if(!autorizado || !impresionPermitida){
+      alert("La impresión está bloqueada por seguridad.");
+      document.body.classList.add("no-print-security");
+    }
+  });
+
+  window.addEventListener("afterprint", ()=>{
+    document.body.classList.remove("no-print-security");
+  });
+})();
 function syncFaseButtonsUI(value){
   const fase = String(value || "");
   document.querySelectorAll(".faseBtn").forEach(btn=>{
@@ -1849,9 +1926,12 @@ function syncFaseButtonsUI(value){
 }
 
 function accesoAutorizado_(){
-  return sessionStorage.getItem("ED_ACCESO_OK") === "1";
+  try{
+    return sessionStorage.getItem("ED_ACCESO_OK") === "1";
+  }catch(_){
+    return false;
+  }
 }
-
 function setFaseFromButton(value){
   const fase = String(value || "");
 
