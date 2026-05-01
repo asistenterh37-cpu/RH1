@@ -5001,22 +5001,27 @@ on("btnSidebarToggle", "click", ()=>{
   $("blockFaseNivel")?.classList.toggle("collapsed");
 });
 function mostrarSistemaAutorizado_(){
-  sessionStorage.setItem("ED_ACCESO_OK", "1");
-  document.body.classList.add("access-ok");
-  $("accessGate")?.classList.add("hide");
+ sessionStorage.setItem("ED_ACCESO_OK", "1");
+ document.body.classList.add("access-ok");
+ $("accessGate")?.classList.add("hide");
 }
 
 function bloquearSistema_(){
-  sessionStorage.removeItem("ED_ACCESO_OK");
-  document.body.classList.remove("access-ok");
-  $("accessGate")?.classList.remove("hide");
+ sessionStorage.removeItem("ED_ACCESO_OK");
+ document.body.classList.remove("access-ok");
+ $("accessGate")?.classList.remove("hide");
 }
 
 on("btnGateIngresar", "click", async ()=>{
  const input = $("gateAccesoInput");
  const msg = $("gateAccessMsg");
+ const btn = $("btnGateIngresar");
  const acceso = input?.value?.trim() || "";
- if(msg) msg.textContent = "";
+
+ if(msg){
+ msg.style.color = "#fca5a5";
+ msg.textContent = "";
+ }
 
  if(!/^\d{4}$/.test(acceso)){
   if(msg) msg.textContent = "Ingrese una clave de 4 dígitos.";
@@ -5025,6 +5030,12 @@ on("btnGateIngresar", "click", async ()=>{
  }
 
  try{
+  if(btn) btn.disabled = true;
+  if(msg){
+   msg.style.color = "#93c5fd";
+   msg.textContent = "Validando acceso...";
+  }
+
   const navegador = navigator.userAgent || "Navegador no detectado";
   const r = await apiGet({
    action: "verificarAcceso",
@@ -5043,9 +5054,13 @@ on("btnGateIngresar", "click", async ()=>{
 
    if(input) input.value = "";
 
-   await reproducirBienvenida(nombre);
-   mostrarSistemaAutorizado_();
+   try{
+    if(typeof reproducirBienvenida === "function"){
+     await reproducirBienvenida(nombre);
+    }
+   }catch(_){}
 
+   mostrarSistemaAutorizado_();
   }else{
    bloquearSistema_();
    if(msg){
@@ -5061,21 +5076,17 @@ on("btnGateIngresar", "click", async ()=>{
    msg.textContent = "Error al validar acceso. Revise conexión/API.";
   }
   input?.focus?.();
+ }finally{
+  if(btn) btn.disabled = false;
  }
 });
-  }catch(err){
-    bloquearSistema_();
-    if(msg) msg.textContent = "Error al validar acceso. Revise conexión/API.";
-    input?.focus?.();
-  }
-});
-on("gateAccesoInput", "keydown", (e)=>{
-  if(e.key === "Enter"){
-    e.preventDefault();
-    $("btnGateIngresar")?.click?.();
-  }
-});
 
+on("gateAccesoInput", "keydown", (e)=>{
+ if(e.key === "Enter"){
+  e.preventDefault();
+  $("btnGateIngresar")?.click?.();
+ }
+});
 if(accesoAutorizado_()){
   mostrarSistemaAutorizado_();
 }else{
