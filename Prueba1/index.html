@@ -5034,30 +5034,28 @@ on("btnGateIngresar", "click", async ()=>{
       navegador: navegador
     });
 
-    if(r && r.ok && r.autorizado){
-      if(input) input.value = "";
-      mostrarSistemaAutorizado_();
-    }else{
-      bloquearSistema_();
-      if(msg) msg.textContent = "Acceso denegado";
-      input?.focus?.();
-    }
-  }catch(err){
-    bloquearSistema_();
-    if(msg) msg.textContent = "Error al validar acceso. Revise conexión/API.";
-    input?.focus?.();
-  }
-});
-on("gateAccesoInput", "keydown", (e)=>{
-  if(e.key === "Enter"){
-    e.preventDefault();
-    $("btnGateIngresar")?.click?.();
-  }
-});
+ if(r && r.ok && r.autorizado){
+ const nombre = String(r.nombre || "").trim();
+ const saludo = nombre ? `Hola, ${nombre}` : "Hola";
 
-if(accesoAutorizado_()){
-  mostrarSistemaAutorizado_();
-}else{
+ if(msg){
+ msg.style.color = "#86efac";
+ msg.textContent = saludo;
+ }
+
+ if(input) input.value = "";
+
+ try{
+ if(typeof reproducirBienvenida === "function"){
+ await reproducirBienvenida(nombre);
+ }
+ }catch(errAudio){
+ console.warn("No se pudo reproducir la bienvenida:", errAudio);
+ }
+
+ mostrarSistemaAutorizado_();
+ }else{
+    
   bloquearSistema_();
 }
 
