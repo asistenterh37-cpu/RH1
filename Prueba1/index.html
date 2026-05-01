@@ -1056,7 +1056,7 @@ body:not(.access-ok) main{
       <div class="form-grid">
         <div class="field col-8 boxed">
           <div class="lbl">URL Web App Apps Script</div>
-          <input id="webapp" value="https://script.google.com/macros/s/AKfycbxfL2q28Rw5mwG3WaYTHR6xVdh7ID9aNc7w0Z--w2-Lz89SHHLnou7LDNu7xIOm7acJ/exec"/>
+          <input id="https://script.google.com/macros/s/AKfycbwcJUPTWG2i9roIr2RUcoWHdxJh0E4MXGlkc2aHNRMe6Jozq29_r1TSvNA_XtqSoWmv/exec"/>
         </div>
         <div class="field col-4 boxed">
           <div class="lbl">Pruebas API</div>
@@ -1877,7 +1877,7 @@ Dejar de hacer:"></textarea>
 `Empezar a hacer:
 Continuar haciendo:
 Dejar de hacer:`;
-  const DEFAULT_WEBAPP_ = "https://script.google.com/macros/s/AKfycbxfL2q28Rw5mwG3WaYTHR6xVdh7ID9aNc7w0Z--w2-Lz89SHHLnou7LDNu7xIOm7acJ/exec";
+  const DEFAULT_WEBAPP_ = "https://script.google.com/macros/s/AKfycbwcJUPTWG2i9roIr2RUcoWHdxJh0E4MXGlkc2aHNRMe6Jozq29_r1TSvNA_XtqSoWmv/exec";
   const $ = id => document.getElementById(id);
 
     /* ===== SEGURIDAD REFORZADA FRONTEND: BLOQUEO DE LECTURA / COPIA CASUAL ===== */
@@ -5013,35 +5013,56 @@ function bloquearSistema_(){
 }
 
 on("btnGateIngresar", "click", async ()=>{
-  const input = $("gateAccesoInput");
-  const msg = $("gateAccessMsg");
-  const acceso = input?.value?.trim() || "";
+ const input = $("gateAccesoInput");
+ const msg = $("gateAccessMsg");
+ const acceso = input?.value?.trim() || "";
+ if(msg) msg.textContent = "";
 
-  if(msg) msg.textContent = "";
+ if(!/^\d{4}$/.test(acceso)){
+  if(msg) msg.textContent = "Ingrese una clave de 4 dígitos.";
+  input?.focus?.();
+  return;
+ }
 
-  if(!/^\d{4}$/.test(acceso)){
-    if(msg) msg.textContent = "Ingrese una clave de 4 dígitos.";
-    input?.focus?.();
-    return;
+ try{
+  const navegador = navigator.userAgent || "Navegador no detectado";
+  const r = await apiGet({
+   action: "verificarAcceso",
+   acceso: acceso,
+   navegador: navegador
+  });
+
+  if(r && r.ok && r.autorizado){
+   const nombre = String(r.nombre || "").trim();
+   const saludo = nombre ? `Hola, ${nombre}` : "Hola";
+
+   if(msg){
+    msg.style.color = "#86efac";
+    msg.textContent = saludo;
+   }
+
+   if(input) input.value = "";
+
+   await reproducirBienvenida(nombre);
+   mostrarSistemaAutorizado_();
+
+  }else{
+   bloquearSistema_();
+   if(msg){
+    msg.style.color = "#fca5a5";
+    msg.textContent = "Acceso denegado";
+   }
+   input?.focus?.();
   }
-
-  try{
-    const navegador = navigator.userAgent || "Navegador no detectado";
-
-    const r = await apiGet({
-      action: "verificarAcceso",
-      acceso: acceso,
-      navegador: navegador
-    });
-
-    if(r && r.ok && r.autorizado){
-      if(input) input.value = "";
-      mostrarSistemaAutorizado_();
-    }else{
-      bloquearSistema_();
-      if(msg) msg.textContent = "Acceso denegado";
-      input?.focus?.();
-    }
+ }catch(err){
+  bloquearSistema_();
+  if(msg){
+   msg.style.color = "#fca5a5";
+   msg.textContent = "Error al validar acceso. Revise conexión/API.";
+  }
+  input?.focus?.();
+ }
+});
   }catch(err){
     bloquearSistema_();
     if(msg) msg.textContent = "Error al validar acceso. Revise conexión/API.";
@@ -6267,29 +6288,37 @@ input, textarea, select{
   a.remove();
   setTimeout(()=>URL.revokeObjectURL(url), 1000);
 }
-    function reproducirBienvenida(){
-    const mensaje = "Bienvenido a su sistema de planificación y organización del desempeño SíPodés, El sistema SíPodés es una plataforma integral que centraliza la gestión del desempeño y la convierte en una herramienta directa para mejorar la productividad organizacional. Estandariza evaluaciones por niveles, formularios y ponderaciones, integrando autoevaluación, evaluación de clientes y evaluación formal para ofrecer una visión completa y objetiva del colaborador. Va más allá de medir: gestiona el desempeño mediante KPIs, incidencias, sesiones One to One y calibración, combinando datos cuantitativos y cualitativos para decisiones más precisas. Genera reportes y dashboards que transforman información en acciones, facilitando la mejora continua, el desarrollo del talento y la alineación con los objetivos del negocio. En síntesis, es un sistema que convierte la evaluación en resultados concretos: más control, mejor toma de decisiones y mayor productividad.";
-
-    if (!("speechSynthesis" in window)) return;
-
-    speechSynthesis.cancel();
-
-    const voz = new SpeechSynthesisUtterance(mensaje);
-    voz.lang = "es-ES";
-    voz.rate = 0.9;
-    voz.pitch = 1;
-
-    speechSynthesis.speak(voz);
+function hablarTexto_(texto){
+ return new Promise(resolve=>{
+  if(!("speechSynthesis" in window)){
+   resolve();
+   return;
   }
 
-  window.addEventListener("load", function(){
-    setTimeout(reproducirBienvenida, 800);
-  });
+  const voz = new SpeechSynthesisUtterance(texto);
+  voz.lang = "es-ES";
+  voz.rate = 0.9;
+  voz.pitch = 1;
+  voz.onend = resolve;
+  voz.onerror = resolve;
 
-  document.addEventListener("click", function activarAudioBienvenida(){
-    reproducirBienvenida();
-    document.removeEventListener("click", activarAudioBienvenida);
-  }, { once:true });
+  speechSynthesis.speak(voz);
+ });
+}
+
+async function reproducirBienvenida(nombre){
+ if(!("speechSynthesis" in window)) return;
+
+ speechSynthesis.cancel();
+
+ const nombreLimpio = String(nombre || "").trim();
+ const saludo = nombreLimpio ? `Hola, ${nombreLimpio}` : "Hola";
+
+ const mensaje = "Bienvenido a su sistema de planificación y organización del desempeño SíPodés, una poderosa herramienta de gestión del talento de su organización";
+
+ await hablarTexto_(saludo);
+ await hablarTexto_(mensaje);
+}
 </script>
 </body>
 </html>
