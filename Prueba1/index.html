@@ -5007,48 +5007,101 @@ function mostrarSistemaAutorizado_(){
 }
 
 function bloquearSistema_(){
-  sessionStorage.removeItem("ED_ACCESO_OK");
-  document.body.classList.remove("access-ok");
-  $("accessGate")?.classList.remove("hide");
+ sessionStorage.removeItem("ED_ACCESO_OK");
+ document.body.classList.remove("access-ok");
+ $("accessGate")?.classList.remove("hide");
+}
+
+function hablarTexto_(texto){
+ return new Promise((resolve)=>{
+  try{
+   if(!("speechSynthesis" in window)) return resolve();
+   window.speechSynthesis.cancel();
+
+   const voz = new SpeechSynthesisUtterance(String(texto || ""));
+   voz.lang = "es-ES";
+   voz.rate = 0.95;
+   voz.pitch = 1;
+
+   voz.onend = resolve;
+   voz.onerror = resolve;
+
+   window.speechSynthesis.speak(voz);
+  }catch(_){
+   resolve();
+  }
+ });
+}
+
+function reproducirNarracionBienvenida_(){
+ return new Promise((resolve)=>{
+  try{
+   const audio =
+    $("audioBienvenida") ||
+    $("bienvenidaAudio") ||
+    $("narracionBienvenida") ||
+    $("audioNarracion");
+
+   if(audio && typeof audio.play === "function"){
+    audio.currentTime = 0;
+    audio.onended = resolve;
+    audio.onerror = resolve;
+    audio.play().catch(resolve);
+    return;
+   }
+
+   hablarTexto_("Bienvenido a su sistema de planificación y evaluación del desempeño, SíPodés.").then(resolve);
+  }catch(_){
+   resolve();
+  }
+ });
 }
 
 on("btnGateIngresar", "click", async ()=>{
-  const input = $("gateAccesoInput");
-  const msg = $("gateAccessMsg");
-  const acceso = input?.value?.trim() || "";
+ const input = $("gateAccesoInput");
+ const msg = $("gateAccessMsg");
+ const acceso = input?.value?.trim() || "";
 
-  if(msg) msg.textContent = "";
+ if(msg) msg.textContent = "";
 
-  if(!/^\d{4}$/.test(acceso)){
-    if(msg) msg.textContent = "Ingrese una clave de 4 dígitos.";
-    input?.focus?.();
-    return;
+ if(!/^\d{4}$/.test(acceso)){
+  if(msg) msg.textContent = "Ingrese una clave de 4 dígitos.";
+  input?.focus?.();
+  return;
+ }
+
+ try{
+  const navegador = navigator.userAgent || "Navegador no detectado";
+
+  const r = await apiGet({
+   action: "verificarAcceso",
+   acceso: acceso,
+   navegador: navegador
+  });
+
+  if(r && r.ok && r.autorizado){
+   const nombre = String(r.nombre || "").trim();
+
+   if(input) input.value = "";
+
+   mostrarSistemaAutorizado_();
+
+   await hablarTexto_(nombre ? `Hola ${nombre}` : "Hola");
+   await reproducirNarracionBienvenida_();
+
+  }else{
+   bloquearSistema_();
+   if(msg) msg.textContent = "Acceso denegado";
+   input?.focus?.();
   }
 
-  try{
-    const navegador = navigator.userAgent || "Navegador no detectado";
-
-    const r = await apiGet({
-      action: "verificarAcceso",
-      acceso: acceso,
-      navegador: navegador
-    });
-
-    if(r && r.ok && r.autorizado){
-      if(input) input.value = "";
-      mostrarSistemaAutorizado_();
-    }else{
-      bloquearSistema_();
-      if(msg) msg.textContent = "Acceso denegado";
-      input?.focus?.();
-    }
-  }catch(err){
-    bloquearSistema_();
-    if(msg) msg.textContent = "Error al validar acceso. Revise conexión/API.";
-    input?.focus?.();
-  }
+ }catch(err){
+  bloquearSistema_();
+  if(msg) msg.textContent = "Error al validar acceso. Revise conexión/API.";
+  input?.focus?.();
+ }
 });
-on("gateAccesoInput", "keydown", (e)=>{
+  on("gateAccesoInput", "keydown", (e)=>{
   if(e.key === "Enter"){
     e.preventDefault();
     $("btnGateIngresar")?.click?.();
