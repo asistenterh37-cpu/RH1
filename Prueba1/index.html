@@ -5015,50 +5015,36 @@ function bloquearSistema_(){
 
 function reproducirBienvenida(nombre){
  return new Promise((resolve) => {
-  if (!("speechSynthesis" in window)){
-   const audio = $("audioBienvenida");
-   if(audio){
-    audio.currentTime = 0;
-    audio.play().then(resolve).catch(resolve);
-   }else{
-    resolve();
-   }
-   return;
-  }
+ const audio = $("audioBienvenida");
 
-  speechSynthesis.cancel();
+ const reproducirAudioBienvenida = () => {
+ if(audio){
+ audio.currentTime = 0;
+ audio.play().then(resolve).catch(resolve);
+ }else{
+ resolve();
+ }
+ };
 
-  const saludoTexto = nombre ? `Hola, ${nombre}` : "Hola";
-  const saludo = new SpeechSynthesisUtterance(saludoTexto);
+ if(!("speechSynthesis" in window)){
+ reproducirAudioBienvenida();
+ return;
+ }
 
-  saludo.lang = "es-ES";
-  saludo.rate = 0.9;
-  saludo.pitch = 1;
+ speechSynthesis.cancel();
 
-  saludo.onend = () => {
-   const audio = $("audioBienvenida");
-   if(audio){
-    audio.currentTime = 0;
-    audio.play().then(resolve).catch(resolve);
-   }else{
-    resolve();
-   }
-  };
+ const saludoTexto = nombre ? `Hola, ${nombre}` : "Hola";
+ const saludo = new SpeechSynthesisUtterance(saludoTexto);
+ saludo.lang = "es-ES";
+ saludo.rate = 0.9;
+ saludo.pitch = 1;
 
-  saludo.onerror = () => {
-   const audio = $("audioBienvenida");
-   if(audio){
-    audio.currentTime = 0;
-    audio.play().then(resolve).catch(resolve);
-   }else{
-    resolve();
-   }
-  };
+ saludo.onend = reproducirAudioBienvenida;
+ saludo.onerror = reproducirAudioBienvenida;
 
-  speechSynthesis.speak(saludo);
+ speechSynthesis.speak(saludo);
  });
 }
-
 on("btnGateIngresar", "click", async ()=>{
  const input = $("gateAccesoInput");
  const msg = $("gateAccessMsg");
