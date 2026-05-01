@@ -1056,7 +1056,7 @@ body:not(.access-ok) main{
       <div class="form-grid">
         <div class="field col-8 boxed">
           <div class="lbl">URL Web App Apps Script</div>
-          <input id="webapp" value="https://script.google.com/macros/s/AKfycby0w93AkE6RBLI4jgYWHGnf2DPr9ES_tnJrIlcBdcxfoyAG1uRQsZbYHQ6FWe1aR4ZE/exec"/>
+          <input id="webapp" value="https://script.google.com/macros/s/AKfycbyUW4nxNwXupsZhMZxPebx9k3GAZag7D55ZyaarR6EvzGwyM0Ka9uKLa2udH41S2H_W/exec"/>
         </div>
         <div class="field col-4 boxed">
           <div class="lbl">Pruebas API</div>
@@ -1877,7 +1877,7 @@ Dejar de hacer:"></textarea>
 `Empezar a hacer:
 Continuar haciendo:
 Dejar de hacer:`;
-  const DEFAULT_WEBAPP_ = "https://script.google.com/macros/s/AKfycby0w93AkE6RBLI4jgYWHGnf2DPr9ES_tnJrIlcBdcxfoyAG1uRQsZbYHQ6FWe1aR4ZE/exec";
+  const DEFAULT_WEBAPP_ = "https://script.google.com/macros/s/AKfycbyUW4nxNwXupsZhMZxPebx9k3GAZag7D55ZyaarR6EvzGwyM0Ka9uKLa2udH41S2H_W/exec";
   const $ = id => document.getElementById(id);
 
     /* ===== SEGURIDAD REFORZADA FRONTEND: BLOQUEO DE LECTURA / COPIA CASUAL ===== */
@@ -5057,44 +5057,53 @@ function reproducirNarracionBienvenida_(){
  });
 }
 
+let ingresoEnProceso_ = false;
+
 on("btnGateIngresar", "click", async ()=>{
+ if(ingresoEnProceso_) return;
+
  const input = $("gateAccesoInput");
  const msg = $("gateAccessMsg");
+ const btn = $("btnGateIngresar");
  const acceso = input?.value?.trim() || "";
 
  if(msg) msg.textContent = "";
 
  if(!/^\d{4}$/.test(acceso)){
-  if(msg) msg.textContent = "Ingrese una clave de 4 dígitos.";
-  input?.focus?.();
-  return;
+ if(msg) msg.textContent = "Ingrese una clave de 4 dígitos.";
+ input?.focus?.();
+ return;
  }
 
+ ingresoEnProceso_ = true;
+ if(btn) btn.disabled = true;
+
  try{
-  const navegador = navigator.userAgent || "Navegador no detectado";
+ const navegador = navigator.userAgent || "Navegador no detectado";
+ const r = await apiGet({
+ action: "verificarAcceso",
+ acceso: acceso,
+ navegador: navegador
+ });
 
-  const r = await apiGet({
-   action: "verificarAcceso",
-   acceso: acceso,
-   navegador: navegador
-  });
-
-  if(r && r.ok && r.autorizado){
+ if(r && r.ok && r.autorizado){
  const nombre = String(r.nombre || "").trim();
  if(input) input.value = "";
-mostrarSistemaAutorizado_();
-await hablarTexto_(nombre ? `Hola, ${nombre}.` : "Hola.");
-await reproducirNarracionBienvenida_();
+ mostrarSistemaAutorizado_();
+ await hablarTexto_(nombre ? `Hola, ${nombre}.` : "Hola.");
+ await reproducirNarracionBienvenida_();
  }else{
-   bloquearSistema_();
-   if(msg) msg.textContent = "Acceso denegado";
-   input?.focus?.();
-  }
-
+ bloquearSistema_();
+ if(msg) msg.textContent = "Acceso denegado";
+ input?.focus?.();
+ }
  }catch(err){
-  bloquearSistema_();
-  if(msg) msg.textContent = "Error al validar acceso. Revise conexión/API.";
-  input?.focus?.();
+ bloquearSistema_();
+ if(msg) msg.textContent = "Error al validar acceso. Revise conexión/API.";
+ input?.focus?.();
+ }finally{
+ ingresoEnProceso_ = false;
+ if(btn) btn.disabled = false;
  }
 });
   on("gateAccesoInput", "keydown", (e)=>{
