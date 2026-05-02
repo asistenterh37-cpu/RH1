@@ -5010,66 +5010,98 @@ function bloquearSistema_(){
  $("accessGate")?.classList.remove("hide");
 }
 
-function hablarTexto_(texto){
- return new Promise((resolve)=>{
-  try{
-   if(!("speechSynthesis" in window)) return resolve();
+function prepararAudioBienvenida_(){
+ try{
+   if(!("speechSynthesis" in window)) return;
    window.speechSynthesis.cancel();
 
-   const voz = new SpeechSynthesisUtterance(String(texto || ""));
-   voz.lang = "es-ES";
-   voz.rate = 0.95;
-   voz.pitch = 1;
+   const voces = window.speechSynthesis.getVoices?.() || [];
+   if(voces.length) return;
 
-   voz.onend = resolve;
-   voz.onerror = resolve;
+   const desbloqueo = new SpeechSynthesisUtterance(" ");
+   desbloqueo.lang = "es-ES";
+   desbloqueo.volume = 0;
+   window.speechSynthesis.speak(desbloqueo);
+ }catch(_){}
+}
 
-   window.speechSynthesis.speak(voz);
+function obtenerTextoDescripcionSistema_(){
+ const inicio = $("blockInicio");
+ if(!inicio) return "";
+
+ const textos = Array.from(inicio.querySelectorAll(".hint, p"))
+   .map(el => String(el.textContent || "").replace(/\s+/g, " ").trim())
+   .filter(Boolean);
+
+ return textos.join(" ");
+}
+
+function construirTextoBienvenida_(nombre){
+ const nombreLimpio = String(nombre || "").trim();
+ const descripcion = obtenerTextoDescripcionSistema_();
+
+ return [
+   nombreLimpio ? `Hola, ${nombreLimpio}.` : "Hola.",
+   descripcion || "Bienvenido a su sistema de planificación y organización del desempeño, SíPodés."
+ ].join(" ");
+}
+
+function dividirTextoParaVoz_(texto){
+ return String(texto || "")
+   .replace(/\s+/g, " ")
+   .trim()
+   .match(/[^.!?]+[.!?]+|[^.!?]+$/g) || [];
+}
+
+function hablarTexto_(texto){
+ return new Promise(async (resolve)=>{
+  try{
+   if(!("speechSynthesis" in window)) return resolve();
+
+   window.speechSynthesis.cancel();
+
+   const partes = dividirTextoParaVoz_(texto);
+   if(!partes.length) return resolve();
+
+   const voces = window.speechSynthesis.getVoices?.() || [];
+   const vozEs = voces.find(v => /^es/i.test(v.lang)) || null;
+
+   let i = 0;
+
+   const hablarSiguiente = ()=>{
+     if(i >= partes.length) return resolve();
+
+     const voz = new SpeechSynthesisUtterance(partes[i]);
+     voz.lang = vozEs?.lang || "es-ES";
+     if(vozEs) voz.voice = vozEs;
+     voz.rate = 0.95;
+     voz.pitch = 1;
+     voz.volume = 1;
+
+     voz.onend = ()=>{
+       i++;
+       hablarSiguiente();
+     };
+
+     voz.onerror = ()=>{
+       i++;
+       hablarSiguiente();
+     };
+
+     window.speechSynthesis.speak(voz);
+   };
+
+   hablarSiguiente();
   }catch(_){
    resolve();
   }
  });
 }
 
-function reproducirNarracionBienvenida_(){
- return new Promise((resolve)=>{
- let terminado = false;
-
- const finalizar = ()=>{
-   if(terminado) return;
-   terminado = true;
-   resolve();
- };
-
- // ✅ Seguridad: aunque el audio o la voz se pegue, no bloquea nada
- const timer = setTimeout(finalizar, 8000);
-
- try{
- const audio =
- $("audioBienvenida") ||
- $("bienvenidaAudio") ||
- $("narracionBienvenida") ||
- $("audioNarracion");
-
- if(audio && typeof audio.play === "function"){
- audio.currentTime = 0;
- audio.onended = ()=>{ clearTimeout(timer); finalizar(); };
- audio.onerror = ()=>{ clearTimeout(timer); finalizar(); };
- audio.play().catch(()=>{ clearTimeout(timer); finalizar(); });
- return;
- }
-
- hablarTexto_("Bienvenido a su sistema de planificación y evaluación del desempeño, SíPodés.")
-   .then(()=>{ clearTimeout(timer); finalizar(); })
-   .catch(()=>{ clearTimeout(timer); finalizar(); });
-
- }catch(_){
- clearTimeout(timer);
- finalizar();
- }
- });
+function reproducirNarracionBienvenida_(nombre){
+ return hablarTexto_(construirTextoBienvenida_(nombre));
 }
-let ingresoEnProceso_ = false;
+  let ingresoEnProceso_ = false;
 
 on("btnGateIngresar", "click", async ()=>{
  if(ingresoEnProceso_) return;
@@ -5102,14 +5134,13 @@ if(r && r.ok && r.autorizado){
  const nombre = String(r.nombre || "").trim();
  if(input) input.value = "";
 
+ prepararAudioBienvenida_();
+
  // ✅ Entra inmediatamente al sistema; la bienvenida no bloquea el acceso
  mostrarSistemaAutorizado_();
 
  setTimeout(()=>{
-   Promise.resolve()
-     .then(()=> hablarTexto_(nombre ? `Hola, ${nombre}.` : "Hola."))
-     .then(()=> reproducirNarracionBienvenida_())
-     .catch(()=>{});
+   reproducirNarracionBienvenida_(nombre).catch(()=>{});
  }, 250);
 
 }else{
