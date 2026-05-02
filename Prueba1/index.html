@@ -5033,30 +5033,42 @@ function hablarTexto_(texto){
 
 function reproducirNarracionBienvenida_(){
  return new Promise((resolve)=>{
-  try{
-   const audio =
-    $("audioBienvenida") ||
-    $("bienvenidaAudio") ||
-    $("narracionBienvenida") ||
-    $("audioNarracion");
+ let terminado = false;
 
-   if(audio && typeof audio.play === "function"){
-    audio.currentTime = 0;
-    audio.onended = resolve;
-    audio.onerror = resolve;
-    audio.play().catch(resolve);
-    return;
-   }
-
-   hablarTexto_("Bienvenido a su sistema de planificación y evaluación del desempeño, SíPodés, Plataforma integral que centraliza la gestión del desempeño y la convierte en una herramienta directa para mejorar la productividad organizacional. Estandariza formularios de evaluaciones por niveles, integrando autoevaluación, evaluación de clientes y evaluación final para ofrecer una visión completa y objetiva del colaborador. Va más allá de medir: gestiona el desempeño mediante registro de KPIs y entregables,  de incidencias, sesiones One One y pre calibración, combinando datos cuantitativos y cualitativos para decisiones más precisas. Genera reportes y dashboards que transforman información en acciones, facilitando la mejora continua, el desarrollo del talento y la alineación con los objetivos del negocio. La estructura de reportes facilita disponer de la evaluación del desempeño individual, listado jerarquizado de calificaciones de evaluación de desempeño, plan de necesidades de capacitación, proyección y potencial de desarrollo y oportunidades de mejora por colaborador. En síntesis, es un sistema que convierte la evaluación en resultados concretos: más control, mejor toma de decisiones y mayor productividad. 
-
- ").then(resolve);
-  }catch(_){
+ const finalizar = ()=>{
+   if(terminado) return;
+   terminado = true;
    resolve();
-  }
+ };
+
+ // ✅ Seguridad: aunque el audio o la voz se pegue, no bloquea nada
+ const timer = setTimeout(finalizar, 8000);
+
+ try{
+ const audio =
+ $("audioBienvenida") ||
+ $("bienvenidaAudio") ||
+ $("narracionBienvenida") ||
+ $("audioNarracion");
+
+ if(audio && typeof audio.play === "function"){
+ audio.currentTime = 0;
+ audio.onended = ()=>{ clearTimeout(timer); finalizar(); };
+ audio.onerror = ()=>{ clearTimeout(timer); finalizar(); };
+ audio.play().catch(()=>{ clearTimeout(timer); finalizar(); });
+ return;
+ }
+
+ hablarTexto_("Bienvenido a su sistema de planificación y evaluación del desempeño, SíPodés.")
+   .then(()=>{ clearTimeout(timer); finalizar(); })
+   .catch(()=>{ clearTimeout(timer); finalizar(); });
+
+ }catch(_){
+ clearTimeout(timer);
+ finalizar();
+ }
  });
 }
-
 let ingresoEnProceso_ = false;
 
 on("btnGateIngresar", "click", async ()=>{
@@ -5086,17 +5098,25 @@ on("btnGateIngresar", "click", async ()=>{
  navegador: navegador
  });
 
- if(r && r.ok && r.autorizado){
+if(r && r.ok && r.autorizado){
  const nombre = String(r.nombre || "").trim();
  if(input) input.value = "";
+
+ // ✅ Entra inmediatamente al sistema; la bienvenida no bloquea el acceso
  mostrarSistemaAutorizado_();
- await hablarTexto_(nombre ? `Hola, ${nombre}.` : "Hola.");
- await reproducirNarracionBienvenida_();
- }else{
+
+ setTimeout(()=>{
+   Promise.resolve()
+     .then(()=> hablarTexto_(nombre ? `Hola, ${nombre}.` : "Hola."))
+     .then(()=> reproducirNarracionBienvenida_())
+     .catch(()=>{});
+ }, 250);
+
+}else{
  bloquearSistema_();
  if(msg) msg.textContent = "Acceso denegado";
  input?.focus?.();
- }
+}
  }catch(err){
  bloquearSistema_();
  if(msg) msg.textContent = "Error al validar acceso. Revise conexión/API.";
