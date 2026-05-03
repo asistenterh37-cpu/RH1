@@ -5170,51 +5170,99 @@ function dividirTextoParaVoz_(texto){
    .match(/[^.!?]+[.!?]+|[^.!?]+$/g) || [];
 }
 
-function hablarTexto_(texto){
- return new Promise(async (resolve)=>{
-  try{
-   if(!("speechSynthesis" in window)) return resolve();
+function seleccionarVozFemeninaFina_(voces){
+ const lista = Array.isArray(voces) ? voces : [];
 
-   window.speechSynthesis.cancel();
+ const preferidas = [
+  "Google español de Estados Unidos",
+  "Google español",
+  "Microsoft Elvira",
+  "Microsoft Sabina",
+  "Microsoft Dalia",
+  "Microsoft Helena",
+  "Monica",
+  "Paulina",
+  "Marisol",
+  "Lucia",
+  "Lucía",
+  "Maria",
+  "María"
+ ];
 
-   const partes = dividirTextoParaVoz_(texto);
-   if(!partes.length) return resolve();
-
-   const voces = window.speechSynthesis.getVoices?.() || [];
-   const vozEs = voces.find(v => /^es/i.test(v.lang)) || null;
-
-   let i = 0;
-
-   const hablarSiguiente = ()=>{
-     if(i >= partes.length) return resolve();
-
-     const voz = new SpeechSynthesisUtterance(partes[i]);
-     voz.lang = vozEs?.lang || "es-ES";
-     if(vozEs) voz.voice = vozEs;
-     voz.rate = 0.95;
-     voz.pitch = 1;
-     voz.volume = 1;
-
-     voz.onend = ()=>{
-       i++;
-       hablarSiguiente();
-     };
-
-     voz.onerror = ()=>{
-       i++;
-       hablarSiguiente();
-     };
-
-     window.speechSynthesis.speak(voz);
-   };
-
-   hablarSiguiente();
-  }catch(_){
-   resolve();
-  }
- });
+ return (
+  preferidas
+   .map(nombre => lista.find(v =>
+    String(v.name || "").toLowerCase().includes(nombre.toLowerCase()) &&
+    /^es/i.test(String(v.lang || ""))
+   ))
+   .find(Boolean)
+  ||
+  lista.find(v =>
+   /^es/i.test(String(v.lang || "")) &&
+   /(female|mujer|elvira|sabina|dalia|helena|monica|paulina|marisol|lucia|lucía|maria|maría)/i.test(String(v.name || ""))
+  )
+  ||
+  lista.find(v => /^es/i.test(String(v.lang || "")))
+  ||
+  null
+ );
 }
 
+function hablarTexto_(texto){
+ return new Promise(async (resolve)=>{
+ try{
+ if(!("speechSynthesis" in window)) return resolve();
+
+ window.speechSynthesis.cancel();
+
+ const partes = dividirTextoParaVoz_(texto);
+ if(!partes.length) return resolve();
+
+ let voces = window.speechSynthesis.getVoices?.() || [];
+
+ if(!voces.length){
+  await new Promise(r => {
+   window.speechSynthesis.onvoiceschanged = () => r();
+   setTimeout(r, 600);
+  });
+  voces = window.speechSynthesis.getVoices?.() || [];
+ }
+
+ const vozFemenina = seleccionarVozFemeninaFina_(voces);
+
+ let i = 0;
+ const hablarSiguiente = ()=>{
+  if(i >= partes.length) return resolve();
+
+  const voz = new SpeechSynthesisUtterance(partes[i]);
+  voz.lang = vozFemenina?.lang || "es-ES";
+
+  if(vozFemenina) voz.voice = vozFemenina;
+
+  voz.rate = 0.92;
+  voz.pitch = 1.22;
+  voz.volume = 1;
+
+  voz.onend = ()=>{
+   i++;
+   hablarSiguiente();
+  };
+
+  voz.onerror = ()=>{
+   i++;
+   hablarSiguiente();
+  };
+
+  window.speechSynthesis.speak(voz);
+ };
+
+ hablarSiguiente();
+
+ }catch(_){
+ resolve();
+ }
+ });
+}
 function reproducirNarracionBienvenida_(nombre){
  return hablarTexto_(construirTextoBienvenida_(nombre));
 }
