@@ -1485,8 +1485,10 @@ function obtenerVozEspanol(){
 function dividirTextoAudio(texto){
  return String(texto)
    .replace(/\s+/g, ' ')
-   .split(/(?<=[.?!])\s+/)
-   .filter(Boolean);
+   .split('. ')
+   .map(t => t.trim())
+   .filter(Boolean)
+   .map(t => t.endsWith('.') ? t : t + '.');
 }
 
 function reproducirAyudaAudio(){
@@ -1499,27 +1501,27 @@ function reproducirAyudaAudio(){
  ayudaAudioActivo = true;
 
  const partes = dividirTextoAudio(TEXTO_AYUDA_AUDIO);
- const vozEsp = obtenerVozEspanol();
- let i = 0;
+ let indice = 0;
 
  function hablarSiguiente(){
-   if (!ayudaAudioActivo || i >= partes.length) return;
+   if (!ayudaAudioActivo || indice >= partes.length) return;
 
-   const audio = new SpeechSynthesisUtterance(partes[i]);
+   const audio = new SpeechSynthesisUtterance(partes[indice]);
    audio.lang = 'es-ES';
    audio.rate = 0.9;
    audio.pitch = 1;
    audio.volume = 1;
 
+   const vozEsp = obtenerVozEspanol();
    if (vozEsp) audio.voice = vozEsp;
 
-   audio.onend = () => {
-     i++;
+   audio.onend = function(){
+     indice++;
      hablarSiguiente();
    };
 
-   audio.onerror = () => {
-     i++;
+   audio.onerror = function(){
+     indice++;
      hablarSiguiente();
    };
 
@@ -1547,12 +1549,15 @@ function closeAyuda(){
 
 if ('speechSynthesis' in window) {
  window.speechSynthesis.getVoices();
- window.speechSynthesis.onvoiceschanged = () => {
+ window.speechSynthesis.onvoiceschanged = function(){
    window.speechSynthesis.getVoices();
  };
 }
 
-btnAyuda.addEventListener('click', openAyuda);
+btnAyuda.addEventListener('click', function(e){
+ e.preventDefault();
+ openAyuda();
+});
     btnAyudaClose.addEventListener('click', closeAyuda);
     ayudaOverlay.addEventListener('click', (e) => {
       if (e.target === ayudaOverlay) closeAyuda();
