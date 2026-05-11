@@ -1473,15 +1473,7 @@
     const btnAyuda = document.getElementById('btnAyuda');
     const btnAyudaClose = document.getElementById('btnAyudaClose');
 
-    const TEXTO_AYUDA_AUDIO = `Instrucciones.
-Solicite su Código o pin para acceder a su estado de cuenta, que consiste en su bloque más casa más 3 dígitos.
-En Consultar estado de cuenta, en la casilla código F ingrese su código suministrado por el patronato.
-Analice su estado de cuenta, verifique si se muestran todas sus aportaciones; si está al día sus aportaciones deben sumar 12 por 300 igual a 3600.
-Si en su estado de cuenta no se reflejan todas o hacen falta depósitos realizados y no están registrados, puede ir a la opción Registrar Referencia.
-Digite en el campo Referencia la Referencia que aparece en su comprobante de depósito y haga clic en Buscar. Si aparece la Referencia, digite su código suministrado por el patronato y su nombre tal como aparece en su estado de cuenta y Guardar; regrese a Consultar estado de cuenta y se mostrará su referencia conciliada.
-En algunos casos, como depósitos por billeteras, no se muestran estas referencias que tienen una estructura similar a la siguiente: FT250101YBNX.
-Visualice Reportes y seleccione el tipo de reporte.
-Esta herramienta permite autogestionar sus aportaciones.`;
+    const TEXTO_AYUDA_AUDIO = `Instrucciones. Solicite su Código o pin para acceder a su estado de cuenta, que consiste en su bloque más casa más 3 dígitos. En Consultar estado de cuenta, en la casilla código F ingrese su código suministrado por el patronato. Analice su estado de cuenta, verifique si se muestran todas sus aportaciones; si está al día sus aportaciones deben sumar 12 por 300 igual a 3600. Si en su estado de cuenta no se reflejan todas o hacen falta depósitos realizados y no están registrados, puede ir a la opción Registrar Referencia. Digite en el campo Referencia la Referencia que aparece en su comprobante de depósito y haga clic en Buscar. Si aparece la Referencia, digite su código suministrado por el patronato y su nombre tal como aparece en su estado de cuenta y Guardar; regrese a Consultar estado de cuenta y se mostrará su referencia conciliada. En algunos casos, como depósitos por billeteras, no se muestran estas referencias que tienen una estructura similar a la siguiente: FT250101YBNX. Visualice Reportes y seleccione el tipo de reporte. Esta herramienta permite autogestionar sus aportaciones.`;
 
 function reproducirAyudaAudio(){
  if (!('speechSynthesis' in window)) {
@@ -1492,10 +1484,14 @@ function reproducirAyudaAudio(){
  window.speechSynthesis.cancel();
 
  const voz = new SpeechSynthesisUtterance(TEXTO_AYUDA_AUDIO);
- voz.lang = 'es-HN';
- voz.rate = 0.92;
+ voz.lang = 'es-ES';
+ voz.rate = 0.9;
  voz.pitch = 1;
  voz.volume = 1;
+
+ const voces = window.speechSynthesis.getVoices();
+ const vozEsp = voces.find(v => v.lang && v.lang.toLowerCase().startsWith('es'));
+ if (vozEsp) voz.voice = vozEsp;
 
  window.speechSynthesis.speak(voz);
 }
@@ -1508,16 +1504,17 @@ function openAyuda(){
    reproducirAyudaAudio();
  }, 200);
 }
- function closeAyuda(){
+
+function closeAyuda(){
  ayudaOverlay.classList.remove('open');
  ayudaOverlay.setAttribute('aria-hidden', 'true');
 
  if ('speechSynthesis' in window) {
    window.speechSynthesis.cancel();
  }
-}   
+}
 
-    btnAyuda.addEventListener('click', openAyuda);
+btnAyuda.addEventListener('click', openAyuda);
     btnAyudaClose.addEventListener('click', closeAyuda);
     ayudaOverlay.addEventListener('click', (e) => {
       if (e.target === ayudaOverlay) closeAyuda();
