@@ -1,18 +1,22 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Caverna RH</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Caverna RH 3D</title>
 
 <style>
-*{box-sizing:border-box;margin:0;padding:0}
+*{
+  box-sizing:border-box;
+  margin:0;
+  padding:0;
+}
 
 body{
-  font-family:Arial, sans-serif;
   height:100vh;
   overflow:hidden;
-  background:#020617;
+  font-family:Arial, sans-serif;
+  background:#000;
   color:white;
 }
 
@@ -21,189 +25,238 @@ body{
   width:100%;
   height:100vh;
   overflow:hidden;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-
+  perspective:900px;
   background:
-    linear-gradient(to bottom,
-      rgba(0,0,0,.78),
-      rgba(2,6,23,.96)
-    ),
-    url("https://images.unsplash.com/photo-1506744038136-46273834b3fb?q=80&w=1974&auto=format&fit=crop");
-
-  background-size:cover;
-  background-position:center center;
-  background-repeat:no-repeat;
+    radial-gradient(circle at center 45%, rgba(80,80,80,.18), transparent 18%),
+    linear-gradient(to bottom,#020202,#050505 45%,#000);
 }
 
-.fog{
+/* CAVERNA 3D */
+.cave-world{
   position:absolute;
-  inset:-20%;
-  background:
-    radial-gradient(circle at 20% 40%, rgba(255,255,255,.05), transparent 20%),
-    radial-gradient(circle at 70% 60%, rgba(255,255,255,.04), transparent 25%),
-    radial-gradient(circle at 40% 80%, rgba(255,255,255,.03), transparent 20%);
-  filter:blur(42px);
-  animation:fogMove 25s linear infinite alternate;
-  opacity:.85;
-  z-index:2;
+  inset:0;
+  transform-style:preserve-3d;
+  animation:walkForward 18s linear infinite;
 }
 
-@keyframes fogMove{
-  from{transform:translateX(-3%) translateY(-2%)}
-  to{transform:translateX(3%) translateY(2%)}
+@keyframes walkForward{
+  from{transform:translateZ(0)}
+  to{transform:translateZ(520px)}
 }
 
-.cave{
+/* TÚNEL */
+.tunnel{
   position:absolute;
-  width:100%;
-  height:100%;
+  inset:0;
+  transform-style:preserve-3d;
+}
+
+/* PAREDES ROCOSAS */
+.rock-layer{
+  position:absolute;
+  left:50%;
+  top:50%;
+  width:130vw;
+  height:130vh;
+  transform:translate(-50%,-50%);
+  border-radius:50%;
   background:
-    radial-gradient(circle at center,
-      rgba(0,0,0,0) 12%,
-      rgba(0,0,0,.45) 35%,
-      rgba(0,0,0,.88) 70%,
-      rgba(0,0,0,.98) 100%
+    radial-gradient(circle at center, transparent 18%, rgba(0,0,0,.85) 35%, #000 70%),
+    repeating-radial-gradient(circle at center,
+      rgba(120,120,120,.22) 0 3px,
+      rgba(30,30,30,.35) 4px 12px,
+      rgba(0,0,0,.55) 13px 24px
     );
-  z-index:1;
+  box-shadow:
+    inset 0 0 100px #000,
+    inset 0 0 220px #000;
+  opacity:.95;
 }
 
+.layer1{transform:translate(-50%,-50%) translateZ(-100px) scale(1.3)}
+.layer2{transform:translate(-50%,-50%) translateZ(-350px) scale(1.1)}
+.layer3{transform:translate(-50%,-50%) translateZ(-650px) scale(.9)}
+.layer4{transform:translate(-50%,-50%) translateZ(-950px) scale(.75)}
+.layer5{transform:translate(-50%,-50%) translateZ(-1250px) scale(.6)}
+
+/* PISO HÚMEDO */
+.floor{
+  position:absolute;
+  left:50%;
+  bottom:-22%;
+  width:180vw;
+  height:55vh;
+  transform:translateX(-50%) rotateX(72deg);
+  transform-origin:center bottom;
+  background:
+    linear-gradient(to bottom, rgba(255,255,255,.08), transparent 18%),
+    repeating-linear-gradient(
+      90deg,
+      rgba(255,255,255,.06) 0 2px,
+      transparent 2px 22px
+    ),
+    linear-gradient(to bottom,#111,#000);
+  box-shadow:0 -30px 90px rgba(255,255,255,.08);
+  opacity:.8;
+  animation:floorMove 4s linear infinite;
+}
+
+@keyframes floorMove{
+  from{background-position:0 0,0 0,0 0}
+  to{background-position:0 140px,0 120px,0 0}
+}
+
+/* LUZ DEL FONDO */
+.exit-light{
+  position:absolute;
+  left:50%;
+  top:42%;
+  width:360px;
+  height:360px;
+  transform:translate(-50%,-50%) translateZ(-1350px);
+  border-radius:50%;
+  background:
+    radial-gradient(circle,
+      rgba(255,255,255,.95) 0%,
+      rgba(220,240,255,.65) 14%,
+      rgba(120,170,200,.28) 34%,
+      transparent 68%
+    );
+  filter:blur(6px);
+  animation:pulseLight 4s ease-in-out infinite alternate;
+}
+
+@keyframes pulseLight{
+  from{opacity:.55; transform:translate(-50%,-50%) translateZ(-1350px) scale(.85)}
+  to{opacity:.95; transform:translate(-50%,-50%) translateZ(-1350px) scale(1.08)}
+}
+
+/* RAYOS DE LUZ */
 .light-beam{
   position:absolute;
-  top:-10%;
   left:50%;
-  transform:translateX(-50%);
+  top:0;
   width:700px;
-  height:120vh;
-  background:linear-gradient(
-    to bottom,
-    rgba(255,255,255,.22),
-    rgba(255,255,255,.04),
-    transparent
-  );
-  clip-path:polygon(45% 0%,55% 0%,100% 100%,0% 100%);
-  filter:blur(14px);
-  opacity:.35;
-  animation:beam 6s ease-in-out infinite alternate;
+  height:100vh;
+  transform:translateX(-50%);
+  clip-path:polygon(43% 0,57% 0,100% 100%,0 100%);
+  background:linear-gradient(to bottom,rgba(255,255,255,.26),rgba(255,255,255,.04),transparent);
+  filter:blur(16px);
+  opacity:.34;
+  animation:beamMove 7s ease-in-out infinite alternate;
   z-index:3;
 }
 
-@keyframes beam{
-  from{
-    opacity:.22;
-    transform:translateX(-50%) scaleX(.96);
-  }
-  to{
-    opacity:.42;
-    transform:translateX(-50%) scaleX(1.04);
-  }
+@keyframes beamMove{
+  from{opacity:.22; transform:translateX(-52%) scaleX(.9)}
+  to{opacity:.42; transform:translateX(-48%) scaleX(1.1)}
 }
 
-.title{
+/* NIEBLA */
+.fog{
   position:absolute;
-  top:8%;
-  text-align:center;
-  z-index:5;
-}
-
-.title h1{
-  font-size:64px;
-  letter-spacing:4px;
-  color:#f8fafc;
-  text-shadow:
-    0 0 12px rgba(255,255,255,.25),
-    0 0 30px rgba(255,255,255,.18);
-  font-weight:900;
-}
-
-.title p{
-  margin-top:18px;
-  font-size:22px;
-  color:#e2e8f0;
-  letter-spacing:1px;
-  text-shadow:0 0 12px rgba(255,255,255,.15);
-}
-
-.torch{
-  position:absolute;
-  top:38%;
-  width:22px;
-  height:90px;
-  background:#78350f;
+  inset:-30%;
+  background:
+    radial-gradient(circle at 25% 40%, rgba(255,255,255,.08), transparent 18%),
+    radial-gradient(circle at 70% 55%, rgba(255,255,255,.05), transparent 22%),
+    radial-gradient(circle at 50% 75%, rgba(255,255,255,.04), transparent 28%);
+  filter:blur(45px);
+  opacity:.8;
+  animation:fogMove 18s linear infinite alternate;
   z-index:4;
 }
 
-.torch.left{left:18%}
-.torch.right{right:18%}
-
-.flame{
-  position:absolute;
-  top:-45px;
-  left:-17px;
-  width:55px;
-  height:60px;
-  background:radial-gradient(circle,#fde68a,#f97316,#dc2626);
-  border-radius:50% 50% 45% 45%;
-  animation:flicker .18s infinite alternate;
-  box-shadow:0 0 45px #f97316;
+@keyframes fogMove{
+  from{transform:translateX(-4%) translateY(-2%)}
+  to{transform:translateX(4%) translateY(2%)}
 }
 
-@keyframes flicker{
-  from{transform:scale(.95) rotate(-2deg)}
-  to{transform:scale(1.08) rotate(2deg)}
-}
-
-.entrance{
+/* OSCURECIMIENTO CINEMATOGRÁFICO */
+.vignette{
   position:absolute;
-  bottom:11%;
+  inset:0;
+  background:
+    radial-gradient(circle at center, transparent 20%, rgba(0,0,0,.55) 58%, #000 95%);
   z-index:6;
+  pointer-events:none;
+}
+
+/* CONTENIDO */
+.content{
+  position:relative;
+  z-index:10;
+  width:100%;
+  height:100vh;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
   text-align:center;
+  padding:40px;
+}
+
+.content h1{
+  font-size:70px;
+  letter-spacing:5px;
+  text-transform:uppercase;
+  text-shadow:
+    0 0 14px rgba(255,255,255,.35),
+    0 0 40px rgba(180,220,255,.25);
+}
+
+.content p{
+  margin-top:18px;
+  max-width:720px;
+  font-size:22px;
+  line-height:1.5;
+  color:#dbeafe;
+  text-shadow:0 0 15px rgba(0,0,0,.8);
 }
 
 .enterBtn{
-  padding:18px 42px;
-  border:none;
+  margin-top:38px;
+  padding:18px 44px;
   border-radius:999px;
+  border:1px solid rgba(255,255,255,.25);
   background:rgba(255,255,255,.12);
-  backdrop-filter:blur(10px);
   color:white;
-  font-weight:800;
   font-size:18px;
-  letter-spacing:1px;
+  font-weight:800;
   cursor:pointer;
-  border:1px solid rgba(255,255,255,.18);
+  backdrop-filter:blur(10px);
   box-shadow:
-    0 0 25px rgba(255,255,255,.12),
-    inset 0 0 20px rgba(255,255,255,.06);
+    0 0 28px rgba(255,255,255,.18),
+    inset 0 0 18px rgba(255,255,255,.08);
   transition:.35s;
 }
 
 .enterBtn:hover{
-  transform:scale(1.05);
-  background:rgba(255,255,255,.18);
+  transform:scale(1.08);
+  background:rgba(255,255,255,.2);
 }
 
+/* MENÚ INTERIOR */
 .labyrinth{
   display:none;
   position:absolute;
   inset:0;
-  background:
-    radial-gradient(circle at center,#1e293b,#020617 70%);
-  z-index:20;
+  z-index:30;
   padding:60px;
-  animation:enter .9s ease forwards;
+  background:
+    radial-gradient(circle at center, rgba(15,23,42,.7), rgba(0,0,0,.96) 72%);
+  animation:enterLabyrinth .9s ease forwards;
+  overflow:auto;
 }
 
-@keyframes enter{
-  from{transform:scale(1.4);filter:blur(8px);opacity:0}
-  to{transform:scale(1);filter:blur(0);opacity:1}
+@keyframes enterLabyrinth{
+  from{opacity:0; transform:scale(1.25); filter:blur(10px)}
+  to{opacity:1; transform:scale(1); filter:blur(0)}
 }
 
 .labyrinth h2{
   text-align:center;
-  font-size:38px;
-  color:#93c5fd;
+  font-size:42px;
+  color:#f8fafc;
   margin-bottom:12px;
 }
 
@@ -211,40 +264,52 @@ body{
   text-align:center;
   color:#cbd5e1;
   margin-bottom:40px;
+  font-size:18px;
 }
 
 .paths{
   display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
-  gap:22px;
-  max-width:1100px;
+  grid-template-columns:repeat(auto-fit,minmax(230px,1fr));
+  gap:24px;
+  max-width:1150px;
   margin:auto;
 }
 
 .path{
-  min-height:150px;
-  border-radius:24px;
-  padding:24px;
-  background:linear-gradient(145deg,#0f172a,#1e293b);
-  border:1px solid rgba(147,197,253,.35);
-  box-shadow:0 20px 45px rgba(0,0,0,.45);
+  min-height:170px;
+  padding:26px;
+  border-radius:26px;
+  background:
+    linear-gradient(145deg,rgba(15,23,42,.85),rgba(30,41,59,.7));
+  border:1px solid rgba(255,255,255,.16);
+  box-shadow:
+    0 24px 50px rgba(0,0,0,.65),
+    inset 0 0 25px rgba(255,255,255,.04);
   cursor:pointer;
-  transition:.25s;
+  transition:.3s;
 }
 
 .path:hover{
-  transform:translateY(-8px) scale(1.03);
-  box-shadow:0 0 35px rgba(147,197,253,.45);
+  transform:translateY(-10px) scale(1.03);
+  box-shadow:0 0 35px rgba(180,220,255,.35);
 }
 
 .path h3{
   color:#bfdbfe;
-  margin-bottom:10px;
+  margin-bottom:12px;
+  font-size:21px;
 }
 
 .path span{
-  color:#94a3b8;
+  color:#cbd5e1;
   line-height:1.5;
+}
+
+/* RESPONSIVE */
+@media(max-width:700px){
+  .content h1{font-size:42px}
+  .content p{font-size:17px}
+  .labyrinth{padding:35px 20px}
 }
 </style>
 </head>
@@ -252,63 +317,67 @@ body{
 <body>
 
 <div class="scene">
-  <div class="fog"></div>
-  <div class="cave"></div>
-  <div class="light-beam"></div>
 
-  <div class="title">
-    <h1>Portal RH</h1>
-    <p>Entra a la caverna estratégica de Recursos Humanos</p>
+  <div class="cave-world">
+    <div class="tunnel">
+      <div class="rock-layer layer1"></div>
+      <div class="rock-layer layer2"></div>
+      <div class="rock-layer layer3"></div>
+      <div class="rock-layer layer4"></div>
+      <div class="rock-layer layer5"></div>
+      <div class="floor"></div>
+      <div class="exit-light"></div>
+    </div>
   </div>
 
-  <div class="torch left"><div class="flame"></div></div>
-  <div class="torch right"><div class="flame"></div></div>
+  <div class="light-beam"></div>
+  <div class="fog"></div>
+  <div class="vignette"></div>
 
-  <div class="entrance">
+  <div class="content">
+    <h1>Portal RH</h1>
+    <p>Avanza dentro de la caverna estratégica donde cada ruta conduce a una herramienta de gestión humana.</p>
     <button class="enterBtn" onclick="enterCave()">Entrar a la caverna</button>
   </div>
 
   <section class="labyrinth" id="labyrinth">
-    <h2>Elige tu camino</h2>
-    <p>Cada ruta conduce a una herramienta diseñada para transformar la gestión humana.</p>
+    <h2>Elige tu ruta</h2>
+    <p>Cada camino abre una solución para transformar datos de Recursos Humanos en decisiones reales.</p>
 
     <div class="paths">
       <div class="path" onclick="goTo('#')">
         <h3>Evaluación del desempeño</h3>
-        <span>Convierte formularios en decisiones, desarrollo y productividad.</span>
+        <span>Convierte evaluaciones en desarrollo, seguimiento y decisiones objetivas.</span>
       </div>
 
       <div class="path" onclick="goTo('#')">
         <h3>Administración salarial</h3>
-        <span>Analiza equidad interna, mercado y estructuras salariales.</span>
+        <span>Analiza equidad interna, mercado, grados, rangos y competitividad salarial.</span>
       </div>
 
       <div class="path" onclick="goTo('#')">
         <h3>Descripciones de puesto</h3>
-        <span>Ordena funciones, perfiles, competencias y responsabilidades.</span>
+        <span>Ordena funciones, perfiles, competencias y responsabilidades clave.</span>
       </div>
 
       <div class="path" onclick="goTo('#')">
         <h3>KPIs y entregables</h3>
-        <span>Gestiona resultados medibles, no solo actividades.</span>
+        <span>Gestiona resultados medibles, no solo actividades operativas.</span>
       </div>
 
       <div class="path" onclick="goTo('#')">
         <h3>Incidencias</h3>
-        <span>Registra hechos relevantes que impactan el desempeño.</span>
+        <span>Registra hechos relevantes que impactan desempeño, conducta y resultados.</span>
       </div>
 
       <div class="path" onclick="goTo('#')">
         <h3>Reportes ejecutivos</h3>
-        <span>Visualiza datos clave para tomar decisiones rápidas.</span>
+        <span>Visualiza información clave para tomar decisiones rápidas y estratégicas.</span>
       </div>
     </div>
   </section>
-</div>
 
-<audio autoplay loop id="caveAudio">
-  <source src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_c8c8e4f0d8.mp3?filename=cave-drips-110149.mp3" type="audio/mpeg">
-</audio>
+</div>
 
 <script>
 function enterCave(){
