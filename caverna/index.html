@@ -3,486 +3,428 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Caverna Persa 3D</title>
+<title>Caverna 3D</title>
 
 <style>
-*{margin:0;padding:0;box-sizing:border-box}
-
-html,body{
-  width:100%;
-  height:100%;
-  overflow:hidden;
-  background:#050201;
-  font-family:Arial,sans-serif;
+html, body {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #050201;
 }
 
-.scene{
-  position:relative;
-  width:100vw;
-  height:100vh;
-  overflow:hidden;
-  perspective:1000px;
-  background:
-    radial-gradient(circle at center,rgba(150,85,30,.25),transparent 25%),
-    linear-gradient(to bottom,#070301,#1a0d04 45%,#040201);
-  cursor:grab;
+canvas {
+  display: block;
 }
 
-.world{
-  position:absolute;
-  inset:0;
-  transform-style:preserve-3d;
-  transition:transform .12s linear;
+#start {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: radial-gradient(circle, rgba(255,150,60,.12), rgba(0,0,0,.95));
+  z-index: 10;
 }
 
-.depth{
-  position:absolute;
-  inset:-20%;
-  background:
-    radial-gradient(circle at 50% 45%,rgba(255,185,80,.35),transparent 8%),
-    radial-gradient(circle at 50% 46%,rgba(15,8,4,.35),rgba(0,0,0,.95) 70%);
-  transform:translateZ(-1100px) scale(2.6);
+#start button {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  border: 1px solid rgba(255,190,100,.65);
+  background: radial-gradient(circle, rgba(255,160,70,.35), rgba(0,0,0,.55));
+  box-shadow: 0 0 35px rgba(255,120,40,.8), inset 0 0 30px rgba(255,200,120,.25);
+  cursor: pointer;
+  animation: pulse 1.4s infinite alternate;
 }
 
-.arch{
-  position:absolute;
-  left:50%;
-  top:50%;
-  width:42vw;
-  height:82vh;
-  transform:translate(-50%,-48%) translateZ(-300px);
-  border-radius:50% 50% 10% 10%;
-  background:
-    radial-gradient(circle at center,rgba(0,0,0,.05) 0%,rgba(0,0,0,.72) 47%,#000 75%),
-    repeating-radial-gradient(circle at center,
-      rgba(170,105,45,.32) 0 5px,
-      rgba(70,38,18,.65) 6px 22px,
-      rgba(10,5,2,.9) 23px 45px
-    );
-  box-shadow:
-    inset 0 0 90px #000,
-    inset 0 0 220px rgba(0,0,0,.95),
-    0 0 60px rgba(255,130,35,.16);
-  z-index:3;
-}
-
-.passage{
-  position:absolute;
-  top:51%;
-  width:34vw;
-  height:66vh;
-  border-radius:48% 48% 14% 14%;
-  background:
-    radial-gradient(circle at center,rgba(0,0,0,.2) 0%,rgba(0,0,0,.88) 55%,#000 78%),
-    repeating-radial-gradient(circle,
-      rgba(145,87,35,.28) 0 4px,
-      rgba(50,28,14,.8) 5px 22px,
-      rgba(0,0,0,.95) 23px 42px
-    );
-  box-shadow:inset 0 0 100px #000;
-  z-index:2;
-}
-
-.passage.left{
-  left:7%;
-  transform:translateY(-45%) rotateY(24deg) translateZ(-220px);
-}
-
-.passage.right{
-  right:7%;
-  transform:translateY(-45%) rotateY(-24deg) translateZ(-220px);
-}
-
-.column{
-  position:absolute;
-  top:18%;
-  width:70px;
-  height:70vh;
-  background:
-    repeating-linear-gradient(90deg,
-      #3a1e0c 0 8px,
-      #8a5525 9px 15px,
-      #1b0c04 16px 25px);
-  box-shadow:
-    inset 0 0 30px #000,
-    0 0 35px rgba(255,120,30,.18);
-  z-index:8;
-}
-
-.column:before,
-.column:after{
-  content:"";
-  position:absolute;
-  left:-18px;
-  width:106px;
-  height:36px;
-  background:linear-gradient(to bottom,#b27838,#3b1b08);
-  box-shadow:inset 0 0 18px #000;
-}
-
-.column:before{top:-28px}
-.column:after{bottom:-26px}
-
-.c1{left:19%}
-.c2{right:19%}
-.c3{left:34%;transform:scale(.75);top:28%;opacity:.75}
-.c4{right:34%;transform:scale(.75);top:28%;opacity:.75}
-
-.ceiling{
-  position:absolute;
-  top:-16%;
-  left:-10%;
-  width:120%;
-  height:42vh;
-  background:
-    repeating-linear-gradient(25deg,
-      rgba(140,85,35,.32) 0 6px,
-      rgba(35,18,7,.88) 7px 23px,
-      rgba(0,0,0,.96) 24px 48px);
-  clip-path:polygon(0 0,100% 0,96% 72%,78% 90%,55% 75%,32% 94%,5% 75%);
-  box-shadow:inset 0 0 120px #000;
-  z-index:10;
-}
-
-.floor{
-  position:absolute;
-  left:50%;
-  bottom:-26%;
-  width:160vw;
-  height:70vh;
-  transform:translateX(-50%) rotateX(72deg);
-  transform-origin:center bottom;
-  background:
-    radial-gradient(circle at 50% 18%,rgba(255,180,70,.22),transparent 20%),
-    repeating-linear-gradient(90deg,
-      rgba(255,210,120,.08) 0 3px,
-      transparent 4px 34px),
-    repeating-linear-gradient(0deg,
-      rgba(120,72,30,.45) 0 6px,
-      rgba(44,24,10,.9) 7px 28px,
-      rgba(0,0,0,.8) 29px 52px);
-  box-shadow:inset 0 0 130px #000;
-  animation:floorMove 9s linear infinite;
-  z-index:7;
-}
-
-@keyframes floorMove{
-  from{background-position:0 0,0 0,0 0}
-  to{background-position:0 0,0 180px,0 230px}
-}
-
-.torch{
-  position:absolute;
-  width:18px;
-  height:125px;
-  background:linear-gradient(to bottom,#6b3512,#1a0902);
-  z-index:18;
-  box-shadow:0 0 10px #000;
-}
-
-.t1{left:12%;top:45%;transform:rotate(-10deg)}
-.t2{right:12%;top:45%;transform:rotate(10deg)}
-.t3{left:38%;top:48%;transform:scale(.7)}
-.t4{right:38%;top:48%;transform:scale(.7)}
-
-.flame{
-  position:absolute;
-  top:-58px;
-  left:-22px;
-  width:62px;
-  height:72px;
-  border-radius:50% 50% 45% 45%;
-  background:
-    radial-gradient(circle at 50% 65%,#fff3a3 0 12%,#ffb347 24%,#ff6a00 48%,rgba(150,20,0,.35) 70%,transparent 72%);
-  box-shadow:
-    0 0 28px #ff9d25,
-    0 0 75px rgba(255,105,15,.9),
-    0 0 130px rgba(255,85,0,.55);
-  animation:flicker .12s infinite alternate;
-}
-
-@keyframes flicker{
-  from{transform:scale(.9) rotate(-3deg);opacity:.82}
-  to{transform:scale(1.14) rotate(3deg);opacity:1}
-}
-
-.glow{
-  position:absolute;
-  width:420px;
-  height:420px;
-  border-radius:50%;
-  background:radial-gradient(circle,rgba(255,125,30,.34),transparent 68%);
-  filter:blur(20px);
-  z-index:12;
-  animation:glowPulse 1.3s ease-in-out infinite alternate;
-}
-
-.g1{left:-2%;top:28%}
-.g2{right:-2%;top:28%}
-.g3{left:28%;top:36%;transform:scale(.6)}
-.g4{right:28%;top:36%;transform:scale(.6)}
-
-@keyframes glowPulse{
-  from{opacity:.42}
-  to{opacity:.85}
-}
-
-.symbol{
-  position:absolute;
-  z-index:20;
-  opacity:.7;
-  filter:drop-shadow(0 0 5px rgba(255,140,40,.3));
-}
-
-.symbol svg{
-  width:115px;
-  height:115px;
-  stroke:rgba(210,130,55,.82);
-  fill:none;
-  stroke-width:4;
-}
-
-.s-left{left:7%;top:58%;transform:rotate(-8deg)}
-.s-right{right:8%;top:57%;transform:rotate(8deg)}
-.s-center{left:47%;top:36%;transform:translateX(-50%) scale(.8)}
-
-.sand{
-  position:absolute;
-  inset:-20%;
-  background:
-    radial-gradient(circle at 20% 70%,rgba(255,210,120,.06),transparent 18%),
-    radial-gradient(circle at 75% 45%,rgba(255,180,90,.045),transparent 22%),
-    radial-gradient(circle at 50% 85%,rgba(255,220,130,.04),transparent 25%);
-  filter:blur(38px);
-  opacity:.75;
-  z-index:25;
-  animation:sandMove 16s linear infinite alternate;
-}
-
-@keyframes sandMove{
-  from{transform:translateX(-4%) translateY(2%)}
-  to{transform:translateX(4%) translateY(-2%)}
-}
-
-.vignette{
-  position:absolute;
-  inset:0;
-  background:
-    radial-gradient(circle at center,transparent 16%,rgba(0,0,0,.45) 58%,#000 96%);
-  z-index:40;
-  pointer-events:none;
-}
-
-.start{
-  position:absolute;
-  inset:0;
-  z-index:60;
-  background:radial-gradient(circle at center,rgba(0,0,0,.12),rgba(0,0,0,.96));
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  transition:opacity 1s ease,transform 1s ease;
-}
-
-.start.hidden{
-  opacity:0;
-  transform:scale(1.28);
-  pointer-events:none;
-}
-
-.enter{
-  width:130px;
-  height:130px;
-  border-radius:50%;
-  border:1px solid rgba(255,185,85,.6);
-  background:
-    radial-gradient(circle,rgba(255,170,60,.28),rgba(0,0,0,.45));
-  box-shadow:
-    0 0 30px rgba(255,150,45,.75),
-    inset 0 0 30px rgba(255,190,95,.35);
-  cursor:pointer;
-  animation:portalPulse 1.4s ease-in-out infinite alternate;
-}
-
-@keyframes portalPulse{
-  from{transform:scale(.94);opacity:.65}
-  to{transform:scale(1.08);opacity:1}
-}
-
-.scene.entering .world{
-  animation:walk 5s ease-in-out forwards;
-}
-
-@keyframes walk{
-  0%{transform:translateZ(0)}
-  30%{transform:translateZ(220px) rotateX(1deg)}
-  65%{transform:translateZ(470px) rotateX(-1deg)}
-  100%{transform:translateZ(680px)}
-}
-
-.particle{
-  position:absolute;
-  width:4px;
-  height:4px;
-  border-radius:50%;
-  background:rgba(255,200,115,.58);
-  z-index:30;
-  animation:floatParticle linear infinite;
-}
-
-@keyframes floatParticle{
-  from{transform:translateY(105vh);opacity:0}
-  25%{opacity:.8}
-  to{transform:translateY(-20vh);opacity:0}
-}
-
-@media(max-width:700px){
-  .arch{width:58vw;height:70vh}
-  .passage{width:48vw;height:55vh}
-  .column{width:44px}
-  .symbol svg{width:80px;height:80px}
+@keyframes pulse {
+  from { transform: scale(.94); opacity: .7; }
+  to { transform: scale(1.08); opacity: 1; }
 }
 </style>
 </head>
 
 <body>
 
-<div class="scene" id="scene">
-
-  <div class="world" id="world">
-    <div class="depth"></div>
-
-    <div class="passage left"></div>
-    <div class="passage right"></div>
-    <div class="arch"></div>
-
-    <div class="ceiling"></div>
-    <div class="floor"></div>
-
-    <div class="column c1"></div>
-    <div class="column c2"></div>
-    <div class="column c3"></div>
-    <div class="column c4"></div>
-
-    <div class="glow g1"></div>
-    <div class="glow g2"></div>
-    <div class="glow g3"></div>
-    <div class="glow g4"></div>
-
-    <div class="torch t1"><div class="flame"></div></div>
-    <div class="torch t2"><div class="flame"></div></div>
-    <div class="torch t3"><div class="flame"></div></div>
-    <div class="torch t4"><div class="flame"></div></div>
-
-    <div class="symbol s-left">
-      <svg viewBox="0 0 120 120">
-        <path d="M60 15 C30 25 22 55 38 80 C50 100 75 100 88 80 C104 55 90 25 60 15Z"/>
-        <path d="M60 30 C45 42 45 72 60 88 C75 72 75 42 60 30Z"/>
-        <circle cx="60" cy="60" r="8"/>
-      </svg>
-    </div>
-
-    <div class="symbol s-right">
-      <svg viewBox="0 0 120 120">
-        <path d="M20 60 C35 28 85 28 100 60 C85 92 35 92 20 60Z"/>
-        <circle cx="60" cy="60" r="17"/>
-        <path d="M60 20 L60 100 M25 60 L95 60"/>
-      </svg>
-    </div>
-
-    <div class="symbol s-center">
-      <svg viewBox="0 0 120 120">
-        <circle cx="60" cy="60" r="24"/>
-        <path d="M60 8 L70 42 L106 42 L76 62 L88 100 L60 76 L32 100 L44 62 L14 42 L50 42Z"/>
-      </svg>
-    </div>
-  </div>
-
-  <div class="sand"></div>
-  <div class="vignette"></div>
-
-  <div class="start" id="start">
-    <button class="enter" onclick="enterCave()" aria-label="Entrar"></button>
-  </div>
-
+<div id="start">
+  <button id="enterBtn" aria-label="Entrar"></button>
 </div>
 
-<script>
-const scene = document.getElementById("scene");
-const world = document.getElementById("world");
-const start = document.getElementById("start");
+<script type="module">
+import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
 
-let mouseX = 0;
-let mouseY = 0;
-let targetX = 0;
-let targetY = 0;
+let scene, camera, renderer;
+let moveForward = false;
+let moveBackward = false;
+let moveLeft = false;
+let moveRight = false;
 let entered = false;
-let zDepth = 0;
 
-function enterCave(){
-  entered = true;
-  start.classList.add("hidden");
-  scene.classList.add("entering");
+let yaw = 0;
+let pitch = 0;
+let mouseDown = false;
 
-  setTimeout(()=>{
-    scene.classList.remove("entering");
-    zDepth = 260;
-  },5000);
+init();
+animate();
+
+function init() {
+  scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x050201);
+  scene.fog = new THREE.FogExp2(0x130905, 0.035);
+
+  camera = new THREE.PerspectiveCamera(
+    75,
+    window.innerWidth / window.innerHeight,
+    0.1,
+    1000
+  );
+
+  camera.position.set(0, 2.2, 13);
+
+  renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.shadowMap.enabled = true;
+  document.body.appendChild(renderer.domElement);
+
+  createLights();
+  createCave();
+  createPassages();
+  createTorches();
+  createRupestrianDrawings();
+  createDust();
+
+  window.addEventListener("resize", onResize);
+  document.addEventListener("keydown", onKeyDown);
+  document.addEventListener("keyup", onKeyUp);
+
+  document.addEventListener("mousedown", () => mouseDown = true);
+  document.addEventListener("mouseup", () => mouseDown = false);
+  document.addEventListener("mousemove", onMouseMove);
+
+  document.getElementById("enterBtn").addEventListener("click", () => {
+    entered = true;
+    document.getElementById("start").style.display = "none";
+  });
 }
 
-scene.addEventListener("mousemove",e=>{
-  const x = (e.clientX / window.innerWidth - .5) * 2;
-  const y = (e.clientY / window.innerHeight - .5) * 2;
-  targetX = x * 11;
-  targetY = y * -7;
-});
+function createLights() {
+  const ambient = new THREE.AmbientLight(0x3a1c0b, 1.4);
+  scene.add(ambient);
 
-scene.addEventListener("touchmove",e=>{
-  const t = e.touches[0];
-  const x = (t.clientX / window.innerWidth - .5) * 2;
-  const y = (t.clientY / window.innerHeight - .5) * 2;
-  targetX = x * 11;
-  targetY = y * -7;
-});
+  const backLight = new THREE.PointLight(0xffb45c, 4, 45);
+  backLight.position.set(0, 6, -28);
+  scene.add(backLight);
 
-document.addEventListener("keydown",e=>{
-  if(e.key === "Enter") enterCave();
-  if(e.key === "ArrowUp") zDepth += 35;
-  if(e.key === "ArrowDown") zDepth -= 35;
-  if(e.key === "ArrowLeft") targetX -= 8;
-  if(e.key === "ArrowRight") targetX += 8;
-});
+  const moonLight = new THREE.DirectionalLight(0xffd5a0, 1.2);
+  moonLight.position.set(3, 8, 8);
+  scene.add(moonLight);
+}
 
-function animateCamera(){
-  mouseX += (targetX - mouseX) * .05;
-  mouseY += (targetY - mouseY) * .05;
+function rockMaterial() {
+  return new THREE.MeshStandardMaterial({
+    color: 0x4b2b16,
+    roughness: 1,
+    metalness: 0,
+    bumpScale: 0.22
+  });
+}
 
-  if(!scene.classList.contains("entering")){
-    world.style.transform = `
-      rotateY(${mouseX}deg)
-      rotateX(${mouseY}deg)
-      translateZ(${entered ? zDepth : 0}px)
-    `;
+function createCave() {
+  const floorGeo = new THREE.PlaneGeometry(60, 120, 80, 80);
+  const floorMat = new THREE.MeshStandardMaterial({
+    color: 0x3a2111,
+    roughness: 1
+  });
+
+  const floor = new THREE.Mesh(floorGeo, floorMat);
+  floor.rotation.x = -Math.PI / 2;
+  floor.position.z = -25;
+  scene.add(floor);
+
+  const ceilingGeo = new THREE.PlaneGeometry(60, 120, 50, 50);
+  const ceiling = new THREE.Mesh(ceilingGeo, rockMaterial());
+  ceiling.rotation.x = Math.PI / 2;
+  ceiling.position.set(0, 7, -25);
+  scene.add(ceiling);
+
+  const leftWallGeo = new THREE.PlaneGeometry(120, 18, 60, 20);
+  const leftWall = new THREE.Mesh(leftWallGeo, rockMaterial());
+  leftWall.rotation.y = Math.PI / 2.8;
+  leftWall.position.set(-12, 3, -25);
+  scene.add(leftWall);
+
+  const rightWall = leftWall.clone();
+  rightWall.rotation.y = -Math.PI / 2.8;
+  rightWall.position.x = 12;
+  scene.add(rightWall);
+
+  for (let i = 0; i < 90; i++) {
+    const stone = new THREE.Mesh(
+      new THREE.DodecahedronGeometry(Math.random() * 0.9 + 0.25, 0),
+      rockMaterial()
+    );
+
+    stone.position.set(
+      (Math.random() - 0.5) * 26,
+      Math.random() * 7,
+      -Math.random() * 70
+    );
+
+    stone.scale.set(
+      1 + Math.random() * 2,
+      .6 + Math.random(),
+      1 + Math.random() * 2
+    );
+
+    scene.add(stone);
+  }
+}
+
+function createPassages() {
+  createPassage(0, 2.8, -38, 0);
+  createPassage(-9, 2.4, -30, 0.45);
+  createPassage(9, 2.4, -30, -0.45);
+}
+
+function createPassage(x, y, z, rotY) {
+  const group = new THREE.Group();
+  group.position.set(x, y, z);
+  group.rotation.y = rotY;
+
+  const ringMat = new THREE.MeshStandardMaterial({
+    color: 0x6b3d1b,
+    roughness: 1
+  });
+
+  for (let i = 0; i < 18; i++) {
+    const angle = (Math.PI * 2 * i) / 18;
+    const radiusX = 3.2;
+    const radiusY = 3.7;
+
+    const block = new THREE.Mesh(
+      new THREE.BoxGeometry(0.9, 1.1, 1.2),
+      ringMat
+    );
+
+    block.position.set(
+      Math.cos(angle) * radiusX,
+      Math.sin(angle) * radiusY,
+      0
+    );
+
+    block.rotation.z = angle;
+    group.add(block);
   }
 
-  requestAnimationFrame(animateCamera);
+  const darkness = new THREE.Mesh(
+    new THREE.CircleGeometry(3.1, 48),
+    new THREE.MeshBasicMaterial({ color: 0x000000 })
+  );
+  darkness.position.z = -0.65;
+  group.add(darkness);
+
+  scene.add(group);
 }
 
-animateCamera();
+function createTorches() {
+  createTorch(-6, 2.2, -8);
+  createTorch(6, 2.2, -8);
+  createTorch(-8.5, 2, -22);
+  createTorch(8.5, 2, -22);
+  createTorch(-5, 2.1, -34);
+  createTorch(5, 2.1, -34);
+}
 
-function createParticles(){
-  for(let i=0;i<55;i++){
-    const p=document.createElement("div");
-    p.className="particle";
-    p.style.left=Math.random()*100+"vw";
-    p.style.animationDuration=6+Math.random()*12+"s";
-    p.style.animationDelay=Math.random()*8+"s";
-    p.style.opacity=Math.random();
-    scene.appendChild(p);
+function createTorch(x, y, z) {
+  const torch = new THREE.Group();
+  torch.position.set(x, y, z);
+
+  const wood = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.08, 0.12, 1.7, 12),
+    new THREE.MeshStandardMaterial({ color: 0x3a1605 })
+  );
+  wood.rotation.z = x < 0 ? -0.25 : 0.25;
+  torch.add(wood);
+
+  const flame = new THREE.Mesh(
+    new THREE.ConeGeometry(0.38, 0.95, 24),
+    new THREE.MeshBasicMaterial({
+      color: 0xff7a00,
+      transparent: true,
+      opacity: 0.9
+    })
+  );
+  flame.position.y = 1.05;
+  torch.add(flame);
+
+  const innerFlame = new THREE.Mesh(
+    new THREE.ConeGeometry(0.22, 0.55, 24),
+    new THREE.MeshBasicMaterial({
+      color: 0xfff1a0,
+      transparent: true,
+      opacity: 0.9
+    })
+  );
+  innerFlame.position.y = 1.1;
+  torch.add(innerFlame);
+
+  const light = new THREE.PointLight(0xff8b2b, 4.5, 12);
+  light.position.y = 1.15;
+  torch.add(light);
+
+  torch.userData.flame = flame;
+  torch.userData.innerFlame = innerFlame;
+  torch.userData.light = light;
+
+  scene.add(torch);
+}
+
+function createRupestrianDrawings() {
+  createSymbol(-10.8, 3.3, -13, Math.PI / 2.8);
+  createSymbol(10.8, 3.1, -18, -Math.PI / 2.8);
+  createSymbol(-10.8, 3.7, -30, Math.PI / 2.8);
+  createSymbol(10.8, 3.5, -34, -Math.PI / 2.8);
+}
+
+function createSymbol(x, y, z, rotY) {
+  const group = new THREE.Group();
+  group.position.set(x, y, z);
+  group.rotation.y = rotY;
+
+  const mat = new THREE.MeshBasicMaterial({ color: 0xc97832 });
+
+  const head = new THREE.Mesh(new THREE.CircleGeometry(0.18, 24), mat);
+  head.position.y = 0.65;
+  group.add(head);
+
+  const body = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.8, 0.04), mat);
+  body.position.y = 0.1;
+  group.add(body);
+
+  const arm = new THREE.Mesh(new THREE.BoxGeometry(0.75, 0.07, 0.04), mat);
+  arm.position.y = 0.25;
+  arm.rotation.z = 0.3;
+  group.add(arm);
+
+  const leg1 = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.55, 0.04), mat);
+  leg1.position.set(-0.18, -0.55, 0);
+  leg1.rotation.z = -0.35;
+  group.add(leg1);
+
+  const leg2 = leg1.clone();
+  leg2.position.x = 0.18;
+  leg2.rotation.z = 0.35;
+  group.add(leg2);
+
+  scene.add(group);
+}
+
+function createDust() {
+  const geometry = new THREE.BufferGeometry();
+  const count = 700;
+  const positions = [];
+
+  for (let i = 0; i < count; i++) {
+    positions.push(
+      (Math.random() - 0.5) * 28,
+      Math.random() * 8,
+      -Math.random() * 70
+    );
+  }
+
+  geometry.setAttribute(
+    "position",
+    new THREE.Float32BufferAttribute(positions, 3)
+  );
+
+  const material = new THREE.PointsMaterial({
+    color: 0xffc47a,
+    size: 0.045,
+    transparent: true,
+    opacity: 0.45
+  });
+
+  const dust = new THREE.Points(geometry, material);
+  dust.name = "dust";
+  scene.add(dust);
+}
+
+function onMouseMove(e) {
+  if (!entered) return;
+
+  const movementX = e.movementX || 0;
+  const movementY = e.movementY || 0;
+
+  if (mouseDown) {
+    yaw -= movementX * 0.003;
+    pitch -= movementY * 0.003;
+    pitch = Math.max(-0.45, Math.min(0.45, pitch));
   }
 }
 
-createParticles();
+function onKeyDown(e) {
+  if (e.key.toLowerCase() === "w" || e.key === "ArrowUp") moveForward = true;
+  if (e.key.toLowerCase() === "s" || e.key === "ArrowDown") moveBackward = true;
+  if (e.key.toLowerCase() === "a" || e.key === "ArrowLeft") moveLeft = true;
+  if (e.key.toLowerCase() === "d" || e.key === "ArrowRight") moveRight = true;
+}
+
+function onKeyUp(e) {
+  if (e.key.toLowerCase() === "w" || e.key === "ArrowUp") moveForward = false;
+  if (e.key.toLowerCase() === "s" || e.key === "ArrowDown") moveBackward = false;
+  if (e.key.toLowerCase() === "a" || e.key === "ArrowLeft") moveLeft = false;
+  if (e.key.toLowerCase() === "d" || e.key === "ArrowRight") moveRight = false;
+}
+
+function animate() {
+  requestAnimationFrame(animate);
+
+  if (entered) {
+    camera.rotation.order = "YXZ";
+    camera.rotation.y = yaw;
+    camera.rotation.x = pitch;
+
+    const speed = 0.11;
+    const direction = new THREE.Vector3();
+
+    if (moveForward) direction.z -= speed;
+    if (moveBackward) direction.z += speed;
+    if (moveLeft) direction.x -= speed;
+    if (moveRight) direction.x += speed;
+
+    direction.applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw);
+    camera.position.add(direction);
+
+    camera.position.x = Math.max(-9.8, Math.min(9.8, camera.position.x));
+    camera.position.z = Math.max(-42, Math.min(14, camera.position.z));
+    camera.position.y = 2.2;
+  }
+
+  scene.traverse(obj => {
+    if (obj.userData.flame) {
+      const scale = 0.9 + Math.random() * 0.28;
+      obj.userData.flame.scale.set(scale, scale, scale);
+      obj.userData.innerFlame.scale.set(scale * .85, scale * .85, scale * .85);
+      obj.userData.light.intensity = 3.5 + Math.random() * 2.2;
+    }
+  });
+
+  const dust = scene.getObjectByName("dust");
+  if (dust) {
+    dust.rotation.y += 0.0007;
+    dust.position.y = Math.sin(Date.now() * 0.0005) * 0.18;
+  }
+
+  renderer.render(scene, camera);
+}
+
+function onResize() {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+}
 </script>
 
 </body>
