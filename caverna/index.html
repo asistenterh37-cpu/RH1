@@ -1,927 +1,801 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Caverna RH 3D</title>
-
-<style>
-html, body {
-  margin: 0;
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-  background: #050201;
-  font-family: Arial, sans-serif;
-}
-
-canvas {
-  display: block;
-}
-
-#start {
-  position: fixed;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  background:
-    radial-gradient(circle, rgba(255,150,60,.15), rgba(0,0,0,.96));
-  z-index: 20;
-  transition: opacity 1s ease;
-}
-
-#start.hidden{
-  opacity:0;
-  pointer-events:none;
-}
-
-#enterBtn {
-  width: 130px;
-  height: 130px;
-  border-radius: 50%;
-  border: 1px solid rgba(255,190,100,.75);
-  background:
-    radial-gradient(circle,
-      rgba(255,160,70,.4),
-      rgba(0,0,0,.6)
-    );
-
-  box-shadow:
-    0 0 42px rgba(255,120,40,.9),
-    inset 0 0 35px rgba(255,200,120,.28);
-
-  cursor: pointer;
-  animation: pulse 1.3s infinite alternate;
-}
-
-@keyframes pulse {
-  from {
-    transform: scale(.94);
-    opacity: .7;
-  }
-
-  to {
-    transform: scale(1.08);
-    opacity: 1;
-  }
-}
-
-#hud{
-  position:fixed;
-  left:50%;
-  bottom:20px;
-  transform:translateX(-50%);
-  color:rgba(255,220,170,.85);
-  font-size:14px;
-  letter-spacing:.5px;
-  z-index:5;
-  opacity:0;
-  transition:opacity .8s;
-  pointer-events:none;
-}
-
-#hud.show{
-  opacity:1;
-}
-</style>
-</head>
-
-<body>
-
-<div id="start">
-  <button id="enterBtn"></button>
-</div>
-
-<div id="hud">
-  WASD o Flechas · Click sostenido para mirar · Click en un portal
-</div>
-
-<script type="module">
-
-import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
-
-let scene;
-let camera;
-let renderer;
-let clock;
-
-let entered = false;
-
-let yaw = 0;
-let pitch = 0;
-
-let mouseDown = false;
-
-let moveForward = false;
-let moveBackward = false;
-let moveLeft = false;
-let moveRight = false;
-
-let walkTime = 0;
-
-const torches = [];
-const portals = [];
-
-init();
-animate();
-
-function init(){
-
-  clock = new THREE.Clock();
-
-  scene = new THREE.Scene();
-
-  scene.background = new THREE.Color(0x050201);
-
-  scene.fog = new THREE.FogExp2(
-    0x120804,
-    0.03
-  );
-
-  camera = new THREE.PerspectiveCamera(
-    75,
-    window.innerWidth / window.innerHeight,
-    0.1,
-    1000
-  );
-
-  camera.position.set(0,2.2,14);
-
-  renderer = new THREE.WebGLRenderer({
-    antialias:true
-  });
-
-  renderer.setSize(
-    window.innerWidth,
-    window.innerHeight
-  );
-
-  renderer.shadowMap.enabled = true;
-
-  renderer.setPixelRatio(
-    Math.min(window.devicePixelRatio,2)
-  );
-
-  document.body.appendChild(renderer.domElement);
-
-  createLights();
-
-  createTextures();
-
-  createCave();
-
-  createPassages();
-
-  createTorches();
-
-  createParticles();
-
-  createDecorations();
-
-  createRupestrian();
-
-  window.addEventListener("resize", onResize);
-
-  document.addEventListener("keydown", onKeyDown);
-
-  document.addEventListener("keyup", onKeyUp);
-
-  document.addEventListener("mousedown", ()=>{
-    mouseDown = true;
-  });
-
-  document.addEventListener("mouseup", ()=>{
-    mouseDown = false;
-  });
-
-  document.addEventListener("mousemove", onMouseMove);
-
-  document.addEventListener("click", onPortalClick);
-
-  document
-    .getElementById("enterBtn")
-    .addEventListener("click", enterCave);
-}
-
-let rockTexture;
-let sandTexture;
-
-function createTextures(){
-
-  rockTexture = createProceduralTexture(
-    "#3a2111",
-    "210,135,70"
-  );
-
-  sandTexture = createProceduralTexture(
-    "#5a3518",
-    "255,190,95"
-  );
-}
-
-function createProceduralTexture(base,line){
-
-  const canvas = document.createElement("canvas");
-
-  canvas.width = 512;
-  canvas.height = 512;
-
-  const ctx = canvas.getContext("2d");
-
-  ctx.fillStyle = base;
-
-  ctx.fillRect(0,0,512,512);
-
-  for(let i=0;i<1200;i++){
-
-    ctx.fillStyle =
-      `rgba(${line},${Math.random()*.3})`;
-
-    ctx.beginPath();
-
-    ctx.arc(
-      Math.random()*512,
-      Math.random()*512,
-      Math.random()*4,
-      0,
-      Math.PI*2
-    );
-
-    ctx.fill();
-  }
-
-  for(let i=0;i<120;i++){
-
-    ctx.strokeStyle =
-      `rgba(0,0,0,${Math.random()*.2})`;
-
-    ctx.lineWidth = Math.random()*3+1;
-
-    ctx.beginPath();
-
-    ctx.moveTo(
-      Math.random()*512,
-      Math.random()*512
-    );
-
-    ctx.lineTo(
-      Math.random()*512,
-      Math.random()*512
-    );
-
-    ctx.stroke();
-  }
-
-  const tex = new THREE.CanvasTexture(canvas);
-
-  tex.wrapS = THREE.RepeatWrapping;
-  tex.wrapT = THREE.RepeatWrapping;
-
-  tex.repeat.set(5,5);
-
-  return tex;
-}
-
-function rockMaterial(){
-
-  return new THREE.MeshStandardMaterial({
-    map:rockTexture,
-    color:0x5b3418,
-    roughness:1
-  });
-}
-
-function sandMaterial(){
-
-  return new THREE.MeshStandardMaterial({
-    map:sandTexture,
-    color:0x6b3b17,
-    roughness:1
-  });
-}
-
-function createLights(){
-
-  const ambient =
-    new THREE.AmbientLight(
-      0x2c1609,
-      1.4
-    );
-
-  scene.add(ambient);
-
-  const warm =
-    new THREE.PointLight(
-      0xffb45c,
-      4.5,
-      60
-    );
-
-  warm.position.set(0,6,-35);
-
-  scene.add(warm);
-
-  const top =
-    new THREE.DirectionalLight(
-      0xffd5a0,
-      1.1
-    );
-
-  top.position.set(5,8,10);
-
-  scene.add(top);
-}
-
-function createCave(){
-
-  const floor =
-    new THREE.Mesh(
-      new THREE.PlaneGeometry(70,140,80,80),
-      sandMaterial()
-    );
-
-  floor.rotation.x = -Math.PI/2;
-
-  floor.position.z = -32;
-
-  floor.receiveShadow = true;
-
-  scene.add(floor);
-
-  const ceiling =
-    new THREE.Mesh(
-      new THREE.PlaneGeometry(70,140,50,20),
-      rockMaterial()
-    );
-
-  ceiling.rotation.x = Math.PI/2;
-
-  ceiling.position.set(0,7.5,-32);
-
-  scene.add(ceiling);
-
-  const leftWall =
-    new THREE.Mesh(
-      new THREE.PlaneGeometry(140,20,80,20),
-      rockMaterial()
-    );
-
-  leftWall.rotation.y = Math.PI/2.7;
-
-  leftWall.position.set(-12.5,3,-32);
-
-  scene.add(leftWall);
-
-  const rightWall = leftWall.clone();
-
-  rightWall.rotation.y = -Math.PI/2.7;
-
-  rightWall.position.x = 12.5;
-
-  scene.add(rightWall);
-
-  for(let i=0;i<130;i++){
-
-    const rock =
-      new THREE.Mesh(
-        new THREE.DodecahedronGeometry(
-          Math.random()*0.9+.25
-        ),
-        rockMaterial()
-      );
-
-    rock.position.set(
-      (Math.random()-.5)*28,
-      Math.random()*7,
-      -Math.random()*85
-    );
-
-    rock.rotation.set(
-      Math.random(),
-      Math.random(),
-      Math.random()
-    );
-
-    rock.castShadow = true;
-
-    scene.add(rock);
-  }
-}
-
-function createPassages(){
-
-  createPassage(
-    -8.5,
-    2.8,
-    -28,
-    0.45,
-    "https://tuusuario.github.io/evaluacion/"
-  );
-
-  createPassage(
-    0,
-    3,
-    -40,
-    0,
-    "https://tuusuario.github.io/salarios/"
-  );
-
-  createPassage(
-    8.5,
-    2.8,
-    -28,
-    -0.45,
-    "https://tuusuario.github.io/puestos/"
-  );
-}
-
-function createPassage(x,y,z,rotY,url){
-
-  const group = new THREE.Group();
-
-  group.position.set(x,y,z);
-
-  group.rotation.y = rotY;
-
-  const mat =
-    new THREE.MeshStandardMaterial({
-      map:rockTexture,
-      color:0x7b471f,
-      roughness:1
-    });
-
-  for(let i=0;i<22;i++){
-
-    const angle =
-      (Math.PI*2*i)/22;
-
-    const block =
-      new THREE.Mesh(
-        new THREE.BoxGeometry(.75,.95,1.1),
-        mat
-      );
-
-    block.position.set(
-      Math.cos(angle)*3.2,
-      Math.sin(angle)*3.6,
-      0
-    );
-
-    block.rotation.z = angle;
-
-    group.add(block);
-  }
-
-  const darkness =
-    new THREE.Mesh(
-      new THREE.CircleGeometry(3.05,60),
-      new THREE.MeshBasicMaterial({
-        color:0x000000
-      })
-    );
-
-  darkness.position.z = -.6;
-
-  group.add(darkness);
-
-  const glow =
-    new THREE.PointLight(
-      0xff9b3d,
-      2.8,
-      10
-    );
-
-  glow.position.z = 1;
-
-  group.add(glow);
-
-  const hitbox =
-    new THREE.Mesh(
-      new THREE.CircleGeometry(3.2,60),
-      new THREE.MeshBasicMaterial({
-        transparent:true,
-        opacity:0
-      })
-    );
-
-  hitbox.userData.url = url;
-
-  group.add(hitbox);
-
-  portals.push(hitbox);
-
-  scene.add(group);
-}
-
-function createTorches(){
-
-  createTorch(-6.8,2.1,-9);
-
-  createTorch(6.8,2.1,-9);
-
-  createTorch(-9,2.1,-22);
-
-  createTorch(9,2.1,-22);
-
-  createTorch(-4.8,2.2,-34);
-
-  createTorch(4.8,2.2,-34);
-}
-
-function createTorch(x,y,z){
-
-  const torch = new THREE.Group();
-
-  torch.position.set(x,y,z);
-
-  const wood =
-    new THREE.Mesh(
-      new THREE.CylinderGeometry(.08,.13,1.7,12),
-      new THREE.MeshStandardMaterial({
-        color:0x3a1605
-      })
-    );
-
-  wood.rotation.z = x<0 ? -.25 : .25;
-
-  torch.add(wood);
-
-  const flame =
-    new THREE.Mesh(
-      new THREE.ConeGeometry(.38,.95,24),
-      new THREE.MeshBasicMaterial({
-        color:0xff7a00,
-        transparent:true,
-        opacity:.92
-      })
-    );
-
-  flame.position.y = 1.05;
-
-  torch.add(flame);
-
-  const inner =
-    new THREE.Mesh(
-      new THREE.ConeGeometry(.22,.55,24),
-      new THREE.MeshBasicMaterial({
-        color:0xfff1a0,
-        transparent:true,
-        opacity:.95
-      })
-    );
-
-  inner.position.y = 1.12;
-
-  torch.add(inner);
-
-  const light =
-    new THREE.PointLight(
-      0xff8b2b,
-      4.8,
-      13
-    );
-
-  light.position.y = 1.2;
-
-  torch.add(light);
-
-  torch.userData.flame = flame;
-  torch.userData.inner = inner;
-  torch.userData.light = light;
-
-  torches.push(torch);
-
-  scene.add(torch);
-}
-
-function createParticles(){
-
-  const geo = new THREE.BufferGeometry();
-
-  const count = 1200;
-
-  const positions = [];
-
-  for(let i=0;i<count;i++){
-
-    positions.push(
-      (Math.random()-.5)*30,
-      Math.random()*8,
-      -Math.random()*85
-    );
-  }
-
-  geo.setAttribute(
-    "position",
-    new THREE.Float32BufferAttribute(
-      positions,
-      3
-    )
-  );
-
-  const mat =
-    new THREE.PointsMaterial({
-      color:0xffc47a,
-      size:.045,
-      transparent:true,
-      opacity:.42
-    });
-
-  const dust =
-    new THREE.Points(
-      geo,
-      mat
-    );
-
-  dust.name = "dust";
-
-  scene.add(dust);
-}
-
-function createDecorations(){
-
-  for(let i=0;i<8;i++){
-
-    const pot =
-      new THREE.Mesh(
-        new THREE.CylinderGeometry(.25,.35,.65,16),
-        new THREE.MeshStandardMaterial({
-          color:0x7b3f16,
-          roughness:1
-        })
-      );
-
-    pot.position.set(
-      (Math.random()-.5)*18,
-      .32,
-      -Math.random()*55-8
-    );
-
-    scene.add(pot);
-  }
-}
-
-function createRupestrian(){
-
-  createSymbol(-11.2,3.3,-13,Math.PI/2.7);
-
-  createSymbol(11.2,3.1,-18,-Math.PI/2.7);
-
-  createSymbol(-11.2,3.7,-30,Math.PI/2.7);
-
-  createSymbol(11.2,3.5,-34,-Math.PI/2.7);
-}
-
-function createSymbol(x,y,z,rotY){
-
-  const group = new THREE.Group();
-
-  group.position.set(x,y,z);
-
-  group.rotation.y = rotY;
-
-  const mat =
-    new THREE.MeshBasicMaterial({
-      color:0xc97832
-    });
-
-  const head =
-    new THREE.Mesh(
-      new THREE.CircleGeometry(.18,24),
-      mat
-    );
-
-  head.position.y = .65;
-
-  group.add(head);
-
-  const body =
-    new THREE.Mesh(
-      new THREE.BoxGeometry(.08,.8,.04),
-      mat
-    );
-
-  body.position.y = .1;
-
-  group.add(body);
-
-  const arm =
-    new THREE.Mesh(
-      new THREE.BoxGeometry(.75,.07,.04),
-      mat
-    );
-
-  arm.position.y = .25;
-
-  arm.rotation.z = .3;
-
-  group.add(arm);
-
-  scene.add(group);
-}
-
-function enterCave(){
-
-  entered = true;
-
-  document
-    .getElementById("start")
-    .classList.add("hidden");
-
-  document
-    .getElementById("hud")
-    .classList.add("show");
-}
-
-function onMouseMove(e){
-
-  if(!entered || !mouseDown) return;
-
-  yaw -= (e.movementX||0)*.003;
-
-  pitch -= (e.movementY||0)*.003;
-
-  pitch = Math.max(
-    -.5,
-    Math.min(.5,pitch)
-  );
-}
-
-function onPortalClick(e){
-
-  if(!entered) return;
-
-  const mouse =
-    new THREE.Vector2(
-      (e.clientX/window.innerWidth)*2-1,
-      -(e.clientY/window.innerHeight)*2+1
-    );
-
-  const raycaster =
-    new THREE.Raycaster();
-
-  raycaster.setFromCamera(
-    mouse,
-    camera
-  );
-
-  const hits =
-    raycaster.intersectObjects(
-      portals,
-      true
-    );
-
-  if(hits.length>0){
-
-    const url =
-      hits[0].object.userData.url;
-
-    window.location.href = url;
-  }
-}
-
-function onKeyDown(e){
-
-  if(e.key.toLowerCase()==="w" || e.key==="ArrowUp")
-    moveForward = true;
-
-  if(e.key.toLowerCase()==="s" || e.key==="ArrowDown")
-    moveBackward = true;
-
-  if(e.key.toLowerCase()==="a" || e.key==="ArrowLeft")
-    moveLeft = true;
-
-  if(e.key.toLowerCase()==="d" || e.key==="ArrowRight")
-    moveRight = true;
-}
-
-function onKeyUp(e){
-
-  if(e.key.toLowerCase()==="w" || e.key==="ArrowUp")
-    moveForward = false;
-
-  if(e.key.toLowerCase()==="s" || e.key==="ArrowDown")
-    moveBackward = false;
-
-  if(e.key.toLowerCase()==="a" || e.key==="ArrowLeft")
-    moveLeft = false;
-
-  if(e.key.toLowerCase()==="d" || e.key==="ArrowRight")
-    moveRight = false;
-}
-
-function animate(){
-
-  requestAnimationFrame(animate);
-
-  const delta = clock.getDelta();
-
-  if(entered){
-
-    camera.rotation.order = "YXZ";
-
-    camera.rotation.y = yaw;
-
-    camera.rotation.x = pitch;
-
-    const speed = 5.5*delta;
-
-    const direction =
-      new THREE.Vector3();
-
-    if(moveForward)
-      direction.z -= speed;
-
-    if(moveBackward)
-      direction.z += speed;
-
-    if(moveLeft)
-      direction.x -= speed;
-
-    if(moveRight)
-      direction.x += speed;
-
-    if(direction.length()>0){
-
-      walkTime += delta*9;
-
-      direction.applyAxisAngle(
-        new THREE.Vector3(0,1,0),
-        yaw
-      );
-
-      camera.position.add(direction);
-
-      camera.position.y =
-        2.2 + Math.sin(walkTime)*.06;
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Caverna 3D Interactiva</title>
+  <style>
+    html, body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #030303;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     }
 
-    camera.position.x =
-      Math.max(
-        -10.2,
-        Math.min(10.2,camera.position.x)
+    canvas {
+      display: block;
+    }
+
+    /* Interfaz mínima: no rompe la inmersión */
+    #startPanel {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: radial-gradient(circle at center, rgba(35, 22, 12, 0.55), rgba(0, 0, 0, 0.92));
+      color: #f5dec1;
+      z-index: 10;
+      transition: opacity 0.6s ease;
+    }
+
+    #startPanel.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    #startBox {
+      width: min(520px, calc(100% - 40px));
+      padding: 28px;
+      border: 1px solid rgba(255, 183, 94, 0.28);
+      border-radius: 22px;
+      background: rgba(12, 8, 5, 0.74);
+      box-shadow: 0 0 70px rgba(255, 120, 30, 0.14);
+      backdrop-filter: blur(10px);
+      text-align: center;
+    }
+
+    #startBox h1 {
+      margin: 0 0 10px;
+      font-size: clamp(1.7rem, 4vw, 2.8rem);
+      font-weight: 700;
+      letter-spacing: 0.04em;
+    }
+
+    #startBox p {
+      margin: 8px 0;
+      color: rgba(245, 222, 193, 0.8);
+      line-height: 1.5;
+    }
+
+    #startButton {
+      margin-top: 18px;
+      padding: 13px 24px;
+      border: 0;
+      border-radius: 999px;
+      color: #1c0e03;
+      font-weight: 800;
+      cursor: pointer;
+      background: linear-gradient(135deg, #ffd28a, #ff7a22);
+      box-shadow: 0 10px 30px rgba(255, 112, 25, 0.3);
+    }
+
+    #hud {
+      position: fixed;
+      left: 18px;
+      bottom: 16px;
+      z-index: 5;
+      color: rgba(255, 228, 189, 0.65);
+      font-size: 13px;
+      letter-spacing: 0.02em;
+      text-shadow: 0 2px 10px #000;
+      user-select: none;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+  <div id="startPanel">
+    <div id="startBox">
+      <h1>Caverna antigua</h1>
+      <p>Explora en primera persona una cueva oscura con pasadizos, antorchas y arte rupestre.</p>
+      <p><strong>Shift + ↑</strong> avanzar · <strong>↓</strong> retroceder · <strong>← / →</strong> girar</p>
+      <button id="startButton">Entrar a la caverna</button>
+    </div>
+  </div>
+
+  <div id="hud">Shift + ↑ avanzar · ↓ retroceder · ← / → girar</div>
+
+  <!-- Three.js desde CDN: ideal para GitHub Pages sin instalación -->
+  <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+
+  <script>
+    /* =========================================================
+       CAVERNA 3D INTERACTIVA
+       - Un solo archivo index.html
+       - Three.js + WebGL + Audio API
+       - Movimiento en primera persona con colisiones básicas
+       ========================================================= */
+
+    let scene, camera, renderer, clock;
+    let audioContext, masterGain, ambienceGain, stepGain;
+    let ambienceNodes = [];
+    let stepTimer = 0;
+    let audioStarted = false;
+
+    const keys = {
+      forward: false,
+      backward: false,
+      left: false,
+      right: false,
+      shift: false
+    };
+
+    const player = {
+      position: new THREE.Vector3(0, 1.7, -6),
+      rotationY: 0,
+      radius: 0.62,
+      speed: 4.2,
+      turnSpeed: 1.9
+    };
+
+    const torches = [];
+    const colliders = [];
+    const caveSegments = [];
+    const rockObjects = [];
+
+    init();
+    animate();
+
+    function init() {
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x020202);
+      scene.fog = new THREE.FogExp2(0x050403, 0.045);
+
+      clock = new THREE.Clock();
+
+      camera = new THREE.PerspectiveCamera(72, window.innerWidth / window.innerHeight, 0.1, 180);
+      camera.position.copy(player.position);
+
+      renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.7));
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      renderer.toneMappingExposure = 0.82;
+      document.body.appendChild(renderer.domElement);
+
+      createLighting();
+      createCave();
+      createEntrance();
+      createRockDetails();
+      createRupestrianArt();
+      createTorches();
+      createMistParticles();
+
+      window.addEventListener("resize", onResize);
+      window.addEventListener("keydown", onKeyDown);
+      window.addEventListener("keyup", onKeyUp);
+      document.getElementById("startButton").addEventListener("click", startExperience);
+    }
+
+    function startExperience() {
+      document.getElementById("startPanel").classList.add("hidden");
+      startAudio();
+    }
+
+    function createLighting() {
+      const ambient = new THREE.AmbientLight(0x15100b, 0.38);
+      scene.add(ambient);
+
+      // Luz tenue desde la entrada para dar profundidad cinematográfica.
+      const entranceLight = new THREE.DirectionalLight(0xd8b686, 0.42);
+      entranceLight.position.set(0, 7, -16);
+      entranceLight.castShadow = true;
+      scene.add(entranceLight);
+    }
+
+    function createCave() {
+      const wallMat = createRockMaterial();
+      const floorMat = createRockMaterial(0.7);
+      const roofMat = createRockMaterial(0.55);
+
+      // Mapa modular de pasadizos: cada segmento es un bloque/corredor.
+      const segments = [
+        { x: 0, z: -3, w: 7, d: 10 },
+        { x: 0, z: 7, w: 7, d: 12 },
+        { x: -7, z: 8, w: 9, d: 6 },
+        { x: 8, z: 10, w: 9, d: 6 },
+        { x: 0, z: 19, w: 7, d: 12 },
+        { x: -8, z: 23, w: 9, d: 7 },
+        { x: 8, z: 26, w: 9, d: 8 },
+        { x: 0, z: 34, w: 8, d: 12 },
+        { x: -9, z: 37, w: 8, d: 8 },
+        { x: 10, z: 39, w: 10, d: 8 }
+      ];
+
+      caveSegments.push(...segments);
+
+      segments.forEach((s, i) => {
+        createSegmentFloorAndRoof(s, floorMat, roofMat, i);
+        createSegmentWalls(s, wallMat, i);
+      });
+
+      // Rocas que bloquean parcialmente algunos caminos y crean laberinto.
+      const obstacles = [
+        { x: -2.7, z: 11.5, r: 1.2 }, { x: 2.8, z: 15.8, r: 1.1 },
+        { x: -5.5, z: 22, r: 1.0 }, { x: 5.6, z: 25.2, r: 1.2 },
+        { x: 0.8, z: 30.4, r: 1.1 }, { x: -2.2, z: 35.5, r: 1.2 },
+        { x: 8.3, z: 37.2, r: 1.0 }
+      ];
+
+      obstacles.forEach((o, i) => {
+        const rock = createBoulder(o.r, wallMat);
+        rock.position.set(o.x, 0.25, o.z);
+        rock.rotation.set(randomBetween(-0.2, 0.2), randomBetween(0, Math.PI), randomBetween(-0.16, 0.16));
+        rock.castShadow = true;
+        rock.receiveShadow = true;
+        scene.add(rock);
+        rockObjects.push(rock);
+        colliders.push({ x: o.x, z: o.z, r: o.r + 0.55, type: "circle" });
+      });
+    }
+
+    function createSegmentFloorAndRoof(s, floorMat, roofMat, index) {
+      const floorGeo = new THREE.PlaneGeometry(s.w, s.d, 18, 28);
+      displacePlane(floorGeo, 0.16);
+      const floor = new THREE.Mesh(floorGeo, floorMat);
+      floor.rotation.x = -Math.PI / 2;
+      floor.position.set(s.x, 0, s.z);
+      floor.receiveShadow = true;
+      scene.add(floor);
+
+      const roofGeo = new THREE.PlaneGeometry(s.w, s.d, 16, 24);
+      displacePlane(roofGeo, 0.42);
+      const roof = new THREE.Mesh(roofGeo, roofMat);
+      roof.rotation.x = Math.PI / 2;
+      roof.position.set(s.x, 4.15 + Math.sin(index) * 0.28, s.z);
+      roof.receiveShadow = true;
+      scene.add(roof);
+    }
+
+    function createSegmentWalls(s, mat, index) {
+      // Paredes con interrupciones simuladas por superposición de segmentos.
+      const wallH = 4.2;
+      const thickness = 0.38;
+      const walls = [
+        { x: s.x - s.w / 2, z: s.z, w: thickness, d: s.d, side: "left" },
+        { x: s.x + s.w / 2, z: s.z, w: thickness, d: s.d, side: "right" },
+        { x: s.x, z: s.z - s.d / 2, w: s.w, d: thickness, side: "back" },
+        { x: s.x, z: s.z + s.d / 2, w: s.w, d: thickness, side: "front" }
+      ];
+
+      walls.forEach((w, wi) => {
+        if (shouldSkipWallOpening(s, w.side)) return;
+
+        const geo = new THREE.BoxGeometry(w.w, wallH, w.d, 3, 10, 3);
+        displaceBox(geo, 0.18);
+        const mesh = new THREE.Mesh(geo, mat);
+        mesh.position.set(w.x, wallH / 2, w.z);
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
+        mesh.rotation.y = randomBetween(-0.03, 0.03);
+        scene.add(mesh);
+
+        colliders.push({
+          minX: w.x - w.w / 2 - player.radius,
+          maxX: w.x + w.w / 2 + player.radius,
+          minZ: w.z - w.d / 2 - player.radius,
+          maxZ: w.z + w.d / 2 + player.radius,
+          type: "box"
+        });
+      });
+    }
+
+    function shouldSkipWallOpening(s, side) {
+      // Evita cerrar por completo conexiones entre corredores superpuestos.
+      // Mantiene límites suficientes para que el jugador no salga del sistema.
+      const openings = [
+        { x: 0, z: -3, side: "front" }, { x: 0, z: 7, side: "back" },
+        { x: 0, z: 7, side: "front" }, { x: 0, z: 19, side: "back" },
+        { x: 0, z: 19, side: "front" }, { x: 0, z: 34, side: "back" },
+        { x: 0, z: 7, side: "left" }, { x: -7, z: 8, side: "right" },
+        { x: 0, z: 7, side: "right" }, { x: 8, z: 10, side: "left" },
+        { x: 0, z: 19, side: "left" }, { x: -8, z: 23, side: "right" },
+        { x: 0, z: 19, side: "right" }, { x: 8, z: 26, side: "left" },
+        { x: 0, z: 34, side: "left" }, { x: -9, z: 37, side: "right" },
+        { x: 0, z: 34, side: "right" }, { x: 10, z: 39, side: "left" }
+      ];
+      return openings.some(o => Math.abs(o.x - s.x) < 0.1 && Math.abs(o.z - s.z) < 0.1 && o.side === side);
+    }
+
+    function createEntrance() {
+      const mat = createRockMaterial(0.9);
+      const archGroup = new THREE.Group();
+
+      for (let i = 0; i < 16; i++) {
+        const angle = Math.PI * (i / 15);
+        const x = Math.cos(angle) * 4.15;
+        const y = Math.sin(angle) * 3.0 + 0.55;
+        const rock = createBoulder(randomBetween(0.45, 0.82), mat);
+        rock.position.set(x, y, -8.55);
+        rock.scale.y *= randomBetween(0.8, 1.35);
+        rock.castShadow = true;
+        archGroup.add(rock);
+      }
+
+      // Laterales de la entrada.
+      [-4.3, 4.3].forEach(x => {
+        for (let j = 0; j < 5; j++) {
+          const rock = createBoulder(randomBetween(0.65, 1.05), mat);
+          rock.position.set(x + randomBetween(-0.25, 0.25), 0.5 + j * 0.65, -8.5 + randomBetween(-0.15, 0.15));
+          rock.castShadow = true;
+          archGroup.add(rock);
+        }
+      });
+
+      scene.add(archGroup);
+    }
+
+    function createRockDetails() {
+      const mat = createRockMaterial(0.72);
+      for (let i = 0; i < 85; i++) {
+        const s = caveSegments[Math.floor(Math.random() * caveSegments.length)];
+        const side = Math.random() > 0.5 ? -1 : 1;
+        const x = s.x + side * (s.w / 2 - 0.25) + randomBetween(-0.15, 0.15);
+        const z = s.z + randomBetween(-s.d / 2 + 0.6, s.d / 2 - 0.6);
+        const rock = createBoulder(randomBetween(0.12, 0.38), mat);
+        rock.position.set(x, randomBetween(0.4, 3.5), z);
+        rock.scale.set(randomBetween(0.5, 1.2), randomBetween(0.5, 1.8), randomBetween(0.35, 0.8));
+        rock.castShadow = true;
+        rock.receiveShadow = true;
+        scene.add(rock);
+      }
+    }
+
+    function createRupestrianArt() {
+      const artPositions = [
+        { x: -3.43, y: 2.0, z: 3.5, ry: Math.PI / 2 },
+        { x: 3.43, y: 2.05, z: 12.5, ry: -Math.PI / 2 },
+        { x: -11.45, y: 2.1, z: 8.7, ry: Math.PI / 2 },
+        { x: 3.43, y: 2.0, z: 22.8, ry: -Math.PI / 2 },
+        { x: -4.05, y: 2.18, z: 34.0, ry: Math.PI / 2 },
+        { x: 5.05, y: 2.1, z: 39.5, ry: -Math.PI / 2 }
+      ];
+
+      artPositions.forEach((p, i) => {
+        const tex = createCaveArtTexture(i);
+        const mat = new THREE.MeshBasicMaterial({
+          map: tex,
+          transparent: true,
+          opacity: 0.78,
+          depthWrite: false
+        });
+        const panel = new THREE.Mesh(new THREE.PlaneGeometry(2.6, 1.55), mat);
+        panel.position.set(p.x, p.y, p.z);
+        panel.rotation.y = p.ry;
+        scene.add(panel);
+      });
+    }
+
+    function createCaveArtTexture(seed) {
+      const c = document.createElement("canvas");
+      c.width = 512;
+      c.height = 320;
+      const ctx = c.getContext("2d");
+      ctx.clearRect(0, 0, c.width, c.height);
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+
+      const pigments = ["rgba(175,72,34,0.82)", "rgba(218,143,70,0.72)", "rgba(95,41,25,0.9)"];
+      ctx.strokeStyle = pigments[seed % pigments.length];
+      ctx.fillStyle = pigments[(seed + 1) % pigments.length];
+
+      // Manos primitivas.
+      for (let i = 0; i < 2; i++) drawHand(ctx, 80 + i * 250 + seed * 12 % 50, 105 + i * 42);
+
+      // Animal simple tipo venado/bisonte.
+      ctx.strokeStyle = pigments[(seed + 2) % pigments.length];
+      ctx.lineWidth = 9;
+      ctx.beginPath();
+      ctx.ellipse(255, 180, 70, 30, -0.1, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(315, 168); ctx.lineTo(355, 145); ctx.lineTo(375, 152);
+      ctx.moveTo(350, 145); ctx.lineTo(365, 122);
+      ctx.moveTo(350, 145); ctx.lineTo(376, 130);
+      ctx.moveTo(220, 205); ctx.lineTo(205, 252);
+      ctx.moveTo(262, 207); ctx.lineTo(257, 255);
+      ctx.moveTo(300, 204); ctx.lineTo(314, 250);
+      ctx.stroke();
+
+      // Figuras humanas y símbolos.
+      ctx.lineWidth = 6;
+      for (let i = 0; i < 5; i++) {
+        const x = 60 + i * 85 + (seed * 9) % 35;
+        const y = 250 + Math.sin(i + seed) * 12;
+        drawStickHuman(ctx, x, y);
+      }
+
+      ctx.lineWidth = 5;
+      for (let i = 0; i < 18; i++) {
+        const x = Math.random() * 480 + 16;
+        const y = Math.random() * 280 + 20;
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        ctx.lineTo(x + randomBetween(-18, 18), y + randomBetween(-18, 18));
+        ctx.stroke();
+      }
+
+      const texture = new THREE.CanvasTexture(c);
+      texture.colorSpace = THREE.SRGBColorSpace;
+      return texture;
+    }
+
+    function drawHand(ctx, x, y) {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.globalAlpha = 0.72;
+      ctx.beginPath();
+      ctx.ellipse(0, 20, 22, 32, 0, 0, Math.PI * 2);
+      ctx.fill();
+      for (let f = -2; f <= 2; f++) {
+        ctx.beginPath();
+        ctx.ellipse(f * 12, -15 - Math.abs(f) * 3, 6, 28 - Math.abs(f) * 4, f * 0.08, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+
+    function drawStickHuman(ctx, x, y) {
+      ctx.beginPath();
+      ctx.arc(x, y - 35, 9, 0, Math.PI * 2);
+      ctx.moveTo(x, y - 26); ctx.lineTo(x, y + 12);
+      ctx.moveTo(x, y - 10); ctx.lineTo(x - 22, y - 22);
+      ctx.moveTo(x, y - 10); ctx.lineTo(x + 22, y - 20);
+      ctx.moveTo(x, y + 12); ctx.lineTo(x - 18, y + 40);
+      ctx.moveTo(x, y + 12); ctx.lineTo(x + 18, y + 40);
+      ctx.stroke();
+    }
+
+    function createTorches() {
+      const torchPlaces = [
+        { x: -3.15, z: 0.5, ry: Math.PI / 2 }, { x: 3.15, z: 6.5, ry: -Math.PI / 2 },
+        { x: -3.15, z: 15.5, ry: Math.PI / 2 }, { x: 3.15, z: 23.5, ry: -Math.PI / 2 },
+        { x: -10.8, z: 8.2, ry: Math.PI / 2 }, { x: 12.0, z: 10.8, ry: -Math.PI / 2 },
+        { x: -11.7, z: 24.0, ry: Math.PI / 2 }, { x: 12.2, z: 26.5, ry: -Math.PI / 2 },
+        { x: -3.5, z: 35.0, ry: Math.PI / 2 }, { x: 5.5, z: 39.0, ry: -Math.PI / 2 }
+      ];
+
+      torchPlaces.forEach((p, i) => {
+        const group = new THREE.Group();
+        group.position.set(p.x, 1.65, p.z);
+        group.rotation.y = p.ry;
+
+        const handleMat = new THREE.MeshStandardMaterial({ color: 0x3a210f, roughness: 0.9 });
+        const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.08, 0.95, 9), handleMat);
+        handle.rotation.z = Math.PI / 8;
+        handle.castShadow = true;
+        group.add(handle);
+
+        const flameMat = new THREE.MeshBasicMaterial({ color: 0xff8b28, transparent: true, opacity: 0.92 });
+        const flame = new THREE.Mesh(new THREE.ConeGeometry(0.17, 0.55, 14), flameMat);
+        flame.position.set(0.18, 0.47, 0);
+        flame.rotation.z = -Math.PI / 9;
+        group.add(flame);
+
+        const light = new THREE.PointLight(0xff8a2a, 2.4, 10, 1.9);
+        light.position.set(p.x + (p.ry > 0 ? 0.5 : -0.5), 2.0, p.z);
+        light.castShadow = true;
+        light.shadow.mapSize.width = 512;
+        light.shadow.mapSize.height = 512;
+        scene.add(light);
+
+        scene.add(group);
+        torches.push({ light, flame, baseIntensity: 2.2 + Math.random() * 0.55, phase: Math.random() * 100 });
+      });
+    }
+
+    function createMistParticles() {
+      const count = 260;
+      const geo = new THREE.BufferGeometry();
+      const positions = [];
+
+      for (let i = 0; i < count; i++) {
+        const s = caveSegments[Math.floor(Math.random() * caveSegments.length)];
+        positions.push(
+          s.x + randomBetween(-s.w / 2, s.w / 2),
+          randomBetween(0.35, 3.5),
+          s.z + randomBetween(-s.d / 2, s.d / 2)
+        );
+      }
+
+      geo.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
+      const mat = new THREE.PointsMaterial({
+        color: 0xbba58d,
+        size: 0.045,
+        transparent: true,
+        opacity: 0.22,
+        depthWrite: false
+      });
+      const points = new THREE.Points(geo, mat);
+      scene.add(points);
+    }
+
+    function createRockMaterial(multiplier = 1) {
+      const texture = createProceduralRockTexture(multiplier);
+      texture.wrapS = THREE.RepeatWrapping;
+      texture.wrapT = THREE.RepeatWrapping;
+      texture.repeat.set(3, 3);
+
+      return new THREE.MeshStandardMaterial({
+        map: texture,
+        color: new THREE.Color(0.42 * multiplier, 0.37 * multiplier, 0.31 * multiplier),
+        roughness: 0.96,
+        metalness: 0.02,
+        bumpMap: texture,
+        bumpScale: 0.15
+      });
+    }
+
+    function createProceduralRockTexture(multiplier) {
+      const c = document.createElement("canvas");
+      c.width = 512;
+      c.height = 512;
+      const ctx = c.getContext("2d");
+      const image = ctx.createImageData(c.width, c.height);
+
+      for (let y = 0; y < c.height; y++) {
+        for (let x = 0; x < c.width; x++) {
+          const i = (y * c.width + x) * 4;
+          const n = noise2D(x * 0.035, y * 0.035) * 0.6 + noise2D(x * 0.012, y * 0.012) * 0.4;
+          const cracks = Math.abs(Math.sin((x + y * 0.7) * 0.045 + n * 7));
+          const shade = Math.floor((55 + n * 90 + cracks * 30) * multiplier);
+          image.data[i] = shade;
+          image.data[i + 1] = Math.floor(shade * 0.89);
+          image.data[i + 2] = Math.floor(shade * 0.76);
+          image.data[i + 3] = 255;
+        }
+      }
+
+      ctx.putImageData(image, 0, 0);
+      const texture = new THREE.CanvasTexture(c);
+      texture.colorSpace = THREE.SRGBColorSpace;
+      return texture;
+    }
+
+    function createBoulder(radius, mat) {
+      const geo = new THREE.IcosahedronGeometry(radius, 2);
+      const pos = geo.attributes.position;
+      for (let i = 0; i < pos.count; i++) {
+        const v = new THREE.Vector3(pos.getX(i), pos.getY(i), pos.getZ(i));
+        const factor = 1 + randomBetween(-0.18, 0.23);
+        v.multiplyScalar(factor);
+        pos.setXYZ(i, v.x, v.y, v.z);
+      }
+      geo.computeVertexNormals();
+      return new THREE.Mesh(geo, mat);
+    }
+
+    function displacePlane(geo, amount) {
+      const pos = geo.attributes.position;
+      for (let i = 0; i < pos.count; i++) {
+        const x = pos.getX(i);
+        const y = pos.getY(i);
+        pos.setZ(i, noise2D(x * 1.6, y * 1.6) * amount + randomBetween(-amount, amount) * 0.35);
+      }
+      geo.computeVertexNormals();
+    }
+
+    function displaceBox(geo, amount) {
+      const pos = geo.attributes.position;
+      for (let i = 0; i < pos.count; i++) {
+        const x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i);
+        const n = noise2D((x + z) * 2.2, y * 1.7) * amount;
+        pos.setXYZ(i, x + randomBetween(-n, n), y + randomBetween(-n, n), z + randomBetween(-n, n));
+      }
+      geo.computeVertexNormals();
+    }
+
+    function onKeyDown(e) {
+      if (e.code === "ShiftLeft" || e.code === "ShiftRight") keys.shift = true;
+      if (e.code === "ArrowUp") keys.forward = true;
+      if (e.code === "ArrowDown") keys.backward = true;
+      if (e.code === "ArrowLeft") keys.left = true;
+      if (e.code === "ArrowRight") keys.right = true;
+    }
+
+    function onKeyUp(e) {
+      if (e.code === "ShiftLeft" || e.code === "ShiftRight") keys.shift = false;
+      if (e.code === "ArrowUp") keys.forward = false;
+      if (e.code === "ArrowDown") keys.backward = false;
+      if (e.code === "ArrowLeft") keys.left = false;
+      if (e.code === "ArrowRight") keys.right = false;
+    }
+
+    function animate() {
+      requestAnimationFrame(animate);
+      const dt = Math.min(clock.getDelta(), 0.033);
+      updatePlayer(dt);
+      updateTorches(clock.elapsedTime);
+      updateAudio(dt);
+      renderer.render(scene, camera);
+    }
+
+    function updatePlayer(dt) {
+      if (keys.left) player.rotationY += player.turnSpeed * dt;
+      if (keys.right) player.rotationY -= player.turnSpeed * dt;
+
+      const dir = new THREE.Vector3(Math.sin(player.rotationY), 0, Math.cos(player.rotationY));
+      let moving = false;
+      const next = player.position.clone();
+
+      if (keys.forward && keys.shift) {
+        next.addScaledVector(dir, player.speed * dt);
+        moving = true;
+      }
+
+      if (keys.backward) {
+        next.addScaledVector(dir, -player.speed * 0.72 * dt);
+        moving = true;
+      }
+
+      if (!collides(next)) {
+        player.position.copy(next);
+      }
+
+      // Cabeceo suave al caminar.
+      const bob = moving ? Math.sin(clock.elapsedTime * 10.5) * 0.045 : 0;
+      camera.position.set(player.position.x, player.position.y + bob, player.position.z);
+      camera.rotation.set(0, player.rotationY, 0, "YXZ");
+      camera.userData.isMoving = moving && !collides(next);
+    }
+
+    function collides(pos) {
+      // Limita al jugador a estar dentro de algún segmento de cueva.
+      const insideAnySegment = caveSegments.some(s =>
+        pos.x > s.x - s.w / 2 + player.radius &&
+        pos.x < s.x + s.w / 2 - player.radius &&
+        pos.z > s.z - s.d / 2 + player.radius &&
+        pos.z < s.z + s.d / 2 - player.radius
       );
+      if (!insideAnySegment) return true;
 
-    camera.position.z =
-      Math.max(
-        -44,
-        Math.min(14,camera.position.z)
-      );
-  }
+      for (const c of colliders) {
+        if (c.type === "circle") {
+          const dx = pos.x - c.x;
+          const dz = pos.z - c.z;
+          if (Math.sqrt(dx * dx + dz * dz) < c.r) return true;
+        } else if (c.type === "box") {
+          if (pos.x > c.minX && pos.x < c.maxX && pos.z > c.minZ && pos.z < c.maxZ) return true;
+        }
+      }
+      return false;
+    }
 
-  torches.forEach(torch=>{
+    function updateTorches(t) {
+      torches.forEach(torch => {
+        const flicker = 0.75 + Math.sin(t * 9 + torch.phase) * 0.16 + Math.random() * 0.18;
+        torch.light.intensity = torch.baseIntensity * flicker;
+        torch.light.distance = 8.2 + Math.random() * 1.2;
+        torch.flame.scale.set(
+          0.85 + Math.random() * 0.26,
+          0.9 + Math.random() * 0.45,
+          0.85 + Math.random() * 0.26
+        );
+        torch.flame.material.opacity = 0.72 + Math.random() * 0.25;
+      });
+    }
 
-    const scale =
-      .88 + Math.random()*.32;
+    /* ========================= AUDIO API ========================= */
 
-    torch.userData.flame.scale.set(
-      scale,
-      scale,
-      scale
-    );
+    function startAudio() {
+      if (audioStarted) return;
+      audioStarted = true;
 
-    torch.userData.inner.scale.set(
-      scale*.85,
-      scale*.85,
-      scale*.85
-    );
+      audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      masterGain = audioContext.createGain();
+      masterGain.gain.value = 0.52;
+      masterGain.connect(audioContext.destination);
 
-    torch.userData.light.intensity =
-      3.6 + Math.random()*2.4;
-  });
+      ambienceGain = audioContext.createGain();
+      ambienceGain.gain.value = 0.18;
+      ambienceGain.connect(masterGain);
 
-  const dust =
-    scene.getObjectByName("dust");
+      stepGain = audioContext.createGain();
+      stepGain.gain.value = 0.0;
+      stepGain.connect(masterGain);
 
-  if(dust){
+      createCaveAmbience();
+    }
 
-    dust.rotation.y += delta*.04;
+    function createCaveAmbience() {
+      // Viento grave y humedad lejana generados proceduralmente.
+      const lowOsc = audioContext.createOscillator();
+      const lowFilter = audioContext.createBiquadFilter();
+      const lowGain = audioContext.createGain();
+      lowOsc.type = "sine";
+      lowOsc.frequency.value = 52;
+      lowFilter.type = "lowpass";
+      lowFilter.frequency.value = 180;
+      lowGain.gain.value = 0.12;
+      lowOsc.connect(lowFilter).connect(lowGain).connect(ambienceGain);
+      lowOsc.start();
+      ambienceNodes.push(lowOsc);
 
-    dust.position.y =
-      Math.sin(Date.now()*.0005)*.18;
-  }
+      // Goteo distante irregular.
+      setInterval(() => {
+        if (!audioStarted || !audioContext) return;
+        if (Math.random() < 0.42) createDripSound();
+      }, 950);
+    }
 
-  renderer.render(
-    scene,
-    camera
-  );
-}
+    function createDripSound() {
+      const osc = audioContext.createOscillator();
+      const gain = audioContext.createGain();
+      const filter = audioContext.createBiquadFilter();
+      osc.type = "triangle";
+      osc.frequency.setValueAtTime(randomBetween(650, 1150), audioContext.currentTime);
+      filter.type = "bandpass";
+      filter.frequency.value = 900;
+      gain.gain.setValueAtTime(0.0, audioContext.currentTime);
+      gain.gain.linearRampToValueAtTime(0.035, audioContext.currentTime + 0.012);
+      gain.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.42);
+      osc.connect(filter).connect(gain).connect(ambienceGain);
+      osc.start();
+      osc.stop(audioContext.currentTime + 0.45);
+    }
 
-function onResize(){
+    function updateAudio(dt) {
+      if (!audioStarted || !audioContext) return;
+      const moving = camera.userData.isMoving;
 
-  camera.aspect =
-    window.innerWidth /
-    window.innerHeight;
+      stepTimer -= dt;
+      if (moving && stepTimer <= 0) {
+        createFootstep();
+        stepTimer = 0.36;
+      }
+    }
 
-  camera.updateProjectionMatrix();
+    function createFootstep() {
+      const duration = 0.13;
+      const bufferSize = Math.floor(audioContext.sampleRate * duration);
+      const buffer = audioContext.createBuffer(1, bufferSize, audioContext.sampleRate);
+      const data = buffer.getChannelData(0);
 
-  renderer.setSize(
-    window.innerWidth,
-    window.innerHeight
-  );
-}
+      for (let i = 0; i < bufferSize; i++) {
+        const env = 1 - i / bufferSize;
+        data[i] = (Math.random() * 2 - 1) * env * env;
+      }
 
-</script>
+      const source = audioContext.createBufferSource();
+      source.buffer = buffer;
 
+      const filter = audioContext.createBiquadFilter();
+      filter.type = "bandpass";
+      filter.frequency.value = randomBetween(180, 420);
+      filter.Q.value = 0.9;
+
+      const gain = audioContext.createGain();
+      gain.gain.setValueAtTime(0.0, audioContext.currentTime);
+      gain.gain.linearRampToValueAtTime(0.12, audioContext.currentTime + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + duration);
+
+      source.connect(filter).connect(gain).connect(masterGain);
+      source.start();
+      source.stop(audioContext.currentTime + duration);
+    }
+
+    function onResize() {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    /* ========================= UTILIDADES ========================= */
+
+    function randomBetween(min, max) {
+      return min + Math.random() * (max - min);
+    }
+
+    // Ruido simple determinista para texturas y deformaciones.
+    function noise2D(x, y) {
+      const n = Math.sin(x * 12.9898 + y * 78.233) * 43758.5453;
+      return (n - Math.floor(n));
+    }
+  </script>
 </body>
 </html>
