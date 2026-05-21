@@ -2340,20 +2340,28 @@ async function apiGetFetch(params, timeoutMs = 15000){
     clearTimeout(timer);
   }
 }
-  
-async function apiGet(params, timeoutMs = 15000){
+async function apiGet(params, timeoutMs = 60000){
   setApiStatus("", "API: consultando…");
 
   try{
     const data = await apiGetFetch(params, timeoutMs);
     setApiStatus("ok", "API: conectada");
     return data;
+
   }catch(err){
-    const msg = err?.message || "desconectada";
+
+    const msg =
+      err?.name === "AbortError"
+        ? "La API tardó demasiado en responder"
+        : (err?.message || "desconectada");
+
     setApiStatus("err", "API: " + msg);
+
+    console.error("ERROR API:", err);
+
     throw err;
   }
-}
+}  
   
 function todayLocal(){
   const d = new Date();
