@@ -2670,48 +2670,59 @@ function isKpisComplete(){
   if(!posNivel || posNivel.toLowerCase() === "seleccionar") return false;
   return !getKpisRequiredFields().some(v => !v);
 }
-  function getEvalHeaderRequiredFields(){
-    return [
-      $("noPersonalEval").value.trim(),
-      $("nombreEval").value.trim(),
-      $("posicionEval").value.trim(),
-      $("deptoEval").value.trim(),
-      $("periodoEval").value.trim(),
-      $("versionEval").value.trim(),
-      $("fechaEval").value.trim(),
-    ];
-  }
-  function getDesempenoExtraRequiredFields(){
+function getEvalHeaderRequiredFields(){
+  return [
+    String($("nivelSelect")?.value || "").trim(),
+    $("noPersonalEval").value.trim(),
+    $("nombreEval").value.trim(),
+    $("posicionEval").value.trim(),
+    $("deptoEval").value.trim(),
+    $("periodoEval").value.trim(),
+    $("versionEval").value.trim(),
+    $("fechaEval").value.trim(),
+  ];
+}
+
+function getDesempenoExtraRequiredFields(){
   const ids = [
     "comentariosColaborador",
-    "fortalezas","oportunidadesMejora",
-    "proyeccionPotencial","necesidadesCapacitacion",
-    "justificacion","comentariosEvaluadorDes","nombreEvaluadorDes"
+    "fortalezas",
+    "oportunidadesMejora",
+    "proyeccionPotencial",
+    "necesidadesCapacitacion",
+    "comentariosEvaluadorDes",
+    "nombreEvaluadorDes"
   ];
   return ids.map(id => String($(id)?.value || "").trim());
 }
-  function isEvalComplete(){
-    if(!isEvalPhase()) return false;
-    if(getEvalHeaderRequiredFields().some(v => !v)) return false;
-    if(isDesempenoPhase()){
-      if(getDesempenoExtraRequiredFields().some(v => !v)) return false;
-    } else if(isAutoPhase()){
-      const c = String($("comentariosColaboradorAuto")?.value || "").trim();
-      if(!c) return false;
-    }
-    const total = state.itemKeys.length;
-    if(total === 0) return false;
-    for(const k of state.itemKeys){
-      const obj = state.answers.get(k);
-      if(!obj || !obj.value || !obj.label) return false;
-    }
-    return true;
-  }
-  function isClientesComplete(){
-    if(!isClientesPhase()) return false;
-    return !getClientesRequiredFields().some(v => !v);
+
+function isEvalComplete(){
+  if(!isEvalPhase()) return false;
+
+  if(getEvalHeaderRequiredFields().some(v => !v)) return false;
+
+  if(isDesempenoPhase()){
+    if(getDesempenoExtraRequiredFields().some(v => !v)) return false;
+  } else if(isAutoPhase()){
+    const c = String($("comentariosColaboradorAuto")?.value || "").trim();
+    if(!c) return false;
   }
 
+  const total = state.itemKeys.length;
+  if(total === 0) return false;
+
+  for(const k of state.itemKeys){
+    const obj = state.answers.get(k);
+    if(!obj || !obj.value || !obj.label) return false;
+  }
+
+  return true;
+}
+
+function isClientesComplete(){
+  if(!isClientesPhase()) return false;
+  return !getClientesRequiredFields().some(v => !v);
+}
     /* ================= UI STATE (BOTONES) ================= */
     function updateGuardarUIState(){
     const btnG = $("btnGuardar");
@@ -3964,7 +3975,7 @@ function clearOneOne(){
   function clearDesempenoExtra(){
   [
     "comentariosColaborador","fortalezas","oportunidadesMejora",
-    "proyeccionPotencial","necesidadesCapacitacion","justificacion","comentariosEvaluadorDes","nombreEvaluadorDes"
+    "proyeccionPotencial","necesidadesCapacitacion","comentariosEvaluadorDes","nombreEvaluadorDes"
   ].forEach(id=>{
     const el = $(id);
     if(el) el.value = "";
@@ -4248,12 +4259,13 @@ async function saveKpis(){
 
     const comentariosAuto = isAutoPhase() ? ($("comentariosColaboradorAuto")?.value || "").trim() : "";
     const extrasDesempeno = isDesempenoPhase() ? {
+  justificacion: buildCompatComentarios(),
   comentariosColaborador: ($("comentariosColaborador")?.value || "").trim(),
   fortalezas: ($("fortalezas")?.value || "").trim(),
   oportunidadesMejora: ($("oportunidadesMejora")?.value || "").trim(),
   proyeccionPotencial: ($("proyeccionPotencial")?.value || "").trim(),
-   necesidadesCapacitacion: ($("necesidadesCapacitacion")?.value || "").trim(),
- comentariosEvaluador: ($("comentariosEvaluadorDes")?.value || "").trim(),
+  necesidadesCapacitacion: ($("necesidadesCapacitacion")?.value || "").trim(),
+  comentariosEvaluador: ($("comentariosEvaluadorDes")?.value || "").trim(),
   nombreEvaluador: ($("nombreEvaluadorDes")?.value || "").trim()
 } : null;
 
@@ -6329,12 +6341,13 @@ on("btnDevGenerar", "click", ()=>generarDesarrollo_().catch(err=>setApiStatus("e
 });
 
 [
+ [
   "comentariosColaborador","fortalezas","oportunidadesMejora",
-  "proyeccionPotencial","necesidadesCapacitacion","justificacion","comentariosEvaluadorDes","nombreEvaluadorDes"
+  "proyeccionPotencial","necesidadesCapacitacion","comentariosEvaluadorDes","nombreEvaluadorDes"
 ].forEach(id=>{
   on(id,"input", updateGuardarUIState);
   on(id,"change", updateGuardarUIState);
-});
+}); 
 on("comentariosColaboradorAuto","input", updateGuardarUIState);
 on("comentariosColaboradorAuto","change", updateGuardarUIState);
 
