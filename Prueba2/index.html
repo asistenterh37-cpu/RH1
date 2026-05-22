@@ -2191,8 +2191,9 @@ function ensureWebAppVisibleValue_(){
   itemKeys: [],
   lastFormItemsCount: 0,
 
-  // ✅ PESOS (tabla editable)
+    // ✅ PESOS (tabla editable)
   pesosItems: [],
+  pesosCalcItems: [],
   pesosDirty: false,
 
   // ✅ CÓDIGOS (desde Pesos para pintar en el cuestionario)
@@ -2489,15 +2490,19 @@ function todayLocal(){
 function calcPuntajeFinalClient_(nivelRef, pesosItems, itemKeys, respuestasNum){
   const nivelCanon = (String(nivelRef || "").match(/(\d+)/)?.[1] || String(nivelRef || "").trim());
 
+  const pesosNivel = (Array.isArray(pesosItems) ? pesosItems : []).filter(r=>{
+    const n = nivelCanonClient_(r.Nivel ?? "");
+    return !nivelCanon || n === nivelCanon;
+  });
+
   const pesoMapByItem = new Map();
 
-  (Array.isArray(pesosItems) ? pesosItems : []).forEach(r=>{
-    const nivel = nivelCanonClient_(r.Nivel ?? "");
-    const item  = normKey_(r.Item ?? "");
-    const peso  = toNum(r.Peso ?? 0, 0);
+  pesosNivel.forEach(r=>{
+    const item = normKey_(r.Item ?? "");
+    const peso = toNum(r.Peso ?? 0, 0);
 
-    if(nivel && item && !pesoMapByItem.has(`${nivel}|${item}`)) {
-      pesoMapByItem.set(`${nivel}|${item}`, peso);
+    if(item && !pesoMapByItem.has(item)){
+      pesoMapByItem.set(item, peso);
     }
   });
 
@@ -2507,23 +2512,26 @@ function calcPuntajeFinalClient_(nivelRef, pesosItems, itemKeys, respuestasNum){
   const nums = Array.isArray(respuestasNum) ? respuestasNum : [];
 
   for(let i=0; i<keys.length; i++){
-    const k = String(keys[i] ?? "").trim();
-    if(!k) continue;
-
     const v = Number(String(nums[i] ?? "").trim());
     if(!(v >= 1 && v <= 5)) continue;
 
-    const parts = k.split("|");
-    const nivel = nivelCanonClient_(parts[0] ?? "");
-    const item  = normKey_(parts.length >= 2 ? parts[parts.length - 1] : "");
+    const parts = String(keys[i] ?? "").split("|");
+    const item = normKey_(parts.length >= 2 ? parts[parts.length - 1] : keys[i]);
 
-    const peso = Number(pesoMapByItem.get(`${nivel}|${item}`) ?? 0);
+    let peso = Number(pesoMapByItem.get(item) ?? 0);
+
+    // Respaldo definitivo: si el texto del item no coincide, usa el peso por posición.
+    if(!peso && pesosNivel[i]){
+      peso = toNum(pesosNivel[i].Peso ?? 0, 0);
+    }
+
     sum += (v / 5) * peso;
   }
 
   return Number.isFinite(sum) ? sum.toFixed(2) : "0.00";
 }
-async function actualizarPuntajeFinalDes_(){
+
+function actualizarPuntajeFinalDes_(){
   if(!isDesempenoPhase()) return;
 
   const el = $("puntajeFinalDes");
@@ -2534,7 +2542,6 @@ async function actualizarPuntajeFinalDes_(){
     return;
   }
 
-  const nivelRef = getNivelRef();
   const respuestasNum = state.itemKeys.map(k => String(state.answers.get(k)?.value || "").trim());
 
   const tieneRespuesta = respuestasNum.some(v => /^[1-5]$/.test(v));
@@ -2543,13 +2550,15 @@ async function actualizarPuntajeFinalDes_(){
     return;
   }
 
-  el.value = calcPuntajeFinalClient_(
-    nivelRef,
+  const puntaje = calcPuntajeFinalClient_(
+    getNivelRef(),
     Array.isArray(state.pesosCalcItems) ? state.pesosCalcItems : [],
     state.itemKeys.slice(),
     respuestasNum
   );
-}  
+
+  el.value = puntaje || "0.0";
+}
   /* ================= CÓDIGOS (PESOS -> UI) ================= */
   function nivelCanonClient_(nivel){
     const s = String(nivel ?? "").trim();
@@ -3419,7 +3428,7 @@ function renderKpisDetalle_(posicionNivel){
     updateGuardarUIState();
   }
 }
-  async function loadFormByNivel(nivel){
+    async function loadFormByNivel(nivel){
   const niv = String(nivel ?? "").trim() || "1";
 
   const res = await apiGet({ action:"form", nivel: niv });
@@ -3443,7 +3452,12 @@ function renderKpisDetalle_(posicionNivel){
     $("puntajeFinalDes").value = "0.0";
   }
 
-  renderCuestionario(state.form);
+    renderCuestionario(state.form);
+
+  if(isDesempenoPhase()){
+    actualizarPuntajeFinalDes_();
+    setTimeout(actualizarPuntajeFinalDes_, 0);
+  }
 }
    
   /* ================= ✅ RECUPERAR (DESEMPENO) ================= */
@@ -3643,10 +3657,15 @@ function renderObservacionesRecuperadas_(arr){
         state.answers.set(k, { value: v, label: label || v });
       }
     });
-    renderCuestionario(state.form);
+
+        renderCuestionario(state.form);
+
+    if(isDesempenoPhase()){
+      actualizarPuntajeFinalDes_();
+      setTimeout(actualizarPuntajeFinalDes_, 0);
+    }
 
     $("comentariosColaborador").value = String(rec.comentarios || "").trim();
-    renderObservacionesRecuperadas_(state.recoveredObservaciones || []);
 
         const arr = Array.isArray(state.recoveredClientes) ? state.recoveredClientes : [];
     const evalCliDes = $("evaluacionClientesDes");
