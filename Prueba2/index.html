@@ -1056,7 +1056,7 @@ body:not(.access-ok) main{
       <div class="form-grid">
         <div class="field col-8 boxed">
           <div class="lbl">URL Web App Apps Script</div>
-          <input id="webapp" value="https://script.google.com/macros/s/AKfycbyzXJYpzY6iYkKcmp0wUAN2Jz2xYYoJJU1Lo96KSC7owRu8cqklaU6E0qNfC5T5Oau8/exec"/>
+          <input id="webapp" value="https://script.google.com/macros/s/AKfycbyz3VSlqruRCk_OIRcSTS3FNgUQNykVkpujbg23qgLo-EbxuLwYjOVDMJHpnDKb58cL/exec"/>
         </div>
         <div class="field col-4 boxed">
           <div class="lbl">Pruebas API</div>
@@ -1860,7 +1860,7 @@ Dejar de hacer:"></textarea>
 `Empezar a hacer:
 Continuar haciendo:
 Dejar de hacer:`;
-  const DEFAULT_WEBAPP_ = "https://script.google.com/macros/s/AKfycbxH2zQJXTi0RnFoLwcUFjAahk7jD4Kp2pYh6vJwzEyUgWSnu465P7FjRQbmSrXa5R3-/exec";
+  const DEFAULT_WEBAPP_ = "https://script.google.com/macros/s/AKfycbyz3VSlqruRCk_OIRcSTS3FNgUQNykVkpujbg23qgLo-EbxuLwYjOVDMJHpnDKb58cL/exec";
   const $ = id => document.getElementById(id);
 
     /* ===== SEGURIDAD REFORZADA FRONTEND: BLOQUEO DE LECTURA / COPIA CASUAL ===== */
@@ -4352,17 +4352,33 @@ async function saveKpis(){
     return n;
   });
 
-  // ✅ Si es DESEMPENO: traer Pesos y calcular puntaje final EN HTML
+    // ✅ Si es DESEMPENO: toma el puntaje final visible y lo envía al GS
   let puntajeFinalClient = "";
+
   if(isDesempenoPhase()){
-    const nivelCanon = (String(nivelRef || "").match(/(\d+)/)?.[1] || String(nivelRef || "").trim() || "ALL");
-    const pes = await apiGet({ action:"items", sheet:"Pesos", nivel: nivelCanon });
-    puntajeFinalClient = calcPuntajeFinalClient_(
-      nivelRef,
-      (pes.items || []),
-      (Array.isArray(state.itemKeys) ? state.itemKeys.slice() : []),
-      respuestasNumClean
-    );
+    actualizarPuntajeFinalDes_();
+
+    puntajeFinalClient = String($("puntajeFinalDes")?.value || "").trim();
+
+    if(!puntajeFinalClient || puntajeFinalClient === "0.0" || puntajeFinalClient === "0.00"){
+      try{
+        const nivelCanon = (String(nivelRef || "").match(/(\d+)/)?.[1] || String(nivelRef || "").trim() || "ALL");
+        const pes = await apiGet({ action:"items", sheet:"Pesos", nivel: nivelCanon });
+
+        puntajeFinalClient = calcPuntajeFinalClient_(
+          nivelRef,
+          (pes.items || []),
+          (Array.isArray(state.itemKeys) ? state.itemKeys.slice() : []),
+          respuestasNumClean
+        );
+
+        if($("puntajeFinalDes")){
+          $("puntajeFinalDes").value = puntajeFinalClient || "0.0";
+        }
+      }catch(_){
+        puntajeFinalClient = String($("puntajeFinalDes")?.value || "0.0").trim();
+      }
+    }
   }
 
   const payload = {
