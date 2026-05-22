@@ -1785,7 +1785,7 @@ Dejar de hacer:"></textarea>
 
            <div class="field boxed" style="grid-column:span 2;max-width:180px">
         <div class="lbl">Puntaje Final</div>
-        <input id="puntajeFinalDes" value="0.00" readonly style="width:120px;text-align:center;font-weight:900" />
+        <input id="puntajeFinalDes" value="0.0" readonly style="width:120px;text-align:center;font-weight:900" />
       </div>    
 
       <div class="field col-12 boxed">
@@ -2529,25 +2529,27 @@ async function actualizarPuntajeFinalDes_(){
   const el = $("puntajeFinalDes");
   if(!el) return;
 
-  const nivelRef = getNivelRef();
-  const nivelCanon = (String(nivelRef || "").match(/(\d+)/)?.[1] || String(nivelRef || "").trim() || "ALL");
+  if(!state.form || !Array.isArray(state.itemKeys) || !state.itemKeys.length){
+    el.value = "0.0";
+    return;
+  }
 
+  const nivelRef = getNivelRef();
   const respuestasNum = state.itemKeys.map(k => String(state.answers.get(k)?.value || "").trim());
 
-  try{
-    const pes = await apiGet({ action:"items", sheet:"Pesos", nivel:nivelCanon });
-
-    el.value = calcPuntajeFinalClient_(
-      nivelRef,
-      pes.items || [],
-      Array.isArray(state.itemKeys) ? state.itemKeys.slice() : [],
-      respuestasNum
-    );
-  }catch(err){
-    el.value = "0.00";
+  const tieneRespuesta = respuestasNum.some(v => /^[1-5]$/.test(v));
+  if(!tieneRespuesta){
+    el.value = "0.0";
+    return;
   }
-}
-  
+
+  el.value = calcPuntajeFinalClient_(
+    nivelRef,
+    Array.isArray(state.pesosCalcItems) ? state.pesosCalcItems : [],
+    state.itemKeys.slice(),
+    respuestasNum
+  );
+}  
   /* ================= CÓDIGOS (PESOS -> UI) ================= */
   function nivelCanonClient_(nivel){
     const s = String(nivel ?? "").trim();
@@ -3420,22 +3422,27 @@ function renderKpisDetalle_(posicionNivel){
   async function loadFormByNivel(nivel){
   const niv = String(nivel ?? "").trim() || "1";
 
-  // 1) formulario (Formularios)
   const res = await apiGet({ action:"form", nivel: niv });
   state.form = res.form || null;
 
-  // 2) códigos (Pesos) para este nivel
-  //    si Pesos falla, NO bloquea el formulario
+  state.pesosCalcItems = [];
+
   try{
     const pes = await apiGet({ action:"items", sheet:"Pesos", nivel: niv });
-    buildCodigosMapFromPesos_(pes.items || []);
+    state.pesosCalcItems = pes.items || [];
+    buildCodigosMapFromPesos_(state.pesosCalcItems);
   }catch(_){
+    state.pesosCalcItems = [];
     state.codigosByKey.clear();
     state.codigosByKeyNorm.clear();
   }
 
-  // 3) render
   state.answers.clear();
+
+  if($("puntajeFinalDes")){
+    $("puntajeFinalDes").value = "0.0";
+  }
+
   renderCuestionario(state.form);
 }
    
