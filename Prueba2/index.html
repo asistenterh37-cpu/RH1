@@ -1147,7 +1147,7 @@ document
       <div class="form-grid">
         <div class="field col-8 boxed">
           <div class="lbl">URL Web App Apps Script</div>
-          <input id="webapp" value="https://script.google.com/macros/s/AKfycbyNeT6SB7sOPSWABWDYUNQNL2Heqz6QC8P80JFK6GxgEwFugPCEKAnvX6aBjyoSTYD3/exec"/>
+          <input id="webapp" value="https://script.google.com/macros/s/AKfycbzrMY598Nu16LbkbKkZFZHPxgG6UE9BJWL_f9pbm_MGZMAJITgsrRaLcGWN6SomjpP_/exec"/>
         </div>
         <div class="field col-4 boxed">
           <div class="lbl">Pruebas API</div>
@@ -1357,7 +1357,18 @@ function tienePermiso(nombre){
  permisosUsuario[clave] === true;
 
 }
+function validarPermisoAntesDeAbrir(nombrePermiso){
 
+ if(tienePermiso(nombrePermiso)){
+ return true;
+ }
+
+ alert("No tiene permiso para acceder a esta función.");
+
+ return false;
+
+}
+  
 function bloquearBoton(btn){
 
  if(!btn) return;
@@ -1394,34 +1405,53 @@ function aplicarPermisosBotones(){
 
  document.querySelectorAll(".faseBtn").forEach(btn => {
 
-  const nav = btn.querySelector(".navLabel");
+ const nav = btn.querySelector(".navLabel");
+ if(!nav) return;
 
-  if(!nav) return;
+ const texto = nav.innerText.trim();
 
-  const texto = nav.innerText.trim();
+ if(texto === "Inicio"){
+ desbloquearBoton(btn);
+ return;
+ }
 
-  if(texto === "Inicio"){
-
-   desbloquearBoton(btn);
-
-   return;
-
-  }
-
-  if(tienePermiso(texto)){
-
-   desbloquearBoton(btn);
-
-  }else{
-
-   bloquearBoton(btn);
-
-  }
+ if(tienePermiso(texto)){
+ desbloquearBoton(btn);
+ }else{
+ bloquearBoton(btn);
+ }
 
  });
 
+ // ✅ REPORTES (L-Q)
  const tipoReporte = document.getElementById("tipoReporte");
 
+ if(tipoReporte){
+
+ Array.from(tipoReporte.options).forEach(opt => {
+
+ const nombreReporte =
+ String(opt.textContent || "")
+ .trim();
+
+ if(
+ !nombreReporte ||
+ nombreReporte === "Seleccione"
+ ){
+ return;
+ }
+
+ if(tienePermiso(nombreReporte)){
+ opt.disabled = false;
+ }else{
+ opt.disabled = true;
+ }
+
+ });
+
+ }
+
+}
  if(tipoReporte){
 
   [...tipoReporte.options].forEach(opt => {
@@ -2257,7 +2287,7 @@ Dejar de hacer:"></textarea>
 `Empezar a hacer:
 Continuar haciendo:
 Dejar de hacer:`;
-  const DEFAULT_WEBAPP_ = "https://script.google.com/macros/s/AKfycbyNeT6SB7sOPSWABWDYUNQNL2Heqz6QC8P80JFK6GxgEwFugPCEKAnvX6aBjyoSTYD3/exec";
+  const DEFAULT_WEBAPP_ = "https://script.google.com/macros/s/AKfycbzrMY598Nu16LbkbKkZFZHPxgG6UE9BJWL_f9pbm_MGZMAJITgsrRaLcGWN6SomjpP_/exec";
   const $ = id => document.getElementById(id);
 
     /* ===== SEGURIDAD REFORZADA FRONTEND: BLOQUEO DE LECTURA / COPIA CASUAL ===== */
