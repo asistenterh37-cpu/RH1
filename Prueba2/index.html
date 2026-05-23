@@ -1147,7 +1147,7 @@ document
       <div class="form-grid">
         <div class="field col-8 boxed">
           <div class="lbl">URL Web App Apps Script</div>
-          <input id="webapp" value="https://script.google.com/macros/s/AKfycbyWLfuFVlMADSPr1V70Fkkg6xTL76rm1qpm9p1b3Zl4HV7I_frar7x-YXKcik8vQLFk/exec"/>
+          <input id="webapp" value="https://script.google.com/macros/s/AKfycbyNeT6SB7sOPSWABWDYUNQNL2Heqz6QC8P80JFK6GxgEwFugPCEKAnvX6aBjyoSTYD3/exec"/>
         </div>
         <div class="field col-4 boxed">
           <div class="lbl">Pruebas API</div>
@@ -1440,7 +1440,12 @@ function aplicarPermisosBotones(){
 
 function validarPermisoOpcion(nombre){
 
- if(tienePermiso(nombre)){
+ const permiso =
+ String(nombre || "")
+ .trim()
+ .toLowerCase();
+
+ if(tienePermiso(permiso)){
 
   return true;
 
@@ -1451,7 +1456,6 @@ function validarPermisoOpcion(nombre){
  return false;
 
 }
-
 </script>
         </span>
       </div>
@@ -1475,21 +1479,23 @@ const setFaseOriginal = window.setFase;
 
 window.setFase = function(fase){
 
- const mapaPermisos = {
+const mapaPermisos = {
 
-  NIVELES:"Niveles",
-  FORMULARIOS:"Formularios",
-  PESOS:"Pesos",
-  AUTO:"Autoevaluación",
-  CLIENTES:"Evaluación clientes",
-  DESEMPENO:"Evaluación desempeño",
-  KPIS:"KPIs / entregables",
-  INCIDENCIAS:"Incidencias",
-  ONEONE:"One to one",
-  CALIBRACION:"Calibración"
+   INICIO:"Inicio",
+   NIVELES:"Niveles",
+   FORMULARIOS:"Formularios",
+   PESOS:"Pesos",
+   AUTO:"Autoevaluación",
+   CLIENTES:"Evaluación clientes",
+   DESEMPENO:"Evaluación desempeño",
+   KPIS:"KPIs / entregables",
+   INCIDENCIAS:"Incidencias",
+   ONEONE:"One to one",
+   CALIBRACION:"Calibración",
+   REPORTES:"Reportes",
+   DASHBOARD:"Dashboard"
 
- };
-
+};
  const permiso = mapaPermisos[fase];
 
  if(permiso){
@@ -1621,47 +1627,67 @@ window.setFase = function(fase){
 
 function aplicarPermisosBotones(){
 
-  document.querySelectorAll(".faseBtn").forEach(btn => {
+ document.querySelectorAll(".faseBtn").forEach(btn => {
 
-    const nav = btn.querySelector(".navLabel");
+  const nav = btn.querySelector(".navLabel");
 
-    if(!nav) return;
+  if(!nav) return;
 
-    const texto = nav.innerText.trim();
+  const texto = nav.innerText.trim();
 
-    if(texto === "Inicio") return;
+  if(texto === "Inicio"){
 
-    const permitido = permisosUsuario[texto];
+   desbloquearBoton(btn);
 
-    if(permitido === false){
+   return;
 
-      btn.style.display = "none";
+  }
 
-    }else{
+  if(tienePermiso(texto)){
 
-      btn.style.display = "";
-    }
+   desbloquearBoton(btn);
+
+  }else{
+
+   bloquearBoton(btn);
+
+  }
+
+ });
+
+ const tipoReporte = document.getElementById("tipoReporte");
+
+ if(tipoReporte){
+
+  [...tipoReporte.options].forEach(opt => {
+
+   const txtOriginal = String(opt.text || "").trim();
+
+   if(!txtOriginal) return;
+
+   if(txtOriginal === "Seleccionar") return;
+
+   const txt = txtOriginal
+   .trim()
+   .toLowerCase();
+
+   if(tienePermiso(txt)){
+
+    opt.hidden = false;
+    opt.disabled = false;
+
+   }else{
+
+    opt.hidden = true;
+    opt.disabled = true;
+
+   }
 
   });
 
-  const tipoReporte = document.getElementById("tipoReporte");
+ }
 
-  if(tipoReporte){
-
-    [...tipoReporte.options].forEach(opt => {
-
-      const txt = opt.text.trim();
-
-      if(txt === "Seleccionar") return;
-
-      const permitido = permisosUsuario[txt];
-
-      opt.hidden = !permitido;
-
-    });
-  }
 }
-
 </script>
             <button type="button" id="btnSalir" class="sidebarBtn"><span class="navLabel">Salir</span></button>
           </div>
@@ -2231,7 +2257,7 @@ Dejar de hacer:"></textarea>
 `Empezar a hacer:
 Continuar haciendo:
 Dejar de hacer:`;
-  const DEFAULT_WEBAPP_ = "https://script.google.com/macros/s/AKfycbyWLfuFVlMADSPr1V70Fkkg6xTL76rm1qpm9p1b3Zl4HV7I_frar7x-YXKcik8vQLFk/exec";
+  const DEFAULT_WEBAPP_ = "https://script.google.com/macros/s/AKfycbyNeT6SB7sOPSWABWDYUNQNL2Heqz6QC8P80JFK6GxgEwFugPCEKAnvX6aBjyoSTYD3/exec";
   const $ = id => document.getElementById(id);
 
     /* ===== SEGURIDAD REFORZADA FRONTEND: BLOQUEO DE LECTURA / COPIA CASUAL ===== */
