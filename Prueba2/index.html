@@ -1089,9 +1089,18 @@ document.getElementById("btnGateIngresar").addEventListener("click", async () =>
     const permisosResp =
       await fetchJsonp(permisosUrl);
 
-    permisosUsuario =
-      permisosResp.permisos || {};
+    permisosUsuario = {};
 
+Object.keys(permisosResp.permisos || {})
+.forEach(k => {
+
+ permisosUsuario[
+  String(k)
+  .trim()
+  .toLowerCase()
+ ] = permisosResp.permisos[k] === true;
+
+});
     aplicarPermisosBotones();
 
     document.body.classList.add("access-ok");
@@ -1138,7 +1147,7 @@ document
       <div class="form-grid">
         <div class="field col-8 boxed">
           <div class="lbl">URL Web App Apps Script</div>
-          <input id="webapp" value="https://script.google.com/macros/s/AKfycbyz3VSlqruRCk_OIRcSTS3FNgUQNykVkpujbg23qgLo-EbxuLwYjOVDMJHpnDKb58cL/exec"/>
+          <input id="webapp" value="https://script.google.com/macros/s/AKfycbyWLfuFVlMADSPr1V70Fkkg6xTL76rm1qpm9p1b3Zl4HV7I_frar7x-YXKcik8vQLFk/exec"/>
         </div>
         <div class="field col-4 boxed">
           <div class="lbl">Pruebas API</div>
@@ -1332,10 +1341,20 @@ document
 
 let permisosUsuario = {};
 
+function normalizarPermiso(txt){
+
+ return String(txt || "")
+ .trim()
+ .toLowerCase();
+
+}
+
 function tienePermiso(nombre){
 
+ const clave = normalizarPermiso(nombre);
+
  return permisosUsuario &&
- permisosUsuario[nombre] === true;
+ permisosUsuario[clave] === true;
 
 }
 
@@ -1381,7 +1400,13 @@ function aplicarPermisosBotones(){
 
   const texto = nav.innerText.trim();
 
-  if(texto === "Inicio") return;
+  if(texto === "Inicio"){
+
+   desbloquearBoton(btn);
+
+   return;
+
+  }
 
   if(tienePermiso(texto)){
 
@@ -1413,48 +1438,21 @@ function aplicarPermisosBotones(){
 
 }
 
-</script>
-<script>
+function validarPermisoOpcion(nombre){
 
-const setFaseOriginal = window.setFase;
+ if(tienePermiso(nombre)){
 
-window.setFase = function(fase){
-
- const mapaPermisos = {
-
-  INICIO:"Inicio",
-  FORMULARIOS:"Formularios",
-  PESOS:"Pesos",
-  AUTO:"Autoevaluación",
-  CLIENTES:"Evaluación clientes",
-  DESEMPENO:"Evaluación desempeño",
-  KPIS:"KPIs / entregables",
-  INCIDENCIAS:"Incidencias",
-  ONEONE:"One to one",
-  CALIBRACION:"Calibración"
-
- };
-
- const permiso = mapaPermisos[fase];
-
- if(permiso){
-
-  if(!tienePermiso(permiso)){
-
-   alert("No tiene permiso para acceder");
-
-   return;
-
-  }
+  return true;
 
  }
 
- return setFaseOriginal(fase);
+ alert("No tiene permiso para acceder");
 
-};
+ return false;
+
+}
 
 </script>
-          
         </span>
       </div>
     </div>
@@ -2233,7 +2231,7 @@ Dejar de hacer:"></textarea>
 `Empezar a hacer:
 Continuar haciendo:
 Dejar de hacer:`;
-  const DEFAULT_WEBAPP_ = "https://script.google.com/macros/s/AKfycbyz3VSlqruRCk_OIRcSTS3FNgUQNykVkpujbg23qgLo-EbxuLwYjOVDMJHpnDKb58cL/exec";
+  const DEFAULT_WEBAPP_ = "https://script.google.com/macros/s/AKfycbyWLfuFVlMADSPr1V70Fkkg6xTL76rm1qpm9p1b3Zl4HV7I_frar7x-YXKcik8vQLFk/exec";
   const $ = id => document.getElementById(id);
 
     /* ===== SEGURIDAD REFORZADA FRONTEND: BLOQUEO DE LECTURA / COPIA CASUAL ===== */
