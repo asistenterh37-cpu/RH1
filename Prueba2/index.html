@@ -1044,6 +1044,88 @@ body:not(.access-ok) main{
           Ingresar
         </button>
 
+      <script>
+
+document.getElementById("btnGateIngresar").addEventListener("click", async () => {
+
+  const acceso =
+    document.getElementById("gateAccesoInput")
+    .value
+    .trim();
+
+  if(!acceso){
+
+    document.getElementById("gateAccessMsg").innerText =
+      "Ingrese clave";
+
+    return;
+  }
+
+  try{
+
+    const navegador = navigator.userAgent;
+
+    const url =
+      WEBAPP_URL +
+      "?action=verificarAcceso" +
+      "&acceso=" + encodeURIComponent(acceso) +
+      "&navegador=" + encodeURIComponent(navegador);
+
+    const resp = await fetchJsonp(url);
+
+    if(!resp || !resp.autorizado){
+
+      document.getElementById("gateAccessMsg").innerText =
+        "Clave incorrecta";
+
+      return;
+    }
+
+    const permisosUrl =
+      WEBAPP_URL +
+      "?action=obtenerPermisos" +
+      "&acceso=" + encodeURIComponent(acceso);
+
+    const permisosResp =
+      await fetchJsonp(permisosUrl);
+
+    permisosUsuario =
+      permisosResp.permisos || {};
+
+    aplicarPermisosBotones();
+
+    document.body.classList.add("access-ok");
+
+    document
+      .getElementById("accessGate")
+      .classList
+      .add("hide");
+
+  }catch(err){
+
+    console.error(err);
+
+    document.getElementById("gateAccessMsg").innerText =
+      "Error de acceso";
+  }
+
+});
+
+document
+.getElementById("gateAccesoInput")
+.addEventListener("keydown", e => {
+
+  if(e.key === "Enter"){
+
+    document
+      .getElementById("btnGateIngresar")
+      .click();
+  }
+
+});
+
+</script>
+
                 <div id="gateAccessMsg" class="accessGateMsg"></div>
       </div>
     </div>
@@ -1245,6 +1327,9 @@ body:not(.access-ok) main{
         <span id="apiStatus" class="status" style="margin-left:8px">
           <span class="s-dot"></span>
           <span id="apiStatusText">API: —</span>
+          <script>
+let permisosUsuario = {};
+</script>
         </span>
       </div>
     </div>
@@ -1273,6 +1358,44 @@ body:not(.access-ok) main{
           <div class="navGroup">
             <div class="navTitle">Evaluación</div>
             <button type="button" class="faseBtn" data-fase="AUTO"><span class="navLabel">Autoevaluación</span></button>
+            <script>
+
+const setFaseOriginal = window.setFase;
+
+window.setFase = function(fase){
+
+  const mapa = {
+
+    NIVELES:"Niveles",
+    FORMULARIOS:"Formularios",
+    PESOS:"Pesos",
+    AUTO:"Autoevaluación",
+    CLIENTES:"Evaluación clientes",
+    DESEMPENO:"Evaluación desempeño",
+    KPIS:"KPIs / entregables",
+    INCIDENCIAS:"Incidencias",
+    ONEONE:"One to One",
+    CALIBRACION:"Calibración"
+
+  };
+
+  const permisoNombre = mapa[fase];
+
+  if(permisoNombre){
+
+    const permitido =
+      permisosUsuario[permisoNombre];
+
+    if(permitido === false){
+
+      return;
+    }
+  }
+
+  return setFaseOriginal(fase);
+};
+
+</script>
             <button type="button" class="faseBtn" data-fase="CLIENTES"><span class="navLabel">Evaluación clientes</span></button>
             <button type="button" class="faseBtn" data-fase="DESEMPENO"><span class="navLabel">Evaluación desempeño</span></button>
           </div>
@@ -1292,6 +1415,52 @@ body:not(.access-ok) main{
 
           <div class="navGroup">
             <div class="navTitle">Sesión</div>
+            <script>
+
+function aplicarPermisosBotones(){
+
+  document.querySelectorAll(".faseBtn").forEach(btn => {
+
+    const nav = btn.querySelector(".navLabel");
+
+    if(!nav) return;
+
+    const texto = nav.innerText.trim();
+
+    if(texto === "Inicio") return;
+
+    const permitido = permisosUsuario[texto];
+
+    if(permitido === false){
+
+      btn.style.display = "none";
+
+    }else{
+
+      btn.style.display = "";
+    }
+
+  });
+
+  const tipoReporte = document.getElementById("tipoReporte");
+
+  if(tipoReporte){
+
+    [...tipoReporte.options].forEach(opt => {
+
+      const txt = opt.text.trim();
+
+      if(txt === "Seleccionar") return;
+
+      const permitido = permisosUsuario[txt];
+
+      opt.hidden = !permitido;
+
+    });
+  }
+}
+
+</script>
             <button type="button" id="btnSalir" class="sidebarBtn"><span class="navLabel">Salir</span></button>
           </div>
         </div>
