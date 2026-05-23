@@ -1332,6 +1332,35 @@ document
 
 let permisosUsuario = {};
 
+function tienePermiso(nombre){
+ return permisosUsuario &&
+ permisosUsuario[nombre] === true;
+}
+
+function bloquearBoton(btn){
+
+ btn.disabled = true;
+
+ btn.style.opacity = ".45";
+
+ btn.style.pointerEvents = "none";
+
+ btn.title = "Sin permiso";
+
+}
+
+function desbloquearBoton(btn){
+
+ btn.disabled = false;
+
+ btn.style.opacity = "";
+
+ btn.style.pointerEvents = "";
+
+ btn.title = "";
+
+}
+
 function aplicarPermisosBotones(){
 
  document.querySelectorAll(".faseBtn").forEach(btn => {
@@ -1344,15 +1373,14 @@ function aplicarPermisosBotones(){
 
   if(texto === "Inicio") return;
 
-  const permitido = permisosUsuario[texto];
+  if(tienePermiso(texto)){
 
-  if(permitido === false){
-
-   btn.style.display = "none";
+   desbloquearBoton(btn);
 
   }else{
 
-   btn.style.display = "";
+   bloquearBoton(btn);
+
   }
 
  });
@@ -1367,9 +1395,15 @@ function aplicarPermisosBotones(){
 
    if(txt === "Seleccionar") return;
 
-   const permitido = permisosUsuario[txt];
+   if(tienePermiso(txt)){
 
-   opt.hidden = !permitido;
+    opt.hidden = false;
+
+   }else{
+
+    opt.hidden = true;
+
+   }
 
   });
 
@@ -1394,6 +1428,46 @@ function aplicarPermisosBotones(){
           <div class="navGroup">
             <div class="navTitle">General</div>
             <button type="button" class="faseBtn" data-fase="INICIO"><span class="navLabel">Inicio</span></button>
+            <script>
+
+const setFaseOriginal = window.setFase;
+
+window.setFase = function(fase){
+
+ const mapaPermisos = {
+
+  NIVELES:"Niveles",
+  FORMULARIOS:"Formularios",
+  PESOS:"Pesos",
+  AUTO:"Autoevaluación",
+  CLIENTES:"Evaluación clientes",
+  DESEMPENO:"Evaluación desempeño",
+  KPIS:"KPIs / entregables",
+  INCIDENCIAS:"Incidencias",
+  ONEONE:"One to one",
+  CALIBRACION:"Calibración"
+
+ };
+
+ const permiso = mapaPermisos[fase];
+
+ if(permiso){
+
+  if(!tienePermiso(permiso)){
+
+   alert("No tiene permiso para acceder");
+
+   return;
+
+  }
+
+ }
+
+ return setFaseOriginal(fase);
+
+};
+
+</script>
             <script>
 
 const setFaseOriginal = window.setFase;
