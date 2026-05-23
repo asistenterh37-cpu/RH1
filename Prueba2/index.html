@@ -1327,8 +1327,56 @@ document
         <span id="apiStatus" class="status" style="margin-left:8px">
           <span class="s-dot"></span>
           <span id="apiStatusText">API: —</span>
-          <script>
+
+<script>
+
 let permisosUsuario = {};
+
+function aplicarPermisosBotones(){
+
+ document.querySelectorAll(".faseBtn").forEach(btn => {
+
+  const nav = btn.querySelector(".navLabel");
+
+  if(!nav) return;
+
+  const texto = nav.innerText.trim();
+
+  if(texto === "Inicio") return;
+
+  const permitido = permisosUsuario[texto];
+
+  if(permitido === false){
+
+   btn.style.display = "none";
+
+  }else{
+
+   btn.style.display = "";
+  }
+
+ });
+
+ const tipoReporte = document.getElementById("tipoReporte");
+
+ if(tipoReporte){
+
+  [...tipoReporte.options].forEach(opt => {
+
+   const txt = opt.text.trim();
+
+   if(txt === "Seleccionar") return;
+
+   const permitido = permisosUsuario[txt];
+
+   opt.hidden = !permitido;
+
+  });
+
+ }
+
+}
+
 </script>
         </span>
       </div>
@@ -1346,6 +1394,45 @@ let permisosUsuario = {};
           <div class="navGroup">
             <div class="navTitle">General</div>
             <button type="button" class="faseBtn" data-fase="INICIO"><span class="navLabel">Inicio</span></button>
+            <script>
+
+const setFaseOriginal = window.setFase;
+
+window.setFase = function(fase){
+
+ const mapa = {
+
+  NIVELES:"Niveles",
+  FORMULARIOS:"Formularios",
+  PESOS:"Pesos",
+  AUTO:"Autoevaluación",
+  CLIENTES:"Evaluación clientes",
+  DESEMPENO:"Evaluación desempeño",
+  KPIS:"KPIs / entregables",
+  INCIDENCIAS:"Incidencias",
+  ONEONE:"One to one",
+  CALIBRACION:"Calibración"
+
+ };
+
+ const permisoNombre = mapa[fase];
+
+ if(permisoNombre){
+
+  const permitido = permisosUsuario[permisoNombre];
+
+  if(permitido === false){
+
+   return;
+  }
+
+ }
+
+ return setFaseOriginal(fase);
+
+};
+
+</script>
           </div>
 
                     <div class="navGroup">
