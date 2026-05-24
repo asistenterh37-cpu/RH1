@@ -1383,10 +1383,35 @@ function normalizarPermiso(txt){
  .trim()
  .toLowerCase();
 }
+
 function tienePermiso(nombre){
  const clave = normalizarPermiso(nombre);
- return permisosUsuario &&
- permisosUsuario[clave] === true;
+ return permisosUsuario && permisosUsuario[clave] === true;
+}
+
+function bloquearBoton(btn){
+ if(!btn) return;
+ btn.disabled = true;
+ btn.classList.remove("active");
+ btn.style.opacity = ".45";
+ btn.style.cursor = "not-allowed";
+ btn.style.filter = "grayscale(.35)";
+ btn.title = "Sin permiso para esta función";
+}
+
+function desbloquearBoton(btn){
+ if(!btn) return;
+ btn.disabled = false;
+ btn.style.opacity = "";
+ btn.style.cursor = "";
+ btn.style.filter = "";
+ btn.title = "";
+}
+
+function validarPermisoAntesDeAbrir(nombrePermiso){
+ if(tienePermiso(nombrePermiso)) return true;
+ alert("No tiene permiso para acceder a esta función.");
+ return false;
 }
 
 function aplicarPermisoABoton(btn, nombrePermiso){
@@ -1398,19 +1423,34 @@ function aplicarPermisoABoton(btn, nombrePermiso){
   bloquearBoton(btn);
  }
 }
-  
-  function validarPermisoAntesDeAbrir(nombrePermiso){
 
- if(tienePermiso(nombrePermiso)){
- return true;
- }
+function aplicarPermisosBotones(){
 
- alert("No tiene permiso para acceder a esta función.");
+ document.querySelectorAll(".faseBtn, .sidebarBtn").forEach(btn => {
 
- return false;
+  const nav = btn.querySelector(".navLabel");
+  if(!nav) return;
+
+  const nombreBoton = String(nav.innerText || "")
+  .replace(/\s+/g," ")
+  .trim();
+
+  if(nombreBoton === "Inicio"){
+   desbloquearBoton(btn);
+   return;
+  }
+
+  aplicarPermisoABoton(btn, nombreBoton);
+
+ });
 
 }
-  
+
+function validarPermisoOpcion(nombre){
+ if(tienePermiso(nombre)) return true;
+ alert("No tiene permiso para acceder");
+ return false;
+}  
 function bloquearBoton(btn){
  if(!btn) return;
  btn.disabled = true;
