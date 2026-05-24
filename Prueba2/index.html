@@ -1384,14 +1384,22 @@ function normalizarPermiso(txt){
  .toLowerCase();
 }
 function tienePermiso(nombre){
-
  const clave = normalizarPermiso(nombre);
-
  return permisosUsuario &&
  permisosUsuario[clave] === true;
-
 }
-function validarPermisoAntesDeAbrir(nombrePermiso){
+
+function aplicarPermisoABoton(btn, nombrePermiso){
+ if(!btn) return;
+
+ if(tienePermiso(nombrePermiso)){
+  desbloquearBoton(btn);
+ }else{
+  bloquearBoton(btn);
+ }
+}
+  
+  function validarPermisoAntesDeAbrir(nombrePermiso){
 
  if(tienePermiso(nombrePermiso)){
  return true;
@@ -1771,33 +1779,28 @@ document.addEventListener("DOMContentLoaded", ()=>{
           <div class="navGroup">
             <div class="navTitle">Sesión</div>
             <script>
-
 function aplicarPermisosBotones(){
 
  document.querySelectorAll(".faseBtn, .sidebarBtn").forEach(btn => {
 
- const nav = btn.querySelector(".navLabel");
- if(!nav) return;
+  const nav = btn.querySelector(".navLabel");
+  if(!nav) return;
 
- const textoBoton =
- String(nav.innerText || "")
- .replace(/\s+/g," ")
- .trim();
+  const nombreBoton = String(nav.innerText || "")
+  .replace(/\s+/g," ")
+  .trim();
 
- if(textoBoton === "Inicio"){
- desbloquearBoton(btn);
- return;
- }
+  if(nombreBoton === "Inicio"){
+   desbloquearBoton(btn);
+   return;
+  }
 
- if(tienePermiso(textoBoton)){
- desbloquearBoton(btn);
- }else{
- bloquearBoton(btn);
- }
+  aplicarPermisoABoton(btn, nombreBoton);
 
  });
 
 }
+              
             </script>
             <button type="button" id="btnSalir" class="sidebarBtn"><span class="navLabel">Salir</span></button>
           </div>
