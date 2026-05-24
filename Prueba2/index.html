@@ -373,10 +373,33 @@ button[disabled]{
  align-items:center;
  justify-content:flex-start;
 }
-
 #reportesFiltersCard{
  margin-top:0 !important;
 }
+
+#informeEvalFiltersRow{
+ display:grid;
+ grid-template-columns:1fr 1fr 1fr .85fr;
+ gap:10px;
+ align-items:end;
+}
+
+#informeEvalFiltersRow .field{
+ min-width:0;
+}
+
+#informeEvalFiltersRow input,
+#informeEvalFiltersRow button{
+ width:100%;
+ min-width:0;
+}
+
+@media (max-width:860px){
+ #informeEvalFiltersRow{
+  grid-template-columns:1fr;
+ }
+}
+
     .accessRow{
   display:none;
   grid-template-columns:1fr auto;
@@ -1775,31 +1798,66 @@ document.addEventListener("DOMContentLoaded", ()=>{
  "dashboardDeptoCard"
  );
 
- if(dashDepto){
- dashDepto.style.display = "none";
+ <script>
+document.addEventListener("DOMContentLoaded", ()=>{
+
+ const btnInforme = document.getElementById("btnInformeEvalDesempeno");
+ const btnGenerar = document.getElementById("btnGenerarInformeEval");
+
+ if(btnInforme){
+  btnInforme.addEventListener("click", ()=>{
+
+   if(typeof validarPermisoAntesDeAbrir === "function"){
+    const ok = validarPermisoAntesDeAbrir("Reportes");
+    if(!ok) return;
+   }
+
+   const filtrosReportes = document.getElementById("reportesFiltersCard");
+   if(filtrosReportes) filtrosReportes.style.display = "none";
+
+   const filtrosInforme = document.getElementById("informeEvalFiltersCard");
+   if(filtrosInforme) filtrosInforme.style.display = "";
+
+   const dash = document.getElementById("dashboardCard");
+   if(dash) dash.style.display = "none";
+
+   const dashDepto = document.getElementById("dashboardDeptoCard");
+   if(dashDepto) dashDepto.style.display = "none";
+
+   const no = document.getElementById("ieNoPersonal");
+   if(no) no.focus();
+
+  });
  }
 
- // limpiar estado reportes
- if(window.state){
- state.reportesView = "";
- }
+ if(btnGenerar){
+  btnGenerar.addEventListener("click", ()=>{
 
- // foco
- const no =
- document.getElementById(
- "ieNoPersonal"
- );
+   const no = document.getElementById("ieNoPersonal")?.value.trim() || "";
+   const per = document.getElementById("iePeriodo")?.value.trim() || "";
+   const ver = document.getElementById("ieVersion")?.value.trim() || "";
 
- if(no){
- no.focus();
- }
+   if(!no || !per || !ver){
+    alert("Para Generar, llena: No. de personal + Periodo + Versión.");
+    return;
+   }
 
- });
+   if(window.state){
+    state.reportesView = "EVAL_RESUMEN";
+   }
 
+   if(document.getElementById("reportNoPersonal")) document.getElementById("reportNoPersonal").value = no;
+   if(document.getElementById("reportPeriodo")) document.getElementById("reportPeriodo").value = per;
+   if(document.getElementById("reportVersion")) document.getElementById("reportVersion").value = ver;
+
+   const btnReporte = document.getElementById("btnBuscarReporte");
+   if(btnReporte) btnReporte.click();
+
+  });
  }
 
 });
-            </script>
+</script>
   <button type="button" id="btnReportesToggle" class="faseBtn"><span class="navLabel">Reportes</span></button>
 <script>
 
@@ -2001,7 +2059,6 @@ function aplicarPermisosBotones(){
  <div class="lbl">Tipo de reporte</div>
  <select id="reportesSelect">
  <option value="">Seleccionar</option>
- <option value="EVAL_RESUMEN" hidden>Evaluación del desempeño</option>
  <option value="EVAL_CALIFICACIONES">1. Calificaciones de evaluación del desempeño</option>
  <option value="NECESIDADES_CAP">2. Necesidades de capacitación</option>
  <option value="PROYECCION_POTENCIAL">3. Proyección y potencial de desarrollo</option>
@@ -5861,33 +5918,37 @@ document.querySelectorAll(".faseBtn[data-fase]").forEach(btn=>{
 });
 
   on("btnInformeEvalDesempeno", "click", ()=>{
-  state.reportesView = "EVAL_RESUMEN";
+ const filtrosReportes = $("reportesFiltersCard");
+ if(filtrosReportes) filtrosReportes.style.display = "none";
 
-  const sel = $("reportesSelect");
-  if(sel) sel.value = "EVAL_RESUMEN";
+ const filtrosInforme = $("informeEvalFiltersCard");
+ if(filtrosInforme) filtrosInforme.style.display = "";
 
-  setFaseFromButton("REPORTES");
-  state.reportesView = "EVAL_RESUMEN";
-
-  if(sel) sel.value = "EVAL_RESUMEN";
-
-  syncPhaseInputsToReportFilters_();
-  syncReportFiltersToPhaseInputs_();
-  applyReportesView_();
-  updateReportFiltersLayout_();
-  toggleReportesUI_();
-
-  const no = $("reportNoPersonal");
-  if(no) no.focus();
+ const no = $("ieNoPersonal");
+ if(no) no.focus();
 });
-
 on("btnReportesToggle", "click", ()=>{
-  setFaseFromButton("REPORTES");
-  toggleReportesUI_();
-  const sel = $("reportesSelect");
-  if(sel) sel.focus();
+ setFaseFromButton("REPORTES");
+
+ const filtrosInforme = $("informeEvalFiltersCard");
+ if(filtrosInforme) filtrosInforme.style.display = "none";
+
+ const filtrosReportes = $("reportesFiltersCard");
+ if(filtrosReportes) filtrosReportes.style.display = "";
+
+ if(window.state){
+  state.reportesView = "";
+ }
+
+ const sel = $("reportesSelect");
+ if(sel){
+  sel.value = "";
+  sel.focus();
+ }
+
+ updateReportFiltersLayout_();
 });
-on("btnSidebarToggle", "click", ()=>{
+  on("btnSidebarToggle", "click", ()=>{
   $("blockFaseNivel")?.classList.toggle("collapsed");
 });
 function mostrarSistemaAutorizado_(){
