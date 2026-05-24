@@ -1665,63 +1665,141 @@ window.setFase = function(fase){
             <script>
 document.addEventListener("DOMContentLoaded", ()=>{
 
- const btnInforme = document.getElementById("btnInformeEvalDesempeno");
+ document.addEventListener("DOMContentLoaded", ()=>{
+
+ const btnGenerar =
+ document.getElementById("btnGenerarInformeEval");
+
+ if(!btnGenerar) return;
+
+ btnGenerar.addEventListener("click", async ()=>{
+
+ const noPersonal =
+ document.getElementById("ieNoPersonal")
+ .value
+ .trim();
+
+ const periodo =
+ document.getElementById("iePeriodo")
+ .value
+ .trim();
+
+ const version =
+ document.getElementById("ieVersion")
+ .value
+ .trim();
+
+ if(!noPersonal){
+ alert("Ingrese No. de personal");
+ return;
+ }
+
+ try{
+
+ await generarInformeEjecutivo_({
+ noPersonal,
+ periodo,
+ version
+ });
+
+ }catch(err){
+
+ console.error(err);
+
+ alert(
+ "Error al generar informe ejecutivo"
+ );
+
+ }
+
+ });
+
+}); 
+  
+ const btnInforme =
+ document.getElementById("btnInformeEvalDesempeno");
 
  if(!btnInforme) return;
 
  btnInforme.addEventListener("click", ()=>{
 
-  // ✅ valida permisos
-  if(typeof validarPermisoAntesDeAbrir === "function"){
-   const ok = validarPermisoAntesDeAbrir("Reportes");
-   if(!ok) return;
-  }
+ // permisos
+ if(typeof validarPermisoAntesDeAbrir === "function"){
+ const ok =
+ validarPermisoAntesDeAbrir("Reportes");
 
-  // ✅ activa fase REPORTES
-  if(typeof setFase === "function"){
-   setFase("REPORTES");
-  }
+ if(!ok) return;
+ }
 
-  // ✅ fuerza el selector oculto
-  const sel = document.getElementById("reportesSelect");
-  if(sel){
-   sel.value = "EVAL_RESUMEN";
-  }
+ // activar fase
+ if(typeof setFase === "function"){
+ setFase("REPORTES");
+ }
 
-  // ✅ estado interno
-  if(window.state){
-   state.reportesView = "EVAL_RESUMEN";
-  }
+ // ocultar filtros normales
+ const filtrosReportes =
+ document.getElementById("reportesFiltersCard");
 
-  // ✅ muestra filtros
-  const filtros = document.getElementById("reportesFiltersCard");
-  if(filtros){
-   filtros.style.display = "";
-  }
+   // ocultar informe independiente
+const filtrosInforme =
+document.getElementById("informeEvalFiltersCard");
 
-  // ✅ ejecuta render
-  if(typeof applyReportesView_ === "function"){
-   applyReportesView_();
-  }
+if(filtrosInforme){
+ filtrosInforme.style.display = "none";
+}
 
-  if(typeof toggleReportesUI_ === "function"){
-   toggleReportesUI_();
-  }
+// mostrar reportes normales
+const filtrosReportes =
+document.getElementById("reportesFiltersCard");
 
-  if(typeof updateReportFiltersLayout_ === "function"){
-   updateReportFiltersLayout_();
-  }
+if(filtrosReportes){
+ filtrosReportes.style.display = "";
+}
 
-  // ✅ foco automático
-  const no = document.getElementById("reportNoPersonal");
-  if(no){
-   no.focus();
-  }
+ if(filtrosReportes){
+ filtrosReportes.style.display = "none";
+ }
+
+ // mostrar filtros independientes
+ const filtrosInforme =
+ document.getElementById("informeEvalFiltersCard");
+
+ if(filtrosInforme){
+ filtrosInforme.style.display = "";
+ }
+
+ // ocultar dashboards
+ const dash =
+ document.getElementById("dashboardCard");
+
+ if(dash){
+ dash.style.display = "none";
+ }
+
+ const dashDepto =
+ document.getElementById("dashboardDeptoCard");
+
+ if(dashDepto){
+ dashDepto.style.display = "none";
+ }
+
+ // limpiar selección de reportes
+ if(window.state){
+ state.reportesView = "";
+ }
+
+ // foco automático
+ const no =
+ document.getElementById("ieNoPersonal");
+
+ if(no){
+ no.focus();
+ }
 
  });
 
 });
-</script>
+            </script>
   <button type="button" id="btnReportesToggle" class="faseBtn"><span class="navLabel">Reportes</span></button>
 </div>
 
@@ -1902,6 +1980,50 @@ function aplicarPermisosBotones(){
    </div> 
   </div>
 </section>
+
+<section class="card" id="informeEvalFiltersCard" style="display:none">
+ <div class="card-h">
+ <div>
+ <h2>Informe evaluación del desempeño</h2>
+ <div class="sub">
+ Generación independiente del informe ejecutivo individual
+ </div>
+ </div>
+ </div>
+
+ <div class="card-b">
+
+ <div class="reportesInlineRow" id="informeEvalFiltersRow">
+
+ <div class="field boxed">
+ <div class="lbl">No. de personal</div>
+ <input id="ieNoPersonal" placeholder="Ej: 1600 o TODOS" />
+ </div>
+
+ <div class="field boxed">
+ <div class="lbl">Periodo</div>
+ <input id="iePeriodo" placeholder="Ej: 2025" />
+ </div>
+
+ <div class="field boxed">
+ <div class="lbl">Versión</div>
+ <input id="ieVersion" placeholder="Ej: 1" />
+ </div>
+
+ <div class="field boxed">
+ <div class="lbl">Acción</div>
+ <button
+ id="btnGenerarInformeEval"
+ type="button"
+ class="btn-blue">
+ Generar
+ </button>
+ </div>
+
+ </div>
+
+ </div>
+</section>  
 
      <section class="card" data-phase-block="REPORTES" id="dashboardCard" style="display:none">
   <div class="card-h">
