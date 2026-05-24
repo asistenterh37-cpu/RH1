@@ -1406,37 +1406,23 @@ function validarPermisoAntesDeAbrir(nombrePermiso){
 }
   
 function bloquearBoton(btn){
-
  if(!btn) return;
-
  btn.disabled = true;
-
+ btn.classList.remove("active");
  btn.style.opacity = ".45";
-
- btn.style.pointerEvents = "none";
-
+ btn.style.cursor = "not-allowed";
  btn.style.filter = "grayscale(.35)";
-
- btn.title = "Sin permiso";
-
+ btn.title = "Sin permiso para esta función";
 }
 
 function desbloquearBoton(btn){
-
  if(!btn) return;
-
  btn.disabled = false;
-
  btn.style.opacity = "";
-
- btn.style.pointerEvents = "";
-
+ btn.style.cursor = "";
  btn.style.filter = "";
-
  btn.title = "";
-
 }
-
 function aplicarPermisosBotones(){
 
  document.querySelectorAll(".faseBtn").forEach(btn => {
@@ -1855,68 +1841,31 @@ document.addEventListener("DOMContentLoaded", ()=>{
 
 function aplicarPermisosBotones(){
 
- document.querySelectorAll(".faseBtn").forEach(btn => {
+ document.querySelectorAll(".faseBtn, .sidebarBtn").forEach(btn => {
 
-  const nav = btn.querySelector(".navLabel");
+ const nav = btn.querySelector(".navLabel");
+ if(!nav) return;
 
-  if(!nav) return;
+ const textoBoton =
+ String(nav.innerText || "")
+ .replace(/\s+/g," ")
+ .trim();
 
-  const texto = nav.innerText.trim();
+ if(textoBoton === "Inicio"){
+ desbloquearBoton(btn);
+ return;
+ }
 
-  if(texto === "Inicio"){
-
-   desbloquearBoton(btn);
-
-   return;
-
-  }
-
-  if(tienePermiso(texto)){
-
-   desbloquearBoton(btn);
-
-  }else{
-
-   bloquearBoton(btn);
-
-  }
+ if(tienePermiso(textoBoton)){
+ desbloquearBoton(btn);
+ }else{
+ bloquearBoton(btn);
+ }
 
  });
 
- const tipoReporte = document.getElementById("tipoReporte");
-
- if(tipoReporte){
-
-  [...tipoReporte.options].forEach(opt => {
-
-   const txtOriginal = String(opt.text || "").trim();
-
-   if(!txtOriginal) return;
-
-   if(txtOriginal === "Seleccionar") return;
-
-   const txt = txtOriginal
-   .trim()
-   .toLowerCase();
-
-   if(tienePermiso(txt)){
-
-    opt.hidden = false;
-    opt.disabled = false;
-
-   }else{
-
-    opt.hidden = true;
-    opt.disabled = true;
-
-   }
-
-  });
-
- }
-
 }
-</script>
+            </script>
             <button type="button" id="btnSalir" class="sidebarBtn"><span class="navLabel">Salir</span></button>
           </div>
         </div>
