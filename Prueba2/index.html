@@ -369,9 +369,13 @@ button[disabled]{
  white-space:normal;
  line-height:1.2;
  min-height:52px;
- padding-top:10px;
- padding-bottom:10px;
+ padding:10px 12px;
  align-items:center;
+ justify-content:flex-start;
+}
+
+#reportesFiltersCard{
+ margin-top:0 !important;
 }
     .accessRow{
   display:none;
@@ -1658,6 +1662,66 @@ window.setFase = function(fase){
           <div class="navGroup">
   <div class="navTitle">Reportes</div>
   <button type="button" id="btnInformeEvalDesempeno" class="faseBtn"><span class="navLabel">Informe evaluación del desempeño</span></button>
+            <script>
+document.addEventListener("DOMContentLoaded", ()=>{
+
+ const btnInforme = document.getElementById("btnInformeEvalDesempeno");
+
+ if(!btnInforme) return;
+
+ btnInforme.addEventListener("click", ()=>{
+
+  // ✅ valida permisos
+  if(typeof validarPermisoAntesDeAbrir === "function"){
+   const ok = validarPermisoAntesDeAbrir("Reportes");
+   if(!ok) return;
+  }
+
+  // ✅ activa fase REPORTES
+  if(typeof setFase === "function"){
+   setFase("REPORTES");
+  }
+
+  // ✅ fuerza el selector oculto
+  const sel = document.getElementById("reportesSelect");
+  if(sel){
+   sel.value = "EVAL_RESUMEN";
+  }
+
+  // ✅ estado interno
+  if(window.state){
+   state.reportesView = "EVAL_RESUMEN";
+  }
+
+  // ✅ muestra filtros
+  const filtros = document.getElementById("reportesFiltersCard");
+  if(filtros){
+   filtros.style.display = "";
+  }
+
+  // ✅ ejecuta render
+  if(typeof applyReportesView_ === "function"){
+   applyReportesView_();
+  }
+
+  if(typeof toggleReportesUI_ === "function"){
+   toggleReportesUI_();
+  }
+
+  if(typeof updateReportFiltersLayout_ === "function"){
+   updateReportFiltersLayout_();
+  }
+
+  // ✅ foco automático
+  const no = document.getElementById("reportNoPersonal");
+  if(no){
+   no.focus();
+  }
+
+ });
+
+});
+</script>
   <button type="button" id="btnReportesToggle" class="faseBtn"><span class="navLabel">Reportes</span></button>
 </div>
 
@@ -1804,13 +1868,13 @@ function aplicarPermisosBotones(){
     <div class="field boxed" id="reportesSelectWrap">
       <div class="lbl">Tipo de reporte</div>
       <select id="reportesSelect">
-  <option value="">Seleccionar</option>
-<option value="EVAL_RESUMEN" hidden>Evaluación del desempeño</option>
-<option value="EVAL_CALIFICACIONES">1. Calificaciones de evaluación del desempeño</option>
-<option value="NECESIDADES_CAP">2. Necesidades de capacitación</option>
-<option value="PROYECCION_POTENCIAL">3. Proyección y potencial de desarrollo</option>
-<option value="OPORTUNIDADES_MEJORA">4. Oportunidades de mejora</option>
-<option value="DASHBOARD">5. Dashboard</option>
+ <option value="">Seleccionar</option>
+ <option value="EVAL_RESUMEN" hidden>Evaluación del desempeño</option>
+ <option value="EVAL_CALIFICACIONES">1. Calificaciones de evaluación del desempeño</option>
+ <option value="NECESIDADES_CAP">2. Necesidades de capacitación</option>
+ <option value="PROYECCION_POTENCIAL">3. Proyección y potencial de desarrollo</option>
+ <option value="OPORTUNIDADES_MEJORA">4. Oportunidades de mejora</option>
+ <option value="DASHBOARD">5. Dashboard</option>
 </select>
     </div>
 
