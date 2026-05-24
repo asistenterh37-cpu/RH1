@@ -1685,124 +1685,21 @@ window.setFase = function(fase){
           <div class="navGroup">
   <div class="navTitle">Reportes</div>
   <button type="button" id="btnInformeEvalDesempeno" class="faseBtn"><span class="navLabel">Informe evaluación del desempeño</span></button>
-            <script>
-document.addEventListener("DOMContentLoaded", ()=>{
-
- // =========================
- // GENERAR INFORME EJECUTIVO
- // =========================
- const btnGenerar =
- document.getElementById("btnGenerarInformeEval");
-
- if(btnGenerar){
-
- btnGenerar.addEventListener("click", async ()=>{
-
- const noPersonal =
- document.getElementById("ieNoPersonal")
- .value
- .trim();
-
- const periodo =
- document.getElementById("iePeriodo")
- .value
- .trim();
-
- const version =
- document.getElementById("ieVersion")
- .value
- .trim();
-
- if(!noPersonal){
- alert("Ingrese No. de personal");
- return;
- }
-
- try{
-
- await generarInformeEjecutivo_({
- noPersonal,
- periodo,
- version
- });
-
- }catch(err){
-
- console.error(err);
-
- alert(
- "Error al generar informe ejecutivo"
- );
-
- }
-
- });
-
- }
-
- // =========================
- // BOTÓN INFORME EVALUACIÓN
- // =========================
- const btnInforme =
- document.getElementById("btnInformeEvalDesempeno");
-
- if(btnInforme){
-
- btnInforme.addEventListener("click", ()=>{
-
- // permisos
- if(typeof validarPermisoAntesDeAbrir === "function"){
-
- const ok =
- validarPermisoAntesDeAbrir(
- "Reportes"
- );
-
- if(!ok) return;
-
- }
-
-// NO activar REPORTES
-// Informe ejecutivo trabaja independiente 
-
- // ocultar reportes normales
- const filtrosReportes =
- document.getElementById(
- "reportesFiltersCard"
- );
-
- if(filtrosReportes){
- filtrosReportes.style.display = "none";
- }
-
- // mostrar informe independiente
- const filtrosInforme =
- document.getElementById(
- "informeEvalFiltersCard"
- );
-
- if(filtrosInforme){
- filtrosInforme.style.display = "";
- }
-
- // ocultar dashboards
- const dash =
- document.getElementById("dashboardCard");
-
- if(dash){
- dash.style.display = "none";
- }
-
- const dashDepto =
- document.getElementById(
- "dashboardDeptoCard"
- );
-
  <script>
 document.addEventListener("DOMContentLoaded", ()=>{
 
  const btnInforme = document.getElementById("btnInformeEvalDesempeno");
  const btnGenerar = document.getElementById("btnGenerarInformeEval");
+
+ function marcarBotonInformeActivo_(){
+  document.querySelectorAll(".faseBtn").forEach(btn=>{
+   btn.classList.remove("active");
+  });
+
+  if(btnInforme){
+   btnInforme.classList.add("active");
+  }
+ }
 
  if(btnInforme){
   btnInforme.addEventListener("click", ()=>{
@@ -1812,26 +1709,38 @@ document.addEventListener("DOMContentLoaded", ()=>{
     if(!ok) return;
    }
 
+   marcarBotonInformeActivo_();
+
    const filtrosReportes = document.getElementById("reportesFiltersCard");
-   if(filtrosReportes) filtrosReportes.style.display = "none";
+   if(filtrosReportes){
+    filtrosReportes.style.display = "none";
+   }
 
    const filtrosInforme = document.getElementById("informeEvalFiltersCard");
-   if(filtrosInforme) filtrosInforme.style.display = "";
+   if(filtrosInforme){
+    filtrosInforme.style.display = "";
+   }
 
    const dash = document.getElementById("dashboardCard");
-   if(dash) dash.style.display = "none";
+   if(dash){
+    dash.style.display = "none";
+   }
 
    const dashDepto = document.getElementById("dashboardDeptoCard");
-   if(dashDepto) dashDepto.style.display = "none";
+   if(dashDepto){
+    dashDepto.style.display = "none";
+   }
 
    const no = document.getElementById("ieNoPersonal");
-   if(no) no.focus();
+   if(no){
+    no.focus();
+   }
 
   });
  }
 
  if(btnGenerar){
-  btnGenerar.addEventListener("click", ()=>{
+  btnGenerar.addEventListener("click", async ()=>{
 
    const no = document.getElementById("ieNoPersonal")?.value.trim() || "";
    const per = document.getElementById("iePeriodo")?.value.trim() || "";
@@ -1842,16 +1751,40 @@ document.addEventListener("DOMContentLoaded", ()=>{
     return;
    }
 
+   marcarBotonInformeActivo_();
+
    if(window.state){
     state.reportesView = "EVAL_RESUMEN";
    }
 
-   if(document.getElementById("reportNoPersonal")) document.getElementById("reportNoPersonal").value = no;
-   if(document.getElementById("reportPeriodo")) document.getElementById("reportPeriodo").value = per;
-   if(document.getElementById("reportVersion")) document.getElementById("reportVersion").value = ver;
+   if(document.getElementById("reportNoPersonal")){
+    document.getElementById("reportNoPersonal").value = no;
+   }
 
-   const btnReporte = document.getElementById("btnBuscarReporte");
-   if(btnReporte) btnReporte.click();
+   if(document.getElementById("reportPeriodo")){
+    document.getElementById("reportPeriodo").value = per;
+   }
+
+   if(document.getElementById("reportVersion")){
+    document.getElementById("reportVersion").value = ver;
+   }
+
+   const filtrosReportes = document.getElementById("reportesFiltersCard");
+   if(filtrosReportes){
+    filtrosReportes.style.display = "none";
+   }
+
+   const filtrosInforme = document.getElementById("informeEvalFiltersCard");
+   if(filtrosInforme){
+    filtrosInforme.style.display = "";
+   }
+
+   const btnBuscarReporte = document.getElementById("btnBuscarReporte");
+   if(btnBuscarReporte){
+    btnBuscarReporte.click();
+   }
+
+   setTimeout(marcarBotonInformeActivo_, 80);
 
   });
  }
@@ -2668,15 +2601,25 @@ Dejar de hacer:`;
 })();
 function syncFaseButtonsUI(value){
   const fase = String(value || "");
+
   document.querySelectorAll(".faseBtn").forEach(btn=>{
     const btnFase = String(btn.dataset.fase || "");
     const isReportesBtn = btn.id === "btnReportesToggle";
+
     btn.classList.toggle("active",
       btnFase === fase || (isReportesBtn && fase === "REPORTES")
     );
   });
-}
 
+  const informeCard = document.getElementById("informeEvalFiltersCard");
+  const btnInforme = document.getElementById("btnInformeEvalDesempeno");
+  const btnReportes = document.getElementById("btnReportesToggle");
+
+  if(informeCard && informeCard.style.display !== "none"){
+    if(btnReportes) btnReportes.classList.remove("active");
+    if(btnInforme) btnInforme.classList.add("active");
+  }
+}
 function accesoAutorizado_(){
   try{
     return sessionStorage.getItem("ED_ACCESO_OK") === "1";
