@@ -1130,11 +1130,9 @@ document.getElementById("btnGateIngresar").addEventListener("click", async () =>
 Object.keys(permisosResp.permisos || {})
 .forEach(k => {
 
- permisosUsuario[
-  String(k)
-  .trim()
-  .toLowerCase()
- ] = permisosResp.permisos[k] === true;
+permisosUsuario[
+ normalizarPermiso(k)
+] = permisosResp.permisos[k] === true; 
 
 });
     aplicarPermisosBotones();
@@ -1378,13 +1376,13 @@ document
 let permisosUsuario = {};
 
 function normalizarPermiso(txt){
-
  return String(txt || "")
+ .normalize("NFD")
+ .replace(/[\u0300-\u036f]/g,"")
+ .replace(/\s+/g," ")
  .trim()
  .toLowerCase();
-
 }
-
 function tienePermiso(nombre){
 
  const clave = normalizarPermiso(nombre);
