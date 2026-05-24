@@ -1739,56 +1739,43 @@ document.addEventListener("DOMContentLoaded", ()=>{
   });
  }
 
- if(btnGenerar){
-  btnGenerar.addEventListener("click", async ()=>{
+if(btnGenerar){
+ btnGenerar.addEventListener("click", async ()=>{
+ const no = document.getElementById("ieNoPersonal")?.value.trim() || "";
+ const per = document.getElementById("iePeriodo")?.value.trim() || "";
+ const ver = document.getElementById("ieVersion")?.value.trim() || "";
 
-   const no = document.getElementById("ieNoPersonal")?.value.trim() || "";
-   const per = document.getElementById("iePeriodo")?.value.trim() || "";
-   const ver = document.getElementById("ieVersion")?.value.trim() || "";
-
-   if(!no || !per || !ver){
-    alert("Para Generar, llena: No. de personal + Periodo + Versión.");
-    return;
-   }
-
-   marcarBotonInformeActivo_();
-
-   if(window.state){
-    state.reportesView = "EVAL_RESUMEN";
-   }
-
-   if(document.getElementById("reportNoPersonal")){
-    document.getElementById("reportNoPersonal").value = no;
-   }
-
-   if(document.getElementById("reportPeriodo")){
-    document.getElementById("reportPeriodo").value = per;
-   }
-
-   if(document.getElementById("reportVersion")){
-    document.getElementById("reportVersion").value = ver;
-   }
-
-   const filtrosReportes = document.getElementById("reportesFiltersCard");
-   if(filtrosReportes){
-    filtrosReportes.style.display = "none";
-   }
-
-   const filtrosInforme = document.getElementById("informeEvalFiltersCard");
-   if(filtrosInforme){
-    filtrosInforme.style.display = "";
-   }
-
-   const btnBuscarReporte = document.getElementById("btnBuscarReporte");
-   if(btnBuscarReporte){
-    btnBuscarReporte.click();
-   }
-
-   setTimeout(marcarBotonInformeActivo_, 80);
-
-  });
+ if(!no || !per || !ver){
+ alert("Para Generar, llena: No. de personal + Periodo + Versión.");
+ return;
  }
 
+ marcarBotonInformeActivo_();
+
+ const filtrosReportes = document.getElementById("reportesFiltersCard");
+ if(filtrosReportes){
+  filtrosReportes.style.display = "none";
+ }
+
+ const filtrosInforme = document.getElementById("informeEvalFiltersCard");
+ if(filtrosInforme){
+  filtrosInforme.style.display = "";
+ }
+
+ try{
+  await generarInformeEjecutivo_({
+   noPersonal:no,
+   periodo:per,
+   version:ver
+  });
+ }catch(err){
+  console.error(err);
+  alert("Error al generar la Evaluación de desempeño.");
+ }
+
+ setTimeout(marcarBotonInformeActivo_, 80);
+ });
+}
 });
 </script>
   <button type="button" id="btnReportesToggle" class="faseBtn"><span class="navLabel">Reportes</span></button>
