@@ -1384,8 +1384,7 @@ function normalizarPermiso(txt){
 }
 
 function tienePermiso(nombre){
- const clave = normalizarPermiso(nombre);
- return permisosUsuario && permisosUsuario[clave] === true;
+ return permisosUsuario[normalizarPermiso(nombre)] === true;
 }
 
 function bloquearBoton(btn){
@@ -1412,20 +1411,14 @@ function aplicarPermisosBotones(){
   const nav = btn.querySelector(".navLabel");
   if(!nav) return;
 
-  const nombreBoton = String(nav.innerText || "")
-  .replace(/\s+/g," ")
-  .trim();
+  const nombreBoton = nav.innerText.replace(/\s+/g," ").trim();
 
   if(nombreBoton === "Inicio"){
    desbloquearBoton(btn);
    return;
   }
 
-  if(tienePermiso(nombreBoton)){
-   desbloquearBoton(btn);
-  }else{
-   bloquearBoton(btn);
-  }
+  tienePermiso(nombreBoton) ? desbloquearBoton(btn) : bloquearBoton(btn);
  });
 }
 
@@ -1436,9 +1429,7 @@ function validarPermisoAntesDeAbrir(nombrePermiso){
 }
 
 function validarPermisoOpcion(nombre){
- if(tienePermiso(nombre)) return true;
- alert("No tiene permiso para acceder");
- return false;
+ return validarPermisoAntesDeAbrir(nombre);
 }
 </script>
  </span>
@@ -1623,7 +1614,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
   btnInforme.addEventListener("click", ()=>{
 
    if(typeof validarPermisoAntesDeAbrir === "function"){
-    const ok = validarPermisoAntesDeAbrir("Reportes");
+    const ok = validarPermisoAntesDeAbrir("Informe evaluación del desempeño");
     if(!ok) return;
    }
 
