@@ -5613,12 +5613,21 @@ on("btnReportesToggle", "click", ()=>{
   on("btnSidebarToggle", "click", ()=>{
   $("blockFaseNivel")?.classList.toggle("collapsed");
 });
-function mostrarSistemaAutorizado_(){
-  sessionStorage.setItem("ED_ACCESO_OK", "1");
-  document.body.classList.add("access-ok");
-  $("accessGate")?.classList.add("hide");
-}
 
+ function mostrarSistemaAutorizado_(){
+ sessionStorage.setItem("ED_ACCESO_OK", "1");
+
+ try{
+  permisosUsuario = JSON.parse(sessionStorage.getItem("ED_PERMISOS") || "{}");
+ }catch(_){
+  permisosUsuario = {};
+ }
+
+ document.body.classList.add("access-ok");
+ $("accessGate")?.classList.add("hide");
+
+ aplicarPermisosBotones();
+} 
 function bloquearSistema_(){
  sessionStorage.removeItem("ED_ACCESO_OK");
  document.body.classList.remove("access-ok");
@@ -5793,17 +5802,40 @@ on("btnGateIngresar", "click", async ()=>{
  });
 
 if(r && r.ok && r.autorizado){
+
+ const permisosResp = await apiGet({
+  action: "obtenerPermisos",
+  acceso: acceso
+ });
+
+ if(!permisosResp || permisosResp.ok !== true){
+  bloquearSistema_();
+  if(msg) msg.textContent = permisosResp?.error || "No se pudieron cargar permisos.";
+  input?.focus?.();
+  return;
+ }
+
+ permisosUsuario = {};
+
+ Object.keys(permisosResp.permisos || {}).forEach(k=>{
+  permisosUsuario[normalizarPermiso(k)] = permisosResp.permisos[k] === true;
+ });
+
+ sessionStorage.setItem("ED_ACCESO_OK", "1");
+ sessionStorage.setItem("ED_ACCESO_USUARIO", acceso);
+ sessionStorage.setItem("ED_ROL", permisosResp.rol || "");
+ sessionStorage.setItem("ED_PERMISOS", JSON.stringify(permisosUsuario));
+
  if(input) input.value = "";
 
- // ✅ Entra inmediatamente al sistema sin reproducir audio
  try{
-   window.speechSynthesis?.cancel?.();
+  window.speechSynthesis?.cancel?.();
  }catch(_){}
 
  mostrarSistemaAutorizado_();
 
 }else{
- bloquearSistema_();
+   bloquearSistema_();
  if(msg) msg.textContent = "Acceso denegado";
  input?.focus?.();
 }
