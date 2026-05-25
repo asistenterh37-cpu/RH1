@@ -1293,10 +1293,17 @@ function normalizarPermiso(txt){
 }
 
 function tienePermiso(nombre){
- return permisosUsuario[normalizarPermiso(nombre)] === true;
+
+ const permiso = normalizarPermiso(nombre);
+
+ if(!permiso) return true;
+
+ return permisosUsuario[permiso] === true;
+
 }
 
 function bloquearBoton(btn){
+
  if(!btn) return;
 
  btn.disabled = true;
@@ -1310,8 +1317,17 @@ function bloquearBoton(btn){
  btn.setAttribute("data-bloqueado","1");
 
  btn.title = "Sin permiso para esta función";
-}
+
+ btn.onclick = function(ev){
+  ev.preventDefault();
+  ev.stopPropagation();
+  return false;
+ };
+
+}     
+     
 function desbloquearBoton(btn){
+
  if(!btn) return;
 
  btn.disabled = false;
@@ -1323,7 +1339,11 @@ function desbloquearBoton(btn){
  btn.removeAttribute("data-bloqueado");
 
  btn.title = "";
+
+ btn.onclick = null;
+
 }
+     
 const MAPA_PERMISOS_FASE = {
  INICIO:"Inicio",
  NIVELES:"Niveles",
@@ -1370,6 +1390,43 @@ function aplicarPermisosBotones(){
 
  document.querySelectorAll(".faseBtn, .sidebarBtn").forEach(btn=>{
 
+  if(!btn) return;
+
+  if(BOTONES_SIN_CONTROL.includes(btn.id)){
+   desbloquearBoton(btn);
+   return;
+  }
+
+  const nombrePermiso = obtenerNombrePermisoBoton_(btn);
+
+  if(!nombrePermiso){
+   desbloquearBoton(btn);
+   return;
+  }
+
+  const permisoNormalizado = normalizarPermiso(nombrePermiso);
+
+  const permisoExiste =
+   Object.prototype.hasOwnProperty.call(
+    permisosUsuario,
+    permisoNormalizado
+   );
+
+  if(!permisoExiste){
+   bloquearBoton(btn);
+   return;
+  }
+
+  if(tienePermiso(nombrePermiso)){
+   desbloquearBoton(btn);
+  }else{
+   bloquearBoton(btn);
+  }
+
+ });
+
+}
+     
   if(BOTONES_SIN_CONTROL.includes(btn.id)){
    desbloquearBoton(btn);
    return;
