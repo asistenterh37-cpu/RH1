@@ -1181,7 +1181,7 @@ document
       <div class="form-grid">
         <div class="field col-8 boxed">
           <div class="lbl">URL Web App Apps Script</div>
-          <input id="webapp" value="https://script.google.com/macros/s/AKfycbzUmcLTwmjfFHUk2XNfm4vYZC7Zev1wd02bW1m-MxCah7stwHJ0tkF_lZ44Zjs5XBFl/exec"/>
+          <input id="webapp" value="https://script.google.com/macros/s/AKfycby8ed1YLG3zKCC6V3qn8DHleNFm-D5KD7pyzJvgMaTVtyJ6DPp7kvtDGvgwZDpPaMMg/exec"/>
         </div>
         <div class="field col-4 boxed">
           <div class="lbl">Pruebas API</div>
@@ -1405,25 +1405,52 @@ function desbloquearBoton(btn){
  btn.title = "";
 }
 
+const MAPA_PERMISOS_FASE = {
+ INICIO:"Inicio",
+ NIVELES:"Niveles",
+ FORMULARIOS:"Formularios",
+ PESOS:"Pesos",
+ AUTO:"Autoevaluación",
+ CLIENTES:"Evaluación clientes",
+ DESEMPENO:"Evaluación desempeño",
+ KPIS:"KPIs / entregables",
+ INCIDENCIAS:"Incidencias",
+ ONEONE:"One to one",
+ CALIBRACION:"Calibración",
+ REPORTES:"Reportes"
+};
+
+function obtenerNombrePermisoBoton_(btn){
+ if(!btn) return "";
+
+ if(btn.id === "btnSalir") return "Salir";
+ if(btn.id === "btnInformeEvalDesempeno") return "Informe evaluación del desempeño";
+
+ const fase = String(btn.dataset?.fase || "").trim();
+ if(fase && MAPA_PERMISOS_FASE[fase]) return MAPA_PERMISOS_FASE[fase];
+
+ const nav = btn.querySelector(".navLabel");
+ return String(nav?.innerText || btn.innerText || "")
+   .replace(/\s+/g," ")
+   .trim();
+}
+
 function aplicarPermisosBotones(){
  document.querySelectorAll(".faseBtn, .sidebarBtn").forEach(btn=>{
-  const nav = btn.querySelector(".navLabel");
-  if(!nav) return;
+   const nombrePermiso = obtenerNombrePermisoBoton_(btn);
 
-  const nombreBoton = String(nav.innerText || "")
-  .replace(/\s+/g," ")
-  .trim();
+   if(!nombrePermiso) return;
 
-  if(nombreBoton === "Inicio"){
-   desbloquearBoton(btn);
-   return;
-  }
+   if(nombrePermiso === "Inicio"){
+     desbloquearBoton(btn);
+     return;
+   }
 
-  if(tienePermiso(nombreBoton)){
-   desbloquearBoton(btn);
-  }else{
-   bloquearBoton(btn);
-  }
+   if(tienePermiso(nombrePermiso)){
+     desbloquearBoton(btn);
+   }else{
+     bloquearBoton(btn);
+   }
  });
 }
 
@@ -1436,7 +1463,13 @@ function validarPermisoAntesDeAbrir(nombrePermiso){
 function validarPermisoOpcion(nombre){
  return validarPermisoAntesDeAbrir(nombre);
 }
-</script>       
+
+function validarPermisoFase_(fase){
+ const permiso = MAPA_PERMISOS_FASE[String(fase || "").trim()];
+ if(!permiso) return true;
+ return validarPermisoAntesDeAbrir(permiso);
+}
+   </script>       
 </span>
       </div>
     </div>
@@ -1453,137 +1486,19 @@ function validarPermisoOpcion(nombre){
           <div class="navGroup">
             <div class="navTitle">General</div>
             <button type="button" class="faseBtn" data-fase="INICIO"><span class="navLabel">Inicio</span></button>
-            <script>
-
-const setFaseOriginal = window.setFase;
-
-window.setFase = function(fase){
-
-const mapaPermisos = {
-
-   INICIO:"Inicio",
-   NIVELES:"Niveles",
-   FORMULARIOS:"Formularios",
-   PESOS:"Pesos",
-   AUTO:"Autoevaluación",
-   CLIENTES:"Evaluación clientes",
-   DESEMPENO:"Evaluación desempeño",
-   KPIS:"KPIs / entregables",
-   INCIDENCIAS:"Incidencias",
-   ONEONE:"One to one",
-   CALIBRACION:"Calibración",
-   REPORTES:"Reportes",
-   DASHBOARD:"Dashboard"
-
-};
- const permiso = mapaPermisos[fase];
-
- if(permiso){
-
-  if(!tienePermiso(permiso)){
-
-   alert("No tiene permiso para acceder");
-
-   return;
-
-  }
-
- }
-
- return setFaseOriginal(fase);
-
-};
-
-</script>
-            <script>
-
-const setFaseOriginal = window.setFase;
-
-window.setFase = function(fase){
-
- const mapa = {
-
-  NIVELES:"Niveles",
-  FORMULARIOS:"Formularios",
-  PESOS:"Pesos",
-  AUTO:"Autoevaluación",
-  CLIENTES:"Evaluación clientes",
-  DESEMPENO:"Evaluación desempeño",
-  KPIS:"KPIs / entregables",
-  INCIDENCIAS:"Incidencias",
-  ONEONE:"One to one",
-  CALIBRACION:"Calibración"
-
- };
-
- const permisoNombre = mapa[fase];
-
- if(permisoNombre){
-
-  const permitido = permisosUsuario[permisoNombre];
-
-  if(permitido === false){
-
-   return;
-  }
-
- }
-
- return setFaseOriginal(fase);
-
-};
-
-</script>
-          </div>
-
-                    <div class="navGroup">
-            <div class="navTitle">Configuración</div>
-            <button type="button" class="faseBtn" data-fase="NIVELES"><span class="navLabel">Niveles</span></button>
-            <button type="button" class="faseBtn" data-fase="FORMULARIOS"><span class="navLabel">Formularios</span></button>
-            <button type="button" class="faseBtn" data-fase="PESOS"><span class="navLabel">Pesos</span></button>
-          </div>
-
-          <div class="navGroup">
-            <div class="navTitle">Evaluación</div>
-            <button type="button" class="faseBtn" data-fase="AUTO"><span class="navLabel">Autoevaluación</span></button>
-            <script>
-
-const setFaseOriginal = window.setFase;
-
-window.setFase = function(fase){
-
-  const mapa = {
-
-    NIVELES:"Niveles",
-    FORMULARIOS:"Formularios",
-    PESOS:"Pesos",
-    AUTO:"Autoevaluación",
-    CLIENTES:"Evaluación clientes",
-    DESEMPENO:"Evaluación desempeño",
-    KPIS:"KPIs / entregables",
-    INCIDENCIAS:"Incidencias",
-    ONEONE:"One to One",
-    CALIBRACION:"Calibración"
-
-  };
-
-  const permisoNombre = mapa[fase];
-
-  if(permisoNombre){
-
-    const permitido =
-      permisosUsuario[permisoNombre];
-
-    if(permitido === false){
-
-      return;
-    }
-  }
-
-  return setFaseOriginal(fase);
-};
-
-</script>
+            </div> <div class="navGroup">
+ <div class="navTitle">Configuración</div>
+ <button type="button" class="faseBtn" data-fase="NIVELES"><span 
+class="navLabel">Niveles</span></button>
+ <button type="button" class="faseBtn" data-fase="FORMULARIOS"><span 
+class="navLabel">Formularios</span></button>
+ <button type="button" class="faseBtn" data-fase="PESOS"><span 
+class="navLabel">Pesos</span></button>
+ </div>
+ <div class="navGroup">
+ <div class="navTitle">Evaluación</div>
+ <button type="button" class="faseBtn" data-fase="AUTO"><span 
+class="navLabel">Autoevaluación</span></button>
             <button type="button" class="faseBtn" data-fase="CLIENTES"><span class="navLabel">Evaluación clientes</span></button>
             <button type="button" class="faseBtn" data-fase="DESEMPENO"><span class="navLabel">Evaluación desempeño</span></button>
           </div>
@@ -2397,7 +2312,7 @@ Dejar de hacer:"></textarea>
 `Empezar a hacer:
 Continuar haciendo:
 Dejar de hacer:`;
-  const DEFAULT_WEBAPP_ = "https://script.google.com/macros/s/AKfycbzUmcLTwmjfFHUk2XNfm4vYZC7Zev1wd02bW1m-MxCah7stwHJ0tkF_lZ44Zjs5XBFl/exec";
+  const DEFAULT_WEBAPP_ = "https://script.google.com/macros/s/AKfycby8ed1YLG3zKCC6V3qn8DHleNFm-D5KD7pyzJvgMaTVtyJ6DPp7kvtDGvgwZDpPaMMg/exec";
   const $ = id => document.getElementById(id);
 
     /* ===== SEGURIDAD REFORZADA FRONTEND: BLOQUEO DE LECTURA / COPIA CASUAL ===== */
@@ -2502,21 +2417,22 @@ function accesoAutorizado_(){
   }
 }
 function setFaseFromButton(value){
-  const fase = String(value || "");
+ const fase = String(value || "");
 
-  if(fase !== "INICIO" && !accesoAutorizado_()){
-    alert("Acceso no autorizado");
-    return;
-  }
+ if(fase !== "INICIO" && !accesoAutorizado_()){
+   alert("Acceso no autorizado");
+   return;
+ }
 
-  const sel = $("faseSelect");
-  if(!sel) return;
+ if(!validarPermisoFase_(fase)) return;
 
-  sel.value = fase;
-  syncFaseButtonsUI(sel.value);
-  sel.dispatchEvent(new Event("change", { bubbles:true }));
+ const sel = $("faseSelect");
+ if(!sel) return;
+
+ sel.value = fase;
+ syncFaseButtonsUI(sel.value);
+ sel.dispatchEvent(new Event("change", { bubbles:true }));
 }
-
 const REPORTES_PHASE_MAP = {
   DASHBOARD: "REPORTES",
   EVAL_RESUMEN: "REPORTES",
@@ -5769,11 +5685,20 @@ on("btnReportesToggle", "click", ()=>{
   $("blockFaseNivel")?.classList.toggle("collapsed");
 });
 function mostrarSistemaAutorizado_(){
-  sessionStorage.setItem("ED_ACCESO_OK", "1");
-  document.body.classList.add("access-ok");
-  $("accessGate")?.classList.add("hide");
-}
+ sessionStorage.setItem("ED_ACCESO_OK", "1");
 
+ try{
+   permisosUsuario = JSON.parse(sessionStorage.getItem("ED_PERMISOS") || "{}");
+ }catch(_){
+   permisosUsuario = {};
+ }
+
+ document.body.classList.add("access-ok");
+ $("accessGate")?.classList.add("hide");
+
+ aplicarPermisosBotones();
+}
+  
 function bloquearSistema_(){
  sessionStorage.removeItem("ED_ACCESO_OK");
  document.body.classList.remove("access-ok");
@@ -5948,17 +5873,37 @@ on("btnGateIngresar", "click", async ()=>{
  });
 
 if(r && r.ok && r.autorizado){
+ const permisosResp = await apiGet({
+   action:"obtenerPermisos",
+   acceso:acceso
+ });
+
+ if(!permisosResp || permisosResp.ok !== true){
+   bloquearSistema_();
+   if(msg) msg.textContent = permisosResp?.error || "No se pudieron cargar permisos.";
+   input?.focus?.();
+   return;
+ }
+
+ permisosUsuario = {};
+ Object.keys(permisosResp.permisos || {}).forEach(k=>{
+   permisosUsuario[normalizarPermiso(k)] = permisosResp.permisos[k] === true;
+ });
+
+ sessionStorage.setItem("ED_PERMISOS", JSON.stringify(permisosUsuario));
+ sessionStorage.setItem("ED_ROL", permisosResp.rol || "");
+
  if(input) input.value = "";
 
- // ✅ Entra inmediatamente al sistema sin reproducir audio
  try{
    window.speechSynthesis?.cancel?.();
  }catch(_){}
 
  mostrarSistemaAutorizado_();
+ aplicarPermisosBotones();
 
 }else{
- bloquearSistema_();
+   bloquearSistema_();
  if(msg) msg.textContent = "Acceso denegado";
  input?.focus?.();
 }
