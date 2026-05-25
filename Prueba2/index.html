@@ -1181,7 +1181,7 @@ document
       <div class="form-grid">
         <div class="field col-8 boxed">
           <div class="lbl">URL Web App Apps Script</div>
-          <input id="webapp" value="https://script.google.com/macros/s/AKfycbzUmcLTwmjfFHUk2XNfm4vYZC7Zev1wd02bW1m-MxCah7stwHJ0tkF_lZ44Zjs5XBFl/exec"/>
+          <input id="webapp" value="https://script.google.com/macros/s/AKfycbx0haene2DMSSaAHEQFhbFbp62gHmiA1y8YKhdTt0xm9WwEMEi8TQJdRJB6nhCkAQjq/exec"/>
         </div>
         <div class="field col-4 boxed">
           <div class="lbl">Pruebas API</div>
@@ -1385,15 +1385,27 @@ function normalizarPermiso(txt){
 function tienePermiso(nombre){
  return permisosUsuario[normalizarPermiso(nombre)] === true;
 }
-
 function bloquearBoton(btn){
+
  if(!btn) return;
- btn.disabled = true;
- btn.classList.remove("active");
+
+ btn.dataset.locked = "1";
+
  btn.style.opacity = ".45";
  btn.style.cursor = "not-allowed";
  btn.style.filter = "grayscale(.35)";
- btn.title = "Sin permiso para esta función";
+
+ btn.addEventListener("click", function(e){
+
+ if(btn.dataset.locked === "1"){
+ e.preventDefault();
+ e.stopPropagation();
+ return false;
+ }
+
+ }, true);
+
+}
 }
 
 function desbloquearBoton(btn){
@@ -1405,27 +1417,6 @@ function desbloquearBoton(btn){
  btn.title = "";
 }
 
-function aplicarPermisosBotones(){
- document.querySelectorAll(".faseBtn, .sidebarBtn").forEach(btn=>{
-  const nav = btn.querySelector(".navLabel");
-  if(!nav) return;
-
-  const nombreBoton = String(nav.innerText || "")
-  .replace(/\s+/g," ")
-  .trim();
-
-  if(nombreBoton === "Inicio"){
-   desbloquearBoton(btn);
-   return;
-  }
-
-  if(tienePermiso(nombreBoton)){
-   desbloquearBoton(btn);
-  }else{
-   bloquearBoton(btn);
-  }
- });
-}
 
 function validarPermisoAntesDeAbrir(nombrePermiso){
  if(tienePermiso(nombrePermiso)) return true;
@@ -2280,7 +2271,7 @@ Dejar de hacer:"></textarea>
 `Empezar a hacer:
 Continuar haciendo:
 Dejar de hacer:`;
-  const DEFAULT_WEBAPP_ = "https://script.google.com/macros/s/AKfycbzUmcLTwmjfFHUk2XNfm4vYZC7Zev1wd02bW1m-MxCah7stwHJ0tkF_lZ44Zjs5XBFl/exec";
+  const DEFAULT_WEBAPP_ = "https://script.google.com/macros/s/AKfycbx0haene2DMSSaAHEQFhbFbp62gHmiA1y8YKhdTt0xm9WwEMEi8TQJdRJB6nhCkAQjq/exec";
   const $ = id => document.getElementById(id);
 
     /* ===== SEGURIDAD REFORZADA FRONTEND: BLOQUEO DE LECTURA / COPIA CASUAL ===== */
