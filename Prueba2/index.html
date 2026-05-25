@@ -1298,23 +1298,32 @@ function tienePermiso(nombre){
 
 function bloquearBoton(btn){
  if(!btn) return;
+
  btn.disabled = true;
+
  btn.classList.remove("active");
+
  btn.style.opacity = ".45";
  btn.style.cursor = "not-allowed";
  btn.style.filter = "grayscale(.35)";
+
+ btn.setAttribute("data-bloqueado","1");
+
  btn.title = "Sin permiso para esta función";
 }
-
 function desbloquearBoton(btn){
  if(!btn) return;
+
  btn.disabled = false;
+
  btn.style.opacity = "";
  btn.style.cursor = "";
  btn.style.filter = "";
+
+ btn.removeAttribute("data-bloqueado");
+
  btn.title = "";
 }
-
 const MAPA_PERMISOS_FASE = {
  INICIO:"Inicio",
  NIVELES:"Niveles",
@@ -1341,23 +1350,84 @@ function obtenerNombrePermisoBoton_(btn){
 }
 
 function aplicarPermisosBotones(){
+
+ const BOTONES_SIN_CONTROL = [
+  "btnGuardar",
+  "btnPrint",
+  "btnRecuperar",
+  "btnLimpiarEval",
+  "btnRecoverClose",
+  "btnPrintClose",
+  "btnPrintPDF",
+  "btnPrintTXT",
+  "btnCopyText",
+  "btnIEClose",
+  "btnIEExcel",
+  "btnIEWord",
+  "btnTiposClose",
+  "btnGateIngresar"
+ ];
+
  document.querySelectorAll(".faseBtn, .sidebarBtn").forEach(btn=>{
+
+  if(BOTONES_SIN_CONTROL.includes(btn.id)){
+   desbloquearBoton(btn);
+   return;
+  }
+
   const nombrePermiso = obtenerNombrePermisoBoton_(btn);
-  if(!nombrePermiso) return;
+
+  if(!nombrePermiso){
+   desbloquearBoton(btn);
+   return;
+  }
+
   if(nombrePermiso === "Inicio"){
    desbloquearBoton(btn);
    return;
   }
-  tienePermiso(nombrePermiso) ? desbloquearBoton(btn) : bloquearBoton(btn);
+
+  const permisoExiste =
+   Object.prototype.hasOwnProperty.call(
+    permisosUsuario,
+    normalizarPermiso(nombrePermiso)
+   );
+
+  if(!permisoExiste){
+   desbloquearBoton(btn);
+   return;
+  }
+
+  if(tienePermiso(nombrePermiso)){
+   desbloquearBoton(btn);
+  }else{
+   bloquearBoton(btn);
+  }
+
  });
+
 }
 
 function validarPermisoAntesDeAbrir(nombrePermiso){
- if(tienePermiso(nombrePermiso)) return true;
- alert("No tiene permiso para acceder a esta función.");
- return false;
-}
 
+ if(!nombrePermiso) return true;
+
+ const permisoExiste =
+  Object.prototype.hasOwnProperty.call(
+   permisosUsuario,
+   normalizarPermiso(nombrePermiso)
+  );
+
+ if(!permisoExiste) return true;
+
+ if(tienePermiso(nombrePermiso)){
+  return true;
+ }
+
+ alert("No tiene permiso para acceder a esta función.");
+
+ return false;
+}     
 function validarPermisoOpcion(nombre){
  return validarPermisoAntesDeAbrir(nombre);
 }
