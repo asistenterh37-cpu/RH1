@@ -1281,6 +1281,7 @@ body:not(.access-ok) main{
           <span class="s-dot"></span>
           <span id="apiStatusText">API: —</span>
    <script>
+
 let permisosUsuario = {};
 
 function normalizarPermiso(txt){
@@ -1293,57 +1294,30 @@ function normalizarPermiso(txt){
 }
 
 function tienePermiso(nombre){
-
- const permiso = normalizarPermiso(nombre);
-
- if(!permiso) return true;
-
- return permisosUsuario[permiso] === true;
-
+ return permisosUsuario[normalizarPermiso(nombre)] === true;
 }
 
 function bloquearBoton(btn){
-
  if(!btn) return;
-
  btn.disabled = true;
-
  btn.classList.remove("active");
-
  btn.style.opacity = ".45";
  btn.style.cursor = "not-allowed";
  btn.style.filter = "grayscale(.35)";
-
  btn.setAttribute("data-bloqueado","1");
-
  btn.title = "Sin permiso para esta función";
+}
 
- btn.onclick = function(ev){
-  ev.preventDefault();
-  ev.stopPropagation();
-  return false;
- };
-
-}     
-     
 function desbloquearBoton(btn){
-
  if(!btn) return;
-
  btn.disabled = false;
-
  btn.style.opacity = "";
  btn.style.cursor = "";
  btn.style.filter = "";
-
  btn.removeAttribute("data-bloqueado");
-
  btn.title = "";
-
- btn.onclick = null;
-
 }
-     
+
 const MAPA_PERMISOS_FASE = {
  INICIO:"Inicio",
  NIVELES:"Niveles",
@@ -1363,75 +1337,18 @@ function obtenerNombrePermisoBoton_(btn){
  if(!btn) return "";
  if(btn.id === "btnSalir") return "Salir";
  if(btn.id === "btnInformeEvalDesempeno") return "Informe evaluación del desempeño";
+
  const fase = String(btn.dataset?.fase || "").trim();
  if(fase && MAPA_PERMISOS_FASE[fase]) return MAPA_PERMISOS_FASE[fase];
+
  const nav = btn.querySelector(".navLabel");
- return String(nav?.innerText || btn.innerText || "").replace(/\s+/g," ").trim();
+ return String(nav?.innerText || btn.innerText || "")
+ .replace(/\s+/g," ")
+ .trim();
 }
 
 function aplicarPermisosBotones(){
-
- const BOTONES_SIN_CONTROL = [
-  "btnGuardar",
-  "btnPrint",
-  "btnRecuperar",
-  "btnLimpiarEval",
-  "btnRecoverClose",
-  "btnPrintClose",
-  "btnPrintPDF",
-  "btnPrintTXT",
-  "btnCopyText",
-  "btnIEClose",
-  "btnIEExcel",
-  "btnIEWord",
-  "btnTiposClose",
-  "btnGateIngresar"
- ];
-
  document.querySelectorAll(".faseBtn, .sidebarBtn").forEach(btn=>{
-
-  if(!btn) return;
-
-  if(BOTONES_SIN_CONTROL.includes(btn.id)){
-   desbloquearBoton(btn);
-   return;
-  }
-
-  const nombrePermiso = obtenerNombrePermisoBoton_(btn);
-
-  if(!nombrePermiso){
-   desbloquearBoton(btn);
-   return;
-  }
-
-  const permisoNormalizado = normalizarPermiso(nombrePermiso);
-
-  const permisoExiste =
-   Object.prototype.hasOwnProperty.call(
-    permisosUsuario,
-    permisoNormalizado
-   );
-
-  if(!permisoExiste){
-   bloquearBoton(btn);
-   return;
-  }
-
-  if(tienePermiso(nombrePermiso)){
-   desbloquearBoton(btn);
-  }else{
-   bloquearBoton(btn);
-  }
-
- });
-
-}
-     
-  if(BOTONES_SIN_CONTROL.includes(btn.id)){
-   desbloquearBoton(btn);
-   return;
-  }
-
   const nombrePermiso = obtenerNombrePermisoBoton_(btn);
 
   if(!nombrePermiso){
@@ -1444,47 +1361,25 @@ function aplicarPermisosBotones(){
    return;
   }
 
-  const permisoExiste =
-   Object.prototype.hasOwnProperty.call(
-    permisosUsuario,
-    normalizarPermiso(nombrePermiso)
-   );
-
-  if(!permisoExiste){
-   desbloquearBoton(btn);
-   return;
-  }
-
   if(tienePermiso(nombrePermiso)){
    desbloquearBoton(btn);
   }else{
    bloquearBoton(btn);
   }
-
  });
-
 }
 
 function validarPermisoAntesDeAbrir(nombrePermiso){
-
  if(!nombrePermiso) return true;
-
- const permisoExiste =
-  Object.prototype.hasOwnProperty.call(
-   permisosUsuario,
-   normalizarPermiso(nombrePermiso)
-  );
-
- if(!permisoExiste) return true;
 
  if(tienePermiso(nombrePermiso)){
   return true;
  }
 
  alert("No tiene permiso para acceder a esta función.");
-
  return false;
-}     
+}
+
 function validarPermisoOpcion(nombre){
  return validarPermisoAntesDeAbrir(nombre);
 }
@@ -1493,7 +1388,7 @@ function validarPermisoFase_(fase){
  const permiso = MAPA_PERMISOS_FASE[String(fase || "").trim()];
  if(!permiso) return true;
  return validarPermisoAntesDeAbrir(permiso);
-}
+}     
    </script>       
 </span>
       </div>
@@ -1511,87 +1406,6 @@ function validarPermisoFase_(fase){
           <div class="navGroup">
             <div class="navTitle">General</div>
             <button type="button" class="faseBtn" data-fase="INICIO"><span class="navLabel">Inicio</span></button>
-            <script>
-
-const setFaseOriginal = window.setFase;
-
-window.setFase = function(fase){
-
-const mapaPermisos = {
-
-   INICIO:"Inicio",
-   NIVELES:"Niveles",
-   FORMULARIOS:"Formularios",
-   PESOS:"Pesos",
-   AUTO:"Autoevaluación",
-   CLIENTES:"Evaluación clientes",
-   DESEMPENO:"Evaluación desempeño",
-   KPIS:"KPIs / entregables",
-   INCIDENCIAS:"Incidencias",
-   ONEONE:"One to one",
-   CALIBRACION:"Calibración",
-   REPORTES:"Reportes",
-   DASHBOARD:"Dashboard"
-
-};
- const permiso = mapaPermisos[fase];
-
- if(permiso){
-
-  if(!tienePermiso(permiso)){
-
-   alert("No tiene permiso para acceder");
-
-   return;
-
-  }
-
- }
-
- return setFaseOriginal(fase);
-
-};
-
-</script>
-            <script>
-
-const setFaseOriginal = window.setFase;
-
-window.setFase = function(fase){
-
- const mapa = {
-
-  NIVELES:"Niveles",
-  FORMULARIOS:"Formularios",
-  PESOS:"Pesos",
-  AUTO:"Autoevaluación",
-  CLIENTES:"Evaluación clientes",
-  DESEMPENO:"Evaluación desempeño",
-  KPIS:"KPIs / entregables",
-  INCIDENCIAS:"Incidencias",
-  ONEONE:"One to one",
-  CALIBRACION:"Calibración"
-
- };
-
- const permisoNombre = mapa[fase];
-
- if(permisoNombre){
-
-  const permitido = permisosUsuario[permisoNombre];
-
-  if(permitido === false){
-
-   return;
-  }
-
- }
-
- return setFaseOriginal(fase);
-
-};
-
-</script>
           </div>
 
                     <div class="navGroup">
@@ -1604,44 +1418,6 @@ window.setFase = function(fase){
           <div class="navGroup">
             <div class="navTitle">Evaluación</div>
             <button type="button" class="faseBtn" data-fase="AUTO"><span class="navLabel">Autoevaluación</span></button>
-            <script>
-
-const setFaseOriginal = window.setFase;
-
-window.setFase = function(fase){
-
-  const mapa = {
-
-    NIVELES:"Niveles",
-    FORMULARIOS:"Formularios",
-    PESOS:"Pesos",
-    AUTO:"Autoevaluación",
-    CLIENTES:"Evaluación clientes",
-    DESEMPENO:"Evaluación desempeño",
-    KPIS:"KPIs / entregables",
-    INCIDENCIAS:"Incidencias",
-    ONEONE:"One to One",
-    CALIBRACION:"Calibración"
-
-  };
-
-  const permisoNombre = mapa[fase];
-
-  if(permisoNombre){
-
-    const permitido =
-      permisosUsuario[permisoNombre];
-
-    if(permitido === false){
-
-      return;
-    }
-  }
-
-  return setFaseOriginal(fase);
-};
-
-</script>
             <button type="button" class="faseBtn" data-fase="CLIENTES"><span class="navLabel">Evaluación clientes</span></button>
             <button type="button" class="faseBtn" data-fase="DESEMPENO"><span class="navLabel">Evaluación desempeño</span></button>
           </div>
@@ -5788,6 +5564,20 @@ document.querySelectorAll(".faseBtn[data-fase]").forEach(btn=>{
     setFaseFromButton(btn.dataset.fase || "");
   });
 });
+
+document.addEventListener("click", function(ev){
+ const btn = ev.target.closest(".faseBtn, .sidebarBtn");
+
+ if(!btn) return;
+
+ if(btn.getAttribute("data-bloqueado") === "1"){
+  ev.preventDefault();
+  ev.stopPropagation();
+  alert("No tiene permiso para acceder a esta función.");
+  return false;
+ }
+}, true);
+  
 
   on("btnInformeEvalDesempeno", "click", ()=>{
  const filtrosReportes = $("reportesFiltersCard");
