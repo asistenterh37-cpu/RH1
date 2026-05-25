@@ -2330,12 +2330,13 @@ function syncFaseButtonsUI(value){
 }
 function accesoAutorizado_(){
   try{
-    return sessionStorage.getItem("ED_ACCESO_OK") === "1";
+    return sessionStorage.getItem("ED_ACCESO_OK") === "1"
+      && !!sessionStorage.getItem("ED_PERMISOS");
   }catch(_){
     return false;
   }
 }
-function setFaseFromButton(value){
+  function setFaseFromButton(value){
   const fase = String(value || "");
   if(fase !== "INICIO" && !accesoAutorizado_()){
     alert("Acceso no autorizado");
@@ -2732,21 +2733,29 @@ async function apiGet(params, timeoutMs = 60000){
     setApiStatus("ok", "API: conectada");
     return data;
 
-  }catch(err){
+  }catch(errFetch){
 
-    const msg =
-      err?.name === "AbortError"
-        ? "La API tardó demasiado en responder"
-        : (err?.message || "desconectada");
+    try{
+      const data = await apiGetJsonp(params, timeoutMs);
+      setApiStatus("ok", "API: conectada");
+      return data;
 
-    setApiStatus("err", "API: " + msg);
+    }catch(errJsonp){
 
-    console.error("ERROR API:", err);
+      const msg =
+        errJsonp?.name === "AbortError"
+          ? "La API tardó demasiado en responder"
+          : (errJsonp?.message || errFetch?.message || "desconectada");
 
-    throw err;
+      setApiStatus("err", "API: " + msg);
+
+      console.error("ERROR API FETCH:", errFetch);
+      console.error("ERROR API JSONP:", errJsonp);
+
+      throw errJsonp;
+    }
   }
 }  
-  
 function todayLocal(){
   const d = new Date();
   const yyyy = d.getFullYear();
