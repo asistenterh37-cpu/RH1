@@ -1079,97 +1079,7 @@ body:not(.access-ok) main{
         <button type="button" id="btnGateIngresar" class="btn-ok" style="width:100%;margin-top:12px">
           Ingresar
         </button>
-
-      <script>
-
-document.getElementById("btnGateIngresar").addEventListener("click", async () => {
-
-  const acceso =
-    document.getElementById("gateAccesoInput")
-    .value
-    .trim();
-
-  if(!acceso){
-
-    document.getElementById("gateAccessMsg").innerText =
-      "Ingrese clave";
-
-    return;
-  }
-
-  try{
-
-    const navegador = navigator.userAgent;
-
-    const url =
-      WEBAPP_URL +
-      "?action=verificarAcceso" +
-      "&acceso=" + encodeURIComponent(acceso) +
-      "&navegador=" + encodeURIComponent(navegador);
-
-    const resp = await fetchJsonp(url);
-
-    if(!resp || !resp.autorizado){
-
-      document.getElementById("gateAccessMsg").innerText =
-        "Clave incorrecta";
-
-      return;
-    }
-
-    const permisosUrl =
-      WEBAPP_URL +
-      "?action=obtenerPermisos" +
-      "&acceso=" + encodeURIComponent(acceso);
-
-    const permisosResp =
-      await fetchJsonp(permisosUrl);
-
-    permisosUsuario = {};
-
-Object.keys(permisosResp.permisos || {})
-.forEach(k => {
-
-permisosUsuario[
- normalizarPermiso(k)
-] = permisosResp.permisos[k] === true; 
-
-});
-    aplicarPermisosBotones();
-
-    document.body.classList.add("access-ok");
-
-    document
-      .getElementById("accessGate")
-      .classList
-      .add("hide");
-
-  }catch(err){
-
-    console.error(err);
-
-    document.getElementById("gateAccessMsg").innerText =
-      "Error de acceso";
-  }
-
-});
-
-document
-.getElementById("gateAccesoInput")
-.addEventListener("keydown", e => {
-
-  if(e.key === "Enter"){
-
-    document
-      .getElementById("btnGateIngresar")
-      .click();
-  }
-
-});
-
-</script>
-
-                <div id="gateAccessMsg" class="accessGateMsg"></div>
+        <div id="gateAccessMsg" class="accessGateMsg"></div>
       </div>
     </div>
   </div>
@@ -1181,7 +1091,7 @@ document
       <div class="form-grid">
         <div class="field col-8 boxed">
           <div class="lbl">URL Web App Apps Script</div>
-          <input id="webapp" value="https://script.google.com/macros/s/AKfycbzUmcLTwmjfFHUk2XNfm4vYZC7Zev1wd02bW1m-MxCah7stwHJ0tkF_lZ44Zjs5XBFl/exec"/>
+          <input id="webapp" value="https://script.google.com/macros/s/AKfycbwb1Y-2iAV3gOaisOl4jweq8ldXMDQ2mhXLcjBy-m9x0hTc3-Uzy2gD_MbEmGow-w8O/exec"/>
         </div>
         <div class="field col-4 boxed">
           <div class="lbl">Pruebas API</div>
@@ -1405,25 +1315,40 @@ function desbloquearBoton(btn){
  btn.title = "";
 }
 
+const MAPA_PERMISOS_FASE = {
+ INICIO:"Inicio",
+ NIVELES:"Niveles",
+ FORMULARIOS:"Formularios",
+ PESOS:"Pesos",
+ AUTO:"Autoevaluación",
+ CLIENTES:"Evaluación clientes",
+ DESEMPENO:"Evaluación desempeño",
+ KPIS:"KPIs / entregables",
+ INCIDENCIAS:"Incidencias",
+ ONEONE:"One to one",
+ CALIBRACION:"Calibración",
+ REPORTES:"Reportes"
+};
+
+function obtenerNombrePermisoBoton_(btn){
+ if(!btn) return "";
+ if(btn.id === "btnSalir") return "Salir";
+ if(btn.id === "btnInformeEvalDesempeno") return "Informe evaluación del desempeño";
+ const fase = String(btn.dataset?.fase || "").trim();
+ if(fase && MAPA_PERMISOS_FASE[fase]) return MAPA_PERMISOS_FASE[fase];
+ const nav = btn.querySelector(".navLabel");
+ return String(nav?.innerText || btn.innerText || "").replace(/\s+/g," ").trim();
+}
+
 function aplicarPermisosBotones(){
  document.querySelectorAll(".faseBtn, .sidebarBtn").forEach(btn=>{
-  const nav = btn.querySelector(".navLabel");
-  if(!nav) return;
-
-  const nombreBoton = String(nav.innerText || "")
-  .replace(/\s+/g," ")
-  .trim();
-
-  if(nombreBoton === "Inicio"){
+  const nombrePermiso = obtenerNombrePermisoBoton_(btn);
+  if(!nombrePermiso) return;
+  if(nombrePermiso === "Inicio"){
    desbloquearBoton(btn);
    return;
   }
-
-  if(tienePermiso(nombreBoton)){
-   desbloquearBoton(btn);
-  }else{
-   bloquearBoton(btn);
-  }
+  tienePermiso(nombrePermiso) ? desbloquearBoton(btn) : bloquearBoton(btn);
  });
 }
 
@@ -1436,7 +1361,13 @@ function validarPermisoAntesDeAbrir(nombrePermiso){
 function validarPermisoOpcion(nombre){
  return validarPermisoAntesDeAbrir(nombre);
 }
-</script>       
+
+function validarPermisoFase_(fase){
+ const permiso = MAPA_PERMISOS_FASE[String(fase || "").trim()];
+ if(!permiso) return true;
+ return validarPermisoAntesDeAbrir(permiso);
+}
+   </script>       
 </span>
       </div>
     </div>
@@ -2397,7 +2328,7 @@ Dejar de hacer:"></textarea>
 `Empezar a hacer:
 Continuar haciendo:
 Dejar de hacer:`;
-  const DEFAULT_WEBAPP_ = "https://script.google.com/macros/s/AKfycbzUmcLTwmjfFHUk2XNfm4vYZC7Zev1wd02bW1m-MxCah7stwHJ0tkF_lZ44Zjs5XBFl/exec";
+  const DEFAULT_WEBAPP_ = "https://script.google.com/macros/s/AKfycbwb1Y-2iAV3gOaisOl4jweq8ldXMDQ2mhXLcjBy-m9x0hTc3-Uzy2gD_MbEmGow-w8O/exec";
   const $ = id => document.getElementById(id);
 
     /* ===== SEGURIDAD REFORZADA FRONTEND: BLOQUEO DE LECTURA / COPIA CASUAL ===== */
@@ -2503,20 +2434,17 @@ function accesoAutorizado_(){
 }
 function setFaseFromButton(value){
   const fase = String(value || "");
-
   if(fase !== "INICIO" && !accesoAutorizado_()){
     alert("Acceso no autorizado");
     return;
   }
-
+  if(!validarPermisoFase_(fase)) return;
   const sel = $("faseSelect");
   if(!sel) return;
-
   sel.value = fase;
   syncFaseButtonsUI(sel.value);
   sel.dispatchEvent(new Event("change", { bubbles:true }));
 }
-
 const REPORTES_PHASE_MAP = {
   DASHBOARD: "REPORTES",
   EVAL_RESUMEN: "REPORTES",
