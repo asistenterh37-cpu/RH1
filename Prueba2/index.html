@@ -366,17 +366,40 @@ button[disabled]{
 }
 
 #btnInformeEvalDesempeno{
- white-space:normal;
- line-height:1.2;
- min-height:52px;
- padding:10px 12px;
+ white-space:normal !important;
+ line-height:1.25;
+ min-height:64px;
+ height:auto;
+ padding:12px 14px;
  align-items:center;
  justify-content:flex-start;
+ flex-shrink:0;
+ overflow:visible;
+ text-overflow:clip;
 }
+
+#btnInformeEvalDesempeno .navLabel{
+ white-space:normal;
+ display:block;
+ width:100%;
+}
+
+.sidebarNav .navGroup{
+ min-width:0;
+}
+
+.sidebarNav .navGroup + .navGroup{
+ margin-top:4px;
+}
+
+#btnInformeEvalDesempeno{
+ margin-top:4px;
+ margin-bottom:4px;
+}
+
 #reportesFiltersCard{
  margin-top:0 !important;
 }
-
 #informeEvalFiltersRow{
  display:grid;
  grid-template-columns:1fr 1fr 1fr .85fr;
@@ -1475,7 +1498,9 @@ class="navLabel">Autoevaluación</span></button>
 
           <div class="navGroup">
   <div class="navTitle">Reportes</div>
-  <button type="button" id="btnInformeEvalDesempeno" class="faseBtn"><span class="navLabel">Informe evaluación del desempeño</span></button>
+<button type="button" id="btnInformeEvalDesempeno" class="faseBtn" data-fase="INFORME_EVAL_DESEMPENO">
+  <span class="navLabel">Informe evaluación del desempeño</span>
+</button>
  <script>
 document.addEventListener("DOMContentLoaded", ()=>{
 
@@ -5617,6 +5642,7 @@ on("btnIEClose", "click", closeInformeModalSafe_);
 on("btnIEPrintPDF", "click", iePrintPdfSafe_);
 on("btnIEExcel", "click", exportIEReportToExcel_);
 on("btnIEWord", "click", exportIEReportToWord_);
+on("btnInformeEvalDesempeno", "click", abrirInformeEvaluacionDesempeno_);
 on("ieModalBack", "click", (e)=>{
   if(e.target && e.target.id === "ieModalBack") closeInformeModalSafe_();
 });
@@ -5669,11 +5695,67 @@ on("tiposModalBack", "click", (e)=>{
 });
 
 document.querySelectorAll(".faseBtn[data-fase]").forEach(btn=>{
-  btn.addEventListener("click", ()=>{
-    setFaseFromButton(btn.dataset.fase || "");
-  });
+ btn.addEventListener("click", ()=>{
+ const fase = btn.dataset.fase || "";
+
+ if(fase === "INFORME_EVAL_DESEMPENO"){
+   return;
+ }
+
+ setFaseFromButton(fase);
+ });
 });
 
+ function abrirInformeEvaluacionDesempeno_(){
+ const btnInforme = $("btnInformeEvalDesempeno");
+
+ if(typeof validarPermisoAntesDeAbrir === "function"){
+   const ok = validarPermisoAntesDeAbrir("Informe evaluación del desempeño");
+   if(!ok) return;
+ }
+
+ document.querySelectorAll(".faseBtn").forEach(btn=>{
+   btn.classList.remove("active");
+ });
+
+ if(btnInforme){
+   btnInforme.classList.add("active");
+ }
+
+ document.querySelectorAll("[data-phase-block]").forEach(sec=>{
+   sec.classList.remove("show");
+   sec.style.display = "none";
+ });
+
+ const filtrosReportes = $("reportesFiltersCard");
+ if(filtrosReportes){
+   filtrosReportes.style.display = "none";
+ }
+
+ const filtrosInforme = $("informeEvalFiltersCard");
+ if(filtrosInforme){
+   filtrosInforme.style.display = "";
+   filtrosInforme.classList.add("show");
+ }
+
+ const dash = $("dashboardCard");
+ if(dash){
+   dash.style.display = "none";
+ }
+
+ const dashDepto = $("dashboardDeptoCard");
+ if(dashDepto){
+   dashDepto.style.display = "none";
+ }
+
+ state.fase = "INFORME_EVAL_DESEMPENO";
+
+ const no = $("ieNoPersonal");
+ if(no){
+   no.focus();
+ }
+} 
+  
   on("btnInformeEvalDesempeno", "click", ()=>{
  const filtrosReportes = $("reportesFiltersCard");
  if(filtrosReportes) filtrosReportes.style.display = "none";
