@@ -1,1284 +1,240 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Módulo | Planificación Estratégica — Recolección de datos</title>
+<meta charset="UTF-8">
+<title>Generador de Plan Estratégico</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <!-- Evita 404 de favicon en GitHub Pages -->
-  <link rel="icon" href="data:," />
-
-  <style>
-    :root{
-      --bg:#0b1220;
-      --panel:#0f1b33;
-      --card:#0f203f;
-      --muted:#9fb3d9;
-      --text:#eaf1ff;
-      --line: rgba(255,255,255,.16);
-      --accent:#6aa6ff;
-      --ok:#3ddc97;
-      --warn:#ffd36a;
-      --bad:#ff6a8b;
-      --shadow: 0 18px 60px rgba(0,0,0,.35);
-      --radius:18px;
-      --radius2:12px;
-    }
-    *{box-sizing:border-box}
-    html,body{height:100%}
-    body{
-      margin:0;
-      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Noto Sans", "Helvetica Neue", sans-serif;
-      font-size: 16px;
-      line-height: 1.5;
-      background: radial-gradient(1200px 800px at 10% 10%, rgba(106,166,255,.14), transparent 55%),
-                  radial-gradient(1000px 700px at 90% 20%, rgba(61,220,151,.10), transparent 55%),
-                  radial-gradient(900px 700px at 60% 90%, rgba(255,211,106,.10), transparent 55%),
-                  var(--bg);
-      color:var(--text);
-    }
-    a{color:inherit}
-    .app{
-      display:grid;
-      grid-template-columns: 320px 1fr;
-      min-height:100vh;
-    }
-    .sidebar{
-      position:sticky;
-      top:0;
-      height:100vh;
-      padding:22px 18px;
-      border-right:1px solid var(--line);
-      background: linear-gradient(180deg, rgba(15,27,51,.95), rgba(15,27,51,.72));
-      backdrop-filter: blur(10px);
-      display:flex;
-      flex-direction:column;
-    }
-    .brand{
-      display:flex;
-      align-items:center;
-      gap:12px;
-      padding:10px 10px 16px;
-      border-bottom:1px solid var(--line);
-      margin-bottom:14px;
-    }
-    .logo{
-      width:42px;height:42px;border-radius:14px;
-      background: linear-gradient(135deg, rgba(106,166,255,.95), rgba(61,220,151,.85));
-      box-shadow: 0 10px 30px rgba(106,166,255,.25);
-      display:grid;place-items:center;
-      font-weight:800;
-      color:#081022;
-      letter-spacing:.5px;
-      user-select:none;
-    }
-    .brand h1{
-      font-size:14px;
-      margin:0;
-      line-height:1.2;
-    }
-    .brand p{
-      margin:4px 0 0;
-      font-size:12px;
-      color:var(--muted);
-    }
-
-    .status{
-      margin:14px 10px 10px;
-      padding:12px 12px;
-      border:1px solid var(--line);
-      border-radius: var(--radius2);
-      background: rgba(255,255,255,.03);
-    }
-    .status .row{display:flex; align-items:center; justify-content:space-between; gap:10px}
-    .pill{
-      font-size:12px;
-      padding:6px 10px;
-      border-radius:999px;
-      border:1px solid var(--line);
-      background: rgba(255,255,255,.04);
-      color:var(--muted);
-      white-space:nowrap;
-    }
-    .progress{
-      margin-top:10px;
-      height:10px;
-      border-radius:999px;
-      background: rgba(255,255,255,.06);
-      overflow:hidden;
-      border:1px solid var(--line);
-    }
-    .progress > div{
-      height:100%;
-      width:0%;
-      background: linear-gradient(90deg, rgba(106,166,255,.95), rgba(61,220,151,.85));
-      transition: width .25s ease;
-    }
-
-    nav{
-      margin-top:12px;
-      display:flex;
-      flex-direction:column;
-      gap:6px;
-      padding:8px;
-    }
-    .navbtn{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:10px;
-      width:100%;
-      border:1px solid transparent;
-      background: transparent;
-      color: var(--text);
-      text-align:left;
-      padding:10px 10px;
-      border-radius: 12px;
-      cursor:pointer;
-      transition: .15s ease;
-      font-size: 15px;
-    }
-    .navbtn small{color:var(--muted); font-size: 13px;}
-    .navbtn:hover{background: rgba(255,255,255,.04); border-color: rgba(255,255,255,.06)}
-    .navbtn.active{
-      background: rgba(106,166,255,.12);
-      border-color: rgba(106,166,255,.30);
-    }
-
-    .side-actions{
-      margin-top:auto;
-      padding:10px;
-      display:flex;
-      flex-direction:column;
-      gap:10px;
-    }
-    .btn{
-      width:100%;
-      border:1px solid var(--line);
-      border-radius: 14px;
-      padding:10px 12px;
-      background: rgba(255,255,255,.04);
-      color: var(--text);
-      cursor:pointer;
-      transition: .15s ease;
-      display:flex; align-items:center; justify-content:center; gap:10px;
-      font-weight:600;
-    }
-    .btn:hover{transform: translateY(-1px); background: rgba(255,255,255,.06)}
-    .btn.primary{
-      border-color: rgba(106,166,255,.35);
-      background: rgba(106,166,255,.16);
-    }
-    .btn.danger{
-      border-color: rgba(255,106,139,.35);
-      background: rgba(255,106,139,.12);
-    }
-    .hint{
-      font-size:12px;
-      color: var(--muted);
-      line-height:1.4;
-      padding:0 10px 8px;
-    }
-
-    .main{
-      padding:26px 26px 40px;
-    }
-    .topbar{
-      display:flex;
-      align-items:flex-start;
-      justify-content:space-between;
-      gap:16px;
-      margin-bottom:16px;
-    }
-    .title h2{
-      margin:0;
-      font-size:26px;
-      letter-spacing:.2px;
-    }
-    .title p{
-      margin:6px 0 0;
-      color:var(--muted);
-      max-width: 70ch;
-      line-height:1.55;
-      font-size:15px;
-    }
-    .toast{
-      min-width: 260px;
-      border:1px solid var(--line);
-      background: rgba(255,255,255,.03);
-      padding:10px 12px;
-      border-radius: 14px;
-      box-shadow: var(--shadow);
-      display:none;
-    }
-    .toast strong{font-size:13px}
-    .toast div{font-size:12px; color:var(--muted); margin-top:4px}
-
-    /* ✅ Top-right: Plan */
-    .top-right{
-      display:flex;
-      align-items:flex-start;
-      gap:12px;
-      flex: 0 0 auto;
-    }
-    .plan-chip{
-      display:flex;
-      align-items:center;
-      gap:10px;
-      padding:10px 12px;
-      border:1px solid var(--line);
-      border-radius: 14px;
-      background: rgba(255,255,255,.03);
-      box-shadow: var(--shadow);
-      white-space:nowrap;
-    }
-    .plan-chip label{
-      margin:0;
-      font-size:13px;
-      color: var(--muted);
-    }
-    .plan-chip button{
-      border:1px solid rgba(106,166,255,.35);
-      background: rgba(106,166,255,.16);
-      color: var(--text);
-      border-radius: 12px;
-      padding:8px 10px;
-      cursor:pointer;
-      font-weight:700;
-      display:flex;
-      align-items:center;
-      gap:8px;
-    }
-    .plan-chip button:hover{background: rgba(106,166,255,.22)}
-    .plan-chip .mini{
-      border:1px solid var(--line);
-      background: rgba(255,255,255,.04);
-      padding:8px 10px;
-      border-radius: 12px;
-      cursor:pointer;
-    }
-    .plan-chip .mini:hover{background: rgba(255,255,255,.06)}
-
-    /* ✅ Modal Plan */
-    .modal{
-      position:fixed;
-      inset:0;
-      display:none;
-      z-index: 9999;
-    }
-    .modal[data-open="true"]{display:block}
-    .modal .backdrop{
-      position:absolute;
-      inset:0;
-      background: rgba(0,0,0,.55);
-      backdrop-filter: blur(3px);
-    }
-      .modal .panel{
-  position:relative;
-  width:min(600px, calc(100% - 28px)); /* ✅ más angosto */
-  margin: 70px auto;
-  border: 1px solid rgba(255,255,255,.18);
-  border-radius: var(--radius);
-  background: linear-gradient(180deg, rgba(15,32,63,.92), rgba(15,32,63,.70));
-  box-shadow: var(--shadow);
-  overflow:hidden;
-}
-  .modal .panel header{
-      padding:14px 16px;
-      border-bottom:1px solid var(--line);
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:10px;
-    }
-    .modal .panel header h4{
-      margin:0;
-      font-size:16px;
-      letter-spacing:.2px;
-    }
-    .modal .panel header .close{
-      width:auto;
-      padding:8px 10px;
-      border-radius: 12px;
-      border:1px solid var(--line);
-      background: rgba(255,255,255,.04);
-      color:var(--text);
-      cursor:pointer;
-      font-weight:700;
-    }
-    .modal .panel header .close:hover{background: rgba(255,255,255,.07)}
-    .modal .content{
-      padding:16px;
-    }
-    .plan-text{
-      border:1px solid var(--line);
-      border-radius: 14px;
-      background: rgba(255,255,255,.035);
-      padding:14px 14px;
-      max-height: 55vh;
-      overflow:auto;
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
-      font-size: 13px;
-      line-height: 1.45;
-      color: var(--text);
-      white-space: pre-wrap;
-    }
-
-    form{
-      display:grid;
-      grid-template-columns: 1fr;
-      gap:14px;
-      max-width: 1050px;
-    }
-    .section{
-      border: 1px solid rgba(255,255,255,.18);
-      border-radius: var(--radius);
-      background: linear-gradient(180deg, rgba(15,32,63,.82), rgba(15,32,63,.52));
-      box-shadow:
-        var(--shadow),
-        0 0 0 1px rgba(106,166,255,.06) inset;
-      overflow:hidden;
-    }
-    .section header{
-      padding:16px 16px 12px;
-      border-bottom:1px solid var(--line);
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:12px;
-      cursor:pointer;
-      user-select:none;
-    }
-    .section header .left{
-      display:flex; flex-direction:column; gap:3px;
-    }
-    .section header h3{ margin:0; font-size:18px; }
-    .section header span{ font-size:14px; color:var(--muted); }
-    .chev{
-      width:34px;height:34px;border-radius:12px;
-      border:1px solid var(--line);
-      background: rgba(255,255,255,.03);
-      display:grid;place-items:center;
-      transition:.15s ease;
-      flex:0 0 auto;
-    }
-    .section[data-open="true"] .chev{transform: rotate(180deg)}
-    .section .body{
-      padding:16px;
-      display:none;
-    }
-    .section[data-open="true"] .body{display:block}
-
-    .grid{
-      display:grid;
-      grid-template-columns: repeat(12, 1fr);
-      gap:12px;
-    }
-    .field{
-      grid-column: span 12;
-      display:flex;
-      flex-direction:column;
-      gap:6px;
-    }
-    .field.col-6{grid-column: span 6}
-    .field.col-4{grid-column: span 4}
-    .field.col-3{grid-column: span 3}
-    label{
-      font-size:14px;
-      color: var(--muted);
-    }
-    input, textarea, select{
-      width:100%;
-      border: 1px solid rgba(255,255,255,.18);
-      border-radius: 14px;
-      background: rgba(255,255,255,.045);
-      color: var(--text);
-      font-size: 16px;
-      line-height: 1.2; /* ✅ espacio sencillo en los campos */
-      padding:12px 14px;
-      outline:none;
-      box-shadow: 0 0 0 1px rgba(0,0,0,.18) inset;
-      transition: border-color .15s ease, box-shadow .15s ease, background .15s ease;
-    }
-    input:hover, textarea:hover, select:hover{
-      border-color: rgba(255,255,255,.26);
-      background: rgba(255,255,255,.06);
-    }
-    input:focus, textarea:focus, select:focus{
-      border-color: rgba(106,166,255,.60);
-      box-shadow:
-        0 0 0 3px rgba(106,166,255,.18),
-        0 0 0 1px rgba(106,166,255,.25) inset;
-    }
-    textarea{
-      min-height:110px;
-      resize:vertical;
-      line-height: 1.2; /* ✅ refuerzo por si algún navegador ignora el combo */
-      white-space: pre-wrap; /* ✅ conserva saltos de línea al pegar bullets */
-    }
-    .meta{
-      font-size:12px;
-      color: var(--muted);
-      display:flex;
-      gap:10px;
-      flex-wrap:wrap;
-      margin-top:8px;
-    }
-    .req::after{
-      content:" *";
-      color: var(--warn);
-      font-weight:700;
-    }
-    .error{
-      border-color: rgba(255,106,139,.55) !important;
-      box-shadow: 0 0 0 3px rgba(255,106,139,.12) !important;
-    }
-    .footer{
-      display:flex;
-      gap:10px;
-      flex-wrap:wrap;
-      align-items:center;
-      justify-content:space-between;
-      margin-top:8px;
-    }
-    .footer .right{display:flex; gap:10px; flex-wrap:wrap}
-    .kbd{
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
-      font-size:11px;
-      padding:2px 6px;
-      border:1px solid var(--line);
-      border-radius:8px;
-      background: rgba(255,255,255,.03);
-      color: var(--muted);
-    }
-
-    @media (max-width: 980px){
-      .app{grid-template-columns: 1fr}
-      .sidebar{position:relative; height:auto}
-      .main{padding:18px}
-      .field.col-6, .field.col-4, .field.col-3{grid-column: span 12}
-      .toast{display:none !important}
-      .top-right{flex-direction:column; align-items:stretch}
-      .plan-chip{width:100%}
-    }
-  </style>
+<style>
+body{margin:0;font-family:Arial,sans-serif;background:#f4f6f9;color:#1f2937}
+header{background:#0f172a;color:white;padding:28px;text-align:center}
+.contenedor{max-width:1150px;margin:30px auto;background:white;padding:30px;border-radius:18px;box-shadow:0 8px 25px rgba(0,0,0,.1)}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.campo{margin-bottom:17px}
+label{display:block;font-weight:bold;margin-bottom:6px;font-size:14px}
+input,textarea{width:100%;padding:11px;border:1px solid #cbd5e1;border-radius:8px;font-size:14px;box-sizing:border-box}
+textarea{min-height:85px;resize:vertical}
+.seccion{margin-top:28px;margin-bottom:16px;padding:12px 16px;background:#e0ecff;border-left:5px solid #1d4ed8;font-weight:bold;border-radius:8px}
+button{background:#1d4ed8;color:white;border:none;padding:13px 24px;border-radius:10px;font-weight:bold;cursor:pointer;font-size:15px}
+button:hover{background:#1e40af}
+button:disabled{background:#9ca3af;cursor:not-allowed}
+.botones{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin-bottom:25px}
+#vistaPlan{display:none;white-space:pre-wrap;background:#f8fafc;border:1px solid #e5e7eb;padding:25px;border-radius:14px;max-height:650px;overflow-y:auto;line-height:1.5}
+.mensaje{display:none;margin-top:20px;padding:14px;border-radius:10px;font-weight:bold}
+.exito{background:#dcfce7;color:#166534}
+.error{background:#fee2e2;color:#991b1b}
+.contador{text-align:center;margin-bottom:20px;color:#475569;font-weight:bold}
+@media(max-width:800px){.grid{grid-template-columns:1fr}}
+</style>
 </head>
 
 <body>
-<div class="app">
-  <aside class="sidebar">
-    <div class="brand">
-      <div class="logo">PE</div>
-      <div>
-        <h1>Planificación Estratégica</h1>
-        <p>Recolección de datos • versión inicial</p>
-      </div>
-    </div>
 
-    <div class="status" aria-live="polite">
-      <div class="row">
-        <div>
-          <div style="font-weight:700;font-size:13px;">Progreso</div>
-          <div style="color:var(--muted);font-size:12px;margin-top:2px;">
-            Campos completos: <span id="filledCount">0</span>/<span id="totalCount">0</span>
-          </div>
-        </div>
-        <div class="pill" id="autosavePill">Auto-guardado: ON</div>
-      </div>
-      <div class="progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
-        <div id="progressBar"></div>
-      </div>
-    </div>
+<header>
+  <h1>Plantilla de Plan Estratégico</h1>
+  <p>Formulario ejecutivo para diagnóstico y formulación estratégica</p>
+</header>
 
-    <nav aria-label="Secciones">
-      <button class="navbtn active" data-target="sec-empresa" type="button">
-        <span>1) Datos generales<br><small>Empresa y contexto</small></span>
-        <small>↩</small>
-      </button>
-      <button class="navbtn" data-target="sec-identidad" type="button">
-        <span>2) Identidad<br><small>Misión, visión, valores</small></span>
-        <small>↩</small>
-      </button>
-      <button class="navbtn" data-target="sec-interno" type="button">
-        <span>3) Análisis interno<br><small>Fortalezas / debilidades</small></span>
-        <small>↩</small>
-      </button>
-      <button class="navbtn" data-target="sec-externo" type="button">
-        <span>4) Análisis externo<br><small>Oportunidades / amenazas</small></span>
-        <small>↩</small>
-      </button>
-      <button class="navbtn" data-target="sec-mercado" type="button">
-        <span>5) Mercado & Competencia<br><small>Cliente, canales, rivalidad</small></span>
-        <small>↩</small>
-      </button>
-      <button class="navbtn" data-target="sec-metas" type="button">
-        <span>6) Metas & Control<br><small>Logros, seguimiento</small></span>
-        <small>↩</small>
-      </button>
-    </nav>
+<div class="contenedor">
 
-    <div class="hint">
-      Tip rápido: llena primero lo “doloroso” (amenazas/debilidades). Lo bonito se escribe solo. 😅
-    </div>
-
-    <div class="side-actions">
-      <button class="btn danger" id="btnReset" type="button">🧨 Limpiar formulario</button>
-      <div class="hint" style="padding-bottom:0;">
-        Auto-guardado en tu navegador.
-      </div>
-    </div>
-  </aside>
-
-  <main class="main">
-    <div class="topbar">
-      <div class="title">
-        <h2>Recolección de datos</h2>
-        <p>
-          Completa esta ficha para levantar insumos del plan estratégico.
-        </p>
-        <div class="meta">
-          <span>Guardado: <span class="kbd">localStorage</span></span>
-          <span>Envío: <span class="kbd">Google Sheets</span></span>
-        </div>
-      </div>
-
-      <!-- ✅ Arriba a la derecha: Plan + Toast -->
-      <div class="top-right">
-        <div class="plan-chip" aria-label="Plan del documento">
-          <label>Plan:</label>
-          <button id="btnPlan" type="button" aria-haspopup="dialog" aria-controls="planModal">
-            📄 Ver
-            <span style="opacity:.9">Adjunto 3</span>
-          </button>
-          <button class="mini" id="btnCopyPlan" type="button" title="Copiar plan">
-            📋
-          </button>
-        </div>
-
-        <div class="toast" id="toast">
-          <strong id="toastTitle">Listo</strong>
-          <div id="toastMsg">Acción completada.</div>
-        </div>
-      </div>
-    </div>
-
-    <form id="strategyForm" novalidate>
-      <!-- 1) DATOS GENERALES -->
-      <section class="section" id="sec-empresa" data-open="true">
-        <header role="button" tabindex="0" aria-controls="body-empresa" aria-expanded="true">
-          <div class="left">
-            <h3>1) Datos generales</h3>
-            <span>Información base de la organización</span>
-          </div>
-          <div class="chev" aria-hidden="true">⌄</div>
-        </header>
-        <div class="body" id="body-empresa">
-          <div class="grid">
-            <div class="field col-4">
-              <label for="marcaTemporal" class="req">Marca temporal</label>
-              <input id="marcaTemporal" name="marcaTemporal" type="datetime-local" required />
-            </div>
-            <div class="field col-4">
-              <label for="periodo" class="req">Período</label>
-              <input id="periodo" name="periodo" type="text" placeholder="Ej: 2026-2028" required />
-            </div>
-            <div class="field col-4">
-              <label for="codigo">Código</label>
-              <input id="codigo" name="codigo" type="text" placeholder="Ej: PE-001" />
-            </div>
-
-            <div class="field col-6">
-              <label for="nombreEmpresa" class="req">Nombre de la empresa</label>
-              <input id="nombreEmpresa" name="nombreEmpresa" type="text" placeholder="Razón social / nombre comercial" required />
-            </div>
-            <div class="field col-6">
-              <label for="sectorIndustria" class="req">Sector o industria</label>
-              <input id="sectorIndustria" name="sectorIndustria" type="text" placeholder="Ej: Laboratorio / Alimentos / Servicios" required />
-            </div>
-
-            <div class="field col-6">
-              <label for="productosServicios" class="req">Productos o servicios principales</label>
-              <textarea id="productosServicios" name="productosServicios" placeholder="Describe lo principal que ofreces." required></textarea>
-            </div>
-            <div class="field col-3">
-              <label for="tiempoOperacion">Tiempo de operación</label>
-              <input id="tiempoOperacion" name="tiempoOperacion" type="text" placeholder="Ej: 5 años" />
-            </div>
-            <div class="field col-3">
-              <label for="numeroEmpleados">No. de empleados</label>
-              <input id="numeroEmpleados" name="numeroEmpleados" type="number" min="0" step="1" placeholder="Ej: 35" />
-            </div>
-
-            <div class="field">
-              <label for="ubicacionAlcance" class="req">Ubicación y alcance</label>
-              <textarea id="ubicacionAlcance" name="ubicacionAlcance" placeholder="País/ciudad, cobertura (local/nacional/regional), segmentos atendidos." required></textarea>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- 2) IDENTIDAD -->
-      <section class="section" id="sec-identidad" data-open="true">
-        <header role="button" tabindex="0" aria-controls="body-identidad" aria-expanded="true">
-          <div class="left">
-            <h3>2) Identidad organizacional</h3>
-            <span>Misión, visión y valores</span>
-          </div>
-          <div class="chev" aria-hidden="true">⌄</div>
-        </header>
-        <div class="body" id="body-identidad">
-          <div class="grid">
-            <div class="field">
-              <label for="mision" class="req">Misión (¿Por qué existe la empresa? ¿Qué busca ofrecer y a quién?)</label>
-              <textarea id="mision" name="mision" required placeholder="Ej: Brindar análisis confiables para..."></textarea>
-            </div>
-            <div class="field">
-              <label for="vision" class="req">Visión (¿Cómo te gustaría que se vea tu empresa en 3 a 5 años?)</label>
-              <textarea id="vision" name="vision" required></textarea>
-            </div>
-            <div class="field">
-              <label for="valores" class="req">Valores (¿Qué principios rigen su actuar?)</label>
-              <textarea id="valores" name="valores" required placeholder="Ej: Integridad, calidad, enfoque al cliente, mejora continua..."></textarea>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- 3) ANÁLISIS INTERNO -->
-      <section class="section" id="sec-interno" data-open="true">
-        <header role="button" tabindex="0" aria-controls="body-interno" aria-expanded="true">
-          <div class="left">
-            <h3>3) Análisis interno</h3>
-            <span>Fortalezas y debilidades (RRHH, finanzas, tecnología, procesos, innovación, cultura)</span>
-          </div>
-          <div class="chev" aria-hidden="true">⌄</div>
-        </header>
-        <div class="body" id="body-interno">
-          <div class="grid">
-            <div class="field col-6">
-              <label for="fortalezas" class="req">Fortalezas (recursos + capacidades)</label>
-              <textarea id="fortalezas" name="fortalezas" required placeholder="Incluye RRHH, financieros, tecnológicos, procesos, innovación y cultura."></textarea>
-            </div>
-            <div class="field col-6">
-              <label for="debilidades" class="req">Debilidades (brechas + limitantes)</label>
-              <textarea id="debilidades" name="debilidades" required placeholder="Incluye RRHH, financieros, tecnológicos, procesos, innovación y cultura."></textarea>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- 4) ANÁLISIS EXTERNO -->
-      <section class="section" id="sec-externo" data-open="true">
-        <header role="button" tabindex="0" aria-controls="body-externo" aria-expanded="true">
-          <div class="left">
-            <h3>4) Análisis externo</h3>
-            <span>Oportunidades y amenazas (competencia, tendencias, PESTEL, regulación)</span>
-          </div>
-          <div class="chev" aria-hidden="true">⌄</div>
-        </header>
-        <div class="body" id="body-externo">
-          <div class="grid">
-            <div class="field col-6">
-              <label for="oportunidades" class="req">Oportunidades</label>
-              <textarea id="oportunidades" name="oportunidades" required placeholder="Competencia, tendencias de mercado, PESTEL, cambios regulatorios..."></textarea>
-            </div>
-            <div class="field col-6">
-              <label for="amenazas" class="req">Amenazas</label>
-              <textarea id="amenazas" name="amenazas" required placeholder="Competencia, tendencias, PESTEL, cambios en normativa..."></textarea>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- 5) MERCADO & COMPETENCIA -->
-      <section class="section" id="sec-mercado" data-open="true">
-        <header role="button" tabindex="0" aria-controls="body-mercado" aria-expanded="true">
-          <div class="left">
-            <h3>5) Mercado y competencia</h3>
-            <span>Cliente, canales, posicionamiento, competidores, diferenciación, benchmarking</span>
-          </div>
-          <div class="chev" aria-hidden="true">⌄</div>
-        </header>
-        <div class="body" id="body-mercado">
-          <div class="grid">
-            <div class="field">
-              <label for="publicoObjetivo" class="req">Público objetivo (buyer persona)</label>
-              <textarea id="publicoObjetivo" name="publicoObjetivo" required placeholder="¿Quién compra? perfil, necesidades, decisión de compra, criterios."></textarea>
-            </div>
-
-            <div class="field col-6">
-              <label for="comportamientoCliente" class="req">Comportamiento del cliente</label>
-              <textarea id="comportamientoCliente" name="comportamientoCliente" required placeholder="Frecuencia, motivadores, objeciones, estacionalidad, etc."></textarea>
-            </div>
-            <div class="field col-6">
-              <label for="canalesVenta" class="req">Canales de venta y distribución</label>
-              <textarea id="canalesVenta" name="canalesVenta" required placeholder="Directo, distribuidores, online, alianzas, etc."></textarea>
-            </div>
-
-            <div class="field col-6">
-              <label for="posicionamientoActual" class="req">Posicionamiento actual</label>
-              <textarea id="posicionamientoActual" name="posicionamientoActual" required placeholder="¿Cómo te perciben hoy? precio/calidad, rapidez, especialidad, servicio..."></textarea>
-            </div>
-            <div class="field col-6">
-              <label for="competidoresPrincipales" class="req">¿Quiénes son los principales competidores?</label>
-              <textarea id="competidoresPrincipales" name="competidoresPrincipales" required placeholder="Nombres, tipo, fortalezas visibles."></textarea>
-            </div>
-
-            <div class="field col-6">
-              <label for="diferenciacion" class="req">¿Qué nos diferencia con relación a nuestros competidores?</label>
-              <textarea id="diferenciacion" name="diferenciacion" required placeholder="Propuesta de valor, ventajas, capacidades únicas."></textarea>
-            </div>
-            <div class="field col-6">
-              <label for="benchmarking">Análisis comparativo (Benchmarking)</label>
-              <textarea id="benchmarking" name="benchmarking" placeholder="Qué prácticas/indicadores comparas y qué hallazgos surgieron."></textarea>
-            </div>
-
-            <div class="field col-6">
-              <label for="logros12m" class="req">Logros esperados en los próximos 12 meses</label>
-              <textarea id="logros12m" name="logros12m" required placeholder="3–7 resultados medibles, por ejemplo: ventas, calidad, productividad, certificaciones, etc."></textarea>
-            </div>
-            <div class="field col-6">
-              <label for="logros3a5" class="req">Logros esperados en los próximos 3 - 5 años</label>
-              <textarea id="logros3a5" name="logros3a5" required placeholder="Resultados estratégicos: expansión, innovación, liderazgo, sostenibilidad..."></textarea>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- 6) METAS & CONTROL -->
-      <section class="section" id="sec-metas" data-open="true">
-        <header role="button" tabindex="0" aria-controls="body-metas" aria-expanded="true">
-          <div class="left">
-            <h3>6) Metas, control y seguimiento</h3>
-            <span>Gobernanza del plan: control, revisiones y contacto</span>
-          </div>
-          <div class="chev" aria-hidden="true">⌄</div>
-        </header>
-        <div class="body" id="body-metas">
-          <div class="grid">
-            <div class="field col-6">
-              <label for="sistemaControl" class="req">¿Tiene la organización un sistema de control o seguimiento de metas actualmente?</label>
-              <select id="sistemaControl" name="sistemaControl" required>
-                <option value="">Selecciona…</option>
-                <option>Sí</option>
-                <option>No</option>
-                <option>Parcial / En construcción</option>
-              </select>
-            </div>
-            <div class="field col-6">
-              <label for="frecuenciaRevision" class="req">¿Cada cuánto tiempo te gustaría hacer revisiones del plan?</label>
-              <select id="frecuenciaRevision" name="frecuenciaRevision" required>
-                <option value="">Selecciona…</option>
-                <option>Mensual</option>
-                <option>Bimestral</option>
-                <option>Trimestral</option>
-                <option>Semestral</option>
-                <option>Anual</option>
-              </select>
-            </div>
-
-            <div class="field col-6">
-              <label for="correo" class="req">Correo</label>
-              <input id="correo" name="correo" type="email" required placeholder="nombre@empresa.com" />
-            </div>
-
-            <div class="field col-6">
-              <label for="notas">Notas adicionales (opcional)</label>
-              <input id="notas" name="notas" type="text" placeholder="Algo que quieras agregar antes de pasar a FODA/KPIs…" />
-            </div>
-          </div>
-
-          <div class="footer">
-            <div class="meta">
-              <span id="lastSaved">Último guardado: —</span>
-              <span>Tip: completa primero lo “doloroso” (amenazas/debilidades). Lo bonito se escribe solo.</span>
-            </div>
-            <div class="right">
-              <!-- ✅ Abajo: Limpiar + Validar + Guardar -->
-              <button class="btn danger" type="button" id="btnClearBottom">🧽 Limpiar</button>
-              <button class="btn" type="button" id="btnValidate">✅ Validar</button>
-              <button class="btn primary" type="submit" id="btnSubmit">💾 Guardar</button>
-            </div>
-          </div>
-        </div>
-      </section>
-    </form>
-  </main>
-</div>
-
-<!-- ✅ Modal del Plan (Adjunto 3) -->
-<div class="modal" id="planModal" role="dialog" aria-modal="true" aria-labelledby="planTitle" data-open="false">
-  <div class="backdrop" data-close="true"></div>
-  <div class="panel" role="document">
-    <header>
-      <h4 id="planTitle">Plan (Adjunto 3)</h4>
-      <button class="close" type="button" id="btnClosePlan" aria-label="Cerrar">✕</button>
-    </header>
-    <div class="content">
-      <div class="plan-text" id="planText">
-Plan Estratégico
-Periodo:
-Nombre Empresa:
-Misión:
-Visión:
-Valores:
-
-Análisis estratégico
-I. Análisis Foda
-Fortalezas:
-Oportunidades:
-Debilidades:
-Amenazas:
-Conclusiones:
-
-II. Análisis Pestel
-Conclusiones:
-
-III. 5 fuerzas de Porter
-Reporte Análisis Modelo 5 Fuerzas de Porter
-Conclusiones:
-
-IV. Cadena de valor de Porter
-Actividades Primarias:
-Actividades de Apoyo:
-Generación de Mayor Valor y Oportunidades de Mejora:
-
-V. Canvas del modelo de negocio
-Propuesta de Valor
-Formulación Estratégica
-
-VI. Objetivos estratégicos
-VII. Metas específicas y KPIs
-VIII. Estrategias
-IX. Planes de acción
-X. Indicadores de gestión (KPIs)
-XI. Riesgos y planes de contingencia
-XII. Resumen ejecutivo
-      </div>
-      <div class="meta" style="margin-top:10px;">
-        <span>Tip: Puedes copiar este plan con el botón 📋.</span>
-      </div>
-    </div>
+  <div class="contador">
+    Usos registrados: <span id="contadorUso">Cargando...</span>
   </div>
+
+  <div class="botones">
+    <button onclick="mostrarFormulario()">Formulario</button>
+    <button onclick="generarPlan()">Generar plan estratégico</button>
+    <button onclick="descargarWord()">Descargar Word</button>
+  </div>
+
+  <form id="formularioPlan">
+
+    <div class="seccion">Datos generales</div>
+
+    <div class="grid">
+      <div class="campo"><label>Período</label><input id="periodo" required></div>
+      <div class="campo"><label>Código</label><input id="codigo" required></div>
+      <div class="campo"><label>Nombre de la empresa</label><input id="nombreEmpresa" required></div>
+      <div class="campo"><label>Sector o industria</label><input id="sectorIndustria" required></div>
+      <div class="campo"><label>Productos o servicios principales</label><textarea id="productosServicios" required></textarea></div>
+      <div class="campo"><label>Tiempo de operación</label><input id="tiempoOperacion" required></div>
+      <div class="campo"><label>No. de empleados</label><input id="numeroEmpleados" type="number" required></div>
+      <div class="campo"><label>Ubicación y alcance</label><textarea id="ubicacionAlcance" required></textarea></div>
+    </div>
+
+    <div class="seccion">Identidad estratégica</div>
+    <div class="campo"><label>Misión</label><textarea id="mision" required></textarea></div>
+    <div class="campo"><label>Visión</label><textarea id="vision" required></textarea></div>
+    <div class="campo"><label>Valores</label><textarea id="valores" required></textarea></div>
+
+    <div class="seccion">Análisis interno y externo</div>
+    <div class="grid">
+      <div class="campo"><label>Fortalezas</label><textarea id="fortalezas" required></textarea></div>
+      <div class="campo"><label>Debilidades</label><textarea id="debilidades" required></textarea></div>
+      <div class="campo"><label>Oportunidades</label><textarea id="oportunidades" required></textarea></div>
+      <div class="campo"><label>Amenazas</label><textarea id="amenazas" required></textarea></div>
+    </div>
+
+    <div class="seccion">Mercado y competencia</div>
+    <div class="grid">
+      <div class="campo"><label>Público objetivo / buyer persona</label><textarea id="publicoObjetivo" required></textarea></div>
+      <div class="campo"><label>Comportamiento del cliente</label><textarea id="comportamientoCliente" required></textarea></div>
+      <div class="campo"><label>Canales de venta y distribución</label><textarea id="canalesVenta" required></textarea></div>
+      <div class="campo"><label>Posicionamiento actual</label><textarea id="posicionamientoActual" required></textarea></div>
+      <div class="campo"><label>Principales competidores</label><textarea id="competidores" required></textarea></div>
+      <div class="campo"><label>Diferenciación</label><textarea id="diferenciacion" required></textarea></div>
+      <div class="campo"><label>Benchmarking</label><textarea id="benchmarking" required></textarea></div>
+    </div>
+
+    <div class="seccion">Resultados esperados y control</div>
+    <div class="grid">
+      <div class="campo"><label>Logros próximos 12 meses</label><textarea id="logros12Meses" required></textarea></div>
+      <div class="campo"><label>Logros próximos 3 a 5 años</label><textarea id="logros3a5" required></textarea></div>
+      <div class="campo"><label>Sistema actual de control</label><textarea id="sistemaControl" required></textarea></div>
+      <div class="campo"><label>Frecuencia de revisión</label><textarea id="frecuenciaRevision" required></textarea></div>
+      <div class="campo"><label>Notas adicionales</label><textarea id="notasAdicionales"></textarea></div>
+      <div class="campo"><label>Correo</label><input id="correo" type="email"></div>
+    </div>
+
+  </form>
+
+  <div id="vistaPlan"></div>
+  <div id="mensaje" class="mensaje"></div>
+
 </div>
 
 <script>
-  // ============================
-  // ✅ CONFIG (Sheets WebApp + Sheet)
-  // ============================
-  const APPS_SCRIPT_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxR0lAIu1BMBxuAEmF5TYrYwR8Zo2KVdIBs3NMEqGj4o7q5q6i_yzMpGW7-dh7h7HDiow/exec";
-  // ✅ Tu spreadsheet real (PlanEstrategico1)
-  const GOOGLE_SHEET_URL = "https://docs.google.com/spreadsheets/d/1NbYSAFO8p9Vget0hmmXxZMp-Q6u0Or8UpyJkxZs6YBY/edit?usp=sharing";
-  // ✅ Tu pestaña real
-  const ENCUESTAS_SHEET_NAME = "Encuestas";
-  const STORAGE_KEY = "strategic_planning_intake_v1";
+const BACKEND_URL = "https://TU-ENDPOINT-SEGURO.com/generate-plan";
+const USAGE_URL = "https://TU-ENDPOINT-SEGURO.com/usage";
 
-  // ============================
-  // 🧱 Utils UI
-  // ============================
-  const $ = (sel, root=document) => root.querySelector(sel);
-  const $$ = (sel, root=document) => Array.from(root.querySelectorAll(sel));
+const campos = [
+"periodo","codigo","nombreEmpresa","sectorIndustria","productosServicios",
+"tiempoOperacion","numeroEmpleados","ubicacionAlcance","mision","vision",
+"valores","fortalezas","debilidades","oportunidades","amenazas",
+"publicoObjetivo","comportamientoCliente","canalesVenta","posicionamientoActual",
+"competidores","diferenciacion","benchmarking","logros12Meses","logros3a5",
+"sistemaControl","frecuenciaRevision","notasAdicionales","correo"
+];
 
-  const toast = (title, msg, type="ok") => {
-    const t = $("#toast");
-    $("#toastTitle").textContent = title;
-    $("#toastMsg").textContent = msg;
-    t.style.display = "block";
-    t.style.borderColor =
-      type==="ok" ? "rgba(61,220,151,.35)" :
-      type==="warn" ? "rgba(255,211,106,.35)" :
-      "rgba(255,106,139,.35)";
-    setTimeout(()=> t.style.display = "none", 2400);
-  };
+function mostrarFormulario(){
+  document.getElementById("formularioPlan").style.display="block";
+  document.getElementById("vistaPlan").style.display="none";
+}
 
-  const nowLocalDatetime = () => {
-    const d = new Date();
-    const pad = (n) => String(n).padStart(2,"0");
-    const yyyy = d.getFullYear();
-    const mm = pad(d.getMonth()+1);
-    const dd = pad(d.getDate());
-    const hh = pad(d.getHours());
-    const mi = pad(d.getMinutes());
-    return `${yyyy}-${mm}-${dd}T${hh}:${mi}`;
-  };
+function obtenerDatos(){
+  const datos={};
+  campos.forEach(campo=>{
+    datos[campo]=document.getElementById(campo)?.value.trim() || "";
+  });
+  return datos;
+}
 
-  const prettyNow = () => {
-    const d = new Date();
-    return d.toLocaleString();
-  };
+function validarObligatorios(){
+  const requeridos = campos.filter(c => !["notasAdicionales","correo"].includes(c));
+  return requeridos.every(c => document.getElementById(c).value.trim() !== "");
+}
 
-  // ============================
-  // 🧩 Secciones (abrir/cerrar) + Navegación
-  // ============================
-  function initSectionsAndNav(){
-    $$(".section > header").forEach(h => {
-      const sec = h.closest(".section");
-      const toggle = () => {
-        const isOpen = sec.getAttribute("data-open") === "true";
-        sec.setAttribute("data-open", String(!isOpen));
-        h.setAttribute("aria-expanded", String(!isOpen));
-      };
-      h.addEventListener("click", toggle);
-      h.addEventListener("keydown", (e) => {
-        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggle(); }
-      });
+async function generarPlan(){
+  if(!validarObligatorios()){
+    mostrarMensaje("Completá los campos obligatorios antes de generar el plan.", "error");
+    return;
+  }
+
+  const vista=document.getElementById("vistaPlan");
+  vista.style.display="block";
+  vista.innerText="Generando plan estratégico con IA...";
+  mostrarMensaje("Procesando información estratégica...", "exito");
+
+  try{
+    const respuesta = await fetch(BACKEND_URL,{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({datos:obtenerDatos()})
     });
 
-    $$(".navbtn").forEach(btn => {
-      btn.addEventListener("click", () => {
-        $$(".navbtn").forEach(b => b.classList.remove("active"));
-        btn.classList.add("active");
-        const id = btn.getAttribute("data-target");
-        const el = document.getElementById(id);
-        if (el){
-          el.setAttribute("data-open", "true");
-          el.scrollIntoView({ behavior:"smooth", block:"start" });
-        }
-      });
-    });
-  }
-
-  // ============================
-  // 🧱 Payload desde el formulario
-  // (coincide con los headers de tu sheet "Empresas")
-  // ============================
-  function buildEmpresasPayloadFromForm() {
-    const pick = (id) => (document.getElementById(id)?.value || "").trim();
-
-    return {
-      marcaTemporal: pick("marcaTemporal"),
-      periodo: pick("periodo"),
-      codigo: pick("codigo"),
-      nombreEmpresa: pick("nombreEmpresa"),
-      sectorIndustria: pick("sectorIndustria"),
-      productosServicios: pick("productosServicios"),
-      tiempoOperacion: pick("tiempoOperacion"),
-      numeroEmpleados: pick("numeroEmpleados"),
-      ubicacionAlcance: pick("ubicacionAlcance"),
-
-      mision: pick("mision"),
-      vision: pick("vision"),
-      valores: pick("valores"),
-
-      fortalezas: pick("fortalezas"),
-      debilidades: pick("debilidades"),
-
-      oportunidades: pick("oportunidades"),
-      amenazas: pick("amenazas"),
-
-      publicoObjetivo: pick("publicoObjetivo"),
-      comportamientoCliente: pick("comportamientoCliente"),
-      canalesVenta: pick("canalesVenta"),
-
-      posicionamientoActual: pick("posicionamientoActual"),
-      competidoresPrincipales: pick("competidoresPrincipales"),
-      diferenciacion: pick("diferenciacion"),
-      benchmarking: pick("benchmarking"),
-
-      logros12m: pick("logros12m"),
-      logros3a5: pick("logros3a5"),
-
-      sistemaControl: pick("sistemaControl"),
-      frecuenciaRevision: pick("frecuenciaRevision"),
-
-      correo: pick("correo"),
-      notas: pick("notas")
-    };
-  }
-
-  // ============================
-  // ✅ Validación (UI)
-  // ============================
-  function validateFormUI({ showToast=true } = {}) {
-    const form = $("#strategyForm");
-    const required = $$("[required]", form);
-
-    let ok = true;
-    required.forEach(el => {
-      const isEmpty = !String(el.value || "").trim();
-      el.classList.toggle("error", isEmpty);
-      if (isEmpty) ok = false;
-    });
-
-    if (showToast) {
-      if (ok) toast("Validación OK", "Campos requeridos completos.", "ok");
-      else toast("Faltan campos", "Revisa los campos marcados con borde rojo.", "warn");
-    }
-    return ok;
-  }
-
-  // ============================
-  // 🧠 Auto-guardado local (localStorage)
-  // ============================
-  function saveToLocalStorage() {
-    const data = buildEmpresasPayloadFromForm();
-    const out = {
-      version: 1,
-      savedAt: new Date().toISOString(),
-      data
-    };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(out));
-    $("#lastSaved").textContent = `Último guardado: ${prettyNow()}`;
-  }
-
-  function loadFromLocalStorage() {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return;
-    try{
-      const obj = JSON.parse(raw);
-      const d = obj?.data || {};
-      Object.keys(d).forEach(k => {
-        const el = document.querySelector(`[name="${k}"]`);
-        if (el && typeof d[k] !== "undefined") el.value = d[k];
-      });
-      $("#lastSaved").textContent = `Último guardado: ${prettyNow()}`;
-    } catch {}
-  }
-
-  // ============================
-  // 📈 Progreso (campos completos)
-  // ============================
-  function updateProgress() {
-    const form = $("#strategyForm");
-    const fields = $$("input, textarea, select", form).filter(el => el.type !== "submit" && el.type !== "button");
-    const total = fields.length;
-    const filled = fields.filter(el => String(el.value || "").trim().length > 0).length;
-
-    $("#filledCount").textContent = String(filled);
-    $("#totalCount").textContent = String(total);
-
-    const pct = total ? Math.round((filled/total)*100) : 0;
-    $("#progressBar").style.width = `${pct}%`;
-    $(".progress").setAttribute("aria-valuenow", String(pct));
-  }
-
-  // ============================
-  // 🧨 Limpiar formulario (reset total)
-  // ============================
-  function clearValidationUI() {
-    const form = $("#strategyForm");
-    $$("[required]", form).forEach(el => el.classList.remove("error"));
-  }
-
-  function limpiarFormulario({ confirmUser=true } = {}) {
-    if (confirmUser) {
-      const ok = confirm("¿Seguro que quieres limpiar el formulario? Se borrará lo guardado localmente (auto-guardado).");
-      if (!ok) return;
+    if(!respuesta.ok){
+      throw new Error(await respuesta.text());
     }
 
-    const form = $("#strategyForm");
+    const json = await respuesta.json();
+    vista.innerText = json.plan || "No se recibió plan estratégico.";
+    mostrarMensaje("Plan estratégico generado correctamente.", "exito");
+    cargarContador();
 
-    // 1) Reset campos (respeta defaults del HTML)
-    form.reset();
+  }catch(error){
+    vista.innerText="";
+    mostrarMensaje("Error al generar el plan: " + error.message, "error");
+  }
+}
 
-    // 2) Re-set marcaTemporal a ahora (porque reset lo deja vacío si no hay value por defecto)
-    const mt = $("#marcaTemporal");
-    if (mt) mt.value = nowLocalDatetime();
+function descargarWord(){
+  const plan=document.getElementById("vistaPlan").innerText.trim();
 
-    // 3) Limpia UI de validación
-    clearValidationUI();
-
-    // 4) Borra auto-guardado local
-    localStorage.removeItem(STORAGE_KEY);
-
-    // 5) Refresca indicadores + “huella” nueva opcional
-    updateProgress();
-    $("#lastSaved").textContent = "Último guardado: —";
-
-    toast("Formulario limpio", "Se borró el auto-guardado y se reiniciaron los campos.", "ok");
+  if(!plan || plan==="Generando plan estratégico con IA..."){
+    mostrarMensaje("Primero generá el plan estratégico.", "error");
+    return;
   }
 
-  // ============================
-  // ☁️ Guardar en Google Sheets vía WebApp (SIN preflight)
-  // Tabula por fila (append) en hoja: Empresas
-  // ============================
-  async function guardarEnGoogleSheetsEmpresas() {
-    if (!APPS_SCRIPT_WEBAPP_URL) {
-      return { ok:false, error:"missing_webapp_url" };
-    }
+  const nombreEmpresa = document.getElementById("nombreEmpresa").value.trim() || "empresa";
 
-    const data = buildEmpresasPayloadFromForm();
+  const contenido = `
+  <html>
+  <head>
+    <meta charset="UTF-8">
+    <style>
+      body{font-family:Arial;line-height:1.5;color:#111827}
+      h1{text-align:center;color:#0f172a}
+      pre{white-space:pre-wrap;font-family:Arial}
+    </style>
+  </head>
+  <body>
+    <h1>Plan Estratégico</h1>
+    <pre>${escapeHtml(plan)}</pre>
+  </body>
+  </html>`;
 
-    // mínimos
-    if (!data.periodo || !data.nombreEmpresa) {
-      return { ok:false, error:"missing_required_fields", msg:"Completa Período y Nombre de la empresa." };
-    }
+  const blob = new Blob(["\ufeff", contenido], {type:"application/msword"});
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "Plan_Estrategico_" + limpiarNombre(nombreEmpresa) + ".doc";
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
 
-    const payloadObj = { sheetName: ENCUESTAS_SHEET_NAME, data };
+  mostrarMensaje("Documento Word descargado correctamente.", "exito");
+}
 
-    // ✅ Forma MÁS compatible para GitHub Pages → Apps Script (sin preflight):
-    // Content-Type simple: application/x-www-form-urlencoded
-    // Body: payload=<json_urlencoded>
-    const body = "payload=" + encodeURIComponent(JSON.stringify(payloadObj));
-
-    try{
-      const res = await fetch(APPS_SCRIPT_WEBAPP_URL, {
-        method: "POST",
-        mode: "cors",
-        headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
-        body,
-        cache: "no-store",
-        keepalive: true
-      });
-
-      const text = await res.text();
-      let json = null;
-      try { json = JSON.parse(text); } catch {}
-
-      if (!res.ok || !json?.ok) {
-        return { ok:false, error:"apps_script_error", msg: json?.error || text || "Respuesta inválida" };
-      }
-      return { ok:true, action:"saved", row: json.row || null };
-
-    } catch (err) {
-      // Fallback: sendBeacon
-      try{
-        const blob = new Blob([body], { type: "application/x-www-form-urlencoded;charset=UTF-8" });
-        const queued = navigator.sendBeacon(APPS_SCRIPT_WEBAPP_URL, blob);
-        if (queued) return { ok:true, action:"beacon_queued" };
-      } catch {}
-
-      return { ok:false, error:"network_error", msg:String(err?.message || err) };
-    }
+async function cargarContador(){
+  try{
+    const r = await fetch(USAGE_URL);
+    const j = await r.json();
+    document.getElementById("contadorUso").innerText = j.total ?? "N/D";
+  }catch{
+    document.getElementById("contadorUso").innerText = "No disponible";
   }
+}
 
-  // ============================
-  // ✅ Modal Plan (Adjunto 3)
-  // ============================
-  function initPlanModal(){
-    const modal = $("#planModal");
-    const btnOpen = $("#btnPlan");
-    const btnClose = $("#btnClosePlan");
-    const btnCopy = $("#btnCopyPlan");
-    const planText = $("#planText");
+function mostrarMensaje(texto,tipo){
+  const mensaje=document.getElementById("mensaje");
+  mensaje.innerText=texto;
+  mensaje.className="mensaje "+tipo;
+  mensaje.style.display="block";
+}
 
-    let lastFocus = null;
+function escapeHtml(texto){
+  return texto.replace(/[&<>"']/g, m => ({
+    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
+  }[m]));
+}
 
-    const open = () => {
-      lastFocus = document.activeElement;
-      modal.setAttribute("data-open", "true");
-      btnClose.focus();
-    };
+function limpiarNombre(texto){
+  return texto.replace(/[^a-z0-9áéíóúñü_-]/gi,"_");
+}
 
-    const close = () => {
-      modal.setAttribute("data-open", "false");
-      if (lastFocus && typeof lastFocus.focus === "function") lastFocus.focus();
-    };
-
-    btnOpen?.addEventListener("click", open);
-    btnClose?.addEventListener("click", close);
-
-    modal?.addEventListener("click", (e) => {
-      const tgt = e.target;
-      if (tgt && tgt.getAttribute && tgt.getAttribute("data-close") === "true") close();
-    });
-
-    document.addEventListener("keydown", (e) => {
-      if (modal.getAttribute("data-open") === "true" && e.key === "Escape") close();
-    });
-
-    btnCopy?.addEventListener("click", async () => {
-      const text = planText?.innerText || "";
-      try{
-        await navigator.clipboard.writeText(text);
-        toast("Copiado", "Plan (Adjunto 3) copiado al portapapeles.", "ok");
-      } catch {
-        // fallback viejo
-        try{
-          const ta = document.createElement("textarea");
-          ta.value = text;
-          ta.style.position = "fixed";
-          ta.style.left = "-9999px";
-          document.body.appendChild(ta);
-          ta.select();
-          document.execCommand("copy");
-          document.body.removeChild(ta);
-          toast("Copiado", "Plan copiado al portapapeles.", "ok");
-        } catch {
-          toast("No se pudo copiar", "Tu navegador bloqueó el portapapeles.", "warn");
-        }
-      }
-    });
-  }
-
-  // ============================
-  // 🧷 Eventos
-  // ============================
-  function initEvents(){
-    const form = $("#strategyForm");
-
-    // Default marcaTemporal
-    const mt = $("#marcaTemporal");
-    if (mt && !mt.value) mt.value = nowLocalDatetime();
-
-    // Auto-save on input
-    form.addEventListener("input", () => {
-      saveToLocalStorage();
-      updateProgress();
-    });
-
-    // ✅ Validar
-    const btnValidate = $("#btnValidate");
-    if (btnValidate) {
-      btnValidate.addEventListener("click", () => validateFormUI({ showToast:true }));
-    }
-
-    // 🧨 Reset / Limpiar formulario (sidebar)
-    const btnReset = $("#btnReset");
-    if (btnReset) {
-      btnReset.addEventListener("click", () => limpiarFormulario({ confirmUser:true }));
-    }
-
-    // 🧽 Limpiar (abajo)
-    const btnClearBottom = $("#btnClearBottom");
-    if (btnClearBottom) {
-      btnClearBottom.addEventListener("click", () => limpiarFormulario({ confirmUser:true }));
-    }
-
-    // SUBMIT: Guardar en Sheets + Exportar JSON
-    form.addEventListener("submit", async (e) => {
-      e.preventDefault();
-
-      const ok = validateFormUI({ showToast:true });
-      if (!ok) return;
-
-      // UX: deshabilitar botón mientras guarda
-      const btn = $("#btnSubmit");
-      const old = btn.textContent;
-      btn.disabled = true;
-      btn.textContent = "⏳ Guardando…";
-
-      const out = await guardarEnGoogleSheetsEmpresas();
-
-      btn.disabled = false;
-      btn.textContent = old;
-
-      if (out?.ok) {
-        toast("Guardado", "Datos enviados a Google Sheets.", "ok");
-        saveToLocalStorage();
-      } else {
-        const msg =
-          out?.msg ||
-          (out?.error === "html_response"
-            ? "El WebApp devolvió HTML (normalmente permisos/login). Revisa que el WebApp esté desplegado con acceso 'Cualquiera' y que doPost responda JSON."
-            : "No se pudo guardar. Revisa consola/Apps Script.");
-        toast("Error al guardar", msg, "bad");
-        console.error("guardarEnGoogleSheetsEmpresas():", out);
-      }
-    });
-  }
-
-  // ============================
-  // 🚀 Init
-  // ============================
-  (function init(){
-    initSectionsAndNav();
-    loadFromLocalStorage();
-    updateProgress();
-
-    initPlanModal();
-    initEvents();
-  })();
+cargarContador();
 </script>
+
 </body>
 </html>
