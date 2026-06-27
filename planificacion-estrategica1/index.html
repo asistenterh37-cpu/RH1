@@ -1,508 +1,365 @@
-export default {
-  async fetch(request, env) {
-    const url = new URL(request.url);
-
-    const corsHeaders = {
-      "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type"
-    };
-
-    if (request.method === "OPTIONS") {
-      return new Response(null, { headers: corsHeaders });
-    }
-
-    if (url.pathname === "/usage") {
-      return Response.json({ total: 0 }, { headers: corsHeaders });
-    }
-
-    if (url.pathname === "/generate-analysis" && request.method === "POST") {
-      try {
-        const body = await request.json();
-        const datos = body.datos || {};
-
-        const prompt = `
-Actúa como un Socio Senior de una firma internacional de consultoría estratégica.
-
-Recibirás un cuestionario empresarial. Tu misión es generar un Diagnóstico Estratégico Integral, profesional, ejecutivo, profundo y útil para toma de decisiones.
-
-INFORMACIÓN DEL CUESTIONARIO EMPRESARIAL:
-${JSON.stringify(datos, null, 2)}
-
-El diagnóstico debe incluir:
-
-# 1. Resumen Ejecutivo del Diagnóstico
-Sintetiza la situación estratégica actual de la empresa.
-
-# 2. Perfil Empresarial
-Analiza sector, operación, tamaño, alcance, productos, servicios y posición general.
-
-# 3. Identidad Estratégica
-Evalúa misión, visión y valores.
-Indica coherencia, claridad, brechas y oportunidades de mejora.
-
-# 4. Análisis FODA
-Construye un FODA profundo.
-Incluye conclusiones estratégicas.
-
-# 5. Análisis PESTEL
-Analiza factores políticos, económicos, sociales, tecnológicos, ecológicos y legales.
-Incluye impacto esperado.
-
-# 6. Cinco Fuerzas de Porter
-Evalúa:
-- Rivalidad competitiva
-- Amenaza de nuevos entrantes
-- Poder de negociación de clientes
-- Poder de negociación de proveedores
-- Amenaza de sustitutos
-
-Cada fuerza debe clasificarse como Alta, Media o Baja y justificar el nivel.
-
-# 7. Cadena de Valor
-Analiza actividades primarias y de apoyo.
-Identifica brechas operativas y ventajas potenciales.
-
-# 8. Modelo de Negocio Canvas
-Desarrolla los 9 bloques del Canvas.
-Evalúa consistencia y oportunidades de mejora.
-
-# 9. Diagnóstico Comercial y de Mercado
-Analiza público objetivo, comportamiento del cliente, canales, posicionamiento, diferenciación y competencia.
-
-# 10. Problemas Estratégicos Detectados
-Identifica los principales problemas, brechas, limitaciones y tensiones estratégicas.
-
-# 11. Oportunidades Estratégicas
-Identifica oportunidades concretas de crecimiento, eficiencia, digitalización, mercado, innovación y rentabilidad.
-
-# 12. Riesgos Estratégicos
-Identifica riesgos internos y externos relevantes.
-
-# 13. Conclusiones del Diagnóstico
-Redacta conclusiones ejecutivas claras que sirvan como base para formular la estrategia.
-
-REGLAS:
-- No inventes información específica no proporcionada.
-- Si algún dato es limitado, realiza inferencias prudentes.
-- Escribe con lenguaje ejecutivo.
-- Sé profundo, estructurado y accionable.
-- El diagnóstico debe servir como insumo directo para formular una estrategia empresarial.
-`;
-
-        const analisis = await llamarOpenAI(env.OPENAI_API_KEY, prompt);
-
-        return Response.json({ analisis }, { headers: corsHeaders });
-
-      } catch (error) {
-        return Response.json({ error: error.message }, {
-          status: 500,
-          headers: corsHeaders
-        });
-      }
-    }
-
-    if (url.pathname === "/generate-strategy" && request.method === "POST") {
-      try {
-        const body = await request.json();
-        const datos = body.datos || {};
-        const analisis = body.analisis || "";
-
-        if (!analisis) {
-          return Response.json({
-            error: "Primero debes generar el diagnóstico estratégico integral."
-          }, {
-            status: 400,
-            headers: corsHeaders
-          });
-        }
-
-        const prompt = `
-Actúa como un Socio Senior de una firma internacional de consultoría estratégica.
-
-Recibirás dos entradas:
-
-1. El cuestionario empresarial.
-2. El Diagnóstico Estratégico Integral.
-
-Tu misión es convertir ese diagnóstico en una Estrategia Empresarial ejecutable.
-
-NO vuelvas a repetir los análisis.
-
-Da por válidos todos los hallazgos del diagnóstico.
-
-Toda estrategia debe justificarse utilizando las conclusiones del diagnóstico.
-
-Toda decisión debe responder a un problema identificado.
-
-Todas las estrategias deben estar alineadas entre sí.
-
-Todo proyecto debe apoyar una estrategia.
-
-Todo KPI debe medir un objetivo.
-
-Todo objetivo debe responder a un problema detectado.
-
-Toda recomendación debe sustentarse en el diagnóstico.
-
-CUESTIONARIO EMPRESARIAL:
-${JSON.stringify(datos, null, 2)}
-
-DIAGNÓSTICO ESTRATÉGICO INTEGRAL:
-${analisis}
-
-El documento deberá contener:
-
-# 1. Prioridades Estratégicas
-
-Identificar entre 5 y 8 prioridades.
-
-Justificar cada una.
-
-----------------------------------------
-
-# 2. Objetivos Estratégicos
-
-Redactar objetivos SMART.
-
-No escribir objetivos genéricos.
-
-Cada uno debe indicar:
-
-Propósito
-
-Resultado esperado
-
-Horizonte
-
-Justificación
-
-----------------------------------------
-
-# 3. Mapa Estratégico
-
-Construir la relación:
-
-Misión
-
-↓
-
-Visión
-
-↓
-
-Objetivos
-
-↓
-
-Estrategias
-
-↓
-
-Proyectos
-
-↓
-
-KPIs
-
-↓
-
-Resultados
-
-----------------------------------------
-
-# 4. Balanced Scorecard
-
-Perspectiva Financiera
-
-Perspectiva Clientes
-
-Perspectiva Procesos
-
-Perspectiva Aprendizaje
-
-Cada una con:
-
-Objetivos
-
-Indicadores
-
-Metas
-
-Responsables
-
-Iniciativas
-
-----------------------------------------
-
-# 5. OKR Corporativos
-
-Diseñar OKRs para cada prioridad estratégica.
-
-----------------------------------------
-
-# 6. Estrategias Corporativas
-
-Desarrollar estrategias completas para:
-
-Marketing
-
-Ventas
-
-Operaciones
-
-Digitalización
-
-Innovación
-
-RRHH
-
-Tecnología
-
-Expansión
-
-Alianzas
-
-Finanzas
-
-Cada estrategia debe explicar:
-
-Objetivo
-
-Justificación
-
-Cómo competir
-
-Cómo ejecutarla
-
-Resultado esperado
-
-----------------------------------------
-
-# 7. Plan Táctico
-
-Tabla con:
-
-Proyecto
-
-Objetivo asociado
-
-Prioridad
-
-Responsable
-
-Duración
-
-Costo estimado
-
-Dependencias
-
-KPI
-
-Resultado esperado
-
-----------------------------------------
-
-# 8. Roadmap Estratégico
-
-Organizar todos los proyectos por:
-
-Quick Wins (0–6 meses)
-
-Mediano plazo (6–18 meses)
-
-Largo plazo (18–36 meses)
-
-Mostrar dependencias entre iniciativas cuando existan.
-
-----------------------------------------
-
-# 9. Presupuesto Estratégico
-
-Distribuir porcentualmente la inversión entre áreas estratégicas.
-
-Justificar la asignación.
-
-----------------------------------------
-
-# 10. Dashboard Estratégico
-
-Diseñar entre 25 y 40 KPIs agrupados por:
-
-Finanzas
-
-Clientes
-
-Marketing
-
-Ventas
-
-Operaciones
-
-RRHH
-
-Innovación
-
-Tecnología
-
-Cada KPI debe incluir:
-
-Nombre
-
-Fórmula
-
-Meta
-
-Frecuencia
-
-Responsable
-
-Fuente de datos
-
-----------------------------------------
-
-# 11. Gestión Integral de Riesgos
-
-Construir una matriz con:
-
-Riesgo
-
-Probabilidad
-
-Impacto
-
-Nivel
-
-Mitigación
-
-Contingencia
-
-Responsable
-
-----------------------------------------
-
-# 12. Gobernanza Estratégica
-
-Diseñar el modelo de seguimiento incluyendo:
-
-Comité Estratégico
-
-Frecuencia de revisión
-
-Responsables
-
-Reportes
-
-Mecanismos de control
-
-Proceso de actualización anual
-
-----------------------------------------
-
-# 13. Recomendaciones Ejecutivas
-
-Presentar entre 10 y 15 recomendaciones priorizadas.
-
-Clasificarlas en:
-
-Alta
-
-Media
-
-Baja prioridad
-
-Explicar:
-
-Qué hacer
-
-Por qué hacerlo
-
-Impacto esperado
-
-----------------------------------------
-
-# 14. Conclusión Final
-
-Redactar una conclusión ejecutiva que sintetice:
-
-La dirección estratégica recomendada.
-
-Los factores críticos de éxito.
-
-Los principales riesgos.
-
-Las oportunidades de crecimiento.
-
-Las prioridades para los próximos cinco años.
-
-REGLAS:
-
-- No repetir el diagnóstico.
-- No copiar texto del cuestionario.
-- Mantener total coherencia con el análisis previo.
-- Priorizar acciones concretas y ejecutables.
-- Escribir con lenguaje ejecutivo y orientado a la toma de decisiones.
-`;
-
-        const estrategia = await llamarOpenAI(env.OPENAI_API_KEY, prompt);
-
-        return Response.json({ estrategia }, { headers: corsHeaders });
-
-      } catch (error) {
-        return Response.json({ error: error.message }, {
-          status: 500,
-          headers: corsHeaders
-        });
-      }
-    }
-
-    return Response.json({
-      status: "ok",
-      message: "API Pluma-Floral funcionando. Endpoints disponibles: /generate-analysis, /generate-strategy, /usage"
-    }, {
-      headers: corsHeaders
-    });
-  }
-};
-
-async function llamarOpenAI(apiKey, prompt) {
-  if (!apiKey) {
-    throw new Error("No se encontró OPENAI_API_KEY en las variables del Worker.");
-  }
-
-  const respuesta = await fetch("https://api.openai.com/v1/chat/completions", {
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Generador de Plan Estratégico</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+body{margin:0;font-family:Arial,sans-serif;background:#f4f6f9;color:#1f2937}
+header{background:#0f172a;color:white;padding:28px;text-align:center}
+.contenedor{max-width:1150px;margin:30px auto;background:white;padding:30px;border-radius:18px;box-shadow:0 8px 25px rgba(0,0,0,.1)}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.campo{margin-bottom:17px}
+label{display:block;font-weight:bold;margin-bottom:6px;font-size:14px}
+input,textarea{width:100%;padding:11px;border:1px solid #cbd5e1;border-radius:8px;font-size:14px;box-sizing:border-box}
+textarea{min-height:85px;resize:vertical}
+.seccion{margin-top:28px;margin-bottom:16px;padding:12px 16px;background:#e0ecff;border-left:5px solid #1d4ed8;font-weight:bold;border-radius:8px}
+button{background:#1d4ed8;color:white;border:none;padding:13px 24px;border-radius:10px;font-weight:bold;cursor:pointer;font-size:15px}
+button:hover{background:#1e40af}
+button:disabled{background:#9ca3af;cursor:not-allowed}
+.botones{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin-bottom:25px}
+.resultado{display:none;white-space:pre-wrap;background:#f8fafc;border:1px solid #e5e7eb;padding:25px;border-radius:14px;max-height:650px;overflow-y:auto;line-height:1.5;margin-top:20px}
+.mensaje{display:none;margin-top:20px;padding:14px;border-radius:10px;font-weight:bold}
+.exito{background:#dcfce7;color:#166534}
+.error{background:#fee2e2;color:#991b1b}
+.contador{text-align:center;margin-bottom:20px;color:#475569;font-weight:bold}
+@media(max-width:800px){.grid{grid-template-columns:1fr}}
+</style>
+</head>
+
+<body>
+
+<header>
+  <h1>Generador de Plan Estratégico</h1>
+  <p>Formulario ejecutivo para diagnóstico, análisis y estrategia empresarial</p>
+</header>
+
+<div class="contenedor">
+
+  <div class="contador">
+    Usos registrados: <span id="contadorUso">Cargando...</span>
+  </div>
+
+  <div class="botones">
+    <button onclick="mostrarFormulario()">Formulario</button>
+    <button id="btnAnalisis" onclick="generarAnalisis()">Análisis</button>
+    <button id="btnEstrategia" onclick="generarEstrategia()">Estrategia</button>
+    <button onclick="descargarWord()">Descargar Word</button>
+  </div>
+
+  <form id="formularioPlan">
+
+    <div class="seccion">Datos generales</div>
+
+    <div class="grid">
+      <div class="campo"><label>Período</label><input id="periodo" required placeholder="Ejemplo: Plan estratégico 2026-2028"></div>
+      <div class="campo"><label>Nombre de la empresa</label><input id="nombreEmpresa" required placeholder="Ejemplo: Soluciones Empresariales RH"></div>
+      <div class="campo"><label>Sector o industria</label><input id="sectorIndustria" required placeholder="Ejemplo: Consultoría de recursos humanos"></div>
+      <div class="campo"><label>Productos o servicios principales</label><textarea id="productosServicios" required placeholder="Ejemplo: Reclutamiento, capacitación, automatización de procesos de RH y consultoría organizacional."></textarea></div>
+      <div class="campo"><label>Tiempo de operación</label><input id="tiempoOperacion" required placeholder="Ejemplo: 5 años en el mercado"></div>
+      <div class="campo"><label>No. de empleados</label><input id="numeroEmpleados" type="number" required placeholder="Ejemplo: 25"></div>
+      <div class="campo"><label>Ubicación y alcance</label><textarea id="ubicacionAlcance" required placeholder="Ejemplo: Operamos en Honduras con servicios virtuales para Centroamérica."></textarea></div>
+    </div>
+
+    <div class="seccion">Identidad estratégica</div>
+
+    <div class="campo"><label>Misión</label><textarea id="mision" required placeholder="Ejemplo: Brindar soluciones integrales de gestión humana que impulsen la productividad y el desarrollo organizacional."></textarea></div>
+    <div class="campo"><label>Visión</label><textarea id="vision" required placeholder="Ejemplo: Ser una firma referente en soluciones automatizadas de recursos humanos en Centroamérica."></textarea></div>
+    <div class="campo"><label>Valores</label><textarea id="valores" required placeholder="Ejemplo: Innovación, ética, compromiso, excelencia, orientación al cliente y mejora continua."></textarea></div>
+
+    <div class="seccion">Análisis interno y externo</div>
+
+    <div class="grid">
+      <div class="campo"><label>Fortalezas</label><textarea id="fortalezas" required placeholder="Ejemplo: Equipo especializado, procesos ágiles, experiencia técnica y herramientas digitales propias."></textarea></div>
+      <div class="campo"><label>Debilidades</label><textarea id="debilidades" required placeholder="Ejemplo: Baja presencia digital, dependencia de pocos clientes grandes y limitada capacidad comercial."></textarea></div>
+      <div class="campo"><label>Oportunidades</label><textarea id="oportunidades" required placeholder="Ejemplo: Crecimiento de la transformación digital, necesidad de automatización y aumento de tercerización de servicios RH."></textarea></div>
+      <div class="campo"><label>Amenazas</label><textarea id="amenazas" required placeholder="Ejemplo: Competencia internacional, cambios económicos, reducción de presupuestos empresariales y soluciones tecnológicas sustitutas."></textarea></div>
+    </div>
+
+    <div class="seccion">Mercado y competencia</div>
+
+    <div class="grid">
+      <div class="campo"><label>Público objetivo / buyer persona</label><textarea id="publicoObjetivo" required placeholder="Ejemplo: Gerentes de RH, dueños de empresas medianas y líderes administrativos que buscan optimizar procesos."></textarea></div>
+      <div class="campo"><label>Comportamiento del cliente</label><textarea id="comportamientoCliente" required placeholder="Ejemplo: Busca rapidez, confianza, resultados medibles, acompañamiento experto y soluciones fáciles de implementar."></textarea></div>
+      <div class="campo"><label>Canales de venta y distribución</label><textarea id="canalesVenta" required placeholder="Ejemplo: LinkedIn, WhatsApp Business, referidos, reuniones comerciales, webinars y alianzas empresariales."></textarea></div>
+      <div class="campo"><label>Posicionamiento actual</label><textarea id="posicionamientoActual" required placeholder="Ejemplo: Empresa reconocida por atención personalizada, pero con oportunidad de fortalecer marca digital."></textarea></div>
+      <div class="campo"><label>Principales competidores</label><textarea id="competidores" required placeholder="Ejemplo: Firmas consultoras locales, plataformas de software RH y consultores independientes."></textarea></div>
+      <div class="campo"><label>Diferenciación</label><textarea id="diferenciacion" required placeholder="Ejemplo: Combinamos consultoría experta con automatización práctica y herramientas adaptadas al cliente."></textarea></div>
+      <div class="campo"><label>Benchmarking</label><textarea id="benchmarking" required placeholder="Ejemplo: Los competidores ofrecen servicios tradicionales; nuestra ventaja está en integrar tecnología, análisis y acompañamiento."></textarea></div>
+    </div>
+
+    <div class="seccion">Resultados esperados y control</div>
+
+    <div class="grid">
+      <div class="campo"><label>Logros esperados en los próximos 12 meses</label><textarea id="logros12Meses" required placeholder="Ejemplo: Incrementar ventas en 25%, captar 15 nuevos clientes y lanzar 3 soluciones automatizadas."></textarea></div>
+      <div class="campo"><label>Logros esperados en los próximos 3 a 5 años</label><textarea id="logros3a5" required placeholder="Ejemplo: Expandirse regionalmente, consolidar una plataforma digital propia y duplicar la cartera de clientes."></textarea></div>
+      <div class="campo"><label>Sistema actual de control</label><textarea id="sistemaControl" required placeholder="Ejemplo: Actualmente se controlan metas mediante reportes mensuales, reuniones de seguimiento e indicadores comerciales."></textarea></div>
+      <div class="campo"><label>Frecuencia de revisión</label><textarea id="frecuenciaRevision" required placeholder="Ejemplo: Revisión mensual de indicadores y revisión estratégica trimestral."></textarea></div>
+      <div class="campo"><label>Notas adicionales</label><textarea id="notasAdicionales" placeholder="Ejemplo: Se desea fortalecer el área comercial, mejorar la presencia digital y automatizar procesos internos."></textarea></div>
+    </div>
+
+  </form>
+
+  <div id="vistaAnalisis" class="resultado"></div>
+  <div id="vistaEstrategia" class="resultado"></div>
+  <div id="mensaje" class="mensaje"></div>
+
+</div>
+
+<script>
+const API_BASE = "https://floral-feather-2cf3.asistenterh37.workers.dev";
+const ANALISIS_URL = API_BASE + "/generate-analysis";
+const ESTRATEGIA_URL = API_BASE + "/generate-strategy";
+const USAGE_URL = API_BASE + "/usage";
+
+let analisisGenerado = "";
+let estrategiaGenerada = "";
+
+const campos = [
+  "periodo","nombreEmpresa","sectorIndustria","productosServicios",
+  "tiempoOperacion","numeroEmpleados","ubicacionAlcance","mision","vision",
+  "valores","fortalezas","debilidades","oportunidades","amenazas",
+  "publicoObjetivo","comportamientoCliente","canalesVenta","posicionamientoActual",
+  "competidores","diferenciacion","benchmarking","logros12Meses","logros3a5",
+  "sistemaControl","frecuenciaRevision","notasAdicionales"
+];
+
+function mostrarFormulario(){
+  document.getElementById("formularioPlan").style.display = "block";
+}
+
+function obtenerDatos(){
+  const datos = {};
+  campos.forEach(campo => {
+    datos[campo] = document.getElementById(campo)?.value.trim() || "";
+  });
+  return datos;
+}
+
+function validarObligatorios(){
+  const requeridos = campos.filter(campo => campo !== "notasAdicionales");
+  return requeridos.every(campo => document.getElementById(campo).value.trim() !== "");
+}
+
+async function llamarApi(url, payload){
+  const respuesta = await fetch(url, {
     method: "POST",
     headers: {
-      "Authorization": `Bearer ${apiKey}`,
-      "Content-Type": "application/json"
+      "Content-Type": "application/json",
+      "Accept": "application/json"
     },
-    body: JSON.stringify({
-      model: "gpt-4o-mini",
-      messages: [
-        {
-          role: "system",
-          content: "Eres un Socio Senior de una firma internacional de consultoría estratégica. Escribes con rigor ejecutivo, profundidad analítica y orientación práctica."
-        },
-        {
-          role: "user",
-          content: prompt
-        }
-      ],
-      temperature: 0.35
-    })
+    body: JSON.stringify(payload)
   });
 
-  const data = await respuesta.json();
+  const texto = await respuesta.text();
 
-  if (!respuesta.ok) {
-    throw new Error(data.error?.message || "Error desconocido de OpenAI.");
+  let json;
+  try{
+    json = JSON.parse(texto);
+  }catch{
+    throw new Error("El servidor no devolvió JSON. Respuesta: " + texto);
   }
 
-  const texto = data.choices?.[0]?.message?.content || "";
-
-  if (!texto) {
-    throw new Error("OpenAI respondió, pero no devolvió contenido.");
+  if(!respuesta.ok){
+    throw new Error(json.error || texto);
   }
 
-  return texto;
+  const contenido = extraerTexto(json);
+
+  if(!contenido){
+    console.log("Respuesta completa:", json);
+    throw new Error("El Worker respondió, pero no devolvió contenido.");
+  }
+
+  return contenido;
 }
+
+function extraerTexto(json){
+  if(!json) return "";
+  if(typeof json.analisis === "string" && json.analisis.trim()) return json.analisis.trim();
+  if(typeof json.estrategia === "string" && json.estrategia.trim()) return json.estrategia.trim();
+  if(typeof json.plan === "string" && json.plan.trim()) return json.plan.trim();
+  if(typeof json.output_text === "string" && json.output_text.trim()) return json.output_text.trim();
+
+  if(Array.isArray(json.output)){
+    const texto = json.output
+      .flatMap(item => item.content || [])
+      .map(content => content.text || "")
+      .join("\n")
+      .trim();
+
+    if(texto) return texto;
+  }
+
+  if(json.error){
+    throw new Error(
+      typeof json.error === "string"
+        ? json.error
+        : JSON.stringify(json.error)
+    );
+  }
+
+  return "";
+}
+
+async function generarAnalisis(){
+  if(!validarObligatorios()){
+    mostrarMensaje("Completá todos los campos obligatorios antes de generar el análisis.", "error");
+    return;
+  }
+
+  const btn = document.getElementById("btnAnalisis");
+  const vista = document.getElementById("vistaAnalisis");
+
+  btn.disabled = true;
+  vista.style.display = "block";
+  vista.innerText = "Generando diagnóstico estratégico integral...";
+  mostrarMensaje("Procesando análisis estratégico...", "exito");
+
+  try{
+    analisisGenerado = await llamarApi(ANALISIS_URL, {
+      datos: obtenerDatos()
+    });
+
+    vista.innerText = "DIAGNÓSTICO ESTRATÉGICO INTEGRAL\n\n" + analisisGenerado;
+    mostrarMensaje("Análisis generado correctamente. Ahora puedes generar la estrategia.", "exito");
+    cargarContador();
+
+  }catch(error){
+    analisisGenerado = "";
+    vista.innerText = "";
+    mostrarMensaje("Error al generar el análisis: " + error.message, "error");
+  }finally{
+    btn.disabled = false;
+  }
+}
+
+async function generarEstrategia(){
+  if(!validarObligatorios()){
+    mostrarMensaje("Completá todos los campos obligatorios antes de generar la estrategia.", "error");
+    return;
+  }
+
+  if(!analisisGenerado){
+    mostrarMensaje("Primero debes generar el Análisis. La Estrategia depende del diagnóstico.", "error");
+    return;
+  }
+
+  const btn = document.getElementById("btnEstrategia");
+  const vista = document.getElementById("vistaEstrategia");
+
+  btn.disabled = true;
+  vista.style.display = "block";
+  vista.innerText = "Generando estrategia empresarial ejecutable...";
+  mostrarMensaje("Convirtiendo el diagnóstico en estrategia...", "exito");
+
+  try{
+    estrategiaGenerada = await llamarApi(ESTRATEGIA_URL, {
+      datos: obtenerDatos(),
+      analisis: analisisGenerado
+    });
+
+    vista.innerText = "ESTRATEGIA EMPRESARIAL EJECUTABLE\n\n" + estrategiaGenerada;
+    mostrarMensaje("Estrategia generada correctamente. Ya puedes descargar el Word consolidado.", "exito");
+    cargarContador();
+
+  }catch(error){
+    estrategiaGenerada = "";
+    vista.innerText = "";
+    mostrarMensaje("Error al generar la estrategia: " + error.message, "error");
+  }finally{
+    btn.disabled = false;
+  }
+}
+
+function descargarWord(){
+  if(!analisisGenerado || !estrategiaGenerada){
+    mostrarMensaje("Primero genera el Análisis y luego la Estrategia antes de descargar Word.", "error");
+    return;
+  }
+
+  const nombreEmpresa = document.getElementById("nombreEmpresa").value.trim() || "empresa";
+
+  const contenido = `
+  <html>
+  <head>
+    <meta charset="UTF-8">
+    <style>
+      body{font-family:Arial;line-height:1.5;color:#111827}
+      h1{text-align:center;color:#0f172a}
+      h2{color:#1d4ed8;border-bottom:1px solid #cbd5e1;padding-bottom:6px}
+      pre{white-space:pre-wrap;font-family:Arial}
+    </style>
+  </head>
+  <body>
+    <h1>Plan Estratégico Consolidado</h1>
+    <h2>Empresa: ${escapeHtml(nombreEmpresa)}</h2>
+    <h2>1. Diagnóstico Estratégico Integral</h2>
+    <pre>${escapeHtml(analisisGenerado)}</pre>
+    <h2>2. Estrategia Empresarial Ejecutable</h2>
+    <pre>${escapeHtml(estrategiaGenerada)}</pre>
+  </body>
+  </html>`;
+
+  const blob = new Blob(["\ufeff", contenido], {
+    type: "application/msword"
+  });
+
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "Plan_Estrategico_Consolidado_" + limpiarNombre(nombreEmpresa) + ".doc";
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+
+  mostrarMensaje("Documento Word consolidado descargado correctamente.", "exito");
+}
+
+async function cargarContador(){
+  try{
+    const respuesta = await fetch(USAGE_URL);
+    const texto = await respuesta.text();
+
+    let json = {};
+    try{
+      json = JSON.parse(texto);
+    }catch{
+      json = { total: "N/D" };
+    }
+
+    document.getElementById("contadorUso").innerText = json.total ?? "N/D";
+
+  }catch{
+    document.getElementById("contadorUso").innerText = "No disponible";
+  }
+}
+
+function mostrarMensaje(texto, tipo){
+  const mensaje = document.getElementById("mensaje");
+  mensaje.innerText = texto;
+  mensaje.className = "mensaje " + tipo;
+  mensaje.style.display = "block";
+}
+
+function escapeHtml(texto){
+  return texto.replace(/[&<>"']/g, caracter => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#039;"
+  }[caracter]));
+}
+
+function limpiarNombre(texto){
+  return texto.replace(/[^a-z0-9áéíóúñü_-]/gi, "_");
+}
+
+cargarContador();
+</script>
+
+</body>
+</html>
