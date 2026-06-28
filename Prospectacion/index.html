@@ -6,13 +6,13 @@
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 
 <style>
-body{font-family:Arial,sans-serif;background:#f4f7fb;margin:0;padding:24px;color:#1f2937}
+body{font-family:Arial,sans-serif;background:#f4f7fb;margin:0;padding:24px;color:#1f2937;user-select:none}
 .container{max-width:1400px;margin:auto;background:white;padding:28px;border-radius:16px;box-shadow:0 8px 24px rgba(0,0,0,.08)}
 h1{margin-top:0;color:#0f172a}
 table{width:100%;border-collapse:collapse;font-size:14px}
 th{background:#dbeafe;padding:10px;border:1px solid #cbd5e1;text-align:left}
 td{padding:8px;border:1px solid #e2e8f0;vertical-align:top}
-input,select{width:100%;padding:10px;border:1px solid #cbd5e1;border-radius:8px;box-sizing:border-box}
+input,select{width:100%;padding:10px;border:1px solid #cbd5e1;border-radius:8px;box-sizing:border-box;user-select:auto}
 button{border:none;padding:12px 18px;border-radius:10px;font-weight:bold;cursor:pointer;color:white;background:#2563eb}
 button:hover{background:#1d4ed8}
 .green{background:#059669}.green:hover{background:#047857}
@@ -29,17 +29,9 @@ button:hover{background:#1d4ed8}
 .estado-procesado{color:#047857}
 .estado-error{color:#dc2626}
 .estado-pendiente:hover::after{
-  content:"Estado: Pendiente antes de buscar";
-  position:absolute;
-  left:0;
-  top:28px;
-  background:#0f172a;
-  color:white;
-  padding:8px 10px;
-  border-radius:8px;
-  font-size:12px;
-  white-space:nowrap;
-  z-index:20;
+content:"Estado: Pendiente antes de buscar";
+position:absolute;left:0;top:28px;background:#0f172a;color:white;
+padding:8px 10px;border-radius:8px;font-size:12px;white-space:nowrap;z-index:20;
 }
 .results-table{margin-top:15px}
 .results-table tr:nth-child(even){background:#f8fafc}
@@ -49,6 +41,8 @@ button:hover{background:#1d4ed8}
 .card-auto{border:1px solid #cbd5e1;border-radius:12px;padding:16px;margin:12px 0;background:#f8fafc}
 .card-auto h3{margin:0 0 8px;color:#0f172a}
 .card-auto p{margin:0;line-height:1.5}
+.contact-card{background:#ecfdf5;border-color:#10b981}
+.contact-card h3{color:#047857}
 </style>
 </head>
 
@@ -57,9 +51,9 @@ button:hover{background:#1d4ed8}
 <h1>Extractor Google Maps</h1>
 
 <div class="automation-row">
-  <div class="automation-btn-wrap">
-    <button class="purple" onclick="abrirAutomatizaciones()">Mis automatizaciones</button>
-  </div>
+<div class="automation-btn-wrap">
+<button class="purple" onclick="abrirAutomatizaciones()">Mis automatizaciones</button>
+</div>
 </div>
 
 <table>
@@ -105,7 +99,6 @@ button:hover{background:#1d4ed8}
 </div>
 
 <input id="filtro" placeholder="Filtrar resultados..." onkeyup="filtrarTabla()">
-
 <div id="estadoGeneral">Listo para buscar.</div>
 
 <table class="results-table" id="tabla">
@@ -133,54 +126,31 @@ button:hover{background:#1d4ed8}
 <div id="map" style="display:none;"></div>
 
 <script>
+document.addEventListener("contextmenu",e=>e.preventDefault());
+document.addEventListener("keydown",function(e){
+const k=e.key.toLowerCase();
+if(e.key==="F12"||(e.ctrlKey&&k==="u")||(e.ctrlKey&&e.shiftKey&&["i","j","c"].includes(k))||(e.ctrlKey&&k==="s")){
+e.preventDefault();
+alert("Acción deshabilitada por seguridad.");
+}
+});
+
 let map, service, geocoder;
 let resultados = [];
 
 const automatizaciones = [
-{
-titulo:"Descripción de puestos",
-descripcion:"Este módulo permite recopilar y documentar de manera estructurada la información necesaria para elaborar descripciones de puesto dentro de la organización. Facilita el registro de datos generales del cargo, relaciones jerárquicas, funciones principales y reportes generados por cada posición. Además, incorpora herramientas para tabular la información recopilada, generar descripciones de puesto mediante inteligencia artificial y exportar los resultados a formato Word. Su integración con Google Sheets permite almacenar la información de forma centralizada, asegurando trazabilidad, consistencia y facilidad de consulta para los procesos de Recursos Humanos."
-},
-{
-titulo:"Reclutamiento",
-descripcion:"Este módulo automatiza y centraliza el proceso de reclutamiento y selección de personal, desde la requisición de vacantes hasta la gestión de candidatos. Permite administrar aprobaciones, publicar plazas, recibir postulaciones y registrar solicitudes de empleo en una sola plataforma. Además, incorpora herramientas de inteligencia artificial para generar anuncios de empleo y analizar candidatos según el perfil requerido."
-},
-{
-titulo:"Marco normativo",
-descripcion:"Este módulo centraliza y comunica el marco normativo de la organización, poniendo a disposición de los colaboradores el Código de Ética, el Acuerdo de Confidencialidad y el Reglamento Interno. Facilita la consulta de políticas, normas de conducta, derechos, obligaciones y procedimientos institucionales."
-},
-{
-titulo:"Evaluación del desempeño",
-descripcion:"SíPodés es una plataforma integral de gestión y evaluación del desempeño que centraliza todo el ciclo de medición, seguimiento y desarrollo del talento humano. Permite administrar niveles de puestos, formularios de evaluación, autoevaluaciones, evaluaciones de clientes, KPIs, incidencias, sesiones One to One y procesos de calibración."
-},
-{
-titulo:"Mapeo del talento",
-descripcion:"Este módulo permite evaluar y clasificar el talento de los colaboradores mediante la medición de rendimiento y potencial. Incluye formularios de evaluación, consolida resultados y ubica automáticamente a cada persona en una matriz o cuadrante de talento."
-},
-{
-titulo:"Administración de salarios",
-descripcion:"Este módulo permite analizar, diseñar y gestionar estructuras de compensación de manera técnica y objetiva. Integra herramientas para valuación de puestos, organigramas, equidad interna, competitividad externa, estructuras salariales, compa ratios y políticas salariales."
-},
-{
-titulo:"Clima laboral",
-descripcion:"Este módulo permite medir y analizar el clima laboral mediante encuestas estructuradas. Facilita captura de respuestas, segmentación, tabulación automática, dashboards interactivos, análisis, conclusiones y recomendaciones generadas con inteligencia artificial."
-},
-{
-titulo:"Expedientes de personal",
-descripcion:"Este módulo permite administrar de forma integral el expediente digital del colaborador, centralizando información personal, académica, laboral y de desarrollo profesional en una sola plataforma."
-},
-{
-titulo:"Compensación variable",
-descripcion:"Este módulo automatiza el cálculo de bonos a partir de información registrada en Google Sheets, cruzando datos de planilla, cobertura, tablas de factores, porcentajes y cumplimientos."
-},
-{
-titulo:"Plan de retiro",
-descripcion:"Este módulo permite calcular y proyectar el costo futuro de las prestaciones laborales de un colaborador con base en salario, antigüedad, edad y crecimiento salarial esperado."
-},
-{
-titulo:"Automatización de procesos con IA",
-descripcion:"Automatiza procesos administrativos mediante inteligencia artificial para reducir tareas manuales, mejorar la eficiencia y agilizar la toma de decisiones. Permite analizar información, generar documentos, elaborar reportes, clasificar datos y ejecutar flujos de trabajo."
-}
+{titulo:"Descripción de puestos",descripcion:"Este módulo permite recopilar y documentar de manera estructurada la información necesaria para elaborar descripciones de puesto dentro de la organización. Facilita el registro de datos generales del cargo, relaciones jerárquicas, funciones principales y reportes generados por cada posición. Además, incorpora herramientas para tabular la información recopilada, generar descripciones de puesto mediante inteligencia artificial y exportar los resultados a formato Word."},
+{titulo:"Reclutamiento",descripcion:"Este módulo automatiza y centraliza el proceso de reclutamiento y selección de personal, desde la requisición de vacantes hasta la gestión de candidatos."},
+{titulo:"Marco normativo",descripcion:"Este módulo centraliza y comunica el marco normativo de la organización, poniendo a disposición de los colaboradores políticas, normas y procedimientos institucionales."},
+{titulo:"Evaluación del desempeño",descripcion:"Plataforma integral de gestión y evaluación del desempeño que centraliza medición, seguimiento y desarrollo del talento humano."},
+{titulo:"Mapeo del talento",descripcion:"Permite evaluar y clasificar el talento mediante rendimiento y potencial, ubicando automáticamente a cada persona en una matriz de talento."},
+{titulo:"Administración de salarios",descripcion:"Permite analizar, diseñar y gestionar estructuras de compensación de manera técnica y objetiva."},
+{titulo:"Clima laboral",descripcion:"Permite medir y analizar el clima laboral mediante encuestas, dashboards y recomendaciones generadas con inteligencia artificial."},
+{titulo:"Expedientes de personal",descripcion:"Permite administrar el expediente digital del colaborador, centralizando información personal, académica, laboral y de desarrollo profesional."},
+{titulo:"Compensación variable",descripcion:"Automatiza el cálculo de bonos a partir de planilla, cobertura, factores, porcentajes y cumplimientos."},
+{titulo:"Plan de retiro",descripcion:"Permite calcular y proyectar el costo futuro de prestaciones laborales y estimar esquemas de prefondeo."},
+{titulo:"Automatización de procesos con IA",descripcion:"Automatiza procesos administrativos mediante inteligencia artificial para reducir tareas manuales, mejorar la eficiencia y agilizar la toma de decisiones."},
+{titulo:"Contáctame",descripcion:"Puedo llevar tu organización a otro nivel. WhatsApp: 9879 0377",contacto:true}
 ];
 
 function abrirAutomatizaciones(){
@@ -188,41 +158,25 @@ const contenedor=document.getElementById("listaAutomatizaciones");
 contenedor.innerHTML="";
 automatizaciones.forEach(item=>{
 const div=document.createElement("div");
-div.className="card-auto";
+div.className=item.contacto ? "card-auto contact-card" : "card-auto";
 div.innerHTML=`<h3>${item.titulo}</h3><p>${item.descripcion}</p>`;
 contenedor.appendChild(div);
 });
 document.getElementById("modalAutomatizaciones").style.display="block";
 }
 
-function cerrarAutomatizaciones(){
-document.getElementById("modalAutomatizaciones").style.display="none";
-}
-
-window.onclick=function(event){
-const modal=document.getElementById("modalAutomatizaciones");
-if(event.target===modal){cerrarAutomatizaciones();}
-}
+function cerrarAutomatizaciones(){document.getElementById("modalAutomatizaciones").style.display="none";}
+window.onclick=function(event){const modal=document.getElementById("modalAutomatizaciones");if(event.target===modal){cerrarAutomatizaciones();}}
 
 function initMap(){
-map=new google.maps.Map(document.getElementById("map"),{
-center:{lat:14.0818,lng:-87.2068},
-zoom:7
-});
+map=new google.maps.Map(document.getElementById("map"),{center:{lat:14.0818,lng:-87.2068},zoom:7});
 service=new google.maps.places.PlacesService(map);
 geocoder=new google.maps.Geocoder();
 setEstadoGeneral("Google Maps cargado. Listo para buscar.");
 }
 
-function setEstadoGeneral(texto){
-document.getElementById("estadoGeneral").innerText=texto;
-}
-
-function setEstadoFila(fila,texto,clase){
-const estado=fila.querySelector(".estado");
-estado.innerText=texto;
-estado.className="estado "+clase;
-}
+function setEstadoGeneral(texto){document.getElementById("estadoGeneral").innerText=texto;}
+function setEstadoFila(fila,texto,clase){const estado=fila.querySelector(".estado");estado.innerText=texto;estado.className="estado "+clase;}
 
 function agregarBusqueda(){
 const filas=document.querySelectorAll("#tbodyBusquedas tr");
@@ -232,7 +186,6 @@ const departamento=ultima.querySelector(".departamento").value;
 const pais=ultima.querySelector(".pais").value;
 const radioKm=ultima.querySelector(".radioKm").value;
 const maxResultados=ultima.querySelector(".maxResultados").value;
-
 const tr=document.createElement("tr");
 tr.innerHTML=`
 <td><input class="busqueda" placeholder="Nueva búsqueda"></td>
@@ -240,34 +193,18 @@ tr.innerHTML=`
 <td><input class="departamento" value="${departamento}"></td>
 <td><input class="pais" value="${pais}"></td>
 <td><input class="radioKm" type="number" value="${radioKm}" min="1"></td>
-<td>
-<select class="maxResultados">
-<option value="5">5</option>
-<option value="10">10</option>
-<option value="20">20</option>
-<option value="40">40</option>
-<option value="60">60</option>
-</select>
-</td>
+<td><select class="maxResultados"><option value="5">5</option><option value="10">10</option><option value="20">20</option><option value="40">40</option><option value="60">60</option></select></td>
 <td class="estado estado-pendiente">Pendiente</td>
-<td><button class="plus-btn" onclick="agregarBusqueda()">+</button></td>
-`;
+<td><button class="plus-btn" onclick="agregarBusqueda()">+</button></td>`;
 document.getElementById("tbodyBusquedas").appendChild(tr);
 tr.querySelector(".maxResultados").value=maxResultados;
 tr.querySelector(".busqueda").focus();
 }
 
 async function buscarTodas(){
-if(!service||!geocoder){
-alert("Google Maps todavía no ha cargado o la API Key está incorrecta.");
-return;
-}
-
-resultados=[];
-pintarTabla(resultados);
-
+if(!service||!geocoder){alert("Google Maps todavía no ha cargado o la API Key está incorrecta.");return;}
+resultados=[];pintarTabla(resultados);
 const filas=Array.from(document.querySelectorAll("#tbodyBusquedas tr"));
-
 for(const fila of filas){
 const busqueda=fila.querySelector(".busqueda").value.trim();
 const ciudad=fila.querySelector(".ciudad").value.trim();
@@ -275,31 +212,19 @@ const departamento=fila.querySelector(".departamento").value.trim();
 const pais=fila.querySelector(".pais").value.trim();
 const radioKm=Number(fila.querySelector(".radioKm").value)||3;
 const maxResultados=Number(fila.querySelector(".maxResultados").value)||5;
-
 if(!busqueda||!ciudad||!pais)continue;
-
 setEstadoFila(fila,"Procesando","estado-procesando");
-
-try{
-await buscarPorRadio({busqueda,ciudad,departamento,pais,radioKm,maxResultados});
-setEstadoFila(fila,"Procesado","estado-procesado");
-}catch(e){
-console.error(e);
-setEstadoFila(fila,"Error","estado-error");
+try{await buscarPorRadio({busqueda,ciudad,departamento,pais,radioKm,maxResultados});setEstadoFila(fila,"Procesado","estado-procesado");}
+catch(e){console.error(e);setEstadoFila(fila,"Error","estado-error");}
 }
-}
-
 setEstadoGeneral("Búsqueda finalizada. Registros encontrados: "+resultados.length);
 }
 
 function geocodificar(direccion){
 return new Promise((resolve,reject)=>{
 geocoder.geocode({address:direccion},(results,status)=>{
-if(status==="OK"&&results[0]){
-resolve(results[0].geometry.location);
-}else{
-reject("No se pudo ubicar: "+direccion);
-}
+if(status==="OK"&&results[0])resolve(results[0].geometry.location);
+else reject("No se pudo ubicar: "+direccion);
 });
 });
 }
@@ -310,19 +235,13 @@ setEstadoGeneral("Ubicando: "+ubicacionTexto);
 const location=await geocodificar(ubicacionTexto);
 const radioMetros=params.radioKm*1000;
 setEstadoGeneral("Buscando: "+params.busqueda+" a "+params.radioKm+" KM de "+params.ciudad);
-
-return new Promise((resolve)=>{
+return new Promise(resolve=>{
 const encontradosAntes=resultados.length;
 const request={location:location,radius:radioMetros,keyword:params.busqueda};
-
 service.nearbySearch(request,(places,status)=>{
-if(status!==google.maps.places.PlacesServiceStatus.OK||!places){
-resolve();
-return;
-}
+if(status!==google.maps.places.PlacesServiceStatus.OK||!places){resolve();return;}
 procesarPlaces(places,params.maxResultados,encontradosAntes,()=>resolve());
 });
-
 setTimeout(()=>resolve(),20000);
 });
 }
@@ -330,31 +249,12 @@ setTimeout(()=>resolve(),20000);
 function procesarPlaces(places,maxResultados,encontradosAntes,callback){
 let procesados=0;
 if(!places.length){callback();return;}
-
 places.forEach(place=>{
-if((resultados.length-encontradosAntes)>=maxResultados){
-procesados++;
-if(procesados===places.length)callback();
-return;
-}
-
-service.getDetails({
-placeId:place.place_id,
-fields:["name","formatted_address","formatted_phone_number","international_phone_number","website","types"]
-},(detalle,status)=>{
+if((resultados.length-encontradosAntes)>=maxResultados){procesados++;if(procesados===places.length)callback();return;}
+service.getDetails({placeId:place.place_id,fields:["name","formatted_address","formatted_phone_number","international_phone_number","website","types"]},(detalle,status)=>{
 if(status===google.maps.places.PlacesServiceStatus.OK&&detalle){
-const registro={
-nombre:detalle.name||"",
-telefono:detalle.formatted_phone_number||detalle.international_phone_number||"",
-direccion:detalle.formatted_address||"",
-sitioWeb:detalle.website||"",
-categoria:traducirCategoria(detalle.types)
-};
-
-if(!existeRegistro(registro)){
-resultados.push(registro);
-pintarTabla(resultados);
-}
+const registro={nombre:detalle.name||"",telefono:detalle.formatted_phone_number||detalle.international_phone_number||"",direccion:detalle.formatted_address||"",sitioWeb:detalle.website||"",categoria:traducirCategoria(detalle.types)};
+if(!existeRegistro(registro)){resultados.push(registro);pintarTabla(resultados);}
 }
 procesados++;
 if(procesados===places.length)callback();
@@ -362,29 +262,10 @@ if(procesados===places.length)callback();
 });
 }
 
-function existeRegistro(nuevo){
-return resultados.some(r=>
-r.nombre===nuevo.nombre||
-(nuevo.telefono&&r.telefono===nuevo.telefono)||
-r.direccion===nuevo.direccion
-);
-}
-
+function existeRegistro(nuevo){return resultados.some(r=>r.nombre===nuevo.nombre||(nuevo.telefono&&r.telefono===nuevo.telefono)||r.direccion===nuevo.direccion);}
 function traducirCategoria(types){
 if(!types||!types.length)return"";
-const mapa={
-employment_agency:"Agencia de empleo",
-local_government_office:"Oficina gubernamental",
-corporate_office:"Oficina corporativa",
-store:"Tienda",
-restaurant:"Restaurante",
-school:"Escuela",
-university:"Universidad",
-lodging:"Hotel",
-shopping_mall:"Centro comercial",
-point_of_interest:"Punto de interés",
-establishment:"Establecimiento"
-};
+const mapa={employment_agency:"Agencia de empleo",local_government_office:"Oficina gubernamental",corporate_office:"Oficina corporativa",store:"Tienda",restaurant:"Restaurante",school:"Escuela",university:"Universidad",lodging:"Hotel",shopping_mall:"Centro comercial",point_of_interest:"Punto de interés",establishment:"Establecimiento"};
 return mapa[types[0]]||types[0].replaceAll("_"," ");
 }
 
@@ -393,39 +274,20 @@ const tbody=document.querySelector("#tabla tbody");
 tbody.innerHTML="";
 data.forEach(row=>{
 const tr=document.createElement("tr");
-tr.innerHTML=`
-<td>${row.nombre}</td>
-<td>${row.telefono}</td>
-<td>${row.direccion}</td>
-<td>${row.sitioWeb?`<a href="${row.sitioWeb}" target="_blank">${row.sitioWeb}</a>`:""}</td>
-<td>${row.categoria}</td>
-`;
+tr.innerHTML=`<td>${row.nombre}</td><td>${row.telefono}</td><td>${row.direccion}</td><td>${row.sitioWeb?`<a href="${row.sitioWeb}" target="_blank">${row.sitioWeb}</a>`:""}</td><td>${row.categoria}</td>`;
 tbody.appendChild(tr);
 });
 }
 
 function filtrarTabla(){
 const texto=document.getElementById("filtro").value.toLowerCase();
-const filtrados=resultados.filter(row=>
-Object.values(row).some(valor=>String(valor||"").toLowerCase().includes(texto))
-);
+const filtrados=resultados.filter(row=>Object.values(row).some(valor=>String(valor||"").toLowerCase().includes(texto)));
 pintarTabla(filtrados);
 }
 
 function exportarExcel(){
-if(!resultados.length){
-alert("No hay resultados para exportar.");
-return;
-}
-
-const dataExcel=resultados.map(row=>({
-"Nombre":row.nombre,
-"Teléfono":row.telefono,
-"Dirección":row.direccion,
-"Sitio web":row.sitioWeb,
-"Categoría":row.categoria
-}));
-
+if(!resultados.length){alert("No hay resultados para exportar.");return;}
+const dataExcel=resultados.map(row=>({"Nombre":row.nombre,"Teléfono":row.telefono,"Dirección":row.direccion,"Sitio web":row.sitioWeb,"Categoría":row.categoria}));
 const ws=XLSX.utils.json_to_sheet(dataExcel);
 const wb=XLSX.utils.book_new();
 XLSX.utils.book_append_sheet(wb,ws,"Base");
@@ -433,22 +295,13 @@ XLSX.writeFile(wb,"Base_Google_Maps.xlsx");
 }
 
 function limpiarResultados(){
-resultados=[];
-pintarTabla(resultados);
+resultados=[];pintarTabla(resultados);
 document.getElementById("filtro").value="";
-document.querySelectorAll(".estado").forEach(estado=>{
-estado.innerText="Pendiente";
-estado.className="estado estado-pendiente";
-});
+document.querySelectorAll(".estado").forEach(estado=>{estado.innerText="Pendiente";estado.className="estado estado-pendiente";});
 setEstadoGeneral("Resultados limpiados.");
 }
 </script>
 
-<script
-src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDo_bIWY2S2ijy8vMQfeq1OzaBIwX6lP_w&libraries=places&callback=initMap"
-async
-defer>
-</script>
-
+<script src="https://maps.googleapis.com/maps/api/js?key=TU_API_KEY_AQUI&libraries=places&callback=initMap" async defer></script>
 </body>
 </html>
