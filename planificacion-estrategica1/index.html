@@ -53,7 +53,24 @@ textarea{min-height:108px;resize:vertical}
 .timebox{border:1px solid #cbd5e1;border-radius:12px;padding:10px;background:#ffffff}
 .timebox b{color:#1d4ed8}
 .nota{background:#fffbeb;border-left:5px solid #f59e0b;padding:12px;border-radius:8px;margin:12px 0;color:#78350f}
-#formularioIdentidad{display:none;margin-top:24px;border:1px solid #dbe3ef;border-radius:16px;padding:22px;background:#fbfdff}
+#formularioIdentidad{
+  display:none;
+  margin-top:24px;
+  border:1px solid #dbe3ef;
+  border-radius:16px;
+  padding:22px;
+  background:#fbfdff;
+}
+
+.pantalla-identidad-activa #formularioPlan,
+.pantalla-identidad-activa #vistaAnalisis,
+.pantalla-identidad-activa #vistaEstrategia{
+  display:none!important;
+}
+
+.pantalla-identidad-activa #formularioIdentidad{
+  display:block!important;
+}
 @media(max-width:900px){.grid,.grid-3,.kpi-cards,.timeline{grid-template-columns:1fr}.contenedor{margin:12px;padding:18px}}
 </style>
 </head>
@@ -191,9 +208,12 @@ textarea{min-height:108px;resize:vertical}
   </form>
 
   <form id="formularioIdentidad">
-    <div class="seccion">Diseño de visión, misión y valores</div>
-    <div class="ayuda">Complete este cuestionario para diseñar una identidad estratégica más clara, coherente y accionable.</div>
+    <div class="botones">
+  <button type="button" class="btn sec" onclick="volverPantallaPrincipal()">← Volver al formulario principal</button>
+</div>
 
+<div class="seccion">Diseño de visión, misión y valores</div>
+<div class="ayuda">Complete este cuestionario para diseñar una identidad estratégica más clara, coherente y accionable.</div>
     <div class="seccion">1. Identidad de la empresa</div>
     <div class="grid">
       <div class="campo"><label>¿Cuál es el nombre de la empresa?</label><input id="idNombreEmpresa" placeholder="Ejemplo: Soluciones Empresariales RH"></div>
@@ -288,8 +308,8 @@ textarea{min-height:108px;resize:vertical}
 const API_BASE = "https://floral-feather-2cf3.asistenterh37.workers.dev";
 const ANALISIS_URL = API_BASE + "/generate-analysis";
 const ESTRATEGIA_URL = API_BASE + "/generate-strategy";
+const IDENTIDAD_URL = API_BASE + "/generate-identity";
 const USAGE_URL = API_BASE + "/usage";
-
 let analisisGenerado = "";
 let estrategiaGenerada = "";
 let identidadGenerada = "";
@@ -319,15 +339,44 @@ const camposIdentidad = [
 ];
 
 function mostrarFormulario(){
-  document.getElementById("formularioPlan").style.display = "block";
+  volverPantallaPrincipal();
 }
 
 function mostrarFormularioIdentidad(){
-  const form = document.getElementById("formularioIdentidad");
-  form.style.display = form.style.display === "none" || form.style.display === "" ? "block" : "none";
-  form.scrollIntoView({behavior:"smooth",block:"start"});
+  completarIdentidadDesdePlan();
+  document.body.classList.add("pantalla-identidad-activa");
+  document.getElementById("formularioIdentidad").style.display = "block";
+  document.getElementById("vistaIdentidad").style.display = "none";
+  window.scrollTo({top:0,behavior:"smooth"});
 }
 
+function volverPantallaPrincipal(){
+  document.body.classList.remove("pantalla-identidad-activa");
+  document.getElementById("formularioPlan").style.display = "block";
+  document.getElementById("formularioIdentidad").style.display = "none";
+  window.scrollTo({top:0,behavior:"smooth"});
+}
+
+function completarIdentidadDesdePlan(){
+  copiarSiVacio("idNombreEmpresa","nombreEmpresa");
+  copiarSiVacio("idSectorEmpresa","sectorIndustria");
+  copiarSiVacio("idProductosServicios","productosServicios");
+  copiarSiVacio("idAntiguedadEmpresa","tiempoOperacion");
+  copiarSiVacio("idClientesIdeales","publicoObjetivo");
+  copiarSiVacio("idDiferenteCompetencia","diferenciacion");
+  copiarSiVacio("idFortalezasIdentidad","fortalezas");
+  copiarSiVacio("idFuturo5","logros3a5");
+  copiarSiVacio("idValoresPalabras","valores");
+}
+
+function copiarSiVacio(destino,origen){
+  const d = document.getElementById(destino);
+  const o = document.getElementById(origen);
+
+  if(d && o && !d.value.trim() && o.value.trim()){
+    d.value = o.value.trim();
+  }
+}
 function obtenerDatos(){
   const datos = {};
   campos.forEach(campo => {
@@ -388,6 +437,7 @@ function extraerTexto(json){
   if(!json) return "";
   if(typeof json.analisis === "string" && json.analisis.trim()) return json.analisis.trim();
   if(typeof json.estrategia === "string" && json.estrategia.trim()) return json.estrategia.trim();
+  if(typeof json.identidad === "string" && json.identidad.trim()) return json.identidad.trim();
   if(typeof json.plan === "string" && json.plan.trim()) return json.plan.trim();
   if(typeof json.output_text === "string" && json.output_text.trim()) return json.output_text.trim();
 
@@ -464,52 +514,29 @@ async function generarEstrategia(){
   }
 }
 
-function generarIdentidadEstrategica(){
-  const datos = obtenerDatosIdentidad();
-
-  const nombre = datos.idNombreEmpresa || document.getElementById("nombreEmpresa").value.trim() || "la empresa";
-  const sector = datos.idSectorEmpresa || document.getElementById("sectorIndustria").value.trim() || "su sector";
-  const clientes = datos.idClientesIdeales || "sus clientes ideales";
-  const problema = datos.idProblemaResolver || "resolver problemas relevantes para sus clientes";
-  const impacto = datos.idImpacto || "generar valor sostenible";
-  const diferencia = datos.idDiferenteCompetencia || datos.idUnicos || "su propuesta diferenciada";
-  const futuro5 = datos.idFuturo5 || "consolidarse y crecer de forma sostenible";
-  const mercados = datos.idMercadosDeseados || "sus mercados objetivo";
-  const valores = datos.idValoresPalabras || "integridad, servicio, innovación, excelencia y compromiso";
-  const tono = datos.idTono || "profesional, cercano y confiable";
-
-  identidadGenerada = `
-MISIÓN PROPUESTA
-
-En ${nombre}, nuestra misión es brindar soluciones especializadas en ${sector}, ayudando a ${clientes} a ${problema}, mediante un enfoque basado en ${diferencia}, servicio de calidad y compromiso con resultados medibles. Buscamos generar ${impacto}, construyendo relaciones de confianza y aportando valor real al crecimiento de nuestros clientes.
-
-VISIÓN PROPUESTA
-
-Ser una empresa referente en ${sector}, reconocida por su capacidad de innovación, calidad de servicio y contribución al desarrollo de sus clientes. En los próximos cinco años, aspiramos a ${futuro5}, ampliar nuestra presencia en ${mercados} y consolidarnos como una organización confiable, competitiva y orientada a resultados sostenibles.
-
-VALORES PROPUESTOS
-
-${valores.split(",").map(v => "- " + v.trim()).join("\n")}
-
-DECLARACIÓN DE PERSONALIDAD DE MARCA
-
-La marca debe proyectarse con un tono ${tono}, transmitiendo confianza, claridad, profesionalismo y orientación a resultados. Su personalidad debe reflejar coherencia entre lo que promete, lo que entrega y la experiencia que genera en clientes, colaboradores y aliados.
-
-RECOMENDACIONES PARA AJUSTE FINAL
-
-- Validar que la misión responda claramente a quién sirve la empresa, qué problema resuelve y cómo crea valor.
-- Validar que la visión tenga horizonte, ambición y dirección estratégica.
-- Definir cada valor con comportamientos observables en el trabajo diario.
-- Evitar valores genéricos si no se traducen en acciones concretas.
-- Usar esta propuesta como base para discusión directiva y validación cultural.
-`.trim();
-
+async function generarIdentidadEstrategica(){
   const vista = document.getElementById("vistaIdentidad");
   vista.style.display = "block";
-  vista.innerHTML = renderDocumento("Diseño de Visión, Misión y Valores",identidadGenerada,false);
-  mostrarMensaje("Propuesta de visión, misión y valores generada correctamente.","exito");
-}
+  vista.innerHTML = "<div class='doc-preview'><p>Generando propuesta de visión, misión y valores con IA...</p></div>";
+  mostrarMensaje("Procesando identidad estratégica con OpenAI...","exito");
 
+  try{
+    identidadGenerada = await llamarApi(IDENTIDAD_URL,{
+      identidad: obtenerDatosIdentidad(),
+      datos: obtenerDatos()
+    });
+
+    vista.innerHTML = renderDocumento("Diseño de Visión, Misión y Valores",identidadGenerada,false);
+    vista.scrollIntoView({behavior:"smooth",block:"start"});
+    mostrarMensaje("Propuesta de visión, misión y valores generada correctamente.","exito");
+    cargarContador();
+
+  }catch(error){
+    identidadGenerada = "";
+    vista.innerHTML = "";
+    mostrarMensaje("Error al generar visión, misión y valores: " + error.message,"error");
+  }
+}
 function limpiarSalida(texto){
   return String(texto || "")
     .replace(/```[a-z]*|```/gi,"")
