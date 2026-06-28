@@ -129,7 +129,7 @@ textarea{min-height:108px;resize:vertical}
 </style>
 </head>
 
-<body>
+<body oncontextmenu="return false">
 
 <header>
   <h1>Generador de Plan Estratégico Ejecutivo</h1>
@@ -443,6 +443,63 @@ let analisisGenerado = "";
 let estrategiaGenerada = "";
 let identidadGenerada = "";
 
+const SESSION_ID = localStorage.getItem("session_id_plan") || crypto.randomUUID();
+localStorage.setItem("session_id_plan", SESSION_ID);
+
+activarProteccionesBasicas();
+
+function activarProteccionesBasicas(){
+  document.addEventListener("contextmenu", function(e){
+    e.preventDefault();
+    mostrarAvisoSeguridad();
+  });
+
+  document.addEventListener("keydown", function(e){
+    const tecla = e.key.toLowerCase();
+
+    const bloqueado =
+      tecla === "f12" ||
+      (e.ctrlKey && tecla === "u") ||
+      (e.ctrlKey && tecla === "s") ||
+      (e.ctrlKey && tecla === "p") ||
+      (e.ctrlKey && e.shiftKey && tecla === "i") ||
+      (e.ctrlKey && e.shiftKey && tecla === "j") ||
+      (e.ctrlKey && e.shiftKey && tecla === "c");
+
+    if(bloqueado){
+      e.preventDefault();
+      e.stopPropagation();
+      mostrarAvisoSeguridad();
+      return false;
+    }
+  }, true);
+
+  document.addEventListener("selectstart", function(e){
+    const tag = e.target.tagName;
+    if(tag !== "INPUT" && tag !== "TEXTAREA"){
+      e.preventDefault();
+    }
+  });
+
+  document.addEventListener("dragstart", function(e){
+    e.preventDefault();
+  });
+}
+
+function mostrarAvisoSeguridad(){
+  mostrarMensaje("Esta acción está deshabilitada para proteger la herramienta.", "error");
+}
+
+function obtenerRegistroCliente(accion){
+  return {
+    accion: accion,
+    sessionId: SESSION_ID,
+    url: window.location.href,
+    fechaCliente: new Date().toISOString(),
+    navegador: navigator.userAgent
+  };
+}
+
 const campos = [
   "periodo","nombreEmpresa","sectorIndustria","tiempoOperacion","numeroEmpleados","ubicacionAlcance",
   "productosServicios","mision","vision","valores",
@@ -619,7 +676,10 @@ async function generarAnalisis(){
   mostrarMensaje("Procesando diagnóstico estratégico...","exito");
 
   try{
-    analisisGenerado = await llamarApi(ANALISIS_URL,{datos:obtenerDatos()});
+    analisisGenerado = await llamarApi(ANALISIS_URL,{
+  datos: obtenerDatos(),
+  registro: obtenerRegistroCliente("generar_diagnostico")
+});
     vista.innerHTML = renderDocumento("Diagnóstico Estratégico Ejecutivo",analisisGenerado,true);
     mostrarMensaje("Diagnóstico generado correctamente. Ahora podés generar la estrategia.","exito");
     cargarContador();
