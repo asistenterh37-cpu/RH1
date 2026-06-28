@@ -91,11 +91,12 @@ button:hover{background:#1d4ed8}
 </div>
 
 <input id="filtro" placeholder="Filtrar resultados..." onkeyup="filtrarTabla()">
-<div id="estadoGeneral">Listo para buscar.</div>
+<div id="estadoGeneral">Resultados</div>
 
 <table class="results-table" id="tabla">
 <thead>
 <tr>
+<th>No</th>
 <th>Nombre</th>
 <th>Teléfono</th>
 <th>Dirección</th>
@@ -164,7 +165,7 @@ function initMap(){
 map=new google.maps.Map(document.getElementById("map"),{center:{lat:14.0818,lng:-87.2068},zoom:7});
 service=new google.maps.places.PlacesService(map);
 geocoder=new google.maps.Geocoder();
-setEstadoGeneral("Google Maps cargado. Listo para buscar.");
+setEstadoGeneral("Resultados");
 }
 
 function setEstadoGeneral(t){document.getElementById("estadoGeneral").innerText=t;}
@@ -173,7 +174,6 @@ function setEstadoFila(fila,valor){fila.querySelector(".estado").value=valor;}
 function agregarBusqueda(){
 const filas=document.querySelectorAll("#tbodyBusquedas tr");
 const ultima=filas[filas.length-1];
-
 const ciudad=ultima.querySelector(".ciudad").value;
 const departamento=ultima.querySelector(".departamento").value;
 const pais=ultima.querySelector(".pais").value;
@@ -253,7 +253,7 @@ setEstadoGeneral(String(error));
 }
 }
 
-setEstadoGeneral("Búsqueda finalizada. Registros encontrados: "+resultados.length);
+setEstadoGeneral("Resultados: "+resultados.length);
 }
 
 function agregarOpcionEstado(fila,valor){
@@ -399,9 +399,10 @@ return mapa[types[0]]||types[0].replaceAll("_"," ");
 function pintarTabla(data){
 const tbody=document.querySelector("#tabla tbody");
 tbody.innerHTML="";
-data.forEach(row=>{
+data.forEach((row,index)=>{
 const tr=document.createElement("tr");
 tr.innerHTML=`
+<td>${index+1}</td>
 <td>${escapeHtml(row.nombre)}</td>
 <td>${escapeHtml(row.telefono)}</td>
 <td>${escapeHtml(row.direccion)}</td>
@@ -422,7 +423,8 @@ if(!resultados.length){
 alert("No hay resultados para exportar.");
 return;
 }
-const dataExcel=resultados.map(row=>({
+const dataExcel=resultados.map((row,index)=>({
+"No":index+1,
 "Nombre":row.nombre,
 "Teléfono":row.telefono,
 "Dirección":row.direccion,
@@ -440,7 +442,7 @@ resultados=[];
 pintarTabla(resultados);
 document.getElementById("filtro").value="";
 document.querySelectorAll(".estado").forEach(e=>e.value="Pendiente");
-setEstadoGeneral("Resultados limpiados.");
+setEstadoGeneral("Resultados");
 }
 
 function escapeHtml(texto){
