@@ -18,22 +18,13 @@ button:hover{background:#1d4ed8}
 .green{background:#059669}.green:hover{background:#047857}
 .red{background:#dc2626}.red:hover{background:#b91c1c}
 .purple{background:#7c3aed}.purple:hover{background:#6d28d9}
-.plus-btn{background:#0f766e;width:42px;height:42px;border-radius:50%;font-size:24px;padding:0}
+.plus-btn,.delete-btn{width:42px;height:42px;border-radius:50%;font-size:22px;padding:0;margin-right:6px}
+.plus-btn{background:#0f766e}
+.delete-btn{background:#dc2626}
 .actions{display:flex;gap:10px;flex-wrap:wrap;margin:18px 0}
-.automation-row{display:grid;grid-template-columns:repeat(8,1fr);margin-bottom:8px}
-.automation-btn-wrap{grid-column:6 / 8}
+.automation-row{display:grid;grid-template-columns:repeat(7,1fr);margin-bottom:8px}
+.automation-btn-wrap{grid-column:5 / 7}
 #estadoGeneral{font-weight:bold;margin:14px 0;color:#334155}
-.estado-pendiente,.estado-procesando,.estado-procesado,.estado-error,.estado-sinresultados{font-weight:bold;position:relative;cursor:help}
-.estado-pendiente{color:#92400e}
-.estado-procesando{color:#2563eb}
-.estado-procesado{color:#047857}
-.estado-error{color:#dc2626}
-.estado-sinresultados{color:#64748b}
-.estado-pendiente:hover::after{
-content:"Estado: Pendiente antes de buscar";
-position:absolute;left:0;top:28px;background:#0f172a;color:white;
-padding:8px 10px;border-radius:8px;font-size:12px;white-space:nowrap;z-index:20;
-}
 .results-table{margin-top:15px}
 .results-table tr:nth-child(even){background:#f8fafc}
 .modal{display:none;position:fixed;z-index:1000;left:0;top:0;width:100%;height:100%;background:rgba(15,23,42,.55)}
@@ -65,9 +56,8 @@ padding:8px 10px;border-radius:8px;font-size:12px;white-space:nowrap;z-index:20;
 <th>Departamento</th>
 <th>País</th>
 <th>Radio KM</th>
-<th>Máx resultados</th>
 <th>Estado</th>
-<th>+</th>
+<th>Acciones</th>
 </tr>
 </thead>
 
@@ -79,16 +69,17 @@ padding:8px 10px;border-radius:8px;font-size:12px;white-space:nowrap;z-index:20;
 <td><input class="pais" value="Honduras"></td>
 <td><input class="radioKm" type="number" value="3" min="1"></td>
 <td>
-<select class="maxResultados">
-<option value="5">5</option>
-<option value="10">10</option>
-<option value="20">20</option>
-<option value="40">40</option>
-<option value="60">60</option>
+<select class="estado">
+<option value="Pendiente" selected>Pendiente</option>
+<option value="Procesado">Procesado</option>
+<option value="Sin resultados">Sin resultados</option>
+<option value="Error">Error</option>
 </select>
 </td>
-<td class="estado estado-pendiente">Pendiente</td>
-<td><button class="plus-btn" onclick="agregarBusqueda()">+</button></td>
+<td>
+<button class="plus-btn" onclick="agregarBusqueda()">+</button>
+<button class="delete-btn" onclick="borrarFila(this)">×</button>
+</td>
 </tr>
 </tbody>
 </table>
@@ -128,117 +119,56 @@ padding:8px 10px;border-radius:8px;font-size:12px;white-space:nowrap;z-index:20;
 
 <script>
 document.addEventListener("contextmenu",e=>e.preventDefault());
-
 document.addEventListener("keydown",function(e){
 const k=e.key.toLowerCase();
-if(
-e.key==="F12" ||
-(e.ctrlKey && k==="u") ||
-(e.ctrlKey && k==="s") ||
-(e.ctrlKey && e.shiftKey && ["i","j","c"].includes(k))
-){
+if(e.key==="F12"||(e.ctrlKey&&k==="u")||(e.ctrlKey&&k==="s")||(e.ctrlKey&&e.shiftKey&&["i","j","c"].includes(k))){
 e.preventDefault();
 alert("Acción deshabilitada por seguridad.");
 }
 });
 
-let map, service, geocoder;
-let resultados = [];
+let map,service,geocoder;
+let resultados=[];
 
-const automatizaciones = [
-{
-titulo:"Descripción de puestos",
-descripcion:"Este módulo permite recopilar y documentar de manera estructurada la información necesaria para elaborar descripciones de puesto dentro de la organización. Facilita el registro de datos generales del cargo, relaciones jerárquicas, funciones principales y reportes generados por cada posición. Además, incorpora herramientas para tabular la información recopilada, generar descripciones de puesto mediante inteligencia artificial y exportar los resultados a formato Word."
-},
-{
-titulo:"Reclutamiento",
-descripcion:"Este módulo automatiza y centraliza el proceso de reclutamiento y selección de personal, desde la requisición de vacantes hasta la gestión de candidatos."
-},
-{
-titulo:"Marco normativo",
-descripcion:"Este módulo centraliza y comunica el marco normativo de la organización, poniendo a disposición de los colaboradores políticas, normas y procedimientos institucionales."
-},
-{
-titulo:"Evaluación del desempeño",
-descripcion:"Plataforma integral de gestión y evaluación del desempeño que centraliza medición, seguimiento y desarrollo del talento humano."
-},
-{
-titulo:"Mapeo del talento",
-descripcion:"Permite evaluar y clasificar el talento mediante rendimiento y potencial, ubicando automáticamente a cada persona en una matriz de talento."
-},
-{
-titulo:"Administración de salarios",
-descripcion:"Permite analizar, diseñar y gestionar estructuras de compensación de manera técnica y objetiva."
-},
-{
-titulo:"Clima laboral",
-descripcion:"Permite medir y analizar el clima laboral mediante encuestas, dashboards y recomendaciones generadas con inteligencia artificial."
-},
-{
-titulo:"Expedientes de personal",
-descripcion:"Permite administrar el expediente digital del colaborador, centralizando información personal, académica, laboral y de desarrollo profesional."
-},
-{
-titulo:"Compensación variable",
-descripcion:"Automatiza el cálculo de bonos a partir de planilla, cobertura, factores, porcentajes y cumplimientos."
-},
-{
-titulo:"Plan de retiro",
-descripcion:"Permite calcular y proyectar el costo futuro de prestaciones laborales y estimar esquemas de prefondeo."
-},
-{
-titulo:"Automatización de procesos con IA",
-descripcion:"Automatiza procesos administrativos mediante inteligencia artificial para reducir tareas manuales, mejorar la eficiencia y agilizar la toma de decisiones."
-},
-{
-titulo:"Contáctame",
-descripcion:"Puedo llevar tu organización a otro nivel. WhatsApp: 9879 0377",
-contacto:true
-}
+const automatizaciones=[
+{titulo:"Descripción de puestos",descripcion:"Este módulo permite recopilar y documentar de manera estructurada la información necesaria para elaborar descripciones de puesto dentro de la organización."},
+{titulo:"Reclutamiento",descripcion:"Automatiza y centraliza el proceso de reclutamiento y selección de personal."},
+{titulo:"Marco normativo",descripcion:"Centraliza políticas, normas y procedimientos institucionales."},
+{titulo:"Evaluación del desempeño",descripcion:"Centraliza medición, seguimiento y desarrollo del talento humano."},
+{titulo:"Mapeo del talento",descripcion:"Permite evaluar y clasificar talento mediante rendimiento y potencial."},
+{titulo:"Administración de salarios",descripcion:"Permite analizar y gestionar estructuras de compensación."},
+{titulo:"Clima laboral",descripcion:"Permite medir y analizar el clima laboral mediante encuestas y dashboards."},
+{titulo:"Expedientes de personal",descripcion:"Administra el expediente digital del colaborador."},
+{titulo:"Compensación variable",descripcion:"Automatiza el cálculo de bonos."},
+{titulo:"Plan de retiro",descripcion:"Calcula y proyecta el costo futuro de prestaciones laborales."},
+{titulo:"Automatización de procesos con IA",descripcion:"Automatiza procesos administrativos mediante inteligencia artificial."},
+{titulo:"Contáctame",descripcion:"Puedo llevar tu organización a otro nivel. WhatsApp: 9879 0377",contacto:true}
 ];
 
 function abrirAutomatizaciones(){
-const contenedor=document.getElementById("listaAutomatizaciones");
-contenedor.innerHTML="";
+const c=document.getElementById("listaAutomatizaciones");
+c.innerHTML="";
 automatizaciones.forEach(item=>{
 const div=document.createElement("div");
-div.className=item.contacto ? "card-auto contact-card" : "card-auto";
+div.className=item.contacto?"card-auto contact-card":"card-auto";
 div.innerHTML=`<h3>${item.titulo}</h3><p>${item.descripcion}</p>`;
-contenedor.appendChild(div);
+c.appendChild(div);
 });
 document.getElementById("modalAutomatizaciones").style.display="block";
 }
 
-function cerrarAutomatizaciones(){
-document.getElementById("modalAutomatizaciones").style.display="none";
-}
-
-window.onclick=function(event){
-const modal=document.getElementById("modalAutomatizaciones");
-if(event.target===modal){cerrarAutomatizaciones();}
-};
+function cerrarAutomatizaciones(){document.getElementById("modalAutomatizaciones").style.display="none";}
+window.onclick=function(e){const m=document.getElementById("modalAutomatizaciones");if(e.target===m)cerrarAutomatizaciones();};
 
 function initMap(){
-map=new google.maps.Map(document.getElementById("map"),{
-center:{lat:14.0818,lng:-87.2068},
-zoom:7
-});
-
+map=new google.maps.Map(document.getElementById("map"),{center:{lat:14.0818,lng:-87.2068},zoom:7});
 service=new google.maps.places.PlacesService(map);
 geocoder=new google.maps.Geocoder();
-
 setEstadoGeneral("Google Maps cargado. Listo para buscar.");
 }
 
-function setEstadoGeneral(texto){
-document.getElementById("estadoGeneral").innerText=texto;
-}
-
-function setEstadoFila(fila,texto,clase){
-const estado=fila.querySelector(".estado");
-estado.innerText=texto;
-estado.className="estado "+clase;
-}
+function setEstadoGeneral(t){document.getElementById("estadoGeneral").innerText=t;}
+function setEstadoFila(fila,valor){fila.querySelector(".estado").value=valor;}
 
 function agregarBusqueda(){
 const filas=document.querySelectorAll("#tbodyBusquedas tr");
@@ -248,36 +178,41 @@ const ciudad=ultima.querySelector(".ciudad").value;
 const departamento=ultima.querySelector(".departamento").value;
 const pais=ultima.querySelector(".pais").value;
 const radioKm=ultima.querySelector(".radioKm").value;
-const maxResultados=ultima.querySelector(".maxResultados").value;
 
 const tr=document.createElement("tr");
-
 tr.innerHTML=`
 <td><input class="busqueda" placeholder="Nueva búsqueda"></td>
-<td><input class="ciudad" value="${ciudad}"></td>
-<td><input class="departamento" value="${departamento}"></td>
-<td><input class="pais" value="${pais}"></td>
-<td><input class="radioKm" type="number" value="${radioKm}" min="1"></td>
+<td><input class="ciudad" value="${escapeAttr(ciudad)}"></td>
+<td><input class="departamento" value="${escapeAttr(departamento)}"></td>
+<td><input class="pais" value="${escapeAttr(pais)}"></td>
+<td><input class="radioKm" type="number" value="${escapeAttr(radioKm)}" min="1"></td>
 <td>
-<select class="maxResultados">
-<option value="5">5</option>
-<option value="10">10</option>
-<option value="20">20</option>
-<option value="40">40</option>
-<option value="60">60</option>
+<select class="estado">
+<option value="Pendiente" selected>Pendiente</option>
+<option value="Procesado">Procesado</option>
+<option value="Sin resultados">Sin resultados</option>
+<option value="Error">Error</option>
 </select>
 </td>
-<td class="estado estado-pendiente">Pendiente</td>
-<td><button class="plus-btn" onclick="agregarBusqueda()">+</button></td>
-`;
-
+<td>
+<button class="plus-btn" onclick="agregarBusqueda()">+</button>
+<button class="delete-btn" onclick="borrarFila(this)">×</button>
+</td>`;
 document.getElementById("tbodyBusquedas").appendChild(tr);
-tr.querySelector(".maxResultados").value=maxResultados;
 tr.querySelector(".busqueda").focus();
 }
 
+function borrarFila(btn){
+const tbody=document.getElementById("tbodyBusquedas");
+if(tbody.querySelectorAll("tr").length===1){
+alert("Debe quedar al menos una fila de búsqueda.");
+return;
+}
+btn.closest("tr").remove();
+}
+
 async function buscarTodas(){
-if(!service || !geocoder){
+if(!service||!geocoder){
 alert("Google Maps todavía no ha cargado o la API Key está incorrecta.");
 return;
 }
@@ -288,34 +223,32 @@ pintarTabla(resultados);
 const filas=Array.from(document.querySelectorAll("#tbodyBusquedas tr"));
 
 for(const fila of filas){
+const estado=fila.querySelector(".estado").value;
+if(estado==="Procesado")continue;
+
 const busqueda=fila.querySelector(".busqueda").value.trim();
 const ciudad=fila.querySelector(".ciudad").value.trim();
 const departamento=fila.querySelector(".departamento").value.trim();
 const pais=fila.querySelector(".pais").value.trim();
 const radioKm=Number(fila.querySelector(".radioKm").value)||3;
-const maxResultados=Number(fila.querySelector(".maxResultados").value)||5;
 
-if(!busqueda || !ciudad || !pais){
-setEstadoFila(fila,"Pendiente","estado-pendiente");
+if(!busqueda||!ciudad||!pais){
+setEstadoFila(fila,"Pendiente");
 continue;
 }
 
-setEstadoFila(fila,"Procesando","estado-procesando");
+setEstadoFila(fila,"Procesando");
+agregarOpcionEstado(fila,"Procesando");
 
 try{
-const encontradosAntes=resultados.length;
-await buscarPorRadio({busqueda,ciudad,departamento,pais,radioKm,maxResultados});
-const encontradosDespues=resultados.length;
-
-if(encontradosDespues>encontradosAntes){
-setEstadoFila(fila,"Procesado","estado-procesado");
-}else{
-setEstadoFila(fila,"Sin resultados","estado-sinresultados");
-}
-
+const antes=resultados.length;
+await buscarPorRadio({busqueda,ciudad,departamento,pais,radioKm});
+const despues=resultados.length;
+setEstadoFila(fila,despues>antes?"Procesado":"Sin resultados");
 }catch(error){
 console.error(error);
-setEstadoFila(fila,"Error","estado-error");
+agregarOpcionEstado(fila,"Error");
+setEstadoFila(fila,"Error");
 setEstadoGeneral(String(error));
 }
 }
@@ -323,28 +256,26 @@ setEstadoGeneral(String(error));
 setEstadoGeneral("Búsqueda finalizada. Registros encontrados: "+resultados.length);
 }
 
+function agregarOpcionEstado(fila,valor){
+const select=fila.querySelector(".estado");
+if(!Array.from(select.options).some(o=>o.value===valor)){
+const option=document.createElement("option");
+option.value=valor;
+option.textContent=valor;
+select.appendChild(option);
+}
+}
+
 function geocodificar(direccion){
 return new Promise((resolve,reject)=>{
 let cerrado=false;
-
-const timer=setTimeout(()=>{
-if(!cerrado){
-cerrado=true;
-reject("Tiempo agotado ubicando: "+direccion);
-}
-},10000);
-
+const timer=setTimeout(()=>{if(!cerrado){cerrado=true;reject("Tiempo agotado ubicando: "+direccion);}},10000);
 geocoder.geocode({address:direccion},(results,status)=>{
 if(cerrado)return;
-
 cerrado=true;
 clearTimeout(timer);
-
-if(status==="OK" && results && results[0]){
-resolve(results[0].geometry.location);
-}else{
-reject("No se pudo ubicar: "+direccion+" / Estado: "+status);
-}
+if(status==="OK"&&results&&results[0])resolve(results[0].geometry.location);
+else reject("No se pudo ubicar: "+direccion+" / Estado: "+status);
 });
 });
 }
@@ -368,63 +299,48 @@ cerrado=true;
 setEstadoGeneral("Tiempo agotado en búsqueda. Se continúa con el proceso.");
 resolve();
 }
-},20000);
+},25000);
 
-const request={
-location:location,
-radius:radioMetros,
-keyword:params.busqueda
-};
+const request={location:location,radius:radioMetros,keyword:params.busqueda};
 
-service.nearbySearch(request,(places,status)=>{
+service.nearbySearch(request,(places,status,pagination)=>{
 if(cerrado)return;
-
-cerrado=true;
 clearTimeout(timer);
 
-if(status!==google.maps.places.PlacesServiceStatus.OK || !places || !places.length){
+if(status!==google.maps.places.PlacesServiceStatus.OK||!places||!places.length){
+cerrado=true;
 setEstadoGeneral("Sin resultados o error de búsqueda: "+status);
 resolve();
 return;
 }
 
-procesarPlaces(places,params.maxResultados,encontradosAntes,()=>resolve());
+procesarPlaces(places,encontradosAntes,()=>{
+if(pagination&&pagination.hasNextPage){
+setTimeout(()=>pagination.nextPage(),2000);
+}else{
+cerrado=true;
+resolve();
+}
+});
 });
 });
 }
 
-function procesarPlaces(places,maxResultados,encontradosAntes,callback){
+function procesarPlaces(places,encontradosAntes,callback){
 let procesados=0;
-
-if(!places || !places.length){
-callback();
-return;
-}
+if(!places||!places.length){callback();return;}
 
 places.forEach(place=>{
-if((resultados.length-encontradosAntes)>=maxResultados){
-procesados++;
-if(procesados===places.length)callback();
-return;
-}
-
 service.getDetails({
 placeId:place.place_id,
-fields:[
-"name",
-"formatted_address",
-"formatted_phone_number",
-"international_phone_number",
-"website",
-"types"
-]
+fields:["name","formatted_address","formatted_phone_number","international_phone_number","website","types"]
 },(detalle,status)=>{
-if(status===google.maps.places.PlacesServiceStatus.OK && detalle){
+if(status===google.maps.places.PlacesServiceStatus.OK&&detalle){
 const registro={
-nombre:detalle.name || "",
-telefono:detalle.formatted_phone_number || detalle.international_phone_number || "",
-direccion:detalle.formatted_address || "",
-sitioWeb:detalle.website || "",
+nombre:detalle.name||"",
+telefono:detalle.formatted_phone_number||detalle.international_phone_number||"",
+direccion:detalle.formatted_address||"",
+sitioWeb:detalle.website||"",
 categoria:traducirCategoria(detalle.types)
 };
 
@@ -441,16 +357,11 @@ if(procesados===places.length)callback();
 }
 
 function existeRegistro(nuevo){
-return resultados.some(r=>
-r.nombre===nuevo.nombre ||
-(nuevo.telefono && r.telefono===nuevo.telefono) ||
-r.direccion===nuevo.direccion
-);
+return resultados.some(r=>r.nombre===nuevo.nombre||(nuevo.telefono&&r.telefono===nuevo.telefono)||r.direccion===nuevo.direccion);
 }
 
 function traducirCategoria(types){
-if(!types || !types.length)return "";
-
+if(!types||!types.length)return"";
 const mapa={
 employment_agency:"Agencia de empleo",
 local_government_office:"Oficina gubernamental",
@@ -482,36 +393,27 @@ bar:"Bar",
 cafe:"Café",
 bakery:"Panadería"
 };
-
-return mapa[types[0]] || types[0].replaceAll("_"," ");
+return mapa[types[0]]||types[0].replaceAll("_"," ");
 }
 
 function pintarTabla(data){
 const tbody=document.querySelector("#tabla tbody");
 tbody.innerHTML="";
-
 data.forEach(row=>{
 const tr=document.createElement("tr");
-
 tr.innerHTML=`
 <td>${escapeHtml(row.nombre)}</td>
 <td>${escapeHtml(row.telefono)}</td>
 <td>${escapeHtml(row.direccion)}</td>
-<td>${row.sitioWeb ? `<a href="${escapeHtml(row.sitioWeb)}" target="_blank">${escapeHtml(row.sitioWeb)}</a>` : ""}</td>
-<td>${escapeHtml(row.categoria)}</td>
-`;
-
+<td>${row.sitioWeb?`<a href="${escapeHtml(row.sitioWeb)}" target="_blank">${escapeHtml(row.sitioWeb)}</a>`:""}</td>
+<td>${escapeHtml(row.categoria)}</td>`;
 tbody.appendChild(tr);
 });
 }
 
 function filtrarTabla(){
 const texto=document.getElementById("filtro").value.toLowerCase();
-
-const filtrados=resultados.filter(row=>
-Object.values(row).some(valor=>String(valor || "").toLowerCase().includes(texto))
-);
-
+const filtrados=resultados.filter(row=>Object.values(row).some(valor=>String(valor||"").toLowerCase().includes(texto)));
 pintarTabla(filtrados);
 }
 
@@ -520,7 +422,6 @@ if(!resultados.length){
 alert("No hay resultados para exportar.");
 return;
 }
-
 const dataExcel=resultados.map(row=>({
 "Nombre":row.nombre,
 "Teléfono":row.telefono,
@@ -528,10 +429,8 @@ const dataExcel=resultados.map(row=>({
 "Sitio web":row.sitioWeb,
 "Categoría":row.categoria
 }));
-
 const ws=XLSX.utils.json_to_sheet(dataExcel);
 const wb=XLSX.utils.book_new();
-
 XLSX.utils.book_append_sheet(wb,ws,"Base");
 XLSX.writeFile(wb,"Base_Google_Maps.xlsx");
 }
@@ -540,22 +439,16 @@ function limpiarResultados(){
 resultados=[];
 pintarTabla(resultados);
 document.getElementById("filtro").value="";
-
-document.querySelectorAll(".estado").forEach(estado=>{
-estado.innerText="Pendiente";
-estado.className="estado estado-pendiente";
-});
-
+document.querySelectorAll(".estado").forEach(e=>e.value="Pendiente");
 setEstadoGeneral("Resultados limpiados.");
 }
 
 function escapeHtml(texto){
-return String(texto || "")
-.replaceAll("&","&amp;")
-.replaceAll("<","&lt;")
-.replaceAll(">","&gt;")
-.replaceAll('"',"&quot;")
-.replaceAll("'","&#039;");
+return String(texto||"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;");
+}
+
+function escapeAttr(texto){
+return escapeHtml(texto).replaceAll("`","&#096;");
 }
 </script>
 
