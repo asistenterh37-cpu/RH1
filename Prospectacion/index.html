@@ -16,7 +16,7 @@
     }
 
     .container {
-      max-width: 1300px;
+      max-width: 1400px;
       margin: auto;
       background: #fff;
       padding: 28px;
@@ -29,29 +29,36 @@
       color: #0f172a;
     }
 
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(6, 1fr);
-      gap: 12px;
-      margin-bottom: 18px;
+    .search-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 16px;
+      font-size: 14px;
     }
 
-    label {
-      font-weight: bold;
-      font-size: 13px;
+    .search-table th {
+      background: #dbeafe;
+      padding: 9px;
+      border: 1px solid #cbd5e1;
+      text-align: left;
+    }
+
+    .search-table td {
+      padding: 6px;
+      border: 1px solid #e2e8f0;
     }
 
     input, select {
       width: 100%;
-      padding: 11px;
+      padding: 9px;
       border: 1px solid #cbd5e1;
-      border-radius: 10px;
+      border-radius: 8px;
       box-sizing: border-box;
     }
 
     button {
       border: none;
-      padding: 12px 18px;
+      padding: 11px 18px;
       border-radius: 10px;
       font-weight: bold;
       cursor: pointer;
@@ -79,6 +86,20 @@
       background: #b91c1c;
     }
 
+    .plus-btn {
+      background: #0f766e;
+      width: 38px;
+      height: 38px;
+      padding: 0;
+      border-radius: 50%;
+      font-size: 22px;
+      line-height: 1;
+    }
+
+    .plus-btn:hover {
+      background: #115e59;
+    }
+
     .actions {
       display: flex;
       gap: 10px;
@@ -86,20 +107,20 @@
       margin-bottom: 16px;
     }
 
-    #estado {
+    #estadoGeneral {
       font-weight: bold;
       margin: 14px 0;
       color: #334155;
     }
 
-    table {
+    .results-table {
       width: 100%;
       border-collapse: collapse;
       margin-top: 15px;
       font-size: 14px;
     }
 
-    th {
+    .results-table th {
       background: #dbeafe;
       padding: 10px;
       border: 1px solid #cbd5e1;
@@ -107,27 +128,43 @@
       color: #0f172a;
     }
 
-    td {
+    .results-table td {
       padding: 9px;
       border: 1px solid #e2e8f0;
       vertical-align: top;
     }
 
-    tr:nth-child(even) {
+    .results-table tr:nth-child(even) {
       background: #f8fafc;
     }
 
-    .full {
-      grid-column: span 2;
+    .estado-pendiente {
+      color: #92400e;
+      font-weight: bold;
+    }
+
+    .estado-procesando {
+      color: #2563eb;
+      font-weight: bold;
+    }
+
+    .estado-procesado {
+      color: #047857;
+      font-weight: bold;
     }
 
     @media(max-width: 900px) {
-      .grid {
-        grid-template-columns: 1fr;
+      .search-table {
+        font-size: 12px;
       }
 
-      .full {
-        grid-column: span 1;
+      button {
+        width: 100%;
+      }
+
+      .plus-btn {
+        width: 100%;
+        border-radius: 10px;
       }
     }
   </style>
@@ -137,48 +174,52 @@
   <div class="container">
     <h1>Extractor Google Maps</h1>
 
-    <div class="grid">
-      <div class="full">
-        <label>Búsqueda</label>
-        <input id="busqueda" placeholder="Ejemplo: agencias de empleo, maquilas, restaurantes">
-      </div>
-
-      <div>
-        <label>Ciudad</label>
-        <input id="ciudad" placeholder="San Pedro Sula">
-      </div>
-
-      <div>
-        <label>Departamento</label>
-        <input id="departamento" placeholder="Cortés">
-      </div>
-
-      <div>
-        <label>País</label>
-        <input id="pais" value="Honduras">
-      </div>
-
-      <div>
-        <label>Máx. resultados</label>
-        <select id="maxResultados">
-          <option value="20">20</option>
-          <option value="40">40</option>
-          <option value="60">60</option>
-        </select>
-      </div>
-    </div>
+    <table class="search-table" id="tablaBusquedas">
+      <thead>
+        <tr>
+          <th>Búsqueda</th>
+          <th>Ciudad</th>
+          <th>Departamento</th>
+          <th>País</th>
+          <th>Radio KM</th>
+          <th>Máx resultados</th>
+          <th>Estado</th>
+          <th>+</th>
+        </tr>
+      </thead>
+      <tbody id="tbodyBusquedas">
+        <tr>
+          <td><input class="busqueda" placeholder="Ejemplo: Cámara de comercio"></td>
+          <td><input class="ciudad" placeholder="La Ceiba"></td>
+          <td><input class="departamento" placeholder="Atlántida"></td>
+          <td><input class="pais" value="Honduras"></td>
+          <td><input class="radioKm" type="number" value="3" min="1"></td>
+          <td>
+            <select class="maxResultados">
+              <option value="5">5</option>
+              <option value="10">10</option>
+              <option value="20">20</option>
+              <option value="40">40</option>
+              <option value="60">60</option>
+            </select>
+          </td>
+          <td class="estado estado-pendiente">Pendiente</td>
+          <td><button class="plus-btn" onclick="agregarBusqueda()">+</button></td>
+        </tr>
+      </tbody>
+    </table>
 
     <div class="actions">
-      <button onclick="buscarEmpresas()">Buscar</button>
+      <button onclick="buscarTodas()">Buscar</button>
       <button class="green" onclick="exportarExcel()">Exportar a Excel</button>
       <button class="red" onclick="limpiarResultados()">Limpiar resultados</button>
     </div>
 
     <input id="filtro" placeholder="Filtrar resultados..." onkeyup="filtrarTabla()">
 
-    <div id="estado">Listo para buscar.</div>
+    <div id="estadoGeneral">Listo para buscar.</div>
 
-    <table id="tabla">
+    <table class="results-table" id="tabla">
       <thead>
         <tr>
           <th>Nombre</th>
@@ -207,51 +248,108 @@
       service = new google.maps.places.PlacesService(map);
     }
 
-    function setEstado(texto) {
-      document.getElementById("estado").innerText = texto;
+    function setEstadoGeneral(texto) {
+      document.getElementById("estadoGeneral").innerText = texto;
     }
 
-    async function buscarEmpresas() {
-      const busqueda = document.getElementById("busqueda").value.trim();
-      const ciudad = document.getElementById("ciudad").value.trim();
-      const departamento = document.getElementById("departamento").value.trim();
-      const pais = document.getElementById("pais").value.trim();
-      const maxResultados = Number(document.getElementById("maxResultados").value);
+    function agregarBusqueda() {
+      const filas = document.querySelectorAll("#tbodyBusquedas tr");
+      const ultimaFila = filas[filas.length - 1];
 
-      if (!busqueda || !ciudad || !pais) {
-        alert("Completá búsqueda, ciudad y país.");
-        return;
-      }
+      const ciudad = ultimaFila.querySelector(".ciudad").value;
+      const departamento = ultimaFila.querySelector(".departamento").value;
+      const pais = ultimaFila.querySelector(".pais").value;
+      const radioKm = ultimaFila.querySelector(".radioKm").value;
+      const maxResultados = ultimaFila.querySelector(".maxResultados").value;
 
-      const query = `${busqueda} en ${ciudad}, ${departamento}, ${pais}`;
+      const tr = document.createElement("tr");
 
-      setEstado("Buscando en Google Maps...");
+      tr.innerHTML = `
+        <td><input class="busqueda" placeholder="Nueva búsqueda"></td>
+        <td><input class="ciudad" value="${ciudad}"></td>
+        <td><input class="departamento" value="${departamento}"></td>
+        <td><input class="pais" value="${pais}"></td>
+        <td><input class="radioKm" type="number" value="${radioKm}" min="1"></td>
+        <td>
+          <select class="maxResultados">
+            <option value="5">5</option>
+            <option value="10">10</option>
+            <option value="20">20</option>
+            <option value="40">40</option>
+            <option value="60">60</option>
+          </select>
+        </td>
+        <td class="estado estado-pendiente">Pendiente</td>
+        <td><button class="plus-btn" onclick="agregarBusqueda()">+</button></td>
+      `;
+
+      document.getElementById("tbodyBusquedas").appendChild(tr);
+      tr.querySelector(".maxResultados").value = maxResultados;
+      tr.querySelector(".busqueda").focus();
+    }
+
+    async function buscarTodas() {
+      const filas = Array.from(document.querySelectorAll("#tbodyBusquedas tr"));
 
       resultados = [];
       pintarTabla(resultados);
 
-      let total = 0;
+      for (const fila of filas) {
+        const estado = fila.querySelector(".estado");
 
-      const request = {
-        query: query,
-        fields: ["place_id", "name", "formatted_address", "types"]
-      };
+        const busqueda = fila.querySelector(".busqueda").value.trim();
+        const ciudad = fila.querySelector(".ciudad").value.trim();
+        const departamento = fila.querySelector(".departamento").value.trim();
+        const pais = fila.querySelector(".pais").value.trim();
+        const radioKm = Number(fila.querySelector(".radioKm").value) || 3;
+        const maxResultados = Number(fila.querySelector(".maxResultados").value) || 5;
 
-      service.textSearch(request, function(results, status, pagination) {
-        if (status !== google.maps.places.PlacesServiceStatus.OK || !results) {
-          setEstado("No se encontraron resultados.");
-          return;
+        if (!busqueda || !ciudad || !pais) {
+          continue;
         }
 
-        procesarResultados(results, maxResultados, () => {
-          total += results.length;
+        estado.innerText = "Procesando";
+        estado.className = "estado estado-procesando";
 
-          if (pagination && pagination.hasNextPage && resultados.length < maxResultados) {
-            setEstado("Cargando más resultados...");
-            setTimeout(() => pagination.nextPage(), 2000);
-          } else {
-            setEstado("Búsqueda finalizada. Registros encontrados: " + resultados.length);
+        await buscarEmpresas({
+          busqueda,
+          ciudad,
+          departamento,
+          pais,
+          radioKm,
+          maxResultados
+        });
+
+        estado.innerText = "Procesado";
+        estado.className = "estado estado-procesado";
+      }
+
+      setEstadoGeneral("Búsqueda finalizada. Registros encontrados: " + resultados.length);
+    }
+
+    function buscarEmpresas(params) {
+      return new Promise((resolve) => {
+        const query = `${params.busqueda} en ${params.ciudad}, ${params.departamento}, ${params.pais}`;
+        setEstadoGeneral("Buscando: " + query);
+
+        const request = {
+          query: query,
+          fields: ["place_id", "name", "formatted_address", "types"]
+        };
+
+        service.textSearch(request, function(results, status, pagination) {
+          if (status !== google.maps.places.PlacesServiceStatus.OK || !results) {
+            resolve();
+            return;
           }
+
+          procesarResultados(results, params.maxResultados, () => {
+            if (pagination && pagination.hasNextPage && resultados.length < params.maxResultados) {
+              setTimeout(() => pagination.nextPage(), 2000);
+            } else {
+              resolve();
+            }
+          });
         });
       });
     }
@@ -260,11 +358,7 @@
       let pendientes = places.length;
 
       places.forEach(place => {
-        if (resultados.length >= maxResultados) {
-          pendientes--;
-          if (pendientes === 0) callback();
-          return;
-        }
+        if (pendientes <= 0) return;
 
         const request = {
           placeId: place.place_id,
@@ -387,7 +481,13 @@
       resultados = [];
       pintarTabla(resultados);
       document.getElementById("filtro").value = "";
-      setEstado("Resultados limpiados.");
+
+      document.querySelectorAll(".estado").forEach(estado => {
+        estado.innerText = "Pendiente";
+        estado.className = "estado estado-pendiente";
+      });
+
+      setEstadoGeneral("Resultados limpiados.");
     }
   </script>
 
