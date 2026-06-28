@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Extractor Google Maps Autónomo</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f7fb;
+      margin: 0;
+      padding: 24px;
+      color: #1f2937;
+    }
+
+    .container {
+      max-width: 1300px;
+      margin: auto;
+      background: #fff;
+      padding: 28px;
+      border-radius: 16px;
+      box-shadow: 0 8px 24px rgba(0,0,0,.08);
+    }
+
+    h1 {
+      margin-top: 0;
+      color: #0f172a;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+
+    label {
+      font-weight: bold;
+      font-size: 13px;
+    }
+
+    input, select {
+      width: 100%;
+      padding: 11px;
+      border: 1px solid #cbd5e1;
+      border-radius: 10px;
+      box-sizing: border-box;
+    }
+
+    button {
+      border: none;
+      padding: 12px 18px;
+      border-radius: 10px;
+      font-weight: bold;
+      cursor: pointer;
+      color: white;
+      background: #2563eb;
+    }
+
+    button:hover {
+      background: #1d4ed8;
+    }
+
+    .green {
+      background: #059669;
+    }
+
+    .green:hover {
+      background: #047857;
+    }
+
+    .red {
+      background: #dc2626;
+    }
+
+    .red:hover {
+      background: #b91c1c;
+    }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+
+    #estado {
+      font-weight: bold;
+      margin: 14px 0;
+      color: #334155;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 15px;
+      font-size: 14px;
+    }
+
+    th {
+      background: #dbeafe;
+      padding: 10px;
+      border: 1px solid #cbd5e1;
+      text-align: left;
+      color: #0f172a;
+    }
+
+    td {
+      padding: 9px;
+      border: 1px solid #e2e8f0;
+      vertical-align: top;
+    }
+
+    tr:nth-child(even) {
+      background: #f8fafc;
+    }
+
+    .full {
+      grid-column: span 2;
+    }
+
+    @media(max-width: 900px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+
+      .full {
+        grid-column: span 1;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <h1>Extractor Google Maps</h1>
+
+    <div class="grid">
+      <div class="full">
+        <label>Búsqueda</label>
+        <input id="busqueda" placeholder="Ejemplo: agencias de empleo, maquilas, restaurantes">
+      </div>
+
+      <div>
+        <label>Ciudad</label>
+        <input id="ciudad" placeholder="San Pedro Sula">
+      </div>
+
+      <div>
+        <label>Departamento</label>
+        <input id="departamento" placeholder="Cortés">
+      </div>
+
+      <div>
+        <label>País</label>
+        <input id="pais" value="Honduras">
+      </div>
+
+      <div>
+        <label>Máx. resultados</label>
+        <select id="maxResultados">
+          <option value="20">20</option>
+          <option value="40">40</option>
+          <option value="60">60</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button onclick="buscarEmpresas()">Buscar</button>
+      <button class="green" onclick="exportarExcel()">Exportar a Excel</button>
+      <button class="red" onclick="limpiarResultados()">Limpiar resultados</button>
+    </div>
+
+    <input id="filtro" placeholder="Filtrar resultados..." onkeyup="filtrarTabla()">
+
+    <div id="estado">Listo para buscar.</div>
+
+    <table id="tabla">
+      <thead>
+        <tr>
+          <th>Nombre</th>
+          <th>Teléfono</th>
+          <th>Dirección</th>
+          <th>Sitio web</th>
+          <th>Categoría</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <div id="map" style="display:none;"></div>
+
+  <script>
+    let service;
+    let resultados = [];
+
+    function initMap() {
+      const map = new google.maps.Map(document.getElementById("map"), {
+        center: { lat: 14.0818, lng: -87.2068 },
+        zoom: 7
+      });
+
+      service = new google.maps.places.PlacesService(map);
+    }
+
+    function setEstado(texto) {
+      document.getElementById("estado").innerText = texto;
+    }
+
+    async function buscarEmpresas() {
+      const busqueda = document.getElementById("busqueda").value.trim();
+      const ciudad = document.getElementById("ciudad").value.trim();
+      const departamento = document.getElementById("departamento").value.trim();
+      const pais = document.getElementById("pais").value.trim();
+      const maxResultados = Number(document.getElementById("maxResultados").value);
+
+      if (!busqueda || !ciudad || !pais) {
+        alert("Completá búsqueda, ciudad y país.");
+        return;
+      }
+
+      const query = `${busqueda} en ${ciudad}, ${departamento}, ${pais}`;
+
+      setEstado("Buscando en Google Maps...");
+
+      resultados = [];
+      pintarTabla(resultados);
+
+      let total = 0;
+
+      const request = {
+        query: query,
+        fields: ["place_id", "name", "formatted_address", "types"]
+      };
+
+      service.textSearch(request, function(results, status, pagination) {
+        if (status !== google.maps.places.PlacesServiceStatus.OK || !results) {
+          setEstado("No se encontraron resultados.");
+          return;
+        }
+
+        procesarResultados(results, maxResultados, () => {
+          total += results.length;
+
+          if (pagination && pagination.hasNextPage && resultados.length < maxResultados) {
+            setEstado("Cargando más resultados...");
+            setTimeout(() => pagination.nextPage(), 2000);
+          } else {
+            setEstado("Búsqueda finalizada. Registros encontrados: " + resultados.length);
+          }
+        });
+      });
+    }
+
+    function procesarResultados(places, maxResultados, callback) {
+      let pendientes = places.length;
+
+      places.forEach(place => {
+        if (resultados.length >= maxResultados) {
+          pendientes--;
+          if (pendientes === 0) callback();
+          return;
+        }
+
+        const request = {
+          placeId: place.place_id,
+          fields: [
+            "name",
+            "formatted_address",
+            "formatted_phone_number",
+            "international_phone_number",
+            "website",
+            "types"
+          ]
+        };
+
+        service.getDetails(request, function(detalle, status) {
+          if (status === google.maps.places.PlacesServiceStatus.OK && detalle) {
+            const registro = {
+              nombre: detalle.name || "",
+              telefono: detalle.formatted_phone_number || detalle.international_phone_number || "",
+              direccion: detalle.formatted_address || "",
+              sitioWeb: detalle.website || "",
+              categoria: traducirCategoria(detalle.types)
+            };
+
+            if (!existeRegistro(registro)) {
+              resultados.push(registro);
+              pintarTabla(resultados);
+            }
+          }
+
+          pendientes--;
+
+          if (pendientes === 0) {
+            callback();
+          }
+        });
+      });
+    }
+
+    function existeRegistro(nuevo) {
+      return resultados.some(r =>
+        r.nombre === nuevo.nombre ||
+        r.telefono === nuevo.telefono ||
+        r.direccion === nuevo.direccion
+      );
+    }
+
+    function traducirCategoria(types) {
+      if (!types || !types.length) return "";
+
+      const mapa = {
+        employment_agency: "Agencia de empleo",
+        local_government_office: "Oficina gubernamental",
+        corporate_office: "Oficina corporativa",
+        store: "Tienda",
+        restaurant: "Restaurante",
+        school: "Escuela",
+        university: "Universidad",
+        lodging: "Hotel",
+        shopping_mall: "Centro comercial",
+        point_of_interest: "Punto de interés",
+        establishment: "Establecimiento"
+      };
+
+      return mapa[types[0]] || types[0].replaceAll("_", " ");
+    }
+
+    function pintarTabla(data) {
+      const tbody = document.querySelector("#tabla tbody");
+      tbody.innerHTML = "";
+
+      data.forEach(row => {
+        const tr = document.createElement("tr");
+
+        tr.innerHTML = `
+          <td>${row.nombre}</td>
+          <td>${row.telefono}</td>
+          <td>${row.direccion}</td>
+          <td>${row.sitioWeb ? `<a href="${row.sitioWeb}" target="_blank">${row.sitioWeb}</a>` : ""}</td>
+          <td>${row.categoria}</td>
+        `;
+
+        tbody.appendChild(tr);
+      });
+    }
+
+    function filtrarTabla() {
+      const texto = document.getElementById("filtro").value.toLowerCase();
+
+      const filtrados = resultados.filter(row =>
+        Object.values(row).some(valor =>
+          String(valor || "").toLowerCase().includes(texto)
+        )
+      );
+
+      pintarTabla(filtrados);
+    }
+
+    function exportarExcel() {
+      if (!resultados.length) {
+        alert("No hay resultados para exportar.");
+        return;
+      }
+
+      const dataExcel = resultados.map(row => ({
+        "Nombre": row.nombre,
+        "Teléfono": row.telefono,
+        "Dirección": row.direccion,
+        "Sitio web": row.sitioWeb,
+        "Categoría": row.categoria
+      }));
+
+      const ws = XLSX.utils.json_to_sheet(dataExcel);
+      const wb = XLSX.utils.book_new();
+
+      XLSX.utils.book_append_sheet(wb, ws, "Base");
+      XLSX.writeFile(wb, "Base_Google_Maps.xlsx");
+    }
+
+    function limpiarResultados() {
+      resultados = [];
+      pintarTabla(resultados);
+      document.getElementById("filtro").value = "";
+      setEstado("Resultados limpiados.");
+    }
+  </script>
+
+  <script
+    src="https://maps.googleapis.com/maps/api/js?key=TU_API_KEY_AQUI&libraries=places&callback=initMap"
+    async
+    defer>
+  </script>
+</body>
+</html>
