@@ -1,95 +1,133 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <title>Extractor Google Maps Autónomo</title>
-  <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+<meta charset="UTF-8" />
+<title>Extractor Google Maps Autónomo</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 
-  <style>
-    body{font-family:Arial,sans-serif;background:#f4f7fb;margin:0;padding:24px;color:#1f2937}
-    .container{max-width:1400px;margin:auto;background:white;padding:28px;border-radius:16px;box-shadow:0 8px 24px rgba(0,0,0,.08)}
-    h1{margin-top:0;color:#0f172a}
-    table{width:100%;border-collapse:collapse;font-size:14px}
-    th{background:#dbeafe;padding:10px;border:1px solid #cbd5e1;text-align:left}
-    td{padding:8px;border:1px solid #e2e8f0;vertical-align:top}
-    input,select{width:100%;padding:10px;border:1px solid #cbd5e1;border-radius:8px;box-sizing:border-box}
-    button{border:none;padding:12px 18px;border-radius:10px;font-weight:bold;cursor:pointer;color:white;background:#2563eb}
-    button:hover{background:#1d4ed8}
-    .green{background:#059669}.green:hover{background:#047857}
-    .red{background:#dc2626}.red:hover{background:#b91c1c}
-    .plus-btn{background:#0f766e;width:42px;height:42px;border-radius:50%;font-size:24px;padding:0}
-    .actions{display:flex;gap:10px;flex-wrap:wrap;margin:18px 0}
-    #estadoGeneral{font-weight:bold;margin:14px 0;color:#334155}
-    .estado-pendiente{color:#92400e;font-weight:bold}
-    .estado-procesando{color:#2563eb;font-weight:bold}
-    .estado-procesado{color:#047857;font-weight:bold}
-    .estado-error{color:#dc2626;font-weight:bold}
-    .results-table{margin-top:15px}
-    .results-table tr:nth-child(even){background:#f8fafc}
-  </style>
+<style>
+body{font-family:Arial,sans-serif;background:#f4f7fb;margin:0;padding:24px;color:#1f2937}
+.container{max-width:1400px;margin:auto;background:white;padding:28px;border-radius:16px;box-shadow:0 8px 24px rgba(0,0,0,.08)}
+h1{margin-top:0;color:#0f172a}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{background:#dbeafe;padding:10px;border:1px solid #cbd5e1;text-align:left}
+td{padding:8px;border:1px solid #e2e8f0;vertical-align:top}
+input,select{width:100%;padding:10px;border:1px solid #cbd5e1;border-radius:8px;box-sizing:border-box}
+button{border:none;padding:12px 18px;border-radius:10px;font-weight:bold;cursor:pointer;color:white;background:#2563eb}
+button:hover{background:#1d4ed8}
+.green{background:#059669}.green:hover{background:#047857}
+.red{background:#dc2626}.red:hover{background:#b91c1c}
+.purple{background:#7c3aed}.purple:hover{background:#6d28d9}
+.plus-btn{background:#0f766e;width:42px;height:42px;border-radius:50%;font-size:24px;padding:0}
+.actions{display:flex;gap:10px;flex-wrap:wrap;margin:18px 0}
+.automation-row{display:grid;grid-template-columns:repeat(8,1fr);margin-bottom:8px}
+.automation-btn-wrap{grid-column:6 / 8}
+#estadoGeneral{font-weight:bold;margin:14px 0;color:#334155}
+.estado-pendiente,.estado-procesando,.estado-procesado,.estado-error{font-weight:bold;position:relative;cursor:help}
+.estado-pendiente{color:#92400e}
+.estado-procesando{color:#2563eb}
+.estado-procesado{color:#047857}
+.estado-error{color:#dc2626}
+.estado-pendiente:hover::after{
+  content:"Estado: Pendiente antes de buscar";
+  position:absolute;
+  left:0;
+  top:28px;
+  background:#0f172a;
+  color:white;
+  padding:8px 10px;
+  border-radius:8px;
+  font-size:12px;
+  white-space:nowrap;
+  z-index:20;
+}
+.results-table{margin-top:15px}
+.results-table tr:nth-child(even){background:#f8fafc}
+.modal{display:none;position:fixed;z-index:1000;left:0;top:0;width:100%;height:100%;background:rgba(15,23,42,.55)}
+.modal-content{background:white;margin:5% auto;padding:24px;width:85%;max-width:1000px;border-radius:16px;box-shadow:0 12px 30px rgba(0,0,0,.25);max-height:80vh;overflow:auto}
+.close{float:right;font-size:28px;font-weight:bold;cursor:pointer;color:#475569}
+.card-auto{border:1px solid #cbd5e1;border-radius:12px;padding:16px;margin:12px 0;background:#f8fafc}
+.card-auto h3{margin:0 0 8px;color:#0f172a}
+.card-auto p{margin:0;line-height:1.5}
+</style>
 </head>
 
 <body>
 <div class="container">
-  <h1>Extractor Google Maps</h1>
+<h1>Extractor Google Maps</h1>
 
-  <table>
-    <thead>
-      <tr>
-        <th>Búsqueda</th>
-        <th>Ciudad</th>
-        <th>Departamento</th>
-        <th>País</th>
-        <th>Radio KM</th>
-        <th>Máx resultados</th>
-        <th>Estado</th>
-        <th>+</th>
-      </tr>
-    </thead>
-    <tbody id="tbodyBusquedas">
-      <tr>
-        <td><input class="busqueda" value="Empresas"></td>
-        <td><input class="ciudad" value="La Ceiba"></td>
-        <td><input class="departamento" value="Atlantida"></td>
-        <td><input class="pais" value="Honduras"></td>
-        <td><input class="radioKm" type="number" value="3" min="1"></td>
-        <td>
-          <select class="maxResultados">
-            <option value="5">5</option>
-            <option value="10">10</option>
-            <option value="20">20</option>
-            <option value="40">40</option>
-            <option value="60">60</option>
-          </select>
-        </td>
-        <td class="estado estado-pendiente">Pendiente</td>
-        <td><button class="plus-btn" onclick="agregarBusqueda()">+</button></td>
-      </tr>
-    </tbody>
-  </table>
-
-  <div class="actions">
-    <button onclick="buscarTodas()">Buscar</button>
-    <button class="green" onclick="exportarExcel()">Exportar a Excel</button>
-    <button class="red" onclick="limpiarResultados()">Limpiar resultados</button>
+<div class="automation-row">
+  <div class="automation-btn-wrap">
+    <button class="purple" onclick="abrirAutomatizaciones()">Mis automatizaciones</button>
   </div>
+</div>
 
-  <input id="filtro" placeholder="Filtrar resultados..." onkeyup="filtrarTabla()">
+<table>
+<thead>
+<tr>
+<th>Búsqueda</th>
+<th>Ciudad</th>
+<th>Departamento</th>
+<th>País</th>
+<th>Radio KM</th>
+<th>Máx resultados</th>
+<th>Estado</th>
+<th>+</th>
+</tr>
+</thead>
 
-  <div id="estadoGeneral">Listo para buscar.</div>
+<tbody id="tbodyBusquedas">
+<tr>
+<td><input class="busqueda" value="Empresas"></td>
+<td><input class="ciudad" value="La Ceiba"></td>
+<td><input class="departamento" value="Atlantida"></td>
+<td><input class="pais" value="Honduras"></td>
+<td><input class="radioKm" type="number" value="3" min="1"></td>
+<td>
+<select class="maxResultados">
+<option value="5">5</option>
+<option value="10">10</option>
+<option value="20">20</option>
+<option value="40">40</option>
+<option value="60">60</option>
+</select>
+</td>
+<td class="estado estado-pendiente">Pendiente</td>
+<td><button class="plus-btn" onclick="agregarBusqueda()">+</button></td>
+</tr>
+</tbody>
+</table>
 
-  <table class="results-table" id="tabla">
-    <thead>
-      <tr>
-        <th>Nombre</th>
-        <th>Teléfono</th>
-        <th>Dirección</th>
-        <th>Sitio web</th>
-        <th>Categoría</th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  </table>
+<div class="actions">
+<button onclick="buscarTodas()">Buscar</button>
+<button class="green" onclick="exportarExcel()">Exportar a Excel</button>
+<button class="red" onclick="limpiarResultados()">Limpiar resultados</button>
+</div>
+
+<input id="filtro" placeholder="Filtrar resultados..." onkeyup="filtrarTabla()">
+
+<div id="estadoGeneral">Listo para buscar.</div>
+
+<table class="results-table" id="tabla">
+<thead>
+<tr>
+<th>Nombre</th>
+<th>Teléfono</th>
+<th>Dirección</th>
+<th>Sitio web</th>
+<th>Categoría</th>
+</tr>
+</thead>
+<tbody></tbody>
+</table>
+</div>
+
+<div id="modalAutomatizaciones" class="modal">
+<div class="modal-content">
+<span class="close" onclick="cerrarAutomatizaciones()">&times;</span>
+<h2>Mis automatizaciones</h2>
+<div id="listaAutomatizaciones"></div>
+</div>
 </div>
 
 <div id="map" style="display:none;"></div>
@@ -98,289 +136,318 @@
 let map, service, geocoder;
 let resultados = [];
 
-function initMap() {
-  map = new google.maps.Map(document.getElementById("map"), {
-    center: { lat: 14.0818, lng: -87.2068 },
-    zoom: 7
-  });
+const automatizaciones = [
+{
+titulo:"Descripción de puestos",
+descripcion:"Este módulo permite recopilar y documentar de manera estructurada la información necesaria para elaborar descripciones de puesto dentro de la organización. Facilita el registro de datos generales del cargo, relaciones jerárquicas, funciones principales y reportes generados por cada posición. Además, incorpora herramientas para tabular la información recopilada, generar descripciones de puesto mediante inteligencia artificial y exportar los resultados a formato Word. Su integración con Google Sheets permite almacenar la información de forma centralizada, asegurando trazabilidad, consistencia y facilidad de consulta para los procesos de Recursos Humanos."
+},
+{
+titulo:"Reclutamiento",
+descripcion:"Este módulo automatiza y centraliza el proceso de reclutamiento y selección de personal, desde la requisición de vacantes hasta la gestión de candidatos. Permite administrar aprobaciones, publicar plazas, recibir postulaciones y registrar solicitudes de empleo en una sola plataforma. Además, incorpora herramientas de inteligencia artificial para generar anuncios de empleo y analizar candidatos según el perfil requerido."
+},
+{
+titulo:"Marco normativo",
+descripcion:"Este módulo centraliza y comunica el marco normativo de la organización, poniendo a disposición de los colaboradores el Código de Ética, el Acuerdo de Confidencialidad y el Reglamento Interno. Facilita la consulta de políticas, normas de conducta, derechos, obligaciones y procedimientos institucionales."
+},
+{
+titulo:"Evaluación del desempeño",
+descripcion:"SíPodés es una plataforma integral de gestión y evaluación del desempeño que centraliza todo el ciclo de medición, seguimiento y desarrollo del talento humano. Permite administrar niveles de puestos, formularios de evaluación, autoevaluaciones, evaluaciones de clientes, KPIs, incidencias, sesiones One to One y procesos de calibración."
+},
+{
+titulo:"Mapeo del talento",
+descripcion:"Este módulo permite evaluar y clasificar el talento de los colaboradores mediante la medición de rendimiento y potencial. Incluye formularios de evaluación, consolida resultados y ubica automáticamente a cada persona en una matriz o cuadrante de talento."
+},
+{
+titulo:"Administración de salarios",
+descripcion:"Este módulo permite analizar, diseñar y gestionar estructuras de compensación de manera técnica y objetiva. Integra herramientas para valuación de puestos, organigramas, equidad interna, competitividad externa, estructuras salariales, compa ratios y políticas salariales."
+},
+{
+titulo:"Clima laboral",
+descripcion:"Este módulo permite medir y analizar el clima laboral mediante encuestas estructuradas. Facilita captura de respuestas, segmentación, tabulación automática, dashboards interactivos, análisis, conclusiones y recomendaciones generadas con inteligencia artificial."
+},
+{
+titulo:"Expedientes de personal",
+descripcion:"Este módulo permite administrar de forma integral el expediente digital del colaborador, centralizando información personal, académica, laboral y de desarrollo profesional en una sola plataforma."
+},
+{
+titulo:"Compensación variable",
+descripcion:"Este módulo automatiza el cálculo de bonos a partir de información registrada en Google Sheets, cruzando datos de planilla, cobertura, tablas de factores, porcentajes y cumplimientos."
+},
+{
+titulo:"Plan de retiro",
+descripcion:"Este módulo permite calcular y proyectar el costo futuro de las prestaciones laborales de un colaborador con base en salario, antigüedad, edad y crecimiento salarial esperado."
+},
+{
+titulo:"Automatización de procesos con IA",
+descripcion:"Automatiza procesos administrativos mediante inteligencia artificial para reducir tareas manuales, mejorar la eficiencia y agilizar la toma de decisiones. Permite analizar información, generar documentos, elaborar reportes, clasificar datos y ejecutar flujos de trabajo."
+}
+];
 
-  service = new google.maps.places.PlacesService(map);
-  geocoder = new google.maps.Geocoder();
-
-  setEstadoGeneral("Google Maps cargado. Listo para buscar.");
+function abrirAutomatizaciones(){
+const contenedor=document.getElementById("listaAutomatizaciones");
+contenedor.innerHTML="";
+automatizaciones.forEach(item=>{
+const div=document.createElement("div");
+div.className="card-auto";
+div.innerHTML=`<h3>${item.titulo}</h3><p>${item.descripcion}</p>`;
+contenedor.appendChild(div);
+});
+document.getElementById("modalAutomatizaciones").style.display="block";
 }
 
-function setEstadoGeneral(texto) {
-  document.getElementById("estadoGeneral").innerText = texto;
+function cerrarAutomatizaciones(){
+document.getElementById("modalAutomatizaciones").style.display="none";
 }
 
-function setEstadoFila(fila, texto, clase) {
-  const estado = fila.querySelector(".estado");
-  estado.innerText = texto;
-  estado.className = "estado " + clase;
+window.onclick=function(event){
+const modal=document.getElementById("modalAutomatizaciones");
+if(event.target===modal){cerrarAutomatizaciones();}
 }
 
-function agregarBusqueda() {
-  const filas = document.querySelectorAll("#tbodyBusquedas tr");
-  const ultima = filas[filas.length - 1];
-
-  const ciudad = ultima.querySelector(".ciudad").value;
-  const departamento = ultima.querySelector(".departamento").value;
-  const pais = ultima.querySelector(".pais").value;
-  const radioKm = ultima.querySelector(".radioKm").value;
-  const maxResultados = ultima.querySelector(".maxResultados").value;
-
-  const tr = document.createElement("tr");
-
-  tr.innerHTML = `
-    <td><input class="busqueda" placeholder="Nueva búsqueda"></td>
-    <td><input class="ciudad" value="${ciudad}"></td>
-    <td><input class="departamento" value="${departamento}"></td>
-    <td><input class="pais" value="${pais}"></td>
-    <td><input class="radioKm" type="number" value="${radioKm}" min="1"></td>
-    <td>
-      <select class="maxResultados">
-        <option value="5">5</option>
-        <option value="10">10</option>
-        <option value="20">20</option>
-        <option value="40">40</option>
-        <option value="60">60</option>
-      </select>
-    </td>
-    <td class="estado estado-pendiente">Pendiente</td>
-    <td><button class="plus-btn" onclick="agregarBusqueda()">+</button></td>
-  `;
-
-  document.getElementById("tbodyBusquedas").appendChild(tr);
-  tr.querySelector(".maxResultados").value = maxResultados;
-  tr.querySelector(".busqueda").focus();
+function initMap(){
+map=new google.maps.Map(document.getElementById("map"),{
+center:{lat:14.0818,lng:-87.2068},
+zoom:7
+});
+service=new google.maps.places.PlacesService(map);
+geocoder=new google.maps.Geocoder();
+setEstadoGeneral("Google Maps cargado. Listo para buscar.");
 }
 
-async function buscarTodas() {
-  if (!service || !geocoder) {
-    alert("Google Maps todavía no ha cargado o la API Key está incorrecta.");
-    return;
-  }
-
-  resultados = [];
-  pintarTabla(resultados);
-
-  const filas = Array.from(document.querySelectorAll("#tbodyBusquedas tr"));
-
-  for (const fila of filas) {
-    const busqueda = fila.querySelector(".busqueda").value.trim();
-    const ciudad = fila.querySelector(".ciudad").value.trim();
-    const departamento = fila.querySelector(".departamento").value.trim();
-    const pais = fila.querySelector(".pais").value.trim();
-    const radioKm = Number(fila.querySelector(".radioKm").value) || 3;
-    const maxResultados = Number(fila.querySelector(".maxResultados").value) || 5;
-
-    if (!busqueda || !ciudad || !pais) continue;
-
-    setEstadoFila(fila, "Procesando", "estado-procesando");
-
-    try {
-      await buscarPorRadio({ busqueda, ciudad, departamento, pais, radioKm, maxResultados });
-      setEstadoFila(fila, "Procesado", "estado-procesado");
-    } catch (e) {
-      console.error(e);
-      setEstadoFila(fila, "Error", "estado-error");
-    }
-  }
-
-  setEstadoGeneral("Búsqueda finalizada. Registros encontrados: " + resultados.length);
+function setEstadoGeneral(texto){
+document.getElementById("estadoGeneral").innerText=texto;
 }
 
-function geocodificar(direccion) {
-  return new Promise((resolve, reject) => {
-    geocoder.geocode({ address: direccion }, (results, status) => {
-      if (status === "OK" && results[0]) {
-        resolve(results[0].geometry.location);
-      } else {
-        reject("No se pudo ubicar: " + direccion);
-      }
-    });
-  });
+function setEstadoFila(fila,texto,clase){
+const estado=fila.querySelector(".estado");
+estado.innerText=texto;
+estado.className="estado "+clase;
 }
 
-async function buscarPorRadio(params) {
-  const ubicacionTexto = `${params.ciudad}, ${params.departamento}, ${params.pais}`;
-  setEstadoGeneral("Ubicando: " + ubicacionTexto);
+function agregarBusqueda(){
+const filas=document.querySelectorAll("#tbodyBusquedas tr");
+const ultima=filas[filas.length-1];
+const ciudad=ultima.querySelector(".ciudad").value;
+const departamento=ultima.querySelector(".departamento").value;
+const pais=ultima.querySelector(".pais").value;
+const radioKm=ultima.querySelector(".radioKm").value;
+const maxResultados=ultima.querySelector(".maxResultados").value;
 
-  const location = await geocodificar(ubicacionTexto);
-  const radioMetros = params.radioKm * 1000;
-
-  setEstadoGeneral("Buscando: " + params.busqueda + " a " + params.radioKm + " KM de " + params.ciudad);
-
-  return new Promise((resolve) => {
-    const encontradosAntes = resultados.length;
-
-    const request = {
-      location: location,
-      radius: radioMetros,
-      keyword: params.busqueda
-    };
-
-    service.nearbySearch(request, (places, status, pagination) => {
-      if (status !== google.maps.places.PlacesServiceStatus.OK || !places) {
-        resolve();
-        return;
-      }
-
-      procesarPlaces(places, params.maxResultados, encontradosAntes, () => {
-        resolve();
-      });
-    });
-
-    setTimeout(() => resolve(), 20000);
-  });
+const tr=document.createElement("tr");
+tr.innerHTML=`
+<td><input class="busqueda" placeholder="Nueva búsqueda"></td>
+<td><input class="ciudad" value="${ciudad}"></td>
+<td><input class="departamento" value="${departamento}"></td>
+<td><input class="pais" value="${pais}"></td>
+<td><input class="radioKm" type="number" value="${radioKm}" min="1"></td>
+<td>
+<select class="maxResultados">
+<option value="5">5</option>
+<option value="10">10</option>
+<option value="20">20</option>
+<option value="40">40</option>
+<option value="60">60</option>
+</select>
+</td>
+<td class="estado estado-pendiente">Pendiente</td>
+<td><button class="plus-btn" onclick="agregarBusqueda()">+</button></td>
+`;
+document.getElementById("tbodyBusquedas").appendChild(tr);
+tr.querySelector(".maxResultados").value=maxResultados;
+tr.querySelector(".busqueda").focus();
 }
 
-function procesarPlaces(places, maxResultados, encontradosAntes, callback) {
-  let procesados = 0;
-
-  if (!places.length) {
-    callback();
-    return;
-  }
-
-  places.forEach(place => {
-    if ((resultados.length - encontradosAntes) >= maxResultados) {
-      procesados++;
-      if (procesados === places.length) callback();
-      return;
-    }
-
-    service.getDetails({
-      placeId: place.place_id,
-      fields: [
-        "name",
-        "formatted_address",
-        "formatted_phone_number",
-        "international_phone_number",
-        "website",
-        "types"
-      ]
-    }, (detalle, status) => {
-      if (status === google.maps.places.PlacesServiceStatus.OK && detalle) {
-        const registro = {
-          nombre: detalle.name || "",
-          telefono: detalle.formatted_phone_number || detalle.international_phone_number || "",
-          direccion: detalle.formatted_address || "",
-          sitioWeb: detalle.website || "",
-          categoria: traducirCategoria(detalle.types)
-        };
-
-        if (!existeRegistro(registro)) {
-          resultados.push(registro);
-          pintarTabla(resultados);
-        }
-      }
-
-      procesados++;
-      if (procesados === places.length) callback();
-    });
-  });
+async function buscarTodas(){
+if(!service||!geocoder){
+alert("Google Maps todavía no ha cargado o la API Key está incorrecta.");
+return;
 }
 
-function existeRegistro(nuevo) {
-  return resultados.some(r =>
-    r.nombre === nuevo.nombre ||
-    (nuevo.telefono && r.telefono === nuevo.telefono) ||
-    r.direccion === nuevo.direccion
-  );
+resultados=[];
+pintarTabla(resultados);
+
+const filas=Array.from(document.querySelectorAll("#tbodyBusquedas tr"));
+
+for(const fila of filas){
+const busqueda=fila.querySelector(".busqueda").value.trim();
+const ciudad=fila.querySelector(".ciudad").value.trim();
+const departamento=fila.querySelector(".departamento").value.trim();
+const pais=fila.querySelector(".pais").value.trim();
+const radioKm=Number(fila.querySelector(".radioKm").value)||3;
+const maxResultados=Number(fila.querySelector(".maxResultados").value)||5;
+
+if(!busqueda||!ciudad||!pais)continue;
+
+setEstadoFila(fila,"Procesando","estado-procesando");
+
+try{
+await buscarPorRadio({busqueda,ciudad,departamento,pais,radioKm,maxResultados});
+setEstadoFila(fila,"Procesado","estado-procesado");
+}catch(e){
+console.error(e);
+setEstadoFila(fila,"Error","estado-error");
+}
 }
 
-function traducirCategoria(types) {
-  if (!types || !types.length) return "";
-
-  const mapa = {
-    employment_agency: "Agencia de empleo",
-    local_government_office: "Oficina gubernamental",
-    corporate_office: "Oficina corporativa",
-    store: "Tienda",
-    restaurant: "Restaurante",
-    school: "Escuela",
-    university: "Universidad",
-    lodging: "Hotel",
-    shopping_mall: "Centro comercial",
-    point_of_interest: "Punto de interés",
-    establishment: "Establecimiento"
-  };
-
-  return mapa[types[0]] || types[0].replaceAll("_", " ");
+setEstadoGeneral("Búsqueda finalizada. Registros encontrados: "+resultados.length);
 }
 
-function pintarTabla(data) {
-  const tbody = document.querySelector("#tabla tbody");
-  tbody.innerHTML = "";
-
-  data.forEach(row => {
-    const tr = document.createElement("tr");
-
-    tr.innerHTML = `
-      <td>${row.nombre}</td>
-      <td>${row.telefono}</td>
-      <td>${row.direccion}</td>
-      <td>${row.sitioWeb ? `<a href="${row.sitioWeb}" target="_blank">${row.sitioWeb}</a>` : ""}</td>
-      <td>${row.categoria}</td>
-    `;
-
-    tbody.appendChild(tr);
-  });
+function geocodificar(direccion){
+return new Promise((resolve,reject)=>{
+geocoder.geocode({address:direccion},(results,status)=>{
+if(status==="OK"&&results[0]){
+resolve(results[0].geometry.location);
+}else{
+reject("No se pudo ubicar: "+direccion);
+}
+});
+});
 }
 
-function filtrarTabla() {
-  const texto = document.getElementById("filtro").value.toLowerCase();
+async function buscarPorRadio(params){
+const ubicacionTexto=`${params.ciudad}, ${params.departamento}, ${params.pais}`;
+setEstadoGeneral("Ubicando: "+ubicacionTexto);
+const location=await geocodificar(ubicacionTexto);
+const radioMetros=params.radioKm*1000;
+setEstadoGeneral("Buscando: "+params.busqueda+" a "+params.radioKm+" KM de "+params.ciudad);
 
-  const filtrados = resultados.filter(row =>
-    Object.values(row).some(valor =>
-      String(valor || "").toLowerCase().includes(texto)
-    )
-  );
+return new Promise((resolve)=>{
+const encontradosAntes=resultados.length;
+const request={location:location,radius:radioMetros,keyword:params.busqueda};
 
-  pintarTabla(filtrados);
+service.nearbySearch(request,(places,status)=>{
+if(status!==google.maps.places.PlacesServiceStatus.OK||!places){
+resolve();
+return;
+}
+procesarPlaces(places,params.maxResultados,encontradosAntes,()=>resolve());
+});
+
+setTimeout(()=>resolve(),20000);
+});
 }
 
-function exportarExcel() {
-  if (!resultados.length) {
-    alert("No hay resultados para exportar.");
-    return;
-  }
+function procesarPlaces(places,maxResultados,encontradosAntes,callback){
+let procesados=0;
+if(!places.length){callback();return;}
 
-  const dataExcel = resultados.map(row => ({
-    "Nombre": row.nombre,
-    "Teléfono": row.telefono,
-    "Dirección": row.direccion,
-    "Sitio web": row.sitioWeb,
-    "Categoría": row.categoria
-  }));
-
-  const ws = XLSX.utils.json_to_sheet(dataExcel);
-  const wb = XLSX.utils.book_new();
-
-  XLSX.utils.book_append_sheet(wb, ws, "Base");
-  XLSX.writeFile(wb, "Base_Google_Maps.xlsx");
+places.forEach(place=>{
+if((resultados.length-encontradosAntes)>=maxResultados){
+procesados++;
+if(procesados===places.length)callback();
+return;
 }
 
-function limpiarResultados() {
-  resultados = [];
-  pintarTabla(resultados);
-  document.getElementById("filtro").value = "";
+service.getDetails({
+placeId:place.place_id,
+fields:["name","formatted_address","formatted_phone_number","international_phone_number","website","types"]
+},(detalle,status)=>{
+if(status===google.maps.places.PlacesServiceStatus.OK&&detalle){
+const registro={
+nombre:detalle.name||"",
+telefono:detalle.formatted_phone_number||detalle.international_phone_number||"",
+direccion:detalle.formatted_address||"",
+sitioWeb:detalle.website||"",
+categoria:traducirCategoria(detalle.types)
+};
 
-  document.querySelectorAll(".estado").forEach(estado => {
-    estado.innerText = "Pendiente";
-    estado.className = "estado estado-pendiente";
-  });
+if(!existeRegistro(registro)){
+resultados.push(registro);
+pintarTabla(resultados);
+}
+}
+procesados++;
+if(procesados===places.length)callback();
+});
+});
+}
 
-  setEstadoGeneral("Resultados limpiados.");
+function existeRegistro(nuevo){
+return resultados.some(r=>
+r.nombre===nuevo.nombre||
+(nuevo.telefono&&r.telefono===nuevo.telefono)||
+r.direccion===nuevo.direccion
+);
+}
+
+function traducirCategoria(types){
+if(!types||!types.length)return"";
+const mapa={
+employment_agency:"Agencia de empleo",
+local_government_office:"Oficina gubernamental",
+corporate_office:"Oficina corporativa",
+store:"Tienda",
+restaurant:"Restaurante",
+school:"Escuela",
+university:"Universidad",
+lodging:"Hotel",
+shopping_mall:"Centro comercial",
+point_of_interest:"Punto de interés",
+establishment:"Establecimiento"
+};
+return mapa[types[0]]||types[0].replaceAll("_"," ");
+}
+
+function pintarTabla(data){
+const tbody=document.querySelector("#tabla tbody");
+tbody.innerHTML="";
+data.forEach(row=>{
+const tr=document.createElement("tr");
+tr.innerHTML=`
+<td>${row.nombre}</td>
+<td>${row.telefono}</td>
+<td>${row.direccion}</td>
+<td>${row.sitioWeb?`<a href="${row.sitioWeb}" target="_blank">${row.sitioWeb}</a>`:""}</td>
+<td>${row.categoria}</td>
+`;
+tbody.appendChild(tr);
+});
+}
+
+function filtrarTabla(){
+const texto=document.getElementById("filtro").value.toLowerCase();
+const filtrados=resultados.filter(row=>
+Object.values(row).some(valor=>String(valor||"").toLowerCase().includes(texto))
+);
+pintarTabla(filtrados);
+}
+
+function exportarExcel(){
+if(!resultados.length){
+alert("No hay resultados para exportar.");
+return;
+}
+
+const dataExcel=resultados.map(row=>({
+"Nombre":row.nombre,
+"Teléfono":row.telefono,
+"Dirección":row.direccion,
+"Sitio web":row.sitioWeb,
+"Categoría":row.categoria
+}));
+
+const ws=XLSX.utils.json_to_sheet(dataExcel);
+const wb=XLSX.utils.book_new();
+XLSX.utils.book_append_sheet(wb,ws,"Base");
+XLSX.writeFile(wb,"Base_Google_Maps.xlsx");
+}
+
+function limpiarResultados(){
+resultados=[];
+pintarTabla(resultados);
+document.getElementById("filtro").value="";
+document.querySelectorAll(".estado").forEach(estado=>{
+estado.innerText="Pendiente";
+estado.className="estado estado-pendiente";
+});
+setEstadoGeneral("Resultados limpiados.");
 }
 </script>
 
 <script
-    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDo_bIWY2S2ijy8vMQfeq1OzaBIwX6lP_w&libraries=places&callback=initMap"
-  async
-  defer>
+src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDo_bIWY2S2ijy8vMQfeq1OzaBIwX6lP_w&libraries=places&callback=initMap"
+async
+defer>
 </script>
 
 </body>
