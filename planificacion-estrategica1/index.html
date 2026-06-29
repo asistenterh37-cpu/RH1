@@ -211,7 +211,7 @@ textarea{min-height:108px;resize:vertical}
     <label>Contraseña</label>
     <input id="loginPassword" type="password" placeholder="Contraseña asignada">
 
-    <button class="btn" onclick="iniciarSesion()">Ingresar</button>
+<button id="btnLogin" class="btn" onclick="iniciarSesion()">Ingresar</button>
 
     <div id="mensajeLogin" class="login-error"></div>
   </div>
@@ -526,7 +526,7 @@ textarea{min-height:108px;resize:vertical}
 </div>
 
 <script>
-const GAS_URL = "https://script.google.com/macros/s/AKfycbw9F5eryRQp6sHNRhk6EHuP4hoBIPJDMNiIUQRI4U8JYEksaHsgliAeGlmWIfVYeWvCpQ/exec";
+const GAS_URL = "https://script.google.com/macros/s/AKfycbz4JwGZSl9R9Gw0TgsmAc4EVgO7TPvsuVIjhu7dVfielFlFdU_KauprFY3NOxNskbOEEQ/exec";
 const ANALISIS_URL = "generarAnalisisGS";
 const ESTRATEGIA_URL = "generarEstrategiaGS";
 const IDENTIDAD_URL = "generarIdentidadGS";
@@ -630,7 +630,12 @@ function verificarSesionGuardada(){
   }
 }
 
+let loginEnProceso = false;
+
 async function iniciarSesion(){
+  if(loginEnProceso) return;
+
+  const btn = document.getElementById("btnLogin");
   const usuario = document.getElementById("loginUsuario").value.trim();
   const password = document.getElementById("loginPassword").value.trim();
   const mensaje = document.getElementById("mensajeLogin");
@@ -641,6 +646,12 @@ async function iniciarSesion(){
     mensaje.innerText = "Ingrese usuario y contraseña.";
     mensaje.style.display = "block";
     return;
+  }
+
+  loginEnProceso = true;
+  if(btn){
+    btn.disabled = true;
+    btn.innerText = "Validando...";
   }
 
   try{
@@ -655,9 +666,14 @@ async function iniciarSesion(){
   }catch(error){
     mensaje.innerText = error.message || "Acceso no autorizado.";
     mensaje.style.display = "block";
+  }finally{
+    loginEnProceso = false;
+    if(btn){
+      btn.disabled = false;
+      btn.innerText = "Ingresar";
+    }
   }
-}
-  
+}  
 function cerrarSesion(){
   localStorage.removeItem("token_plan");
   localStorage.removeItem("usuario_plan");
