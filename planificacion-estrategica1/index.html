@@ -526,13 +526,14 @@ textarea{min-height:108px;resize:vertical}
 </div>
 
 <script>
-const API_BASE = "https://floral-feather-2cf3.asistenterh37.workers.dev";
-const ANALISIS_URL = API_BASE + "/generate-analysis";
-const ESTRATEGIA_URL = API_BASE + "/generate-strategy";
-const IDENTIDAD_URL = API_BASE + "/generate-identity";
-const USAGE_URL = API_BASE + "/usage";
-const AUTH_URL = API_BASE + "/auth";
-let usuarioActual = null;
+const GAS_URL = "https://script.google.com/macros/s/AKfycbz25nxT7UXCx9qy2S3dqPZGPKqA16-jxsfHcBizX4JBLLhExkNK2giRt2Ouo8zIvYrZmg/exec";
+
+const ANALISIS_URL = "generarAnalisisGS";
+const ESTRATEGIA_URL = "generarEstrategiaGS";
+const IDENTIDAD_URL = "generarIdentidadGS";
+const USAGE_URL = "obtenerUsoTotalGS";
+const AUTH_URL = "validarLoginGS";
+  let usuarioActual = null;
 let analisisGenerado = "";
 let estrategiaGenerada = "";
 let identidadGenerada = "";
@@ -644,30 +645,20 @@ async function iniciarSesion(){
   }
 
   try{
-    const respuesta = await fetch(AUTH_URL,{
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({
-        usuario,
-        password,
-        registro: obtenerRegistroCliente("abrir_sistema")
-      })
+    const json = await llamarGS(AUTH_URL,{
+      usuario,
+      password,
+      registro: obtenerRegistroCliente("abrir_sistema")
     });
-
-    const json = await respuesta.json();
-
-    if(!respuesta.ok){
-      throw new Error(json.error || "Acceso no autorizado.");
-    }
 
     guardarSesion(json);
 
   }catch(error){
-    mensaje.innerText = error.message;
+    mensaje.innerText = error.message || "Acceso no autorizado.";
     mensaje.style.display = "block";
   }
 }
-
+  
 function cerrarSesion(){
   localStorage.removeItem("token_plan");
   localStorage.removeItem("usuario_plan");
@@ -787,40 +778,50 @@ function validarObligatorios(){
   return campos.filter(campo => !opcionales.includes(campo)).every(campo => document.getElementById(campo).value.trim() !== "");
 }
 
-async function llamarApi(url,payload){
-  const respuesta = await fetch(url,{
-    method:"POST",
-    headers:{
-  "Content-Type":"application/json",
-  "Accept":"application/json",
-  "Authorization":"Bearer " + obtenerToken()
-},
-    body:JSON.stringify(payload)
+async function llamarApi(funcion,payload){
+  const json = await llamarGS(funcion,{
+    ...payload,
+    token: obtenerToken()
   });
-
-  const texto = await respuesta.text();
-  let json;
-
-  try{
-    json = JSON.parse(texto);
-  }catch{
-    throw new Error("El servidor no devolvió JSON. Respuesta: " + texto);
-  }
-
-  if(!respuesta.ok){
-    throw new Error(json.error || texto);
-  }
 
   const contenido = extraerTexto(json);
 
   if(!contenido){
     console.log("Respuesta completa:",json);
-    throw new Error("El Worker respondió, pero no devolvió contenido.");
+    throw new Error("El servidor respondió, pero no devolvió contenido.");
   }
 
   return limpiarSalida(contenido);
 }
 
+async function llamarGS(funcion, payload){
+  const respuesta = await fetch(GAS_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "text/plain;charset=utf-8"
+    },
+    body: JSON.stringify({
+      accion: funcion,
+      payload: payload || {}
+    })
+  });
+
+  const texto = await respuesta.text();
+
+  let json;
+  try{
+    json = JSON.parse(texto);
+  }catch(e){
+    throw new Error("Apps Script no devolvió JSON válido: " + texto);
+  }
+
+  if(!json.ok){
+    throw new Error(json.error || "Error en Apps Script.");
+  }
+
+  return json.data;
+}
+  
 function extraerTexto(json){
   if(!json) return "";
   if(typeof json.analisis === "string" && json.analisis.trim()) return json.analisis.trim();
@@ -1146,23 +1147,13 @@ function crearPortadaWord(datos){
 
 async function cargarContador(){
   try{
-    const respuesta = await fetch(USAGE_URL);
-    const texto = await respuesta.text();
-
-    let json = {};
-
-    try{
-      json = JSON.parse(texto);
-    }catch{
-      json = {total:"N/D"};
-    }
-
+    const json = await llamarGS(USAGE_URL,{});
     document.getElementById("contadorUso").innerText = json.total ?? "N/D";
   }catch{
     document.getElementById("contadorUso").innerText = "No disponible";
   }
 }
-
+  
 function mostrarMensaje(texto,tipo){
   const mensaje = document.getElementById("mensaje");
   mensaje.innerText = texto;
