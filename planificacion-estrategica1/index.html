@@ -794,32 +794,42 @@ async function llamarApi(funcion,payload){
   return limpiarSalida(contenido);
 }
 
-async function llamarGS(funcion, payload){
-  const respuesta = await fetch(GAS_URL, {
-    method: "POST",
-    headers: {
-      "Content-Type": "text/plain;charset=utf-8"
-    },
-    body: JSON.stringify({
-      accion: funcion,
-      payload: payload || {}
-    })
+function llamarGS(funcion, payload){
+  return new Promise((resolve, reject) => {
+    const callback = "jsonp_cb_" + Date.now() + "_" + Math.floor(Math.random() * 100000);
+    const requestId = "req_" + Date.now() + "_" + Math.floor(Math.random() * 100000);
+
+    window[callback] = function(respuesta){
+      delete window[callback];
+
+      if(respuesta && respuesta.ok){
+        resolve(respuesta.data);
+      }else{
+        reject(new Error(respuesta?.error || "Error en Apps Script."));
+      }
+    };
+
+    const data = encodeURIComponent(JSON.stringify(payload || {}));
+
+    const script = document.createElement("script");
+    script.src = GAS_URL
+      + "?callback=" + callback
+      + "&accion=" + encodeURIComponent(funcion)
+      + "&requestId=" + encodeURIComponent(requestId)
+      + "&payload=" + data
+      + "&t=" + Date.now();
+
+    script.onerror = function(){
+      delete window[callback];
+      reject(new Error("No se pudo conectar con Apps Script."));
+    };
+
+    document.body.appendChild(script);
+
+    setTimeout(() => {
+      if(script.parentNode) script.parentNode.removeChild(script);
+    }, 30000);
   });
-
-  const texto = await respuesta.text();
-
-  let json;
-  try{
-    json = JSON.parse(texto);
-  }catch(e){
-    throw new Error("Apps Script no devolvió JSON válido: " + texto);
-  }
-
-  if(!json.ok){
-    throw new Error(json.error || "Error en Apps Script.");
-  }
-
-  return json.data;
 }
   
 function extraerTexto(json){
