@@ -31,6 +31,75 @@ textarea{min-height:108px;resize:vertical}
 .btn.identidad{background:#7c3aed}
 .btn.automatizaciones{background:#0f766e}
 .btn:disabled{background:#9ca3af;cursor:not-allowed}
+  .app-bloqueada header,
+.app-bloqueada .contenedor{
+  display:none!important;
+}
+
+.login-overlay{
+  position:fixed;
+  inset:0;
+  background:linear-gradient(135deg,#0f172a,#1d4ed8);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  z-index:99999;
+  padding:20px;
+}
+
+.login-card{
+  width:100%;
+  max-width:420px;
+  background:white;
+  border-radius:18px;
+  padding:28px;
+  box-shadow:0 20px 60px rgba(0,0,0,.25);
+}
+
+.login-card h2{
+  margin:0 0 8px;
+  color:#0f172a;
+}
+
+.login-card p{
+  color:#64748b;
+  margin-bottom:18px;
+}
+
+.login-card label{
+  margin-top:12px;
+}
+
+.login-card input{
+  margin-bottom:12px;
+}
+
+.login-error{
+  display:none;
+  margin-top:14px;
+  padding:12px;
+  border-radius:10px;
+  background:#fee2e2;
+  color:#991b1b;
+  font-weight:bold;
+}
+
+.sesion-activa{
+  text-align:center;
+  background:#ecfdf5;
+  color:#166534;
+  padding:10px;
+  border-radius:10px;
+  margin-bottom:14px;
+  font-weight:bold;
+}
+
+.btn.salir{
+  background:#991b1b;
+  padding:8px 14px;
+  font-size:13px;
+  margin-left:10px;
+}
   .mensaje{display:none;margin-top:18px;padding:14px;border-radius:10px;font-weight:bold}
 .exito{background:#dcfce7;color:#166534}
 .error{background:#fee2e2;color:#991b1b}
@@ -129,8 +198,25 @@ textarea{min-height:108px;resize:vertical}
 </style>
 </head>
 
-<body oncontextmenu="return false">
+<body class="app-bloqueada" oncontextmenu="return false">
 
+<div id="pantallaLogin" class="login-overlay">
+  <div class="login-card">
+    <h2>Acceso autorizado</h2>
+    <p>Ingrese sus credenciales para utilizar la herramienta.</p>
+
+    <label>Usuario</label>
+    <input id="loginUsuario" placeholder="Ejemplo: empresa01">
+
+    <label>Contraseña</label>
+    <input id="loginPassword" type="password" placeholder="Contraseña asignada">
+
+    <button class="btn" onclick="iniciarSesion()">Ingresar</button>
+
+    <div id="mensajeLogin" class="login-error"></div>
+  </div>
+</div>
+  
 <header>
   <h1>Generador de Plan Estratégico Ejecutivo</h1>
   <p>Diagnóstico, estrategia, identidad estratégica y descarga Word consolidada</p>
@@ -138,7 +224,13 @@ textarea{min-height:108px;resize:vertical}
 
 <div class="contenedor">
 
-  <div class="contador">Usos registrados: <span id="contadorUso">Cargando...</span></div>
+<div id="sesionActiva" class="sesion-activa" style="display:none;">
+  Usuario: <span id="usuarioActivoTexto"></span>
+  | Empresa: <span id="empresaActivaTexto"></span>
+  <button class="btn salir" onclick="cerrarSesion()">Salir</button>
+</div>
+
+<div class="contador">Usos registrados: <span id="contadorUso">Cargando...</span></div>  
 
   <div class="botones">
     <button class="btn sec" onclick="mostrarFormulario()">Formulario</button>
@@ -439,6 +531,8 @@ const ANALISIS_URL = API_BASE + "/generate-analysis";
 const ESTRATEGIA_URL = API_BASE + "/generate-strategy";
 const IDENTIDAD_URL = API_BASE + "/generate-identity";
 const USAGE_URL = API_BASE + "/usage";
+const AUTH_URL = API_BASE + "/auth";
+let usuarioActual = null;
 let analisisGenerado = "";
 let estrategiaGenerada = "";
 let identidadGenerada = "";
@@ -498,6 +592,88 @@ function obtenerRegistroCliente(accion){
     fechaCliente: new Date().toISOString(),
     navegador: navigator.userAgent
   };
+}
+
+function obtenerToken(){
+  return localStorage.getItem("token_plan") || "";
+}
+
+function guardarSesion(data){
+  localStorage.setItem("token_plan", data.token);
+  localStorage.setItem("usuario_plan", JSON.stringify(data.usuario));
+  usuarioActual = data.usuario;
+
+  document.body.classList.remove("app-bloqueada");
+  document.getElementById("pantallaLogin").style.display = "none";
+  document.getElementById("sesionActiva").style.display = "block";
+  document.getElementById("usuarioActivoTexto").innerText = usuarioActual.usuario || "";
+  document.getElementById("empresaActivaTexto").innerText = usuarioActual.empresa || "";
+
+  cargarContador();
+}
+
+function verificarSesionGuardada(){
+  const token = obtenerToken();
+  const usuario = localStorage.getItem("usuario_plan");
+
+  if(token && usuario){
+    try{
+      usuarioActual = JSON.parse(usuario);
+      document.body.classList.remove("app-bloqueada");
+      document.getElementById("pantallaLogin").style.display = "none";
+      document.getElementById("sesionActiva").style.display = "block";
+      document.getElementById("usuarioActivoTexto").innerText = usuarioActual.usuario || "";
+      document.getElementById("empresaActivaTexto").innerText = usuarioActual.empresa || "";
+    }catch{
+      cerrarSesion();
+    }
+  }
+}
+
+async function iniciarSesion(){
+  const usuario = document.getElementById("loginUsuario").value.trim();
+  const password = document.getElementById("loginPassword").value.trim();
+  const mensaje = document.getElementById("mensajeLogin");
+
+  mensaje.style.display = "none";
+
+  if(!usuario || !password){
+    mensaje.innerText = "Ingrese usuario y contraseña.";
+    mensaje.style.display = "block";
+    return;
+  }
+
+  try{
+    const respuesta = await fetch(AUTH_URL,{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({
+        usuario,
+        password,
+        registro: obtenerRegistroCliente("abrir_sistema")
+      })
+    });
+
+    const json = await respuesta.json();
+
+    if(!respuesta.ok){
+      throw new Error(json.error || "Acceso no autorizado.");
+    }
+
+    guardarSesion(json);
+
+  }catch(error){
+    mensaje.innerText = error.message;
+    mensaje.style.display = "block";
+  }
+}
+
+function cerrarSesion(){
+  localStorage.removeItem("token_plan");
+  localStorage.removeItem("usuario_plan");
+  usuarioActual = null;
+  document.body.classList.add("app-bloqueada");
+  document.getElementById("pantallaLogin").style.display = "flex";
 }
 
 const campos = [
@@ -614,7 +790,11 @@ function validarObligatorios(){
 async function llamarApi(url,payload){
   const respuesta = await fetch(url,{
     method:"POST",
-    headers:{"Content-Type":"application/json","Accept":"application/json"},
+    headers:{
+  "Content-Type":"application/json",
+  "Accept":"application/json",
+  "Authorization":"Bearer " + obtenerToken()
+},
     body:JSON.stringify(payload)
   });
 
@@ -678,7 +858,12 @@ async function generarAnalisis(){
   try{
     analisisGenerado = await llamarApi(ANALISIS_URL,{
   datos: obtenerDatos(),
-  registro: obtenerRegistroCliente("generar_diagnostico")
+  registro: {
+  ...obtenerRegistroCliente("generar_diagnostico"),
+  usuario: usuarioActual?.usuario || "",
+  nombre: usuarioActual?.nombre || "",
+  empresaAsignada: usuarioActual?.empresa || ""
+}
 });
     vista.innerHTML = renderDocumento("Diagnóstico Estratégico Ejecutivo",analisisGenerado,true);
     mostrarMensaje("Diagnóstico generado correctamente. Ahora podés generar la estrategia.","exito");
@@ -999,6 +1184,7 @@ function limpiarNombre(texto){
   return String(texto || "empresa").replace(/[^a-z0-9áéíóúñü_-]/gi,"_");
 }
 
+verificarSesionGuardada();
 cargarContador();
 </script>
 
