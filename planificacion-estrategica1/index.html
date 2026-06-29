@@ -1343,43 +1343,66 @@ function crearResumenVisual(datos){
 }
 
 function descargarWord(){
-  if(!analisisGenerado || !estrategiaGenerada){
-    mostrarMensaje("Primero genera el diagnóstico y luego la estrategia antes de descargar Word.","error");
+  const hayIdentidad = identidadGenerada && identidadGenerada.trim();
+  const hayAnalisis = analisisGenerado && analisisGenerado.trim();
+  const hayEstrategia = estrategiaGenerada && estrategiaGenerada.trim();
+
+  if(!hayIdentidad && !hayAnalisis && !hayEstrategia){
+    mostrarMensaje("Primero genera al menos un contenido: visión, diagnóstico o estrategia antes de descargar Word.","error");
     return;
   }
 
   const datos = obtenerDatos();
-  const nombreEmpresa = datos.nombreEmpresa || "empresa";
+  const nombreEmpresa = datos.nombreEmpresa || document.getElementById("idNombreEmpresa")?.value.trim() || "empresa";
+
+  let cuerpoDocumento = "";
+
+  if(hayIdentidad){
+    cuerpoDocumento += `
+      <h2>Diseño de Visión, Misión y Valores</h2>
+      ${convertirTextoAHtml(identidadGenerada)}
+    `;
+  }
+
+  if(hayAnalisis){
+    cuerpoDocumento += `
+      <h2>Diagnóstico Estratégico Ejecutivo</h2>
+      ${convertirTextoAHtml(analisisGenerado)}
+    `;
+  }
+
+  if(hayEstrategia){
+    cuerpoDocumento += `
+      <h2>Estrategia Empresarial Ejecutable</h2>
+      ${convertirTextoAHtml(estrategiaGenerada)}
+    `;
+  }
 
   const contenido = `<!DOCTYPE html>
   <html>
   <head>
-  <meta charset="UTF-8">
-  <style>
-  @page{size:letter;margin:0.65in}
-  body{font-family:Arial,Helvetica,sans-serif;line-height:1.35;color:#111827;font-size:10.5pt}
-  h1{text-align:center;color:#0f172a;font-size:22pt;margin:0 0 8pt}
-  h2{color:#1d4ed8;border-bottom:1px solid #cbd5e1;padding-bottom:4pt;margin-top:16pt;font-size:14pt;page-break-after:avoid}
-  p{margin:5pt 0}
-  table{width:100%;border-collapse:collapse;table-layout:fixed;margin:8pt 0;font-size:8pt;page-break-inside:auto}
-  tr{page-break-inside:avoid;page-break-after:auto}
-  th{background:#e0ecff;color:#0f172a;font-weight:bold}
-  td,th{border:1px solid #cbd5e1;padding:4pt;vertical-align:top;word-wrap:break-word}
-  .kpi-cards{width:100%;border-collapse:separate;border-spacing:6pt}
-  .kpi-cards td{border:1px solid #dbe3ef;background:#f8fafc;border-radius:8pt;padding:8pt}
-  .flow span{display:inline-block;background:#eff6ff;border:1px solid #bfdbfe;padding:5pt 7pt;border-radius:12pt;margin:2pt;font-weight:bold;color:#1e3a8a}
-  .nota{background:#fffbeb;border-left:4pt solid #f59e0b;padding:8pt;color:#78350f}
-  </style>
+    <meta charset="UTF-8">
+    <style>
+      @page{size:letter;margin:0.65in}
+      body{font-family:Arial,Helvetica,sans-serif;line-height:1.35;color:#111827;font-size:10.5pt}
+      h1{text-align:center;color:#0f172a;font-size:22pt;margin:0 0 8pt}
+      h2{color:#1d4ed8;border-bottom:1px solid #cbd5e1;padding-bottom:4pt;margin-top:16pt;font-size:14pt;page-break-after:avoid}
+      p{margin:5pt 0}
+      table{width:100%;border-collapse:collapse;table-layout:fixed;margin:8pt 0;font-size:8pt;page-break-inside:auto}
+      tr{page-break-inside:avoid;page-break-after:auto}
+      th{background:#e0ecff;color:#0f172a;font-weight:bold}
+      td,th{border:1px solid #cbd5e1;padding:4pt;vertical-align:top;word-wrap:break-word}
+      .kpi-cards{width:100%;border-collapse:separate;border-spacing:6pt}
+      .kpi-cards td{border:1px solid #dbe3ef;background:#f8fafc;border-radius:8pt;padding:8pt}
+      .flow span{display:inline-block;background:#eff6ff;border:1px solid #bfdbfe;padding:5pt 7pt;border-radius:12pt;margin:2pt;font-weight:bold;color:#1e3a8a}
+      .nota{background:#fffbeb;border-left:4pt solid #f59e0b;padding:8pt;color:#78350f}
+    </style>
   </head>
   <body>
-  <h1>Plan Estratégico Ejecutivo</h1>
-  <h2>Empresa: ${escapeHtml(nombreEmpresa)}</h2>
-  ${crearPortadaWord(datos)}
-  ${identidadGenerada ? `<h2>0. Visión, Misión y Valores</h2>${convertirTextoAHtml(identidadGenerada)}` : ""}
-  <h2>1. Diagnóstico Estratégico Ejecutivo</h2>
-  ${convertirTextoAHtml(analisisGenerado)}
-  <h2>2. Estrategia Empresarial Ejecutable</h2>
-  ${convertirTextoAHtml(estrategiaGenerada)}
+    <h1>Documento Estratégico Ejecutivo</h1>
+    <h2>Empresa: ${escapeHtml(nombreEmpresa)}</h2>
+    ${crearPortadaWord(datos)}
+    ${cuerpoDocumento}
   </body>
   </html>`;
 
@@ -1388,15 +1411,15 @@ function descargarWord(){
   const link = document.createElement("a");
 
   link.href = url;
-  link.download = "Plan_Estrategico_Ejecutivo_" + limpiarNombre(nombreEmpresa) + ".doc";
+  link.download = "Documento_Estrategico_" + limpiarNombre(nombreEmpresa) + ".doc";
+
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
 
-  mostrarMensaje("Documento Word descargado correctamente con tablas alineadas, visuales ejecutivos e identidad estratégica si fue generada.","exito");
+  mostrarMensaje("Documento Word descargado correctamente.","exito");
 }
-
 function crearPortadaWord(datos){
   return `
   <table class="kpi-cards">
