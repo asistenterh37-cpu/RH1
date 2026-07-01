@@ -40,7 +40,6 @@ body{
 .header h1{
   font-size:46px;
   margin:0;
-  letter-spacing:.5px;
 }
 
 .header p{
@@ -123,7 +122,6 @@ body{
 .panel-body{
   display:grid;
   grid-template-columns:280px 1fr;
-  gap:0;
 }
 
 .menu{
@@ -176,6 +174,105 @@ body{
   opacity:.85;
 }
 
+/* ROMPECABEZAS */
+
+.btn-rompecabezas{
+  position:fixed;
+  top:20px;
+  right:25px;
+  z-index:999;
+  background:linear-gradient(135deg,#7c3aed,#2563eb);
+  color:white;
+  border:none;
+  padding:13px 20px;
+  border-radius:14px;
+  font-weight:bold;
+  cursor:pointer;
+  box-shadow:0 10px 25px rgba(0,0,0,.35);
+}
+
+.puzzle-menu{
+  display:none;
+  position:fixed;
+  top:70px;
+  right:25px;
+  z-index:999;
+  background:white;
+  padding:12px;
+  border-radius:14px;
+  box-shadow:0 15px 35px rgba(0,0,0,.3);
+}
+
+.puzzle-menu button{
+  display:block;
+  width:140px;
+  margin:8px 0;
+  padding:11px;
+  border:none;
+  border-radius:10px;
+  background:#1d4ed8;
+  color:white;
+  font-weight:bold;
+  cursor:pointer;
+}
+
+.puzzle-modal{
+  display:none;
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.65);
+  z-index:1000;
+  justify-content:center;
+  align-items:center;
+}
+
+.puzzle-card{
+  background:white;
+  color:#111827;
+  padding:25px;
+  border-radius:22px;
+  width:min(90vw,600px);
+  text-align:center;
+  box-shadow:0 25px 70px rgba(0,0,0,.45);
+}
+
+.cerrar-puzzle{
+  float:right;
+  background:#ef4444;
+  color:white;
+  border:none;
+  padding:9px 14px;
+  border-radius:10px;
+  cursor:pointer;
+  font-weight:bold;
+}
+
+.puzzle-board{
+  margin:20px auto 0;
+  display:grid;
+  gap:6px;
+  width:min(80vw,430px);
+  height:min(80vw,430px);
+}
+
+.tile{
+  background:linear-gradient(135deg,#2563eb,#10b981);
+  color:white;
+  font-size:26px;
+  font-weight:bold;
+  border-radius:10px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
+  user-select:none;
+}
+
+.tile.empty{
+  background:#e5e7eb;
+  cursor:default;
+}
+
 @media(max-width:900px){
   .ecosistema{grid-template-columns:1fr}
   .centro{grid-column:auto}
@@ -186,6 +283,23 @@ body{
 </head>
 
 <body>
+
+<button class="btn-rompecabezas" onclick="togglePuzzleMenu()">🧩 Rompecabezas</button>
+
+<div class="puzzle-menu" id="puzzleMenu">
+  <button onclick="abrirPuzzle(3)">Nivel 3x3</button>
+  <button onclick="abrirPuzzle(4)">Nivel 4x4</button>
+  <button onclick="abrirPuzzle(5)">Nivel 5x5</button>
+</div>
+
+<div class="puzzle-modal" id="puzzleModal">
+  <div class="puzzle-card">
+    <button class="cerrar-puzzle" onclick="cerrarPuzzle()">Cerrar</button>
+    <h2>Rompecabezas deslizante</h2>
+    <p id="nivelTexto"></p>
+    <div id="puzzleBoard" class="puzzle-board"></div>
+  </div>
+</div>
 
 <section class="hero">
   <div class="header">
@@ -254,12 +368,12 @@ const modulos = [
 {
  nombre:"Expedientes de personal",
  menu:["Datos generales","Configuración laboral","Capacitación","Acciones de personal","Ausencias","Vacaciones","Medidas disciplinarias","Documentos"],
- descripcion:"Este módulo permite administrar de forma integral el expediente digital del colaborador, centralizando información personal, académica, laboral y de desarrollo profesional en una sola plataforma. Mantiene un historial completo y actualizado de cada empleado."
+ descripcion:"Este módulo permite administrar de forma integral el expediente digital del colaborador, centralizando información personal, académica, laboral y de desarrollo profesional en una sola plataforma."
 },
 {
  nombre:"Compensación variable",
  menu:["Procedimiento","Tablas","Planilla","Cobertura","Porcentaje","Cumplimientos","Aplica"],
- descripcion:"Este módulo automatiza el cálculo de bonos a partir de la información registrada en Google Sheets, cruzando datos de planilla, cobertura, tablas de factores, porcentajes y cumplimientos. Calcula puntajes, porcentajes, montos por frecuencia y bono anual."
+ descripcion:"Este módulo automatiza el cálculo de bonos a partir de la información registrada en Google Sheets, cruzando datos de planilla, cobertura, tablas de factores, porcentajes y cumplimientos."
 },
 {
  nombre:"Control de asistencia",
@@ -269,22 +383,22 @@ const modulos = [
 {
  nombre:"Plan de retiro",
  menu:["Datos del colaborador","Proyección","Simulación financiera","Gráficos","Comparativo","Fundamento legal"],
- descripcion:"Este módulo permite calcular y proyectar el costo futuro de las prestaciones laborales con base en salario, antigüedad, edad y crecimiento salarial esperado. Incluye simulaciones financieras, gráficos comparativos y análisis de prefondeo."
+ descripcion:"Este módulo permite calcular y proyectar el costo futuro de las prestaciones laborales con base en salario, antigüedad, edad y crecimiento salarial esperado."
 },
 {
  nombre:"Prospección",
  menu:["Búsqueda","Ciudad","Departamento","País","Radio KM","Resultados","Exportar a Excel","Filtrar resultados"],
- descripcion:"Este módulo permite realizar búsquedas automatizadas de empresas o establecimientos en Google Maps mediante palabra clave, ciudad, departamento, país y radio. Recupera nombre, teléfono, dirección, sitio web y categoría, evitando duplicados."
+ descripcion:"Este módulo permite realizar búsquedas automatizadas de empresas o establecimientos en Google Maps mediante palabra clave, ciudad, departamento, país y radio."
 },
 {
  nombre:"Planificación estratégica",
  menu:["Formulario","Generar diagnóstico","Generar estrategia","Diseñar visión, misión y valores","Descargar Word","Mis automatizaciones"],
- descripcion:"Este módulo permite recopilar información estratégica de una empresa para elaborar un plan ejecutivo completo. Mediante inteligencia artificial genera diagnóstico, estrategias, misión, visión y valores organizacionales, con exportación a Word."
+ descripcion:"Este módulo permite recopilar información estratégica de una empresa para elaborar un plan ejecutivo completo. Mediante inteligencia artificial genera diagnóstico, estrategias, misión, visión y valores organizacionales."
 },
 {
  nombre:"Automatización de procesos con IA",
  menu:["Análisis de información","Generación de documentos","Reportes automáticos","Clasificación de datos","Flujos de trabajo","Recomendaciones IA"],
- descripcion:"Automatiza procesos administrativos mediante inteligencia artificial para reducir tareas manuales, mejorar la eficiencia y agilizar la toma de decisiones. Integra procesos, disminuye errores, optimiza tiempos y aumenta la productividad."
+ descripcion:"Automatiza procesos administrativos mediante inteligencia artificial para reducir tareas manuales, mejorar la eficiencia y agilizar la toma de decisiones."
 }
 ];
 
@@ -315,6 +429,7 @@ function mostrarModulo(modulo){
 
   const menu = document.getElementById("menuModulo");
   menu.innerHTML = "";
+
   modulo.menu.forEach(item=>{
     const b = document.createElement("button");
     b.textContent = item;
@@ -326,6 +441,111 @@ function mostrarModulo(modulo){
 
 function cerrarPanel(){
   document.getElementById("panel").classList.remove("activo");
+}
+
+/* ROMPECABEZAS */
+
+let puzzleSize = 3;
+let tiles = [];
+
+function togglePuzzleMenu(){
+  const menu = document.getElementById("puzzleMenu");
+  menu.style.display = menu.style.display === "block" ? "none" : "block";
+}
+
+function abrirPuzzle(size){
+  puzzleSize = size;
+  document.getElementById("puzzleMenu").style.display = "none";
+  document.getElementById("puzzleModal").style.display = "flex";
+  document.getElementById("nivelTexto").textContent = `Nivel ${size}x${size}`;
+  crearPuzzle(size);
+}
+
+function cerrarPuzzle(){
+  document.getElementById("puzzleModal").style.display = "none";
+}
+
+function crearPuzzle(size){
+  const total = size * size;
+  tiles = [];
+
+  for(let i = 1; i < total; i++){
+    tiles.push(i);
+  }
+
+  tiles.push("");
+
+  do{
+    tiles = tiles.sort(() => Math.random() - 0.5);
+  }while(!esResoluble(tiles, size));
+
+  dibujarPuzzle();
+}
+
+function dibujarPuzzle(){
+  const board = document.getElementById("puzzleBoard");
+  board.innerHTML = "";
+  board.style.gridTemplateColumns = `repeat(${puzzleSize}, 1fr)`;
+  board.style.gridTemplateRows = `repeat(${puzzleSize}, 1fr)`;
+
+  tiles.forEach((tile, index)=>{
+    const div = document.createElement("div");
+    div.className = tile === "" ? "tile empty" : "tile";
+    div.textContent = tile;
+    div.onclick = () => moverTile(index);
+    board.appendChild(div);
+  });
+}
+
+function moverTile(index){
+  const emptyIndex = tiles.indexOf("");
+  const fila = Math.floor(index / puzzleSize);
+  const col = index % puzzleSize;
+  const emptyFila = Math.floor(emptyIndex / puzzleSize);
+  const emptyCol = emptyIndex % puzzleSize;
+
+  const esVecino = Math.abs(fila - emptyFila) + Math.abs(col - emptyCol) === 1;
+
+  if(esVecino){
+    [tiles[index], tiles[emptyIndex]] = [tiles[emptyIndex], tiles[index]];
+    dibujarPuzzle();
+
+    if(ganaste()){
+      setTimeout(()=>{
+        alert("¡Ganaste! RH desbloqueado nivel ninja 🧩");
+      },200);
+    }
+  }
+}
+
+function ganaste(){
+  const correcto = [];
+
+  for(let i = 1; i < puzzleSize * puzzleSize; i++){
+    correcto.push(i);
+  }
+
+  correcto.push("");
+
+  return tiles.every((v,i)=>v === correcto[i]);
+}
+
+function esResoluble(array, size){
+  const nums = array.filter(n => n !== "");
+  let inversiones = 0;
+
+  for(let i = 0; i < nums.length; i++){
+    for(let j = i + 1; j < nums.length; j++){
+      if(nums[i] > nums[j]) inversiones++;
+    }
+  }
+
+  if(size % 2 === 1){
+    return inversiones % 2 === 0;
+  }else{
+    const emptyRowFromBottom = size - Math.floor(array.indexOf("") / size);
+    return (emptyRowFromBottom % 2 === 0) !== (inversiones % 2 === 0);
+  }
 }
 </script>
 
