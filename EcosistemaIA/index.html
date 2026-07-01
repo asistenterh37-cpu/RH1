@@ -407,6 +407,18 @@ body::before{
   font-weight:800;
 }
 
+.cronometro-puzzle{
+  margin:10px auto 12px;
+  padding:10px 16px;
+  width:max-content;
+  border-radius:999px;
+  background:linear-gradient(135deg,#2563eb,#7c3aed);
+  color:white;
+  font-size:20px;
+  font-weight:900;
+  box-shadow:0 10px 25px rgba(0,0,0,.25);
+}  
+
 .puzzle-board{
   margin:18px auto 0;
   display:grid;
@@ -513,8 +525,13 @@ body::before{
     <div class="puzzle-card">
       <button class="cerrar-puzzle" onclick="cerrarPuzzle()">Cerrar</button>
       <h2>Rompecabezas deslizante</h2>
-      <p id="nivelTexto"></p>
-      <div id="puzzleBoard" class="puzzle-board"></div>
+<p id="nivelTexto"></p>
+
+<div class="cronometro-puzzle">
+  ⏱ Tiempo: <span id="tiempoPuzzle">00:00</span>
+</div>
+
+<div id="puzzleBoard" class="puzzle-board"></div>
     </div>
   </div>
 
@@ -660,7 +677,8 @@ function cerrarPanel(){
 
 let puzzleSize = 3;
 let tiles = [];
-
+let tiempoInicioPuzzle = null;
+let intervaloPuzzle = null;
 function togglePuzzleMenu(){
   const menu = document.getElementById("puzzleMenu");
   menu.style.display = menu.style.display === "block" ? "none" : "block";
@@ -671,13 +689,15 @@ function abrirPuzzle(size){
   document.getElementById("puzzleMenu").style.display = "none";
   document.getElementById("puzzleModal").style.display = "flex";
   document.getElementById("nivelTexto").textContent = `Nivel ${size}x${size}`;
+  reiniciarCronometroPuzzle();
   crearPuzzle(size);
 }
-
+  
 function cerrarPuzzle(){
   document.getElementById("puzzleModal").style.display = "none";
+  detenerCronometroPuzzle();
 }
-
+  
 function crearPuzzle(size){
   const total = size * size;
   tiles = [];
@@ -723,9 +743,11 @@ function moverTile(index){
     [tiles[index], tiles[emptyIndex]] = [tiles[emptyIndex], tiles[index]];
     dibujarPuzzle();
 
-    if(ganaste()){
-      setTimeout(()=>alert("¡Ganaste! RH desbloqueado nivel ninja 🧩"),200);
-    }
+ if(ganaste()){
+  detenerCronometroPuzzle();
+  const tiempoFinal = document.getElementById("tiempoPuzzle").textContent;
+  setTimeout(()=>alert(`¡Ganaste! Tiempo de solución: ${tiempoFinal} 🧩`),200);
+}   
   }
 }
 
@@ -740,6 +762,29 @@ function ganaste(){
   return tiles.every((v,i)=>v === correcto[i]);
 }
 
+function reiniciarCronometroPuzzle(){
+  detenerCronometroPuzzle();
+
+  tiempoInicioPuzzle = Date.now();
+  document.getElementById("tiempoPuzzle").textContent = "00:00";
+
+  intervaloPuzzle = setInterval(()=>{
+    const segundosTotales = Math.floor((Date.now() - tiempoInicioPuzzle) / 1000);
+    const minutos = Math.floor(segundosTotales / 60);
+    const segundos = segundosTotales % 60;
+
+    document.getElementById("tiempoPuzzle").textContent =
+      String(minutos).padStart(2,"0") + ":" + String(segundos).padStart(2,"0");
+  },1000);
+}
+
+function detenerCronometroPuzzle(){
+  if(intervaloPuzzle){
+    clearInterval(intervaloPuzzle);
+    intervaloPuzzle = null;
+  }
+}
+  
 function esResoluble(array, size){
   const nums = array.filter(n => n !== "");
   let inversiones = 0;
