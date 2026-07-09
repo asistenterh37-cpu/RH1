@@ -2,9 +2,9 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Extractor Google Maps Autónomo</title>
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
-
 <style>
 body{font-family:Arial,sans-serif;background:#f4f7fb;margin:0;padding:24px;color:#1f2937;user-select:none}
 .container{max-width:1400px;margin:auto;background:white;padding:28px;border-radius:16px;box-shadow:0 8px 24px rgba(0,0,0,.08)}
@@ -20,22 +20,18 @@ button:hover{background:#1d4ed8}
 .purple{background:#7c3aed}.purple:hover{background:#6d28d9}
 .gray{background:#475569}.gray:hover{background:#334155}
 .plus-btn,.delete-btn{width:42px;height:42px;border-radius:50%;font-size:22px;padding:0;margin-right:6px}
-.plus-btn{background:#0f766e}
-.delete-btn{background:#dc2626}
+.plus-btn{background:#0f766e}.delete-btn{background:#dc2626}
 .actions{display:flex;gap:10px;flex-wrap:wrap;margin:18px 0}
 .automation-row{display:grid;grid-template-columns:repeat(7,1fr);margin-bottom:8px}
 .automation-btn-wrap{grid-column:5 / 7}
 #estadoGeneral{font-weight:bold;margin:14px 0;color:#334155}
-.results-table{margin-top:15px}
-.results-table tr:nth-child(even){background:#f8fafc}
+.results-table{margin-top:15px}.results-table tr:nth-child(even){background:#f8fafc}
 .modal{display:none;position:fixed;z-index:1000;left:0;top:0;width:100%;height:100%;background:rgba(15,23,42,.55)}
 .modal-content{background:white;margin:5% auto;padding:24px;width:85%;max-width:1000px;border-radius:16px;box-shadow:0 12px 30px rgba(0,0,0,.25);max-height:80vh;overflow:auto}
 .close{float:right;font-size:28px;font-weight:bold;cursor:pointer;color:#475569}
 .card-auto{border:1px solid #cbd5e1;border-radius:12px;padding:16px;margin:12px 0;background:#f8fafc}
-.card-auto h3{margin:0 0 8px;color:#0f172a}
-.card-auto p{margin:0;line-height:1.5}
-.contact-card{background:#ecfdf5;border-color:#10b981}
-.contact-card h3{color:#047857}
+.card-auto h3{margin:0 0 8px;color:#0f172a}.card-auto p{margin:0;line-height:1.5}
+.contact-card{background:#ecfdf5;border-color:#10b981}.contact-card h3{color:#047857}
 #pantallaSalida{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:#0f172a;color:white;justify-content:center;align-items:center;flex-direction:column;z-index:99999;text-align:center}
 #pantallaSalida button{margin-top:25px;padding:15px 35px;font-size:18px;background:#2563eb}
 </style>
@@ -46,9 +42,9 @@ button:hover{background:#1d4ed8}
 <h1>Extractor Google Maps</h1>
 
 <div class="automation-row">
-<div class="automation-btn-wrap">
-<button class="purple" onclick="abrirAutomatizaciones()">Mis automatizaciones</button>
-</div>
+  <div class="automation-btn-wrap">
+    <button class="purple" onclick="abrirAutomatizaciones()">Mis automatizaciones</button>
+  </div>
 </div>
 
 <table>
@@ -67,13 +63,14 @@ button:hover{background:#1d4ed8}
 <tbody id="tbodyBusquedas">
 <tr>
 <td><input class="busqueda" value="Empresas"></td>
-<td><input class="ciudad" value="La Ceiba"></td>
-<td><input class="departamento" value="Atlantida"></td>
+<td><input class="ciudad" value="San Pedro Sula"></td>
+<td><input class="departamento" value="Cortés"></td>
 <td><input class="pais" value="Honduras"></td>
 <td><input class="radioKm" type="number" value="3" min="1"></td>
 <td>
 <select class="estado">
 <option value="Pendiente" selected>Pendiente</option>
+<option value="Procesando">Procesando</option>
 <option value="Procesado">Procesado</option>
 <option value="Sin resultados">Sin resultados</option>
 <option value="Error">Error</option>
@@ -95,7 +92,8 @@ button:hover{background:#1d4ed8}
 </div>
 
 <input id="filtro" placeholder="Filtrar resultados..." onkeyup="filtrarTabla()">
-<div id="estadoGeneral">Resultados</div>
+
+<div id="estadoGeneral">Resultados: 0</div>
 
 <table class="results-table" id="tabla">
 <thead>
@@ -126,356 +124,417 @@ button:hover{background:#1d4ed8}
 <button onclick="location.reload()">Ingresar nuevamente</button>
 </div>
 
-<div id="map" style="display:none;"></div>
+<div id="map" style="display:none"></div>
 
 <script>
-document.addEventListener("contextmenu",e=>e.preventDefault());
-document.addEventListener("keydown",function(e){
-const k=e.key.toLowerCase();
-if(e.key==="F12"||(e.ctrlKey&&k==="u")||(e.ctrlKey&&k==="s")||(e.ctrlKey&&e.shiftKey&&["i","j","c"].includes(k))){
-e.preventDefault();
-alert("Acción deshabilitada por seguridad.");
-}
-});
+let map, service, geocoder;
+let resultados = [];
 
-let map,service,geocoder;
-let resultados=[];
-
-const automatizaciones=[
-{titulo:"Descripción de puestos",descripcion:"Este módulo permite recopilar y documentar de manera estructurada la información necesaria para elaborar descripciones de puesto dentro de la organización."},
-{titulo:"Reclutamiento",descripcion:"Automatiza y centraliza el proceso de reclutamiento y selección de personal."},
-{titulo:"Marco normativo",descripcion:"Centraliza políticas, normas y procedimientos institucionales."},
-{titulo:"Evaluación del desempeño",descripcion:"Centraliza medición, seguimiento y desarrollo del talento humano."},
-{titulo:"Mapeo del talento",descripcion:"Permite evaluar y clasificar talento mediante rendimiento y potencial."},
-{titulo:"Administración de salarios",descripcion:"Permite analizar y gestionar estructuras de compensación."},
-{titulo:"Clima laboral",descripcion:"Permite medir y analizar el clima laboral mediante encuestas y dashboards."},
-{titulo:"Expedientes de personal",descripcion:"Administra el expediente digital del colaborador."},
-{titulo:"Compensación variable",descripcion:"Automatiza el cálculo de bonos."},
-{titulo:"Plan de retiro",descripcion:"Calcula y proyecta el costo futuro de prestaciones laborales."},
-{titulo:"Automatización de procesos con IA",descripcion:"Automatiza procesos administrativos mediante inteligencia artificial."},
-{titulo:"Contáctame",descripcion:"Puedo llevar tu organización a otro nivel. WhatsApp: 9879 0377",contacto:true}
+const automatizaciones = [
+  {titulo:"Descripción de puestos", descripcion:"Este módulo permite recopilar y documentar de manera estructurada la información necesaria para elaborar descripciones de puesto dentro de la organización."},
+  {titulo:"Reclutamiento", descripcion:"Automatiza y centraliza el proceso de reclutamiento y selección de personal."},
+  {titulo:"Marco normativo", descripcion:"Centraliza políticas, normas y procedimientos institucionales."},
+  {titulo:"Evaluación del desempeño", descripcion:"Centraliza medición, seguimiento y desarrollo del talento humano."},
+  {titulo:"Mapeo del talento", descripcion:"Permite evaluar y clasificar talento mediante rendimiento y potencial."},
+  {titulo:"Administración de salarios", descripcion:"Permite analizar y gestionar estructuras de compensación."},
+  {titulo:"Clima laboral", descripcion:"Permite medir y analizar el clima laboral mediante encuestas y dashboards."},
+  {titulo:"Expedientes de personal", descripcion:"Administra el expediente digital del colaborador."},
+  {titulo:"Compensación variable", descripcion:"Automatiza el cálculo de bonos."},
+  {titulo:"Plan de retiro", descripcion:"Calcula y proyecta el costo futuro de prestaciones laborales."},
+  {titulo:"Automatización de procesos con IA", descripcion:"Automatiza procesos administrativos mediante inteligencia artificial."},
+  {titulo:"Contáctame", descripcion:"Puedo llevar tu organización a otro nivel. WhatsApp: 9879 0377", contacto:true}
 ];
 
-function abrirAutomatizaciones(){
-const c=document.getElementById("listaAutomatizaciones");
-c.innerHTML="";
-automatizaciones.forEach(item=>{
-const div=document.createElement("div");
-div.className=item.contacto?"card-auto contact-card":"card-auto";
-div.innerHTML=`<h3>${item.titulo}</h3><p>${item.descripcion}</p>`;
-c.appendChild(div);
-});
-document.getElementById("modalAutomatizaciones").style.display="block";
-}
-
-function cerrarAutomatizaciones(){document.getElementById("modalAutomatizaciones").style.display="none";}
-window.onclick=function(e){const m=document.getElementById("modalAutomatizaciones");if(e.target===m)cerrarAutomatizaciones();};
-
 function initMap(){
-map=new google.maps.Map(document.getElementById("map"),{center:{lat:14.0818,lng:-87.2068},zoom:7});
-service=new google.maps.places.PlacesService(map);
-geocoder=new google.maps.Geocoder();
-setEstadoGeneral("Resultados");
+  map = new google.maps.Map(document.getElementById("map"), {
+    center:{lat:15.5,lng:-88.03},
+    zoom:8
+  });
+
+  service = new google.maps.places.PlacesService(map);
+  geocoder = new google.maps.Geocoder();
+  setEstadoGeneral("Resultados: 0");
 }
 
-function setEstadoGeneral(t){document.getElementById("estadoGeneral").innerText=t;}
-function setEstadoFila(fila,valor){fila.querySelector(".estado").value=valor;}
-
-function agregarBusqueda(){
-const filas=document.querySelectorAll("#tbodyBusquedas tr");
-const ultima=filas[filas.length-1];
-const ciudad=ultima.querySelector(".ciudad").value;
-const departamento=ultima.querySelector(".departamento").value;
-const pais=ultima.querySelector(".pais").value;
-const radioKm=ultima.querySelector(".radioKm").value;
-
-const tr=document.createElement("tr");
-tr.innerHTML=`
-<td><input class="busqueda" placeholder="Nueva búsqueda"></td>
-<td><input class="ciudad" value="${escapeAttr(ciudad)}"></td>
-<td><input class="departamento" value="${escapeAttr(departamento)}"></td>
-<td><input class="pais" value="${escapeAttr(pais)}"></td>
-<td><input class="radioKm" type="number" value="${escapeAttr(radioKm)}" min="1"></td>
-<td>
-<select class="estado">
-<option value="Pendiente" selected>Pendiente</option>
-<option value="Procesado">Procesado</option>
-<option value="Sin resultados">Sin resultados</option>
-<option value="Error">Error</option>
-</select>
-</td>
-<td>
-<button class="plus-btn" onclick="agregarBusqueda()">+</button>
-<button class="delete-btn" onclick="borrarFila(this)">×</button>
-</td>`;
-document.getElementById("tbodyBusquedas").appendChild(tr);
-tr.querySelector(".busqueda").focus();
+function googleMapsError(){
+  alert("No cargó Google Maps. Revisa API Key, facturación, restricciones HTTP y que Places API/Geocoding API estén habilitadas.");
+  setEstadoGeneral("Error cargando Google Maps");
 }
 
-function borrarFila(btn){
-const tbody=document.getElementById("tbodyBusquedas");
-if(tbody.querySelectorAll("tr").length===1){
-alert("Debe quedar al menos una fila de búsqueda.");
-return;
-}
-btn.closest("tr").remove();
-}
+function abrirAutomatizaciones(){
+  const c=document.getElementById("listaAutomatizaciones");
+  c.innerHTML="";
 
-async function buscarTodas(){
-if(!service||!geocoder){
-alert("Google Maps todavía no ha cargado o la API Key está incorrecta.");
-return;
-}
+  automatizaciones.forEach(item=>{
+    const div=document.createElement("div");
+    div.className=item.contacto ? "card-auto contact-card" : "card-auto";
+    div.innerHTML=`<h3>${escapeHtml(item.titulo)}</h3><p>${escapeHtml(item.descripcion)}</p>`;
+    c.appendChild(div);
+  });
 
-resultados=[];
-pintarTabla(resultados);
-
-const filas=Array.from(document.querySelectorAll("#tbodyBusquedas tr"));
-
-for(const fila of filas){
-const estado=fila.querySelector(".estado").value;
-if(estado==="Procesado")continue;
-
-const busqueda=fila.querySelector(".busqueda").value.trim();
-const ciudad=fila.querySelector(".ciudad").value.trim();
-const departamento=fila.querySelector(".departamento").value.trim();
-const pais=fila.querySelector(".pais").value.trim();
-const radioKm=Number(fila.querySelector(".radioKm").value)||3;
-
-if(!busqueda||!ciudad||!pais){
-setEstadoFila(fila,"Pendiente");
-continue;
+  document.getElementById("modalAutomatizaciones").style.display="block";
 }
 
-setEstadoFila(fila,"Procesando");
-agregarOpcionEstado(fila,"Procesando");
-
-try{
-const antes=resultados.length;
-await buscarPorRadio({busqueda,ciudad,departamento,pais,radioKm});
-const despues=resultados.length;
-setEstadoFila(fila,despues>antes?"Procesado":"Sin resultados");
-}catch(error){
-console.error(error);
-agregarOpcionEstado(fila,"Error");
-setEstadoFila(fila,"Error");
-setEstadoGeneral(String(error));
-}
+function cerrarAutomatizaciones(){
+  document.getElementById("modalAutomatizaciones").style.display="none";
 }
 
-setEstadoGeneral("Resultados: "+resultados.length);
+window.onclick=function(e){
+  const m=document.getElementById("modalAutomatizaciones");
+  if(e.target===m) cerrarAutomatizaciones();
+};
+
+function setEstadoGeneral(t){
+  document.getElementById("estadoGeneral").innerText=t;
+}
+
+function setEstadoFila(fila,valor){
+  agregarOpcionEstado(fila,valor);
+  fila.querySelector(".estado").value=valor;
 }
 
 function agregarOpcionEstado(fila,valor){
-const select=fila.querySelector(".estado");
-if(!Array.from(select.options).some(o=>o.value===valor)){
-const option=document.createElement("option");
-option.value=valor;
-option.textContent=valor;
-select.appendChild(option);
+  const select=fila.querySelector(".estado");
+  if(!Array.from(select.options).some(o=>o.value===valor)){
+    const option=document.createElement("option");
+    option.value=valor;
+    option.textContent=valor;
+    select.appendChild(option);
+  }
 }
+
+function agregarBusqueda(){
+  const filas=document.querySelectorAll("#tbodyBusquedas tr");
+  const ultima=filas[filas.length-1];
+
+  const ciudad=ultima.querySelector(".ciudad").value;
+  const departamento=ultima.querySelector(".departamento").value;
+  const pais=ultima.querySelector(".pais").value;
+  const radioKm=ultima.querySelector(".radioKm").value;
+
+  const tr=document.createElement("tr");
+
+  tr.innerHTML=`
+  <td><input class="busqueda" placeholder="Nueva búsqueda"></td>
+  <td><input class="ciudad" value="${escapeAttr(ciudad)}"></td>
+  <td><input class="departamento" value="${escapeAttr(departamento)}"></td>
+  <td><input class="pais" value="${escapeAttr(pais)}"></td>
+  <td><input class="radioKm" type="number" value="${escapeAttr(radioKm)}" min="1"></td>
+  <td>
+    <select class="estado">
+      <option value="Pendiente" selected>Pendiente</option>
+      <option value="Procesando">Procesando</option>
+      <option value="Procesado">Procesado</option>
+      <option value="Sin resultados">Sin resultados</option>
+      <option value="Error">Error</option>
+    </select>
+  </td>
+  <td>
+    <button class="plus-btn" onclick="agregarBusqueda()">+</button>
+    <button class="delete-btn" onclick="borrarFila(this)">×</button>
+  </td>`;
+
+  document.getElementById("tbodyBusquedas").appendChild(tr);
+  tr.querySelector(".busqueda").focus();
+}
+
+function borrarFila(btn){
+  const tbody=document.getElementById("tbodyBusquedas");
+
+  if(tbody.querySelectorAll("tr").length===1){
+    alert("Debe quedar al menos una fila de búsqueda.");
+    return;
+  }
+
+  btn.closest("tr").remove();
+}
+
+async function buscarTodas(){
+  if(!service || !geocoder){
+    alert("Google Maps todavía no ha cargado o la API Key está incorrecta.");
+    return;
+  }
+
+  resultados=[];
+  pintarTabla(resultados);
+
+  const filas=Array.from(document.querySelectorAll("#tbodyBusquedas tr"));
+
+  for(const fila of filas){
+    const estado=fila.querySelector(".estado").value;
+
+    if(estado==="Procesado") continue;
+
+    const busqueda=fila.querySelector(".busqueda").value.trim();
+    const ciudad=fila.querySelector(".ciudad").value.trim();
+    const departamento=fila.querySelector(".departamento").value.trim();
+    const pais=fila.querySelector(".pais").value.trim();
+    const radioKm=Number(fila.querySelector(".radioKm").value)||3;
+
+    if(!busqueda || !ciudad || !pais){
+      setEstadoFila(fila,"Pendiente");
+      continue;
+    }
+
+    try{
+      setEstadoFila(fila,"Procesando");
+      const antes=resultados.length;
+
+      await buscarPorRadio({
+        busqueda,
+        ciudad,
+        departamento,
+        pais,
+        radioKm
+      });
+
+      setEstadoFila(fila,resultados.length>antes ? "Procesado" : "Sin resultados");
+    }catch(error){
+      console.error(error);
+      setEstadoFila(fila,"Error");
+      setEstadoGeneral(String(error));
+    }
+  }
+
+  setEstadoGeneral("Resultados: "+resultados.length);
 }
 
 function geocodificar(direccion){
-return new Promise((resolve,reject)=>{
-let cerrado=false;
-const timer=setTimeout(()=>{if(!cerrado){cerrado=true;reject("Tiempo agotado ubicando: "+direccion);}},10000);
-geocoder.geocode({address:direccion},(results,status)=>{
-if(cerrado)return;
-cerrado=true;
-clearTimeout(timer);
-if(status==="OK"&&results&&results[0])resolve(results[0].geometry.location);
-else reject("No se pudo ubicar: "+direccion+" / Estado: "+status);
-});
-});
+  return new Promise((resolve,reject)=>{
+    geocoder.geocode({address:direccion},(results,status)=>{
+      if(status==="OK" && results && results[0]){
+        resolve(results[0].geometry.location);
+      }else{
+        reject("No se pudo ubicar: "+direccion+" / Estado: "+status);
+      }
+    });
+  });
 }
 
 async function buscarPorRadio(params){
-const ubicacionTexto=`${params.ciudad}, ${params.departamento}, ${params.pais}`;
-setEstadoGeneral("Ubicando: "+ubicacionTexto);
-const location=await geocodificar(ubicacionTexto);
-const radioMetros=params.radioKm*1000;
-setEstadoGeneral("Buscando: "+params.busqueda+" a "+params.radioKm+" KM de "+params.ciudad);
+  const ubicacionTexto = `${params.ciudad}, ${params.departamento}, ${params.pais}`;
 
-return new Promise(resolve=>{
-let cerrado=false;
-const encontradosAntes=resultados.length;
+  setEstadoGeneral("Ubicando: "+ubicacionTexto);
 
-const timer=setTimeout(()=>{
-if(!cerrado){
-cerrado=true;
-setEstadoGeneral("Tiempo agotado en búsqueda. Se continúa con el proceso.");
-resolve();
-}
-},25000);
+  const location=await geocodificar(ubicacionTexto);
+  const radioMetros=params.radioKm*1000;
 
-const request={location:location,radius:radioMetros,keyword:params.busqueda};
+  setEstadoGeneral("Buscando: "+params.busqueda+" a "+params.radioKm+" KM de "+params.ciudad);
 
-service.nearbySearch(request,(places,status,pagination)=>{
-if(cerrado)return;
-clearTimeout(timer);
+  return new Promise(resolve=>{
+    const request={
+      location,
+      radius:radioMetros,
+      keyword:params.busqueda
+    };
 
-if(status!==google.maps.places.PlacesServiceStatus.OK||!places||!places.length){
-cerrado=true;
-setEstadoGeneral("Sin resultados o error de búsqueda: "+status);
-resolve();
-return;
-}
+    const manejarPagina=(places,status,pagination)=>{
+      if(status!==google.maps.places.PlacesServiceStatus.OK || !places || !places.length){
+        setEstadoGeneral("Sin resultados o estado de búsqueda: "+status);
+        resolve();
+        return;
+      }
 
-procesarPlaces(places,encontradosAntes,()=>{
-if(pagination&&pagination.hasNextPage){
-setTimeout(()=>pagination.nextPage(),2000);
-}else{
-cerrado=true;
-resolve();
-}
-});
-});
-});
+      procesarPlaces(places,()=>{
+        if(pagination && pagination.hasNextPage){
+          setTimeout(()=>pagination.nextPage(),2000);
+        }else{
+          resolve();
+        }
+      });
+    };
+
+    service.nearbySearch(request,manejarPagina);
+  });
 }
 
-function procesarPlaces(places,encontradosAntes,callback){
-let procesados=0;
-if(!places||!places.length){callback();return;}
+function procesarPlaces(places,callback){
+  let procesados=0;
 
-places.forEach(place=>{
-service.getDetails({
-placeId:place.place_id,
-fields:["name","formatted_address","formatted_phone_number","international_phone_number","website","types"]
-},(detalle,status)=>{
-if(status===google.maps.places.PlacesServiceStatus.OK&&detalle){
-const registro={
-nombre:detalle.name||"",
-telefono:detalle.formatted_phone_number||detalle.international_phone_number||"",
-direccion:detalle.formatted_address||"",
-sitioWeb:detalle.website||"",
-categoria:traducirCategoria(detalle.types)
-};
+  if(!places || !places.length){
+    callback();
+    return;
+  }
 
-if(!existeRegistro(registro)){
-resultados.push(registro);
-pintarTabla(resultados);
-}
-}
+  places.forEach(place=>{
+    service.getDetails({
+      placeId:place.place_id,
+      fields:[
+        "name",
+        "formatted_address",
+        "formatted_phone_number",
+        "international_phone_number",
+        "website",
+        "types"
+      ]
+    },(detalle,status)=>{
+      if(status===google.maps.places.PlacesServiceStatus.OK && detalle){
+        const registro={
+          nombre:detalle.name||"",
+          telefono:detalle.formatted_phone_number||detalle.international_phone_number||"",
+          direccion:detalle.formatted_address||"",
+          sitioWeb:detalle.website||"",
+          categoria:traducirCategoria(detalle.types)
+        };
 
-procesados++;
-if(procesados===places.length)callback();
-});
-});
+        if(!existeRegistro(registro)){
+          resultados.push(registro);
+          pintarTabla(resultados);
+        }
+      }
+
+      procesados++;
+
+      if(procesados===places.length) callback();
+    });
+  });
 }
 
 function existeRegistro(nuevo){
-return resultados.some(r=>r.nombre===nuevo.nombre||(nuevo.telefono&&r.telefono===nuevo.telefono)||r.direccion===nuevo.direccion);
+  return resultados.some(r=>
+    r.nombre===nuevo.nombre ||
+    (nuevo.telefono && r.telefono===nuevo.telefono) ||
+    (nuevo.direccion && r.direccion===nuevo.direccion)
+  );
 }
 
 function traducirCategoria(types){
-if(!types||!types.length)return"";
-const mapa={
-employment_agency:"Agencia de empleo",
-local_government_office:"Oficina gubernamental",
-corporate_office:"Oficina corporativa",
-store:"Tienda",
-restaurant:"Restaurante",
-school:"Escuela",
-university:"Universidad",
-lodging:"Hotel",
-shopping_mall:"Centro comercial",
-point_of_interest:"Punto de interés",
-establishment:"Establecimiento",
-business_center:"Centro de negocios",
-accounting:"Contabilidad",
-lawyer:"Abogado",
-real_estate_agency:"Bienes raíces",
-finance:"Finanzas",
-bank:"Banco",
-insurance_agency:"Agencia de seguros",
-car_dealer:"Venta de autos",
-hardware_store:"Ferretería",
-pharmacy:"Farmacia",
-hospital:"Hospital",
-doctor:"Doctor",
-dentist:"Dentista",
-gym:"Gimnasio",
-beauty_salon:"Salón de belleza",
-bar:"Bar",
-cafe:"Café",
-bakery:"Panadería"
-};
-return mapa[types[0]]||types[0].replaceAll("_"," ");
+  if(!types || !types.length) return "";
+
+  const mapa={
+    employment_agency:"Agencia de empleo",
+    local_government_office:"Oficina gubernamental",
+    corporate_office:"Oficina corporativa",
+    store:"Tienda",
+    restaurant:"Restaurante",
+    school:"Escuela",
+    university:"Universidad",
+    lodging:"Hotel",
+    shopping_mall:"Centro comercial",
+    point_of_interest:"Punto de interés",
+    establishment:"Establecimiento",
+    business_center:"Centro de negocios",
+    accounting:"Contabilidad",
+    lawyer:"Abogado",
+    real_estate_agency:"Bienes raíces",
+    finance:"Finanzas",
+    bank:"Banco",
+    insurance_agency:"Agencia de seguros",
+    car_dealer:"Venta de autos",
+    hardware_store:"Ferretería",
+    pharmacy:"Farmacia",
+    hospital:"Hospital",
+    doctor:"Doctor",
+    dentist:"Dentista",
+    gym:"Gimnasio",
+    beauty_salon:"Salón de belleza",
+    bar:"Bar",
+    cafe:"Café",
+    bakery:"Panadería"
+  };
+
+  return mapa[types[0]] || types[0].replaceAll("_"," ");
 }
 
 function pintarTabla(data){
-const tbody=document.querySelector("#tabla tbody");
-tbody.innerHTML="";
-data.forEach((row,index)=>{
-const tr=document.createElement("tr");
-tr.innerHTML=`
-<td>${index+1}</td>
-<td>${escapeHtml(row.nombre)}</td>
-<td>${escapeHtml(row.telefono)}</td>
-<td>${escapeHtml(row.direccion)}</td>
-<td>${row.sitioWeb?`<a href="${escapeHtml(row.sitioWeb)}" target="_blank">${escapeHtml(row.sitioWeb)}</a>`:""}</td>
-<td>${escapeHtml(row.categoria)}</td>`;
-tbody.appendChild(tr);
-});
+  const tbody=document.querySelector("#tabla tbody");
+  tbody.innerHTML="";
+
+  data.forEach((row,index)=>{
+    const tr=document.createElement("tr");
+    const sitio=escapeAttr(row.sitioWeb);
+
+    tr.innerHTML=`
+    <td>${index+1}</td>
+    <td>${escapeHtml(row.nombre)}</td>
+    <td>${escapeHtml(row.telefono)}</td>
+    <td>${escapeHtml(row.direccion)}</td>
+    <td>${row.sitioWeb ? `<a href="${sitio}" target="_blank" rel="noopener noreferrer">${escapeHtml(row.sitioWeb)}</a>` : ""}</td>
+    <td>${escapeHtml(row.categoria)}</td>`;
+
+    tbody.appendChild(tr);
+  });
 }
 
 function filtrarTabla(){
-const texto=document.getElementById("filtro").value.toLowerCase();
-const filtrados=resultados.filter(row=>Object.values(row).some(valor=>String(valor||"").toLowerCase().includes(texto)));
-pintarTabla(filtrados);
+  const texto=document.getElementById("filtro").value.toLowerCase();
+
+  const filtrados=resultados.filter(row=>
+    Object.values(row).some(valor=>
+      String(valor||"").toLowerCase().includes(texto)
+    )
+  );
+
+  pintarTabla(filtrados);
 }
 
 function exportarExcel(){
-if(!resultados.length){
-alert("No hay resultados para exportar.");
-return;
-}
-const dataExcel=resultados.map((row,index)=>({
-"No":index+1,
-"Nombre":row.nombre,
-"Teléfono":row.telefono,
-"Dirección":row.direccion,
-"Sitio web":row.sitioWeb,
-"Categoría":row.categoria
-}));
-const ws=XLSX.utils.json_to_sheet(dataExcel);
-const wb=XLSX.utils.book_new();
-XLSX.utils.book_append_sheet(wb,ws,"Base");
-XLSX.writeFile(wb,"Base_Google_Maps.xlsx");
+  if(!resultados.length){
+    alert("No hay resultados para exportar.");
+    return;
+  }
+
+  const dataExcel=resultados.map((row,index)=>({
+    "No":index+1,
+    "Nombre":row.nombre,
+    "Teléfono":row.telefono,
+    "Dirección":row.direccion,
+    "Sitio web":row.sitioWeb,
+    "Categoría":row.categoria
+  }));
+
+  const ws=XLSX.utils.json_to_sheet(dataExcel);
+  const wb=XLSX.utils.book_new();
+
+  XLSX.utils.book_append_sheet(wb,ws,"Base");
+  XLSX.writeFile(wb,"Base_Google_Maps.xlsx");
 }
 
 function limpiarResultados(){
-resultados=[];
-pintarTabla(resultados);
-document.getElementById("filtro").value="";
-document.querySelectorAll(".estado").forEach(e=>e.value="Pendiente");
-setEstadoGeneral("Resultados");
+  resultados=[];
+  pintarTabla(resultados);
+  document.getElementById("filtro").value="";
+  document.querySelectorAll(".estado").forEach(e=>e.value="Pendiente");
+  setEstadoGeneral("Resultados: 0");
 }
 
 function salirSistema(){
-if(!confirm("¿Desea salir del sistema?"))return;
-resultados=[];
-pintarTabla([]);
-document.getElementById("filtro").value="";
-document.querySelectorAll(".busqueda").forEach(x=>x.value="");
-document.querySelectorAll(".radioKm").forEach(x=>x.value=3);
-document.querySelectorAll(".estado").forEach(x=>x.value="Pendiente");
-cerrarAutomatizaciones();
-document.querySelector(".container").style.display="none";
-document.getElementById("pantallaSalida").style.display="flex";
+  if(!confirm("¿Desea salir del sistema?")) return;
+
+  resultados=[];
+  pintarTabla([]);
+
+  document.getElementById("filtro").value="";
+  document.querySelectorAll(".busqueda").forEach(x=>x.value="");
+  document.querySelectorAll(".radioKm").forEach(x=>x.value=3);
+  document.querySelectorAll(".estado").forEach(x=>x.value="Pendiente");
+
+  cerrarAutomatizaciones();
+
+  document.querySelector(".container").style.display="none";
+  document.getElementById("pantallaSalida").style.display="flex";
 }
 
 function escapeHtml(texto){
-return String(texto||"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;");
+  return String(texto||"")
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;")
+    .replaceAll("'","&#039;");
 }
 
 function escapeAttr(texto){
-return escapeHtml(texto).replaceAll("`","&#096;");
+  return escapeHtml(texto).replaceAll("`","&#096;");
 }
 </script>
 
-<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDo_bIWY2S2ijy8vMQfeq1OzaBIwX6lP_w&libraries=places&callback=initMap" async defer></script>
+<script 
+src="https://maps.googleapis.com/maps/api/js?key=TU_API_KEY&libraries=places&callback=initMap" 
+async 
+defer 
+onerror="googleMapsError()">
+</script>
 
 </body>
 </html>
