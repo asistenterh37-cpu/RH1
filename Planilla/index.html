@@ -1,1 +1,109 @@
+const CONFIG={
+  SHEET_ID:'1qX8P30sV-1tfUS5txAXWcfMUHaIXwPVAgbiMF9vl3Wo',
+  SHEET_MAESTRO:'Maestro',SHEET_CATALOGOS:'Catalogos',SHEET_ASISTENCIA:'Asistencia',
+  LAT_EMPRESA:14.0723,LNG_EMPRESA:-87.1921,RADIO_PERMITIDO:150
+};
+
+const CAMPOS=[
+  'pin','nombre','planilla','sueldo','tipoContrato','fechaIngreso','fechaFin','posicion',
+  'departamento','centroCosto','ubicacion','jornada','estatus','correo','banco','tipoCuenta','numeroCuenta'
+];
+
+/** API JSONP para un HTML externo publicado en GitHub Pages. */
+function doGet(e){
+  const p=(e&&e.parameter)||{};
+  if(!p.action)return salida_({ok:true,mensaje:'API de planilla activa.'},p.callback);
+  try{
+    const datos=p.data?JSON.parse(p.data):{};
+    let r;
+    switch(p.action){
+      case 'catalogos':r={ok:true,catalogos:obtenerCatalogos()};break;
+      case 'buscarEmpleado':r=buscarEmpleado(datos.pin);break;
+      case 'guardarEmpleado':r=guardarEmpleado(datos);break;
+      case 'actualizarEmpleado':r=actualizarEmpleado(datos);break;
+      case 'validarPin':r=validarPin(datos.pin);break;
+      case 'registrarAsistencia':r=registrarAsistencia(datos);break;
+      default:r={ok:false,mensaje:'Acción no reconocida.'};
+    }
+    return salida_(r,p.callback);
+  }catch(err){return salida_({ok:false,mensaje:err.message},p.callback)}
+}
+
+function salida_(obj,callback){
+  const json=JSON.stringify(obj);
+  if(callback){
+    const cb=String(callback).replace(/[^a-zA-Z0-9_$]/g,'');
+    return ContentService.createTextOutput(cb+'('+json+');').setMimeType(ContentService.MimeType.JAVASCRIPT);
+  }
+  return ContentService.createTextOutput(json).setMimeType(ContentService.MimeType.JSON);
+}
+
+function ss_(){return SpreadsheetApp.openById(CONFIG.SHEET_ID)}
+function hoja_(nombre){const h=ss_().getSheetByName(nombre);if(!h)throw new Error('No existe la hoja "'+nombre+'".');return h}
+
+function obtenerCatalogos(){
+  const h=hoja_(CONFIG.SHEET_CATALOGOS),last=Math.max(h.getLastRow(),2);
+  const mapa={planilla:1,tipoContrato:2,posicion:3,departamento:4,centroCosto:5,ubicacion:6,jornada:7,estatus:8,banco:15,tipoCuenta:16};
+  const out={};
+  Object.keys(mapa).forEach(k=>{out[k]=[...new Set(h.getRange(2,mapa[k],last-1,1).getDisplayValues().flat().map(String).map(x=>x.trim()).filter(x=>x&&normal_(x)!=='seleccionar'))]});
+  return out;
+}
+
+function guardarEmpleado(d){
+  validarEmpleado_(d);
+  const lock=LockService.getScriptLock();lock.waitLock(20000);
+  try{
+    const h=hoja_(CONFIG.SHEET_MAESTRO);
+    if(encontrarFila_(h,d.pin)>0)return {ok:false,mensaje:'Ya existe un empleado con ese Pin.'};
+    h.getRange(h.getLastRow()+1,1,1,CAMPOS.length).setValues([filaEmpleado_(d)]);
+    h.getRange(h.getLastRow(),1).setNumberFormat('@');
+    return {ok:true,mensaje:'Empleado guardado correctamente.'};
+  }finally{lock.releaseLock()}
+}
+
+function buscarEmpleado(pin){
+  pin=String(pin||'').trim();if(!pin)return {ok:false,mensaje:'Ingrese el No. de personal.'};
+  const h=hoja_(CONFIG.SHEET_MAESTRO),fila=encontrarFila_(h,pin);
+  if(fila<2)return {ok:false,mensaje:'No se encontró el empleado.'};
+  const v=h.getRange(fila,1,1,CAMPOS.length).getValues()[0],empleado={};
+  CAMPOS.forEach((k,i)=>empleado[k]=formatearCampo_(k,v[i]));
+  return {ok:true,empleado:empleado};
+}
+
+function actualizarEmpleado(d){
+  validarEmpleado_(d);
+  const lock=LockService.getScriptLock();lock.waitLock(20000);
+  try{
+    const h=hoja_(CONFIG.SHEET_MAESTRO),fila=encontrarFila_(h,d.pin);
+    if(fila<2)return {ok:false,mensaje:'No se encontró el empleado que desea modificar.'};
+    h.getRange(fila,1,1,CAMPOS.length).setValues([filaEmpleado_(d)]);
+    return {ok:true,mensaje:'Datos del empleado actualizados correctamente.'};
+  }finally{lock.releaseLock()}
+}
+
+function validarEmpleado_(d){if(!d||!String(d.pin||'').trim()||!String(d.nombre||'').trim())throw new Error('Pin y Nombre son obligatorios.')}
+function filaEmpleado_(d){return CAMPOS.map(k=>['fechaIngreso','fechaFin'].includes(k)?fecha_(d[k]):k==='sueldo'?numero_(d[k]):String(d[k]||'').trim())}
+function encontrarFila_(h,pin){const n=h.getLastRow();if(n<2)return -1;const f=h.getRange(2,1,n-1,1).createTextFinder(String(pin).trim()).matchEntireCell(true).findNext();return f?f.getRow():-1}
+function fecha_(v){if(!v)return '';const p=String(v).split('-');return p.length===3?new Date(Number(p[0]),Number(p[1])-1,Number(p[2])):v}
+function formatearCampo_(k,v){if(['fechaIngreso','fechaFin'].includes(k)&&v instanceof Date)return Utilities.formatDate(v,Session.getScriptTimeZone(),'yyyy-MM-dd');return v==null?'':String(v)}
+function numero_(v){const n=Number(String(v||'').replace(/,/g,''));return isNaN(n)?0:n}
+function normal_(v){return String(v||'').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')}
+
+/* Funciones de asistencia compatibles con el proyecto original. */
+function validarPin(pin){
+  const r=buscarEmpleado(pin);return r.ok?{ok:true,pin:r.empleado.pin,empleado:r.empleado.nombre}:{ok:false,mensaje:'PIN incorrecto o empleado no registrado.'};
+}
+function registrarAsistencia(d){
+  const emp=validarPin(d.pin);if(!emp.ok)return emp;
+  const h=obtenerHojaAsistencia_(),ahora=new Date();
+  const distancia=calcularDistancia_(CONFIG.LAT_EMPRESA,CONFIG.LNG_EMPRESA,Number(d.lat),Number(d.lng));
+  const estado=distancia<=CONFIG.RADIO_PERMITIDO?'Válido':'Fuera del radio permitido';
+  h.appendRow([Utilities.formatDate(ahora,Session.getScriptTimeZone(),'dd/MM/yyyy'),Utilities.formatDate(ahora,Session.getScriptTimeZone(),'HH:mm:ss'),emp.pin,emp.empleado,d.tipo,d.lat,d.lng,Math.round(distancia),estado,d.dispositivo||'']);
+  return {ok:true,estado:estado,empleado:emp.empleado,distancia:Math.round(distancia),mensaje:'Registro realizado correctamente.'};
+}
+function obtenerHojaAsistencia_(){const ss=ss_();let h=ss.getSheetByName(CONFIG.SHEET_ASISTENCIA);if(!h){h=ss.insertSheet(CONFIG.SHEET_ASISTENCIA);h.appendRow(['Fecha','Hora','PIN','Empleado','Tipo','Latitud','Longitud','Distancia (m)','Estado','Dispositivo'])}return h}
+function calcularDistancia_(a,b,c,d){const R=6371000,x=(c-a)*Math.PI/180,y=(d-b)*Math.PI/180,q=Math.sin(x/2)**2+Math.cos(a*Math.PI/180)*Math.cos(c*Math.PI/180)*Math.sin(y/2)**2;return R*2*Math.atan2(Math.sqrt(q),Math.sqrt(1-q))}
+
+function onOpen(){SpreadsheetApp.getUi().createMenu('Control de planilla').addItem('Abrir aplicación','mostrarEnlace').addToUi()}
+function mostrarEnlace(){SpreadsheetApp.getUi().alert('Abra la dirección publicada mediante GitHub Pages.')}
 
