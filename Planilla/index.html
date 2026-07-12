@@ -970,7 +970,7 @@
      */
 
     const API_URL =
-      "https://script.google.com/macros/s/AKfycbwkOjYd44eE6X7sFHNlKu_6Vt-wnr4Tg3rfsDpedJ1GdZpL6BToSesUA6Z85wlmx1mS/exec";
+      "https://script.google.com/macros/s/AKfycbxdV7N7mBRSOwuzYHSYRCbAUFb1TjP0cCseaTp_sBvZDHlB_JsCthaRYb6DeQW2qc-X/exec";
 
     const camposEmpleado = [
 
@@ -4387,6 +4387,269 @@ document.addEventListener(
 
       boton.disabled = false;
     }
+  }
+
+</script>
+
+<!-- AJUSTE DE OTROS INGRESOS: PLANILLAS DESDE/HASTA -->
+
+<script>
+
+  document.addEventListener(
+    "DOMContentLoaded",
+    function () {
+
+      /*
+       * Esperar a que el módulo Otros ingresos
+       * termine de construir sus controles.
+       */
+
+      setTimeout(
+        configurarSelectoresPlanillasIngreso,
+        150
+      );
+    }
+  );
+
+  function configurarSelectoresPlanillasIngreso() {
+
+    const selectorOpcion =
+      document.getElementById(
+        "opcionOtrosIngresos"
+      );
+
+    if (!selectorOpcion) {
+      return;
+    }
+
+    /*
+     * Eliminar Catalogos del selector principal.
+     */
+
+    selectorOpcion.innerHTML = `
+
+      <option value="">
+        Seleccionar
+      </option>
+
+      <option value="Otros ingresos">
+        Otros ingresos
+      </option>
+    `;
+
+    /*
+     * Cambiar Desde de calendario a selector.
+     */
+
+    const controlDesde =
+      document.getElementById(
+        "ingresoDesde"
+      );
+
+    if (
+      controlDesde &&
+      controlDesde.tagName !== "SELECT"
+    ) {
+
+      controlDesde.outerHTML = `
+
+        <select
+          id="ingresoDesde"
+          required
+        >
+
+          <option value="">
+            Seleccionar
+          </option>
+
+        </select>
+      `;
+    }
+
+    /*
+     * Cambiar Hasta de calendario a selector.
+     */
+
+    const controlHasta =
+      document.getElementById(
+        "ingresoHasta"
+      );
+
+    if (
+      controlHasta &&
+      controlHasta.tagName !== "SELECT"
+    ) {
+
+      controlHasta.outerHTML = `
+
+        <select
+          id="ingresoHasta"
+          required
+        >
+
+          <option value="">
+            Seleccionar
+          </option>
+
+        </select>
+      `;
+    }
+  }
+
+  /*
+   * Esta función reemplaza la versión anterior.
+   * Carga conceptos desde Q y planillas desde R.
+   */
+
+  async function cargarConfiguracionIngresos() {
+
+    mostrarMensajeOtrosIngresos(
+      "Cargando conceptos y planillas...",
+      "info"
+    );
+
+    try {
+
+      /*
+       * Asegurar que Desde y Hasta
+       * ya sean selectores.
+       */
+
+      configurarSelectoresPlanillasIngreso();
+
+      const respuesta =
+        await jsonp(
+          "configuracionIngresos",
+          {}
+        );
+
+      if (!respuesta.ok) {
+
+        throw new Error(
+          respuesta.mensaje
+        );
+      }
+
+      /*
+       * Conceptos desde Catalogos!Q2:Q.
+       */
+
+      llenarConceptosIngreso(
+        respuesta.conceptos || []
+      );
+
+      /*
+       * Planillas desde Catalogos!R2:R27.
+       */
+
+      llenarSelectoresPlanillasIngreso(
+        respuesta.planillas || []
+      );
+
+      const usuario =
+        document.getElementById(
+          "ingresoUsuario"
+        );
+
+      if (
+        usuario &&
+        !usuario.value
+      ) {
+
+        usuario.value =
+          respuesta.usuario || "";
+      }
+
+      establecerFechaHoyIngreso();
+
+      mostrarMensajeOtrosIngresos(
+        "",
+        ""
+      );
+
+    } catch (error) {
+
+      mostrarMensajeOtrosIngresos(
+        error.message,
+        "error"
+      );
+    }
+  }
+
+  function llenarSelectoresPlanillasIngreso(
+    planillas
+  ) {
+
+    const selectorDesde =
+      document.getElementById(
+        "ingresoDesde"
+      );
+
+    const selectorHasta =
+      document.getElementById(
+        "ingresoHasta"
+      );
+
+    if (
+      !selectorDesde ||
+      !selectorHasta
+    ) {
+      return;
+    }
+
+    const opcionInicial =
+      '<option value="">' +
+      "Seleccionar" +
+      "</option>";
+
+    selectorDesde.innerHTML =
+      opcionInicial;
+
+    selectorHasta.innerHTML =
+      opcionInicial;
+
+    planillas.forEach(
+      function (planilla) {
+
+        const texto =
+          String(planilla || "")
+            .trim();
+
+        if (!texto) {
+          return;
+        }
+
+        const opcionDesde =
+          document.createElement(
+            "option"
+          );
+
+        opcionDesde.value =
+          texto;
+
+        opcionDesde.textContent =
+          texto;
+
+        selectorDesde.appendChild(
+          opcionDesde
+        );
+
+        const opcionHasta =
+          document.createElement(
+            "option"
+          );
+
+        opcionHasta.value =
+          texto;
+
+        opcionHasta.textContent =
+          texto;
+
+        selectorHasta.appendChild(
+          opcionHasta
+        );
+      }
+    );
   }
 
 </script>
