@@ -105,11 +105,10 @@
     }
 
     .grid {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 15px;
-    }
-
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 15px;
+}
     input,
     select {
       width: 100%;
@@ -187,12 +186,46 @@
       word-break: break-all;
     }
 
-    @media (max-width: 720px) {
-      .menu,
-      .grid {
-        grid-template-columns: 1fr;
-      }
+   .parametros-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 15px;
+}
 
+.parametro-ancho {
+  grid-column: 1 / -1;
+}
+
+.feriados-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.feriado-item {
+  padding: 10px;
+  border: 1px solid var(--borde);
+  border-radius: 10px;
+  background: #f8fafc;
+}
+
+.feriado-item label {
+  font-size: 13px;
+}
+
+.acciones-parametros {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+} 
+
+  .menu,
+.grid,
+.parametros-grid,
+.feriados-grid {
+  grid-template-columns: 1fr;
+}
+    
       .barra {
         flex-direction: column;
         align-items: stretch;
@@ -230,16 +263,147 @@
 
     </nav>
 
-    <section id="parametros" class="panel">
+   <section id="parametros" class="panel">
 
-      <h2>Parámetros de planilla</h2>
+  <h2>Parámetros de planilla</h2>
 
-      <p>
-        Los parámetros y listas desplegables se administran
-        desde la hoja <strong>Catalogos</strong>.
-      </p>
+  <p>
+    Estos valores se guardarán en las columnas I:N
+    de la hoja <strong>Catalogos</strong>.
+  </p>
 
-    </section>
+  <form
+    id="formParametros"
+    onsubmit="guardarParametros(event)"
+  >
+
+    <div class="parametros-grid">
+
+      <div>
+
+        <label for="estatusHoraEnt">
+          Estatus Hora Ent
+        </label>
+
+        <input
+          id="estatusHoraEnt"
+          name="estatusHoraEnt"
+          type="time"
+          step="1"
+          required
+        >
+
+      </div>
+
+      <div>
+
+        <label for="recargoDiurno">
+          Horas extras diu recargo
+        </label>
+
+        <input
+          id="recargoDiurno"
+          name="recargoDiurno"
+          type="number"
+          min="0"
+          step="0.01"
+          placeholder="Ejemplo: 1.25"
+          required
+        >
+
+      </div>
+
+      <div>
+
+        <label for="recargoNocturno">
+          Horas extras noct recargo
+        </label>
+
+        <input
+          id="recargoNocturno"
+          name="recargoNocturno"
+          type="number"
+          min="0"
+          step="0.01"
+          placeholder="Ejemplo: 1.50"
+          required
+        >
+
+      </div>
+
+      <div>
+
+        <label for="recargoDescanso">
+          Horas extras descanso recargo
+        </label>
+
+        <input
+          id="recargoDescanso"
+          name="recargoDescanso"
+          type="number"
+          min="0"
+          step="0.01"
+          placeholder="Ejemplo: 2.00"
+          required
+        >
+
+      </div>
+
+      <div>
+
+        <label for="recargoFeriado">
+          Horas extras feriado recargo
+        </label>
+
+        <input
+          id="recargoFeriado"
+          name="recargoFeriado"
+          type="number"
+          min="0"
+          step="0.01"
+          placeholder="Ejemplo: 2.00"
+          required
+        >
+
+      </div>
+
+      <div class="parametro-ancho">
+
+        <h3>Feriados</h3>
+
+        <p>
+          Puede registrar hasta 12 fechas de feriados.
+        </p>
+
+        <div
+          id="feriadosGrid"
+          class="feriados-grid"
+        ></div>
+
+      </div>
+
+    </div>
+
+    <div class="acciones-parametros">
+
+      <button
+        id="btnGuardarParametros"
+        class="guardar"
+        type="submit"
+      >
+        Guardar parámetros
+      </button>
+
+    </div>
+
+  </form>
+
+  <div
+    id="mensajeParametros"
+    class="mensaje"
+  ></div>
+
+</section> 
 
     <section id="empleados" class="panel">
 
@@ -370,7 +534,7 @@
      * implementación de Apps Script terminada en /exec.
      */
 
-    const API_URL = "PEGAR_AQUI_URL_DE_APPS_SCRIPT";
+    const API_URL = "https://script.google.com/macros/s/AKfycbwZQn_aLR1lkSMfeQGKAqrZab6nNFFG8nPBbS5qckH7H_M2roFmSiYoOmfrfSEx5BgF/exec";
 
     const campos = [
       ["pin", "Pin", "text"],
@@ -395,35 +559,38 @@
     let catalogos = {};
     let modo = "";
 
-    function abrirPanel(id, boton) {
+function abrirPanel(id, boton) {
 
-      document
-        .querySelectorAll(".panel")
-        .forEach(function (panel) {
-          panel.classList.remove("activo");
-        });
+  document
+    .querySelectorAll(".panel")
+    .forEach(function (panel) {
+      panel.classList.remove("activo");
+    });
 
-      document
-        .querySelectorAll(".menu button")
-        .forEach(function (btn) {
-          btn.classList.remove("activo");
-        });
+  document
+    .querySelectorAll(".menu button")
+    .forEach(function (btn) {
+      btn.classList.remove("activo");
+    });
 
-      document
-        .getElementById(id)
-        .classList
-        .add("activo");
+  document
+    .getElementById(id)
+    .classList
+    .add("activo");
 
-      boton.classList.add("activo");
+  boton.classList.add("activo");
 
-      if (
-        id === "empleados" &&
-        Object.keys(catalogos).length === 0
-      ) {
-        cargarCatalogos();
-      }
-    }
+  if (
+    id === "empleados" &&
+    Object.keys(catalogos).length === 0
+  ) {
+    cargarCatalogos();
+  }
 
+  if (id === "parametros") {
+    cargarParametros();
+  }
+}
     function jsonp(accion, datos) {
 
       datos = datos || {};
@@ -889,6 +1056,232 @@
       }
     }
 
+function crearCamposFeriados() {
+
+  const contenedor =
+    document.getElementById("feriadosGrid");
+
+  if (!contenedor) {
+    return;
+  }
+
+  let html = "";
+
+  for (let i = 1; i <= 12; i++) {
+
+    html +=
+      '<div class="feriado-item">' +
+
+        '<label for="feriado' +
+        i +
+        '">Feriado ' +
+        i +
+        "</label>" +
+
+        '<input type="date" ' +
+        'id="feriado' +
+        i +
+        '" ' +
+        'name="feriado' +
+        i +
+        '">' +
+
+      "</div>";
+  }
+
+  contenedor.innerHTML = html;
+}
+
+async function cargarParametros() {
+
+  crearCamposFeriados();
+
+  mostrarMensajeParametros(
+    "Cargando parámetros...",
+    "info"
+  );
+
+  try {
+
+    const respuesta =
+      await jsonp(
+        "obtenerParametros"
+      );
+
+    if (!respuesta.ok) {
+      throw new Error(respuesta.mensaje);
+    }
+
+    const parametros =
+      respuesta.parametros || {};
+
+    document
+      .getElementById("estatusHoraEnt")
+      .value =
+        parametros.estatusHoraEnt || "";
+
+    document
+      .getElementById("recargoDiurno")
+      .value =
+        parametros.recargoDiurno ?? "";
+
+    document
+      .getElementById("recargoNocturno")
+      .value =
+        parametros.recargoNocturno ?? "";
+
+    document
+      .getElementById("recargoDescanso")
+      .value =
+        parametros.recargoDescanso ?? "";
+
+    document
+      .getElementById("recargoFeriado")
+      .value =
+        parametros.recargoFeriado ?? "";
+
+    const feriados =
+      parametros.feriados || [];
+
+    for (let i = 1; i <= 12; i++) {
+
+      const campo =
+        document.getElementById(
+          "feriado" + i
+        );
+
+      if (campo) {
+        campo.value =
+          feriados[i - 1] || "";
+      }
+    }
+
+    mostrarMensajeParametros(
+      "",
+      ""
+    );
+
+  } catch (error) {
+
+    mostrarMensajeParametros(
+      error.message,
+      "error"
+    );
+  }
+}
+
+async function guardarParametros(evento) {
+
+  evento.preventDefault();
+
+  const boton =
+    document.getElementById(
+      "btnGuardarParametros"
+    );
+
+  const feriados = [];
+
+  for (let i = 1; i <= 12; i++) {
+
+    const campo =
+      document.getElementById(
+        "feriado" + i
+      );
+
+    feriados.push(
+      campo ? campo.value : ""
+    );
+  }
+
+  const datos = {
+
+    estatusHoraEnt:
+      document
+        .getElementById("estatusHoraEnt")
+        .value,
+
+    recargoDiurno:
+      document
+        .getElementById("recargoDiurno")
+        .value,
+
+    recargoNocturno:
+      document
+        .getElementById("recargoNocturno")
+        .value,
+
+    recargoDescanso:
+      document
+        .getElementById("recargoDescanso")
+        .value,
+
+    recargoFeriado:
+      document
+        .getElementById("recargoFeriado")
+        .value,
+
+    feriados: feriados
+  };
+
+  boton.disabled = true;
+
+  mostrarMensajeParametros(
+    "Guardando parámetros...",
+    "info"
+  );
+
+  try {
+
+    const respuesta =
+      await jsonp(
+        "guardarParametros",
+        datos
+      );
+
+    if (!respuesta.ok) {
+      throw new Error(respuesta.mensaje);
+    }
+
+    mostrarMensajeParametros(
+      respuesta.mensaje,
+      "ok"
+    );
+
+  } catch (error) {
+
+    mostrarMensajeParametros(
+      error.message,
+      "error"
+    );
+
+  } finally {
+
+    boton.disabled = false;
+  }
+}
+
+function mostrarMensajeParametros(
+  texto,
+  tipo
+) {
+
+  const mensaje =
+    document.getElementById(
+      "mensajeParametros"
+    );
+
+  mensaje.textContent =
+    texto || "";
+
+  mensaje.className =
+    "mensaje" +
+    (
+      tipo
+        ? " " + tipo
+        : ""
+    );
+}
+    
     function mostrarMensaje(texto, tipo) {
 
       const mensaje =
@@ -923,6 +1316,13 @@
       );
     }
 
+document.addEventListener(
+  "DOMContentLoaded",
+  function () {
+    crearCamposFeriados();
+  }
+);
+    
   </script>
 
 </body>
