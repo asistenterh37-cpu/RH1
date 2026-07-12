@@ -970,7 +970,7 @@
      */
 
     const API_URL =
-      "https://script.google.com/macros/s/AKfycby5GyeUKgbJ2pmbFST3ea3u32SET4ze3kfjxfbT-EN_ehaWrGURVmBIsK8nWxtuH_KD/exec";
+      "https://script.google.com/macros/s/AKfycbzXwGgWcgxMNrFJEZ3KBO_ATc810xyBdiEzFFsJNGeePFdqvBN6ZZ9G2jYzhf8MSRJ7/exec";
 
     const camposEmpleado = [
 
@@ -2520,6 +2520,747 @@ document.addEventListener(
     
   </script>
 
+<!-- MÓDULO OTROS INGRESOS -->
+
+<style>
+
+  /*
+   * Cinco botones en el menú principal.
+   */
+
+  .menu {
+    grid-template-columns:
+      repeat(5, minmax(0, 1fr));
+  }
+
+  .otros-ingresos-formulario {
+    display: none;
+    margin-top: 22px;
+  }
+
+  .otros-ingresos-grid {
+    display: grid;
+    grid-template-columns:
+      repeat(4, minmax(0, 1fr));
+    gap: 16px;
+    align-items: end;
+  }
+
+  .otros-ingresos-campo label {
+    display: block;
+    margin-bottom: 6px;
+    font-weight: bold;
+  }
+
+  .otros-ingresos-campo input,
+  .otros-ingresos-campo select {
+    width: 100%;
+  }
+
+  .otros-ingresos-nombre {
+    background: #f1f5f9;
+  }
+
+  .otros-ingresos-guardar {
+    min-width: 160px;
+    margin-top: 20px;
+    color: white;
+    background: var(--verde);
+  }
+
+  @media (max-width: 950px) {
+
+    .menu {
+      grid-template-columns:
+        repeat(2, minmax(0, 1fr));
+    }
+
+    .otros-ingresos-grid {
+      grid-template-columns:
+        repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @media (max-width: 650px) {
+
+    .menu,
+    .otros-ingresos-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+</style>
+
+<script>
+
+  /*
+   * Construir automáticamente el botón y el panel
+   * para no tener que modificar otras partes del HTML.
+   */
+
+  document.addEventListener(
+    "DOMContentLoaded",
+    function () {
+
+      crearModuloOtrosIngresos();
+    }
+  );
+
+  function crearModuloOtrosIngresos() {
+
+    const menu =
+      document.querySelector(".menu");
+
+    const contenidoPrincipal =
+      document.querySelector("main");
+
+    if (
+      !menu ||
+      !contenidoPrincipal ||
+      document.getElementById(
+        "otrosIngresos"
+      )
+    ) {
+      return;
+    }
+
+    /*
+     * Botón del menú.
+     */
+
+    const boton =
+      document.createElement("button");
+
+    boton.type = "button";
+
+    boton.textContent =
+      "Otros ingresos";
+
+    boton.onclick =
+      function () {
+
+        abrirPanel(
+          "otrosIngresos",
+          boton
+        );
+
+        cargarConfiguracionIngresos();
+      };
+
+    menu.appendChild(boton);
+
+    /*
+     * Panel de Otros ingresos.
+     */
+
+    const panel =
+      document.createElement("section");
+
+    panel.id =
+      "otrosIngresos";
+
+    panel.className =
+      "panel";
+
+    panel.innerHTML = `
+
+      <h2>Otros ingresos</h2>
+
+      <p>
+        Registre otros conceptos de ingreso
+        correspondientes a los empleados.
+      </p>
+
+      <div
+        class="acciones"
+      >
+
+        <label for="opcionOtrosIngresos">
+          Seleccione una opción
+        </label>
+
+        <select
+          id="opcionOtrosIngresos"
+          onchange="cambiarOpcionOtrosIngresos()"
+        >
+
+          <option value="">
+            Seleccionar
+          </option>
+
+          <option value="Catalogos">
+            Catalogos
+          </option>
+
+          <option value="Otros ingresos">
+            Otros ingresos
+          </option>
+
+        </select>
+
+      </div>
+
+      <form
+        id="formOtrosIngresos"
+        class="otros-ingresos-formulario"
+        onsubmit="guardarOtroIngreso(event)"
+      >
+
+        <div class="otros-ingresos-grid">
+
+          <div class="otros-ingresos-campo">
+
+            <label for="ingresoNumeroPersonal">
+              No. de personal
+            </label>
+
+            <input
+              id="ingresoNumeroPersonal"
+              type="text"
+              autocomplete="off"
+              placeholder="Ingrese el número"
+              onblur="buscarEmpleadoIngreso()"
+              required
+            >
+
+          </div>
+
+          <div class="otros-ingresos-campo">
+
+            <label for="ingresoNombre">
+              Nombre
+            </label>
+
+            <input
+              id="ingresoNombre"
+              class="otros-ingresos-nombre"
+              type="text"
+              readonly
+              placeholder="Se completará automáticamente"
+              required
+            >
+
+          </div>
+
+          <div class="otros-ingresos-campo">
+
+            <label for="ingresoConcepto">
+              Concepto
+            </label>
+
+            <select
+              id="ingresoConcepto"
+              required
+            >
+
+              <option value="">
+                Seleccionar
+              </option>
+
+            </select>
+
+          </div>
+
+          <div class="otros-ingresos-campo">
+
+            <label for="ingresoDesde">
+              Desde
+            </label>
+
+            <input
+              id="ingresoDesde"
+              type="date"
+              required
+            >
+
+          </div>
+
+          <div class="otros-ingresos-campo">
+
+            <label for="ingresoHasta">
+              Hasta
+            </label>
+
+            <input
+              id="ingresoHasta"
+              type="date"
+              required
+            >
+
+          </div>
+
+          <div class="otros-ingresos-campo">
+
+            <label for="ingresoValor">
+              Valor
+            </label>
+
+            <input
+              id="ingresoValor"
+              type="number"
+              min="0"
+              step="0.01"
+              placeholder="0.00"
+              required
+            >
+
+          </div>
+
+          <div class="otros-ingresos-campo">
+
+            <label for="ingresoFechaRegistro">
+              Fecha de registro
+            </label>
+
+            <input
+              id="ingresoFechaRegistro"
+              type="date"
+              readonly
+              required
+            >
+
+          </div>
+
+          <div class="otros-ingresos-campo">
+
+            <label for="ingresoUsuario">
+              Usuario
+            </label>
+
+            <input
+              id="ingresoUsuario"
+              type="text"
+              placeholder="Correo o nombre del usuario"
+              required
+            >
+
+          </div>
+
+        </div>
+
+        <button
+          id="btnGuardarOtroIngreso"
+          class="otros-ingresos-guardar"
+          type="submit"
+        >
+          Guardar
+        </button>
+
+      </form>
+
+      <div
+        id="mensajeOtrosIngresos"
+        class="mensaje"
+      ></div>
+    `;
+
+    contenidoPrincipal.appendChild(
+      panel
+    );
+
+    establecerFechaHoyIngreso();
+  }
+
+  function establecerFechaHoyIngreso() {
+
+    const campo =
+      document.getElementById(
+        "ingresoFechaRegistro"
+      );
+
+    if (!campo) {
+      return;
+    }
+
+    const hoy =
+      new Date();
+
+    const anio =
+      hoy.getFullYear();
+
+    const mes =
+      String(
+        hoy.getMonth() + 1
+      ).padStart(2, "0");
+
+    const dia =
+      String(
+        hoy.getDate()
+      ).padStart(2, "0");
+
+    campo.value =
+      anio +
+      "-" +
+      mes +
+      "-" +
+      dia;
+  }
+
+  async function cargarConfiguracionIngresos() {
+
+    mostrarMensajeOtrosIngresos(
+      "Cargando conceptos...",
+      "info"
+    );
+
+    try {
+
+      const respuesta =
+        await jsonp(
+          "configuracionIngresos",
+          {}
+        );
+
+      if (!respuesta.ok) {
+
+        throw new Error(
+          respuesta.mensaje
+        );
+      }
+
+      llenarConceptosIngreso(
+        respuesta.conceptos || []
+      );
+
+      const usuario =
+        document.getElementById(
+          "ingresoUsuario"
+        );
+
+      if (
+        usuario &&
+        !usuario.value
+      ) {
+
+        usuario.value =
+          respuesta.usuario || "";
+      }
+
+      establecerFechaHoyIngreso();
+
+      mostrarMensajeOtrosIngresos(
+        "",
+        ""
+      );
+
+    } catch (error) {
+
+      mostrarMensajeOtrosIngresos(
+        error.message,
+        "error"
+      );
+    }
+  }
+
+  function llenarConceptosIngreso(
+    conceptos
+  ) {
+
+    const selector =
+      document.getElementById(
+        "ingresoConcepto"
+      );
+
+    if (!selector) {
+      return;
+    }
+
+    selector.innerHTML =
+      '<option value="">' +
+      "Seleccionar" +
+      "</option>";
+
+    conceptos.forEach(
+      function (concepto) {
+
+        const opcion =
+          document.createElement(
+            "option"
+          );
+
+        opcion.value =
+          concepto;
+
+        opcion.textContent =
+          concepto;
+
+        selector.appendChild(
+          opcion
+        );
+      }
+    );
+  }
+
+  function cambiarOpcionOtrosIngresos() {
+
+    const opcion =
+      document
+        .getElementById(
+          "opcionOtrosIngresos"
+        )
+        .value;
+
+    const formulario =
+      document.getElementById(
+        "formOtrosIngresos"
+      );
+
+    formulario.style.display =
+      opcion
+        ? "block"
+        : "none";
+
+    mostrarMensajeOtrosIngresos(
+      "",
+      ""
+    );
+
+    if (opcion) {
+
+      cargarConfiguracionIngresos();
+    }
+  }
+
+  async function buscarEmpleadoIngreso() {
+
+    const numeroPersonal =
+      document
+        .getElementById(
+          "ingresoNumeroPersonal"
+        )
+        .value
+        .trim();
+
+    const nombre =
+      document.getElementById(
+        "ingresoNombre"
+      );
+
+    nombre.value = "";
+
+    if (!numeroPersonal) {
+      return;
+    }
+
+    mostrarMensajeOtrosIngresos(
+      "Buscando empleado...",
+      "info"
+    );
+
+    try {
+
+      const respuesta =
+        await jsonp(
+          "buscarEmpleadoIngreso",
+          {
+            numeroPersonal:
+              numeroPersonal
+          }
+        );
+
+      if (!respuesta.ok) {
+
+        throw new Error(
+          respuesta.mensaje
+        );
+      }
+
+      nombre.value =
+        respuesta.nombre;
+
+      mostrarMensajeOtrosIngresos(
+        "Empleado encontrado.",
+        "ok"
+      );
+
+    } catch (error) {
+
+      nombre.value = "";
+
+      mostrarMensajeOtrosIngresos(
+        error.message,
+        "error"
+      );
+    }
+  }
+
+  async function guardarOtroIngreso(
+    evento
+  ) {
+
+    evento.preventDefault();
+
+    const boton =
+      document.getElementById(
+        "btnGuardarOtroIngreso"
+      );
+
+    const datos = {
+
+      numeroPersonal:
+        document
+          .getElementById(
+            "ingresoNumeroPersonal"
+          )
+          .value
+          .trim(),
+
+      nombre:
+        document
+          .getElementById(
+            "ingresoNombre"
+          )
+          .value
+          .trim(),
+
+      concepto:
+        document
+          .getElementById(
+            "ingresoConcepto"
+          )
+          .value,
+
+      desde:
+        document
+          .getElementById(
+            "ingresoDesde"
+          )
+          .value,
+
+      hasta:
+        document
+          .getElementById(
+            "ingresoHasta"
+          )
+          .value,
+
+      valor:
+        document
+          .getElementById(
+            "ingresoValor"
+          )
+          .value,
+
+      fechaRegistro:
+        document
+          .getElementById(
+            "ingresoFechaRegistro"
+          )
+          .value,
+
+      usuario:
+        document
+          .getElementById(
+            "ingresoUsuario"
+          )
+          .value
+          .trim()
+    };
+
+    if (!datos.nombre) {
+
+      mostrarMensajeOtrosIngresos(
+        "Ingrese un No. de personal válido.",
+        "error"
+      );
+
+      return;
+    }
+
+    boton.disabled = true;
+
+    mostrarMensajeOtrosIngresos(
+      "Guardando ingreso...",
+      "info"
+    );
+
+    try {
+
+      const respuesta =
+        await jsonp(
+          "guardarOtroIngreso",
+          datos
+        );
+
+      if (!respuesta.ok) {
+
+        throw new Error(
+          respuesta.mensaje
+        );
+      }
+
+      mostrarMensajeOtrosIngresos(
+        respuesta.mensaje,
+        "ok"
+      );
+
+      /*
+       * Limpiar los campos del nuevo registro,
+       * conservando usuario y fecha de hoy.
+       */
+
+      const usuario =
+        datos.usuario;
+
+      document
+        .getElementById(
+          "formOtrosIngresos"
+        )
+        .reset();
+
+      document
+        .getElementById(
+          "ingresoUsuario"
+        )
+        .value = usuario;
+
+      establecerFechaHoyIngreso();
+
+      llenarConceptosIngreso(
+        respuesta.conceptos || []
+      );
+
+    } catch (error) {
+
+      mostrarMensajeOtrosIngresos(
+        error.message,
+        "error"
+      );
+
+    } finally {
+
+      boton.disabled = false;
+    }
+  }
+
+  function mostrarMensajeOtrosIngresos(
+    texto,
+    tipo
+  ) {
+
+    const mensaje =
+      document.getElementById(
+        "mensajeOtrosIngresos"
+      );
+
+    if (!mensaje) {
+      return;
+    }
+
+    mensaje.textContent =
+      texto || "";
+
+    mensaje.className =
+      "mensaje" +
+      (
+        tipo
+          ? " " + tipo
+          : ""
+      );
+  }
+
+</script>
+  
 </body>
 
 </html>
