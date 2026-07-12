@@ -1,109 +1,929 @@
-const CONFIG={
-  SHEET_ID:'1qX8P30sV-1tfUS5txAXWcfMUHaIXwPVAgbiMF9vl3Wo',
-  SHEET_MAESTRO:'Maestro',SHEET_CATALOGOS:'Catalogos',SHEET_ASISTENCIA:'Asistencia',
-  LAT_EMPRESA:14.0723,LNG_EMPRESA:-87.1921,RADIO_PERMITIDO:150
-};
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
 
-const CAMPOS=[
-  'pin','nombre','planilla','sueldo','tipoContrato','fechaIngreso','fechaFin','posicion',
-  'departamento','centroCosto','ubicacion','jornada','estatus','correo','banco','tipoCuenta','numeroCuenta'
-];
+  <title>Gestión de planilla</title>
 
-/** API JSONP para un HTML externo publicado en GitHub Pages. */
-function doGet(e){
-  const p=(e&&e.parameter)||{};
-  if(!p.action)return salida_({ok:true,mensaje:'API de planilla activa.'},p.callback);
-  try{
-    const datos=p.data?JSON.parse(p.data):{};
-    let r;
-    switch(p.action){
-      case 'catalogos':r={ok:true,catalogos:obtenerCatalogos()};break;
-      case 'buscarEmpleado':r=buscarEmpleado(datos.pin);break;
-      case 'guardarEmpleado':r=guardarEmpleado(datos);break;
-      case 'actualizarEmpleado':r=actualizarEmpleado(datos);break;
-      case 'validarPin':r=validarPin(datos.pin);break;
-      case 'registrarAsistencia':r=registrarAsistencia(datos);break;
-      default:r={ok:false,mensaje:'Acción no reconocida.'};
+  <style>
+    :root {
+      --azul: #1d4ed8;
+      --azul-oscuro: #173d7a;
+      --verde: #15803d;
+      --gris: #64748b;
+      --fondo: #f1f5f9;
+      --texto: #172033;
+      --borde: #d7dfeb;
     }
-    return salida_(r,p.callback);
-  }catch(err){return salida_({ok:false,mensaje:err.message},p.callback)}
-}
 
-function salida_(obj,callback){
-  const json=JSON.stringify(obj);
-  if(callback){
-    const cb=String(callback).replace(/[^a-zA-Z0-9_$]/g,'');
-    return ContentService.createTextOutput(cb+'('+json+');').setMimeType(ContentService.MimeType.JAVASCRIPT);
-  }
-  return ContentService.createTextOutput(json).setMimeType(ContentService.MimeType.JSON);
-}
+    * {
+      box-sizing: border-box;
+    }
 
-function ss_(){return SpreadsheetApp.openById(CONFIG.SHEET_ID)}
-function hoja_(nombre){const h=ss_().getSheetByName(nombre);if(!h)throw new Error('No existe la hoja "'+nombre+'".');return h}
+    body {
+      margin: 0;
+      background: var(--fondo);
+      color: var(--texto);
+      font-family: Arial, sans-serif;
+      font-size: 15px;
+    }
 
-function obtenerCatalogos(){
-  const h=hoja_(CONFIG.SHEET_CATALOGOS),last=Math.max(h.getLastRow(),2);
-  const mapa={planilla:1,tipoContrato:2,posicion:3,departamento:4,centroCosto:5,ubicacion:6,jornada:7,estatus:8,banco:15,tipoCuenta:16};
-  const out={};
-  Object.keys(mapa).forEach(k=>{out[k]=[...new Set(h.getRange(2,mapa[k],last-1,1).getDisplayValues().flat().map(String).map(x=>x.trim()).filter(x=>x&&normal_(x)!=='seleccionar'))]});
-  return out;
-}
+    header {
+      padding: 25px;
+      color: white;
+      text-align: center;
+      background: linear-gradient(
+        135deg,
+        var(--azul-oscuro),
+        #2563eb
+      );
+    }
 
-function guardarEmpleado(d){
-  validarEmpleado_(d);
-  const lock=LockService.getScriptLock();lock.waitLock(20000);
-  try{
-    const h=hoja_(CONFIG.SHEET_MAESTRO);
-    if(encontrarFila_(h,d.pin)>0)return {ok:false,mensaje:'Ya existe un empleado con ese Pin.'};
-    h.getRange(h.getLastRow()+1,1,1,CAMPOS.length).setValues([filaEmpleado_(d)]);
-    h.getRange(h.getLastRow(),1).setNumberFormat('@');
-    return {ok:true,mensaje:'Empleado guardado correctamente.'};
-  }finally{lock.releaseLock()}
-}
+    header h1 {
+      margin: 0 0 5px;
+    }
 
-function buscarEmpleado(pin){
-  pin=String(pin||'').trim();if(!pin)return {ok:false,mensaje:'Ingrese el No. de personal.'};
-  const h=hoja_(CONFIG.SHEET_MAESTRO),fila=encontrarFila_(h,pin);
-  if(fila<2)return {ok:false,mensaje:'No se encontró el empleado.'};
-  const v=h.getRange(fila,1,1,CAMPOS.length).getValues()[0],empleado={};
-  CAMPOS.forEach((k,i)=>empleado[k]=formatearCampo_(k,v[i]));
-  return {ok:true,empleado:empleado};
-}
+    main {
+      max-width: 1050px;
+      margin: 22px auto;
+      padding: 0 16px;
+    }
 
-function actualizarEmpleado(d){
-  validarEmpleado_(d);
-  const lock=LockService.getScriptLock();lock.waitLock(20000);
-  try{
-    const h=hoja_(CONFIG.SHEET_MAESTRO),fila=encontrarFila_(h,d.pin);
-    if(fila<2)return {ok:false,mensaje:'No se encontró el empleado que desea modificar.'};
-    h.getRange(fila,1,1,CAMPOS.length).setValues([filaEmpleado_(d)]);
-    return {ok:true,mensaje:'Datos del empleado actualizados correctamente.'};
-  }finally{lock.releaseLock()}
-}
+    .menu {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+    }
 
-function validarEmpleado_(d){if(!d||!String(d.pin||'').trim()||!String(d.nombre||'').trim())throw new Error('Pin y Nombre son obligatorios.')}
-function filaEmpleado_(d){return CAMPOS.map(k=>['fechaIngreso','fechaFin'].includes(k)?fecha_(d[k]):k==='sueldo'?numero_(d[k]):String(d[k]||'').trim())}
-function encontrarFila_(h,pin){const n=h.getLastRow();if(n<2)return -1;const f=h.getRange(2,1,n-1,1).createTextFinder(String(pin).trim()).matchEntireCell(true).findNext();return f?f.getRow():-1}
-function fecha_(v){if(!v)return '';const p=String(v).split('-');return p.length===3?new Date(Number(p[0]),Number(p[1])-1,Number(p[2])):v}
-function formatearCampo_(k,v){if(['fechaIngreso','fechaFin'].includes(k)&&v instanceof Date)return Utilities.formatDate(v,Session.getScriptTimeZone(),'yyyy-MM-dd');return v==null?'':String(v)}
-function numero_(v){const n=Number(String(v||'').replace(/,/g,''));return isNaN(n)?0:n}
-function normal_(v){return String(v||'').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')}
+    button {
+      padding: 12px 16px;
+      border: none;
+      border-radius: 10px;
+      font-weight: bold;
+      cursor: pointer;
+    }
 
-/* Funciones de asistencia compatibles con el proyecto original. */
-function validarPin(pin){
-  const r=buscarEmpleado(pin);return r.ok?{ok:true,pin:r.empleado.pin,empleado:r.empleado.nombre}:{ok:false,mensaje:'PIN incorrecto o empleado no registrado.'};
-}
-function registrarAsistencia(d){
-  const emp=validarPin(d.pin);if(!emp.ok)return emp;
-  const h=obtenerHojaAsistencia_(),ahora=new Date();
-  const distancia=calcularDistancia_(CONFIG.LAT_EMPRESA,CONFIG.LNG_EMPRESA,Number(d.lat),Number(d.lng));
-  const estado=distancia<=CONFIG.RADIO_PERMITIDO?'Válido':'Fuera del radio permitido';
-  h.appendRow([Utilities.formatDate(ahora,Session.getScriptTimeZone(),'dd/MM/yyyy'),Utilities.formatDate(ahora,Session.getScriptTimeZone(),'HH:mm:ss'),emp.pin,emp.empleado,d.tipo,d.lat,d.lng,Math.round(distancia),estado,d.dispositivo||'']);
-  return {ok:true,estado:estado,empleado:emp.empleado,distancia:Math.round(distancia),mensaje:'Registro realizado correctamente.'};
-}
-function obtenerHojaAsistencia_(){const ss=ss_();let h=ss.getSheetByName(CONFIG.SHEET_ASISTENCIA);if(!h){h=ss.insertSheet(CONFIG.SHEET_ASISTENCIA);h.appendRow(['Fecha','Hora','PIN','Empleado','Tipo','Latitud','Longitud','Distancia (m)','Estado','Dispositivo'])}return h}
-function calcularDistancia_(a,b,c,d){const R=6371000,x=(c-a)*Math.PI/180,y=(d-b)*Math.PI/180,q=Math.sin(x/2)**2+Math.cos(a*Math.PI/180)*Math.cos(c*Math.PI/180)*Math.sin(y/2)**2;return R*2*Math.atan2(Math.sqrt(q),Math.sqrt(1-q))}
+    button:disabled {
+      opacity: 0.65;
+      cursor: not-allowed;
+    }
 
-function onOpen(){SpreadsheetApp.getUi().createMenu('Control de planilla').addItem('Abrir aplicación','mostrarEnlace').addToUi()}
-function mostrarEnlace(){SpreadsheetApp.getUi().alert('Abra la dirección publicada mediante GitHub Pages.')}
+    .menu button {
+      color: #17417f;
+      background: white;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.07);
+    }
 
+    .menu button.activo {
+      color: white;
+      background: var(--azul);
+    }
+
+    .panel {
+      display: none;
+      margin-top: 16px;
+      padding: 22px;
+      background: white;
+      border-radius: 14px;
+      box-shadow: 0 5px 22px rgba(0, 0, 0, 0.07);
+    }
+
+    .panel.activo {
+      display: block;
+    }
+
+    .acciones {
+      max-width: 330px;
+      margin-bottom: 18px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 6px;
+      font-weight: bold;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 15px;
+    }
+
+    input,
+    select {
+      width: 100%;
+      padding: 11px;
+      border: 1px solid var(--borde);
+      border-radius: 8px;
+      background: white;
+      font-size: 15px;
+    }
+
+    input:disabled,
+    select:disabled {
+      background: #eef2f7;
+    }
+
+    .barra {
+      display: flex;
+      gap: 10px;
+      align-items: end;
+      margin: 12px 0 18px;
+    }
+
+    .barra > div {
+      flex: 1;
+    }
+
+    .primario {
+      color: white;
+      background: var(--azul);
+    }
+
+    .guardar {
+      min-width: 150px;
+      margin-top: 20px;
+      color: white;
+      background: var(--verde);
+    }
+
+    .secundario {
+      color: white;
+      background: var(--gris);
+    }
+
+    .mensaje {
+      display: none;
+      margin-top: 16px;
+      padding: 12px;
+      border-radius: 8px;
+    }
+
+    .mensaje.ok {
+      display: block;
+      color: #166534;
+      background: #dcfce7;
+    }
+
+    .mensaje.error {
+      display: block;
+      color: #991b1b;
+      background: #fee2e2;
+    }
+
+    .mensaje.info {
+      display: block;
+      color: #1e40af;
+      background: #dbeafe;
+    }
+
+    .enlace {
+      margin-top: 12px;
+      padding: 12px;
+      border: 1px solid var(--borde);
+      border-radius: 8px;
+      background: #f8fafc;
+      word-break: break-all;
+    }
+
+    @media (max-width: 720px) {
+      .menu,
+      .grid {
+        grid-template-columns: 1fr;
+      }
+
+      .barra {
+        flex-direction: column;
+        align-items: stretch;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <header>
+    <h1>Gestión de planilla</h1>
+    <div>Empleados, asistencia y parámetros</div>
+  </header>
+
+  <main>
+
+    <nav class="menu">
+
+      <button onclick="abrirPanel('parametros', this)">
+        Parámetros de planilla
+      </button>
+
+      <button onclick="abrirPanel('empleados', this)">
+        Datos empleado
+      </button>
+
+      <button onclick="abrirPanel('asistencia', this)">
+        Asistencia
+      </button>
+
+      <button onclick="abrirPanel('ordte', this)">
+        Ord y TE
+      </button>
+
+    </nav>
+
+    <section id="parametros" class="panel">
+
+      <h2>Parámetros de planilla</h2>
+
+      <p>
+        Los parámetros y listas desplegables se administran
+        desde la hoja <strong>Catalogos</strong>.
+      </p>
+
+    </section>
+
+    <section id="empleados" class="panel">
+
+      <h2>Datos del empleado</h2>
+
+      <div class="acciones">
+
+        <label for="accion">
+          Seleccione una opción
+        </label>
+
+        <select id="accion" onchange="cambiarAccion()">
+
+          <option value="">
+            Seleccionar
+          </option>
+
+          <option value="ingresar">
+            Ingresar
+          </option>
+
+          <option value="ver">
+            Ver
+          </option>
+
+          <option value="modificar">
+            Modificar
+          </option>
+
+        </select>
+
+      </div>
+
+      <div id="busqueda" class="barra" hidden>
+
+        <div>
+
+          <label for="pinBuscar">
+            No. de personal / PIN
+          </label>
+
+          <input
+            id="pinBuscar"
+            type="text"
+            placeholder="Ingrese el PIN"
+          >
+
+        </div>
+
+        <button
+          type="button"
+          class="primario"
+          onclick="buscarEmpleado()"
+        >
+          Buscar
+        </button>
+
+      </div>
+
+      <form
+        id="formEmpleado"
+        hidden
+        onsubmit="guardarEmpleado(event)"
+      >
+
+        <div id="campos" class="grid"></div>
+
+        <button
+          id="btnGuardar"
+          class="guardar"
+          type="submit"
+        >
+          Guardar
+        </button>
+
+      </form>
+
+      <div
+        id="mensajeEmpleado"
+        class="mensaje"
+      ></div>
+
+    </section>
+
+    <section id="asistencia" class="panel">
+
+      <h2>Asistencia</h2>
+
+      <p>
+        Comparta el enlace publicado de la aplicación.
+      </p>
+
+      <button
+        type="button"
+        class="primario"
+        onclick="compartirEnlace()"
+      >
+        Compartir enlace
+      </button>
+
+      <div
+        id="enlaceCompartir"
+        class="enlace"
+        hidden
+      ></div>
+
+    </section>
+
+    <section id="ordte" class="panel">
+
+      <h2>Ord y TE</h2>
+
+      <p>
+        Módulo disponible para incorporar posteriormente
+        los procesos de horas ordinarias y tiempo extra.
+      </p>
+
+    </section>
+
+  </main>
+
+  <script>
+
+    /*
+     * IMPORTANTE:
+     *
+     * Sustituya el siguiente texto por la URL de la
+     * implementación de Apps Script terminada en /exec.
+     */
+
+    const API_URL = "PEGAR_AQUI_URL_DE_APPS_SCRIPT";
+
+    const campos = [
+      ["pin", "Pin", "text"],
+      ["nombre", "Nombre", "text"],
+      ["planilla", "Planilla", "select"],
+      ["sueldo", "Sueldo", "number"],
+      ["tipoContrato", "Tipo de contrato", "select"],
+      ["fechaIngreso", "Fecha de ingreso", "date"],
+      ["fechaFin", "Fecha fin", "date"],
+      ["posicion", "Posición", "select"],
+      ["departamento", "Departamento", "select"],
+      ["centroCosto", "Centro de costo", "select"],
+      ["ubicacion", "Ubicación", "select"],
+      ["jornada", "Jornada", "select"],
+      ["estatus", "Estatus", "select"],
+      ["correo", "Correo", "email"],
+      ["banco", "Banco", "select"],
+      ["tipoCuenta", "Tipo de cuenta", "select"],
+      ["numeroCuenta", "No. de cuenta", "text"]
+    ];
+
+    let catalogos = {};
+    let modo = "";
+
+    function abrirPanel(id, boton) {
+
+      document
+        .querySelectorAll(".panel")
+        .forEach(function (panel) {
+          panel.classList.remove("activo");
+        });
+
+      document
+        .querySelectorAll(".menu button")
+        .forEach(function (btn) {
+          btn.classList.remove("activo");
+        });
+
+      document
+        .getElementById(id)
+        .classList
+        .add("activo");
+
+      boton.classList.add("activo");
+
+      if (
+        id === "empleados" &&
+        Object.keys(catalogos).length === 0
+      ) {
+        cargarCatalogos();
+      }
+    }
+
+    function jsonp(accion, datos) {
+
+      datos = datos || {};
+
+      return new Promise(function (resolve, reject) {
+
+        if (
+          !API_URL ||
+          API_URL.indexOf("PEGAR_AQUI") === 0
+        ) {
+          reject(
+            new Error(
+              "Debe configurar la URL de Apps Script en API_URL."
+            )
+          );
+
+          return;
+        }
+
+        const callback =
+          "callback_" +
+          Date.now() +
+          "_" +
+          Math.floor(Math.random() * 99999);
+
+        const script =
+          document.createElement("script");
+
+        const timeout = setTimeout(function () {
+
+          finalizar(
+            new Error(
+              "Se agotó el tiempo de conexión con Apps Script."
+            )
+          );
+
+        }, 20000);
+
+        function finalizar(error, respuesta) {
+
+          clearTimeout(timeout);
+
+          try {
+            delete window[callback];
+          } catch (e) {
+            window[callback] = undefined;
+          }
+
+          if (script.parentNode) {
+            script.parentNode.removeChild(script);
+          }
+
+          if (error) {
+            reject(error);
+          } else {
+            resolve(respuesta);
+          }
+        }
+
+        window[callback] = function (respuesta) {
+          finalizar(null, respuesta);
+        };
+
+        script.onerror = function () {
+          finalizar(
+            new Error(
+              "No se pudo conectar con Google Apps Script."
+            )
+          );
+        };
+
+        const parametros = new URLSearchParams({
+          action: accion,
+          callback: callback,
+          data: JSON.stringify(datos)
+        });
+
+        script.src =
+          API_URL +
+          "?" +
+          parametros.toString();
+
+        script.async = true;
+
+        document.body.appendChild(script);
+      });
+    }
+
+    async function cargarCatalogos() {
+
+      mostrarMensaje(
+        "Cargando catálogos...",
+        "info"
+      );
+
+      try {
+
+        const respuesta =
+          await jsonp("catalogos");
+
+        if (!respuesta.ok) {
+          throw new Error(respuesta.mensaje);
+        }
+
+        catalogos =
+          respuesta.catalogos || {};
+
+        mostrarMensaje("", "");
+
+      } catch (error) {
+
+        mostrarMensaje(
+          error.message,
+          "error"
+        );
+      }
+    }
+
+    function obtenerOpciones(clave) {
+
+      const valores =
+        catalogos[clave] || [];
+
+      let html =
+        '<option value="">Seleccionar</option>';
+
+      valores.forEach(function (valor) {
+
+        const valorSeguro =
+          escaparHtml(valor);
+
+        html +=
+          '<option value="' +
+          valorSeguro +
+          '">' +
+          valorSeguro +
+          "</option>";
+      });
+
+      return html;
+    }
+
+    function dibujarFormulario(datos) {
+
+      datos = datos || {};
+
+      const contenedor =
+        document.getElementById("campos");
+
+      let html = "";
+
+      campos.forEach(function (campo) {
+
+        const id = campo[0];
+        const etiqueta = campo[1];
+        const tipo = campo[2];
+
+        html += "<div>";
+
+        html +=
+          '<label for="' +
+          id +
+          '">' +
+          etiqueta +
+          "</label>";
+
+        if (tipo === "select") {
+
+          html +=
+            '<select id="' +
+            id +
+            '" name="' +
+            id +
+            '">' +
+            obtenerOpciones(id) +
+            "</select>";
+
+        } else {
+
+          let atributos = "";
+
+          if (id === "sueldo") {
+            atributos =
+              ' min="0" step="0.01"';
+          }
+
+          html +=
+            '<input id="' +
+            id +
+            '" name="' +
+            id +
+            '" type="' +
+            tipo +
+            '"' +
+            atributos +
+            ">";
+        }
+
+        html += "</div>";
+      });
+
+      contenedor.innerHTML = html;
+
+      Object.keys(datos).forEach(function (clave) {
+
+        const control =
+          document.getElementById(clave);
+
+        if (control) {
+          control.value =
+            datos[clave] === null ||
+            datos[clave] === undefined
+              ? ""
+              : datos[clave];
+        }
+      });
+
+      document
+        .getElementById("formEmpleado")
+        .hidden = false;
+    }
+
+    function cambiarAccion() {
+
+      modo =
+        document
+          .getElementById("accion")
+          .value;
+
+      const mostrarBusqueda =
+        modo === "ver" ||
+        modo === "modificar";
+
+      document
+        .getElementById("busqueda")
+        .hidden = !mostrarBusqueda;
+
+      document
+        .getElementById("formEmpleado")
+        .hidden = true;
+
+      document
+        .getElementById("pinBuscar")
+        .value = "";
+
+      mostrarMensaje("", "");
+
+      if (modo === "ingresar") {
+
+        dibujarFormulario();
+
+        document
+          .querySelectorAll(
+            "#formEmpleado input, " +
+            "#formEmpleado select"
+          )
+          .forEach(function (control) {
+            control.disabled = false;
+          });
+
+        document
+          .getElementById("pin")
+          .disabled = false;
+
+        document
+          .getElementById("btnGuardar")
+          .hidden = false;
+      }
+    }
+
+    async function buscarEmpleado() {
+
+      const pin =
+        document
+          .getElementById("pinBuscar")
+          .value
+          .trim();
+
+      if (!pin) {
+
+        mostrarMensaje(
+          "Ingrese el No. de personal o PIN.",
+          "error"
+        );
+
+        return;
+      }
+
+      mostrarMensaje(
+        "Buscando empleado...",
+        "info"
+      );
+
+      try {
+
+        const respuesta =
+          await jsonp(
+            "buscarEmpleado",
+            { pin: pin }
+          );
+
+        if (!respuesta.ok) {
+          throw new Error(respuesta.mensaje);
+        }
+
+        dibujarFormulario(
+          respuesta.empleado
+        );
+
+        const soloLectura =
+          modo === "ver";
+
+        document
+          .querySelectorAll(
+            "#formEmpleado input, " +
+            "#formEmpleado select"
+          )
+          .forEach(function (control) {
+            control.disabled =
+              soloLectura;
+          });
+
+        /*
+         * El PIN no puede modificarse porque es
+         * utilizado para localizar la fila.
+         */
+
+        document
+          .getElementById("pin")
+          .disabled = true;
+
+        document
+          .getElementById("btnGuardar")
+          .hidden = soloLectura;
+
+        mostrarMensaje(
+          "Empleado encontrado.",
+          "ok"
+        );
+
+      } catch (error) {
+
+        document
+          .getElementById("formEmpleado")
+          .hidden = true;
+
+        mostrarMensaje(
+          error.message,
+          "error"
+        );
+      }
+    }
+
+    async function guardarEmpleado(evento) {
+
+      evento.preventDefault();
+
+      const datos = {};
+
+      campos.forEach(function (campo) {
+
+        const id = campo[0];
+
+        datos[id] =
+          document
+            .getElementById(id)
+            .value
+            .trim();
+      });
+
+      if (!datos.pin || !datos.nombre) {
+
+        mostrarMensaje(
+          "Pin y Nombre son obligatorios.",
+          "error"
+        );
+
+        return;
+      }
+
+      mostrarMensaje(
+        "Guardando información...",
+        "info"
+      );
+
+      try {
+
+        const accion =
+          modo === "modificar"
+            ? "actualizarEmpleado"
+            : "guardarEmpleado";
+
+        const respuesta =
+          await jsonp(
+            accion,
+            datos
+          );
+
+        if (!respuesta.ok) {
+          throw new Error(respuesta.mensaje);
+        }
+
+        mostrarMensaje(
+          respuesta.mensaje,
+          "ok"
+        );
+
+        if (modo === "ingresar") {
+
+          document
+            .getElementById("formEmpleado")
+            .reset();
+        }
+
+      } catch (error) {
+
+        mostrarMensaje(
+          error.message,
+          "error"
+        );
+      }
+    }
+
+    async function compartirEnlace() {
+
+      const enlace =
+        window.location.href;
+
+      const caja =
+        document.getElementById(
+          "enlaceCompartir"
+        );
+
+      caja.hidden = false;
+      caja.textContent = enlace;
+
+      try {
+
+        if (navigator.share) {
+
+          await navigator.share({
+            title: "Gestión de planilla",
+            text: "Enlace de la aplicación",
+            url: enlace
+          });
+
+        } else if (navigator.clipboard) {
+
+          await navigator
+            .clipboard
+            .writeText(enlace);
+
+          caja.textContent =
+            "Enlace copiado: " +
+            enlace;
+        }
+
+      } catch (error) {
+        /*
+         * Si el usuario cancela el menú compartir,
+         * simplemente se mantiene visible el enlace.
+         */
+      }
+    }
+
+    function mostrarMensaje(texto, tipo) {
+
+      const mensaje =
+        document.getElementById(
+          "mensajeEmpleado"
+        );
+
+      mensaje.textContent =
+        texto || "";
+
+      mensaje.className =
+        "mensaje" +
+        (tipo ? " " + tipo : "");
+    }
+
+    function escaparHtml(valor) {
+
+      return String(valor).replace(
+        /[&<>"']/g,
+        function (caracter) {
+
+          const equivalencias = {
+            "&": "&amp;",
+            "<": "&lt;",
+            ">": "&gt;",
+            '"': "&quot;",
+            "'": "&#39;"
+          };
+
+          return equivalencias[caracter];
+        }
+      );
+    }
+
+  </script>
+
+</body>
+</html>
