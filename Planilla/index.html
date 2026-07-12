@@ -208,23 +208,23 @@
 
 .parametros-grid > div:not(.parametro-ancho) {
   display: grid;
-  grid-template-columns: minmax(240px, 320px) minmax(200px, 360px);
-  gap: 16px;
+  grid-template-columns: 330px 220px;
+  gap: 18px;
   align-items: center;
+  justify-content: start;
   padding: 12px 14px;
   border: 1px solid var(--borde);
   border-radius: 10px;
   background: #f8fafc;
 }
-
 .parametros-grid > div:not(.parametro-ancho) label {
   margin: 0;
 }
 
 .parametros-grid > div:not(.parametro-ancho) input {
+  width: 220px;
   margin: 0;
 }
-
 /*
  * Los feriados ocupan todo el ancho
  * del formulario de parámetros.
@@ -632,7 +632,7 @@
      * implementación de Apps Script terminada en /exec.
      */
 
-    const API_URL = "https://script.google.com/macros/s/AKfycbwZQn_aLR1lkSMfeQGKAqrZab6nNFFG8nPBbS5qckH7H_M2roFmSiYoOmfrfSEx5BgF/exec";
+    const API_URL = "https://script.google.com/macros/s/AKfycbxSFw_j-nfCJXtRvRlnBCeFZBYldHAcOEYescclVHsES-Dk-122_K5kvFoK8DIYc5v2/exec";
 
     const campos = [
       ["pin", "Pin", "text"],
@@ -779,34 +779,58 @@ function abrirPanel(id, boton) {
 
     async function cargarCatalogos() {
 
-      mostrarMensaje(
-        "Cargando catálogos...",
-        "info"
+  mostrarMensaje(
+    "Cargando listas desde Catalogos...",
+    "info"
+  );
+
+  try {
+
+    const respuesta =
+      await jsonp(
+        "catalogos",
+        {}
       );
 
-      try {
-
-        const respuesta =
-          await jsonp("catalogos");
-
-        if (!respuesta.ok) {
-          throw new Error(respuesta.mensaje);
-        }
-
-        catalogos =
-          respuesta.catalogos || {};
-
-        mostrarMensaje("", "");
-
-      } catch (error) {
-
-        mostrarMensaje(
-          error.message,
-          "error"
-        );
-      }
+    if (!respuesta.ok) {
+      throw new Error(
+        respuesta.mensaje ||
+        "No se pudieron cargar los catálogos."
+      );
     }
 
+    catalogos =
+      respuesta.catalogos || {};
+
+    mostrarMensaje("", "");
+
+    /*
+     * Si el formulario de ingreso ya está abierto,
+     * se vuelve a dibujar para mostrar las listas.
+     */
+
+    if (modo === "ingresar") {
+
+      dibujarFormulario({});
+
+      document
+        .getElementById("pin")
+        .disabled = false;
+
+      document
+        .getElementById("btnGuardar")
+        .hidden = false;
+    }
+
+  } catch (error) {
+
+    mostrarMensaje(
+      "Error al cargar filtros: " +
+      error.message,
+      "error"
+    );
+  }
+}
     function obtenerOpciones(clave) {
 
       const valores =
@@ -911,54 +935,65 @@ function abrirPanel(id, boton) {
         .hidden = false;
     }
 
-    function cambiarAccion() {
+    async function cambiarAccion() {
 
-      modo =
-        document
-          .getElementById("accion")
-          .value;
+  modo =
+    document
+      .getElementById("accion")
+      .value;
 
-      const mostrarBusqueda =
-        modo === "ver" ||
-        modo === "modificar";
+  const mostrarBusqueda =
+    modo === "ver" ||
+    modo === "modificar";
 
-      document
-        .getElementById("busqueda")
-        .hidden = !mostrarBusqueda;
+  document
+    .getElementById("busqueda")
+    .hidden = !mostrarBusqueda;
 
-      document
-        .getElementById("formEmpleado")
-        .hidden = true;
+  document
+    .getElementById("formEmpleado")
+    .hidden = true;
 
-      document
-        .getElementById("pinBuscar")
-        .value = "";
+  document
+    .getElementById("pinBuscar")
+    .value = "";
 
-      mostrarMensaje("", "");
+  mostrarMensaje("", "");
 
-      if (modo === "ingresar") {
+  if (modo === "ingresar") {
 
-        dibujarFormulario();
+    /*
+     * Asegura que las opciones estén cargadas
+     * antes de crear los selectores.
+     */
 
-        document
-          .querySelectorAll(
-            "#formEmpleado input, " +
-            "#formEmpleado select"
-          )
-          .forEach(function (control) {
-            control.disabled = false;
-          });
+    if (
+      Object.keys(catalogos).length === 0
+    ) {
 
-        document
-          .getElementById("pin")
-          .disabled = false;
-
-        document
-          .getElementById("btnGuardar")
-          .hidden = false;
-      }
+      await cargarCatalogos();
     }
 
+    dibujarFormulario({});
+
+    document
+      .querySelectorAll(
+        "#formEmpleado input, " +
+        "#formEmpleado select"
+      )
+      .forEach(function (control) {
+        control.disabled = false;
+      });
+
+    document
+      .getElementById("pin")
+      .disabled = false;
+
+    document
+      .getElementById("btnGuardar")
+      .hidden = false;
+  }
+}
     async function buscarEmpleado() {
 
       const pin =
