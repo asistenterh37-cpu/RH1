@@ -381,6 +381,128 @@
       }
     }
 
+/*
+ * PANTALLA MÓVIL DE ASISTENCIA
+ */
+
+.pantalla-asistencia {
+  display: none;
+  min-height: 100vh;
+  padding: 18px;
+  background:
+    linear-gradient(
+      135deg,
+      #e0ecff,
+      #f8fafc
+    );
+}
+
+.asistencia-card {
+  width: 100%;
+  max-width: 460px;
+  margin: 20px auto;
+  padding: 24px;
+  background: white;
+  border-radius: 18px;
+  box-shadow:
+    0 12px 35px
+    rgba(15, 23, 42, 0.15);
+}
+
+.asistencia-card h1 {
+  margin: 0 0 6px;
+  color: #173d7a;
+  text-align: center;
+}
+
+.asistencia-card .subtitulo {
+  margin: 0 0 22px;
+  color: #64748b;
+  text-align: center;
+}
+
+.asistencia-campo {
+  margin-bottom: 17px;
+}
+
+.asistencia-empleado {
+  min-height: 47px;
+  padding: 13px;
+  border: 1px solid var(--borde);
+  border-radius: 9px;
+  background: #f8fafc;
+  color: #334155;
+}
+
+.asistencia-empleado.identificado {
+  border-color: #86efac;
+  background: #dcfce7;
+  color: #166534;
+  font-weight: bold;
+}
+
+.asistencia-botones {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+.btn-marcar {
+  width: 100%;
+  padding: 15px;
+  color: white;
+  background: var(--verde);
+  font-size: 17px;
+}
+
+.btn-validar {
+  margin-top: 8px;
+  width: 100%;
+  color: white;
+  background: var(--azul);
+}
+
+.btn-abrir-asistencia {
+  margin-right: 8px;
+  color: white;
+  background: var(--verde);
+}
+
+.datos-ubicacion {
+  display: none;
+  margin-top: 16px;
+  padding: 12px;
+  border-radius: 9px;
+  background: #f8fafc;
+  color: #475569;
+  font-size: 13px;
+}
+
+.enlace-asistencia {
+  margin-top: 15px;
+  padding: 13px;
+  border: 1px solid var(--borde);
+  border-radius: 9px;
+  background: #f8fafc;
+  word-break: break-all;
+}
+
+.ocultar-aplicacion {
+  display: none !important;
+}
+
+@media (max-width: 600px) {
+
+  .pantalla-asistencia {
+    padding: 10px;
+  }
+
+  .asistencia-card {
+    margin: 8px auto;
+    padding: 20px;
+  }
+}
+    
   </style>
 
 </head>
@@ -678,28 +800,41 @@
 
     <!-- ASISTENCIA -->
 
-    <section
-      id="asistencia"
-      class="panel"
-    >
+ <section
+  id="asistencia"
+  class="panel"
+>
 
-      <h2>Asistencia</h2>
+  <h2>Asistencia</h2>
 
-      <button
-        type="button"
-        class="primario"
-        onclick="compartirEnlace()"
-      >
-        Compartir enlace
-      </button>
+  <p>
+    Comparta este enlace con los empleados para que
+    registren Entrada o Salida desde su celular.
+  </p>
 
-      <div
-        id="enlaceCompartir"
-        class="enlace"
-        hidden
-      ></div>
+  <button
+    type="button"
+    class="btn-abrir-asistencia"
+    onclick="abrirPantallaAsistencia()"
+  >
+    Abrir pantalla de asistencia
+  </button>
 
-    </section>
+  <button
+    type="button"
+    class="primario"
+    onclick="compartirEnlaceAsistencia()"
+  >
+    Compartir enlace
+  </button>
+
+  <div
+    id="enlaceCompartir"
+    class="enlace-asistencia"
+    hidden
+  ></div>
+
+</section>   
 
     <!-- ORD Y TE -->
 
@@ -719,6 +854,114 @@
 
   </main>
 
+  <!-- PANTALLA MÓVIL DE ASISTENCIA -->
+
+<section
+  id="pantallaAsistencia"
+  class="pantalla-asistencia"
+>
+
+  <div class="asistencia-card">
+
+    <h1>Control de asistencia</h1>
+
+    <p class="subtitulo">
+      Registre su entrada o salida
+    </p>
+
+    <div class="asistencia-campo">
+
+      <label for="pinAsistencia">
+        PIN
+      </label>
+
+      <input
+        id="pinAsistencia"
+        type="password"
+        inputmode="numeric"
+        autocomplete="off"
+        placeholder="Ingrese su PIN"
+        oninput="reiniciarEmpleadoAsistencia()"
+      >
+
+      <button
+        id="btnValidarPin"
+        type="button"
+        class="btn-validar"
+        onclick="validarPinAsistencia()"
+      >
+        Identificar empleado
+      </button>
+
+    </div>
+
+    <div class="asistencia-campo">
+
+      <label>
+        Empleado
+      </label>
+
+      <div
+        id="empleadoAsistencia"
+        class="asistencia-empleado"
+      >
+        Ingrese su PIN para identificarse
+      </div>
+
+    </div>
+
+    <div class="asistencia-campo">
+
+      <label for="tipoAsistencia">
+        Tipo de registro
+      </label>
+
+      <select id="tipoAsistencia">
+
+        <option value="">
+          Seleccionar
+        </option>
+
+        <option value="Entrada">
+          Entrada
+        </option>
+
+        <option value="Salida">
+          Salida
+        </option>
+
+      </select>
+
+    </div>
+
+    <div class="asistencia-botones">
+
+      <button
+        id="btnMarcarAsistencia"
+        type="button"
+        class="btn-marcar"
+        onclick="marcarAsistencia()"
+        disabled
+      >
+        Marcar asistencia
+      </button>
+
+    </div>
+
+    <div
+      id="ubicacionAsistencia"
+      class="datos-ubicacion"
+    ></div>
+
+    <div
+      id="mensajeAsistencia"
+      class="mensaje"
+    ></div>
+
+  </div>
+
+</section>
+
   <script>
 
     /*
@@ -727,7 +970,7 @@
      */
 
     const API_URL =
-      "https://script.google.com/macros/s/AKfycbx3WYgBmwZpbTGIqrg7Sgz4yd1UJXRp2F-Qvwe7sNiuZbn-p6c2eRl87zd94bFPlcRN/exec";
+      "https://script.google.com/macros/s/AKfycby5GyeUKgbJ2pmbFST3ea3u32SET4ze3kfjxfbT-EN_ehaWrGURVmBIsK8nWxtuH_KD/exec";
 
     const camposEmpleado = [
 
@@ -1703,55 +1946,488 @@
      * COMPARTIR ENLACE.
      */
 
-    async function compartirEnlace() {
+function obtenerEnlaceAsistencia() {
 
-      const enlace =
-        window.location.href;
+  const url =
+    new URL(
+      window.location.href
+    );
 
-      const caja =
-        document.getElementById(
-          "enlaceCompartir"
-        );
+  url.searchParams.set(
+    "vista",
+    "asistencia"
+  );
 
-      caja.hidden = false;
+  return url.toString();
+}
+
+function abrirPantallaAsistencia() {
+
+  window.open(
+    obtenerEnlaceAsistencia(),
+    "_blank"
+  );
+}
+
+async function compartirEnlaceAsistencia() {
+
+  const enlace =
+    obtenerEnlaceAsistencia();
+
+  const caja =
+    document.getElementById(
+      "enlaceCompartir"
+    );
+
+  caja.hidden = false;
+
+  caja.textContent =
+    enlace;
+
+  try {
+
+    if (navigator.share) {
+
+      await navigator.share({
+
+        title:
+          "Control de asistencia",
+
+        text:
+          "Utilice este enlace para registrar su asistencia.",
+
+        url:
+          enlace
+      });
+
+    } else if (
+      navigator.clipboard
+    ) {
+
+      await navigator
+        .clipboard
+        .writeText(enlace);
 
       caja.textContent =
+        "Enlace copiado: " +
         enlace;
-
-      try {
-
-        if (navigator.share) {
-
-          await navigator.share({
-
-            title:
-              "Gestión de planilla",
-
-            url: enlace
-          });
-
-        } else if (
-          navigator.clipboard
-        ) {
-
-          await navigator
-            .clipboard
-            .writeText(enlace);
-
-          caja.textContent =
-            "Enlace copiado: " +
-            enlace;
-        }
-
-      } catch (error) {
-
-        /*
-         * Mantener visible el enlace si
-         * el usuario cancela Compartir.
-         */
-      }
     }
 
+  } catch (error) {
+
+    /*
+     * Si el usuario cancela Compartir,
+     * el enlace permanece visible.
+     */
+  }
+}
+
+/*
+ * ASISTENCIA DESDE CELULAR.
+ */
+
+let empleadoAsistenciaActual = null;
+
+function mostrarVistaCorrespondiente() {
+
+  const parametros =
+    new URLSearchParams(
+      window.location.search
+    );
+
+  const vista =
+    parametros.get("vista");
+
+  if (vista !== "asistencia") {
+    return;
+  }
+
+  const encabezado =
+    document.querySelector(
+      "body > header"
+    );
+
+  const contenido =
+    document.querySelector(
+      "body > main"
+    );
+
+  if (encabezado) {
+
+    encabezado.classList.add(
+      "ocultar-aplicacion"
+    );
+  }
+
+  if (contenido) {
+
+    contenido.classList.add(
+      "ocultar-aplicacion"
+    );
+  }
+
+  document
+    .getElementById(
+      "pantallaAsistencia"
+    )
+    .style.display = "block";
+}
+
+function reiniciarEmpleadoAsistencia() {
+
+  empleadoAsistenciaActual = null;
+
+  const empleado =
+    document.getElementById(
+      "empleadoAsistencia"
+    );
+
+  empleado.textContent =
+    "Presione Identificar empleado";
+
+  empleado.className =
+    "asistencia-empleado";
+
+  document
+    .getElementById(
+      "btnMarcarAsistencia"
+    )
+    .disabled = true;
+
+  mostrarMensajeAsistencia(
+    "",
+    ""
+  );
+}
+
+async function validarPinAsistencia() {
+
+  const pin =
+    document
+      .getElementById(
+        "pinAsistencia"
+      )
+      .value
+      .trim();
+
+  if (!pin) {
+
+    mostrarMensajeAsistencia(
+      "Ingrese su PIN.",
+      "error"
+    );
+
+    return;
+  }
+
+  const boton =
+    document.getElementById(
+      "btnValidarPin"
+    );
+
+  boton.disabled = true;
+
+  mostrarMensajeAsistencia(
+    "Validando PIN...",
+    "info"
+  );
+
+  try {
+
+    const respuesta =
+      await jsonp(
+        "validarPin",
+        {
+          pin: pin
+        }
+      );
+
+    if (!respuesta.ok) {
+
+      throw new Error(
+        respuesta.mensaje ||
+        "PIN incorrecto."
+      );
+    }
+
+    empleadoAsistenciaActual = {
+
+      pin:
+        respuesta.pin,
+
+      nombre:
+        respuesta.empleado
+    };
+
+    const empleado =
+      document.getElementById(
+        "empleadoAsistencia"
+      );
+
+    empleado.textContent =
+      respuesta.empleado;
+
+    empleado.className =
+      "asistencia-empleado identificado";
+
+    document
+      .getElementById(
+        "btnMarcarAsistencia"
+      )
+      .disabled = false;
+
+    mostrarMensajeAsistencia(
+      "Empleado identificado correctamente.",
+      "ok"
+    );
+
+  } catch (error) {
+
+    empleadoAsistenciaActual =
+      null;
+
+    document
+      .getElementById(
+        "btnMarcarAsistencia"
+      )
+      .disabled = true;
+
+    mostrarMensajeAsistencia(
+      error.message,
+      "error"
+    );
+
+  } finally {
+
+    boton.disabled = false;
+  }
+}
+
+async function marcarAsistencia() {
+
+  const tipo =
+    document
+      .getElementById(
+        "tipoAsistencia"
+      )
+      .value;
+
+  if (!empleadoAsistenciaActual) {
+
+    mostrarMensajeAsistencia(
+      "Primero debe identificar al empleado.",
+      "error"
+    );
+
+    return;
+  }
+
+  if (!tipo) {
+
+    mostrarMensajeAsistencia(
+      "Seleccione Entrada o Salida.",
+      "error"
+    );
+
+    return;
+  }
+
+  if (!navigator.geolocation) {
+
+    mostrarMensajeAsistencia(
+      "Este dispositivo no permite obtener la ubicación.",
+      "error"
+    );
+
+    return;
+  }
+
+  const boton =
+    document.getElementById(
+      "btnMarcarAsistencia"
+    );
+
+  boton.disabled = true;
+
+  mostrarMensajeAsistencia(
+    "Obteniendo ubicación GPS...",
+    "info"
+  );
+
+  navigator.geolocation
+    .getCurrentPosition(
+
+      async function (posicion) {
+
+        const latitud =
+          posicion.coords.latitude;
+
+        const longitud =
+          posicion.coords.longitude;
+
+        mostrarUbicacionAsistencia(
+          latitud,
+          longitud,
+          posicion.coords.accuracy
+        );
+
+        mostrarMensajeAsistencia(
+          "Guardando asistencia...",
+          "info"
+        );
+
+        try {
+
+          const respuesta =
+            await jsonp(
+              "registrarAsistencia",
+              {
+
+                pin:
+                  empleadoAsistenciaActual.pin,
+
+                tipo:
+                  tipo,
+
+                lat:
+                  latitud,
+
+                lng:
+                  longitud,
+
+                dispositivo:
+                  navigator.userAgent
+              }
+            );
+
+          if (!respuesta.ok) {
+
+            throw new Error(
+              respuesta.mensaje
+            );
+          }
+
+          let texto =
+            respuesta.mensaje +
+            " Empleado: " +
+            respuesta.empleado +
+            ". Distancia: " +
+            respuesta.distancia +
+            " metros. Estado: " +
+            respuesta.estado +
+            ".";
+
+          mostrarMensajeAsistencia(
+            texto,
+            respuesta.estado ===
+              "Válido"
+              ? "ok"
+              : "error"
+          );
+
+          document
+            .getElementById(
+              "tipoAsistencia"
+            )
+            .value = "";
+
+        } catch (error) {
+
+          mostrarMensajeAsistencia(
+            error.message,
+            "error"
+          );
+
+        } finally {
+
+          boton.disabled = false;
+        }
+      },
+
+      function (error) {
+
+        let mensaje =
+          "No se pudo obtener la ubicación.";
+
+        if (error.code === 1) {
+
+          mensaje =
+            "Debe permitir el acceso a la ubicación GPS.";
+        }
+
+        if (error.code === 2) {
+
+          mensaje =
+            "La ubicación no está disponible. Active el GPS.";
+        }
+
+        if (error.code === 3) {
+
+          mensaje =
+            "Se agotó el tiempo para obtener la ubicación.";
+        }
+
+        mostrarMensajeAsistencia(
+          mensaje,
+          "error"
+        );
+
+        boton.disabled = false;
+      },
+
+      {
+        enableHighAccuracy: true,
+        timeout: 20000,
+        maximumAge: 0
+      }
+    );
+}
+
+function mostrarUbicacionAsistencia(
+  latitud,
+  longitud,
+  precision
+) {
+
+  const caja =
+    document.getElementById(
+      "ubicacionAsistencia"
+    );
+
+  caja.style.display = "block";
+
+  caja.textContent =
+    "Latitud: " +
+    Number(latitud).toFixed(6) +
+    " | Longitud: " +
+    Number(longitud).toFixed(6) +
+    " | Precisión GPS: " +
+    Math.round(precision || 0) +
+    " m";
+}
+
+function mostrarMensajeAsistencia(
+  texto,
+  tipo
+) {
+
+  const mensaje =
+    document.getElementById(
+      "mensajeAsistencia"
+    );
+
+  mensaje.textContent =
+    texto || "";
+
+  mensaje.className =
+    "mensaje" +
+    (
+      tipo
+        ? " " + tipo
+        : ""
+    );
+}
+    
     /*
      * MENSAJES.
      */
@@ -1832,14 +2508,16 @@
      * CUANDO CARGUE LA PÁGINA.
      */
 
-    document.addEventListener(
-      "DOMContentLoaded",
-      function () {
+document.addEventListener(
+  "DOMContentLoaded",
+  function () {
 
-        crearCamposFeriados();
-      }
-    );
+    crearCamposFeriados();
 
+    mostrarVistaCorrespondiente();
+  }
+);
+    
   </script>
 
 </body>
