@@ -970,7 +970,7 @@
      */
 
     const API_URL =
-      "https://script.google.com/macros/s/AKfycbzXwGgWcgxMNrFJEZ3KBO_ATc810xyBdiEzFFsJNGeePFdqvBN6ZZ9G2jYzhf8MSRJ7/exec";
+      "https://script.google.com/macros/s/AKfycbyYYpa95GcIlFXB_BuYJbsnsjOeK5Qya2YSMBhecn2Qa5ULVaVR_rICL_YktDsDiG4/exec";
 
     const camposEmpleado = [
 
@@ -3258,6 +3258,770 @@ document.addEventListener(
           : ""
       );
   }
+
+</script>
+
+<!-- AJUSTE COMPLETO DE PARÁMETROS DE PLANILLA -->
+
+<style>
+
+  /*
+   * Año y hora de entrada.
+   */
+
+  .parametro-anio {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 12px 14px;
+    border: 1px solid var(--borde);
+    border-radius: 10px;
+    background: #f8fafc;
+  }
+
+  .parametro-anio label {
+    flex: 0 0 330px;
+    margin: 0;
+  }
+
+  .parametro-anio input {
+    width: 220px;
+    margin: 0;
+  }
+
+  /*
+   * Planillas generadas.
+   */
+
+  .seccion-planillas {
+    margin-top: 8px;
+    padding: 16px;
+    border: 1px solid var(--borde);
+    border-radius: 12px;
+    background: white;
+  }
+
+  .seccion-planillas h3 {
+    margin: 0 0 6px;
+  }
+
+  .planillas-grid {
+    display: grid;
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+    gap: 9px;
+    margin-top: 14px;
+  }
+
+  .planilla-item {
+    padding: 10px 12px;
+    border: 1px solid #d7dfeb;
+    border-radius: 8px;
+    background: #f8fafc;
+    color: #334155;
+    line-height: 1.35;
+  }
+
+  .planilla-item strong {
+    color: #173d7a;
+  }
+
+  /*
+   * Tres feriados por cada fila.
+   */
+
+  #feriadosGrid {
+    display: grid !important;
+    grid-template-columns:
+      repeat(3, minmax(0, 1fr)) !important;
+    gap: 12px;
+  }
+
+  #feriadosGrid .feriado-item {
+    display: grid;
+    grid-template-columns:
+      90px minmax(130px, 1fr);
+    gap: 10px;
+    align-items: center;
+    padding: 11px;
+  }
+
+  #feriadosGrid .feriado-item label {
+    margin: 0;
+    white-space: nowrap;
+  }
+
+  #feriadosGrid .feriado-item input {
+    width: 100%;
+    margin: 0;
+  }
+
+  /*
+   * Dos recargos en cada fila.
+   */
+
+  .recargos-grid-dos {
+    display: grid;
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+    gap: 14px;
+  }
+
+  #formParametros .recargos-grid-dos
+  .recargo-fila {
+    display: grid !important;
+    grid-template-columns:
+      minmax(190px, 1fr) 130px;
+    gap: 12px;
+    align-items: center;
+    width: 100%;
+  }
+
+  #formParametros .recargos-grid-dos
+  .recargo-fila label {
+    width: auto;
+    margin: 0;
+  }
+
+  #formParametros .recargos-grid-dos
+  .recargo-fila input {
+    width: 130px;
+    margin: 0;
+  }
+
+  @media (max-width: 1000px) {
+
+    #feriadosGrid {
+      grid-template-columns:
+        repeat(2, minmax(0, 1fr)) !important;
+    }
+
+    .planillas-grid,
+    .recargos-grid-dos {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  @media (max-width: 650px) {
+
+    .parametro-anio {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 7px;
+    }
+
+    .parametro-anio label,
+    .parametro-anio input {
+      flex: auto;
+      width: 100%;
+    }
+
+    #feriadosGrid {
+      grid-template-columns: 1fr !important;
+    }
+
+    #formParametros .recargos-grid-dos
+    .recargo-fila {
+      grid-template-columns: 1fr;
+    }
+
+    #formParametros .recargos-grid-dos
+    .recargo-fila input {
+      width: 100%;
+    }
+  }
+
+</style>
+
+<script>
+
+  document.addEventListener(
+    "DOMContentLoaded",
+    function () {
+
+      prepararParametrosAnuales();
+    }
+  );
+
+  function prepararParametrosAnuales() {
+
+    const formulario =
+      document.getElementById(
+        "formParametros"
+      );
+
+    const campoHora =
+      document.getElementById(
+        "estatusHoraEnt"
+      );
+
+    const feriados =
+      document.getElementById(
+        "feriadosGrid"
+      );
+
+    if (
+      !formulario ||
+      !campoHora ||
+      !feriados
+    ) {
+      return;
+    }
+
+    /*
+     * Agregar Año antes de Estatus Hora Ent.
+     */
+
+    if (
+      !document.getElementById(
+        "anioPlanilla"
+      )
+    ) {
+
+      const contenedorHora =
+        campoHora.closest("div");
+
+      const filaAnio =
+        document.createElement("div");
+
+      filaAnio.className =
+        "parametro-anio";
+
+      filaAnio.innerHTML = `
+
+        <label for="anioPlanilla">
+          Año
+        </label>
+
+        <input
+          id="anioPlanilla"
+          name="anioPlanilla"
+          type="number"
+          min="2000"
+          max="2100"
+          step="1"
+          required
+        >
+      `;
+
+      contenedorHora.parentNode
+        .insertBefore(
+          filaAnio,
+          contenedorHora
+        );
+
+      document
+        .getElementById(
+          "anioPlanilla"
+        )
+        .value =
+          new Date().getFullYear();
+
+      document
+        .getElementById(
+          "anioPlanilla"
+        )
+        .addEventListener(
+          "change",
+          generarPlanillasDelAnio
+        );
+    }
+
+    /*
+     * Agregar períodos arriba de Feriados.
+     */
+
+    if (
+      !document.getElementById(
+        "seccionPlanillas"
+      )
+    ) {
+
+      const seccionFeriados =
+        feriados.closest(
+          ".seccion-feriados"
+        ) ||
+        feriados.parentElement;
+
+      const seccionPlanillas =
+        document.createElement("div");
+
+      seccionPlanillas.id =
+        "seccionPlanillas";
+
+      seccionPlanillas.className =
+        "seccion-planillas";
+
+      seccionPlanillas.innerHTML = `
+
+        <h3>
+          Períodos de planilla
+        </h3>
+
+        <p>
+          Se generan automáticamente de acuerdo
+          con el año seleccionado.
+        </p>
+
+        <div
+          id="planillasGeneradas"
+          class="planillas-grid"
+        ></div>
+      `;
+
+      seccionFeriados.parentNode
+        .insertBefore(
+          seccionPlanillas,
+          seccionFeriados
+        );
+    }
+
+    /*
+     * Agrupar los cuatro recargos
+     * en dos columnas.
+     */
+
+    if (
+      !document.getElementById(
+        "recargosGridDos"
+      )
+    ) {
+
+      const recargos =
+        Array.from(
+          formulario.querySelectorAll(
+            ".recargo-fila"
+          )
+        );
+
+      if (recargos.length) {
+
+        const contenedor =
+          document.createElement("div");
+
+        contenedor.id =
+          "recargosGridDos";
+
+        contenedor.className =
+          "recargos-grid-dos";
+
+        recargos[0].parentNode
+          .insertBefore(
+            contenedor,
+            recargos[0]
+          );
+
+        recargos.forEach(
+          function (recargo) {
+
+            contenedor.appendChild(
+              recargo
+            );
+          }
+        );
+      }
+    }
+
+    /*
+     * Utilizar la nueva función de guardado.
+     */
+
+    formulario.onsubmit =
+      guardarParametrosAnuales;
+
+    generarPlanillasDelAnio();
+  }
+
+  function generarPlanillasDelAnio() {
+
+    const campoAnio =
+      document.getElementById(
+        "anioPlanilla"
+      );
+
+    const contenedor =
+      document.getElementById(
+        "planillasGeneradas"
+      );
+
+    if (
+      !campoAnio ||
+      !contenedor
+    ) {
+      return [];
+    }
+
+    const anio =
+      Number(campoAnio.value) ||
+      new Date().getFullYear();
+
+    const meses = [
+      "enero",
+      "febrero",
+      "marzo",
+      "abril",
+      "mayo",
+      "junio",
+      "julio",
+      "agosto",
+      "septiembre",
+      "octubre",
+      "noviembre",
+      "diciembre"
+    ];
+
+    const planillas = [];
+
+    let numeroPlanilla = 1;
+
+    for (
+      let mes = 0;
+      mes < 12;
+      mes++
+    ) {
+
+      /*
+       * Primera quincena.
+       */
+
+      planillas.push({
+
+        codigo:
+          anio +
+          "-" +
+          numeroPlanilla,
+
+        descripcion:
+          "Período del 1 al 15 de " +
+          meses[mes] +
+          " de " +
+          anio
+      });
+
+      numeroPlanilla++;
+
+      /*
+       * Último día real del mes.
+       */
+
+      const ultimoDia =
+        new Date(
+          anio,
+          mes + 1,
+          0
+        ).getDate();
+
+      /*
+       * Segunda quincena.
+       */
+
+      planillas.push({
+
+        codigo:
+          anio +
+          "-" +
+          numeroPlanilla,
+
+        descripcion:
+          "Período del 16 al " +
+          ultimoDia +
+          " de " +
+          meses[mes] +
+          " de " +
+          anio
+      });
+
+      numeroPlanilla++;
+    }
+
+    /*
+     * Planillas especiales.
+     */
+
+    planillas.push({
+
+      codigo:
+        anio + "-25",
+
+      descripcion:
+        "Décimo cuarto mes de salario"
+    });
+
+    planillas.push({
+
+      codigo:
+        anio + "-26",
+
+      descripcion:
+        "Décimo tercer mes de salario"
+    });
+
+    contenedor.innerHTML =
+      planillas
+        .map(function (planilla) {
+
+          return `
+
+            <div class="planilla-item">
+
+              <strong>
+                Planilla ${planilla.codigo}
+              </strong>
+
+              <br>
+
+              ${planilla.descripcion}
+
+            </div>
+          `;
+        })
+        .join("");
+
+    return planillas;
+  }
+
+  async function cargarParametrosAnuales() {
+
+    mostrarMensajeParametros(
+      "Cargando parámetros...",
+      "info"
+    );
+
+    try {
+
+      const respuesta =
+        await jsonp(
+          "obtenerParametros",
+          {}
+        );
+
+      if (!respuesta.ok) {
+
+        throw new Error(
+          respuesta.mensaje
+        );
+      }
+
+      const parametros =
+        respuesta.parametros || {};
+
+      const campoAnio =
+        document.getElementById(
+          "anioPlanilla"
+        );
+
+      campoAnio.value =
+        parametros.anio ||
+        new Date().getFullYear();
+
+      document
+        .getElementById(
+          "estatusHoraEnt"
+        )
+        .value =
+          parametros.estatusHoraEnt || "";
+
+      document
+        .getElementById(
+          "recargoDiurno"
+        )
+        .value =
+          parametros.recargoDiurno ?? "";
+
+      document
+        .getElementById(
+          "recargoNocturno"
+        )
+        .value =
+          parametros.recargoNocturno ?? "";
+
+      document
+        .getElementById(
+          "recargoDescanso"
+        )
+        .value =
+          parametros.recargoDescanso ?? "";
+
+      document
+        .getElementById(
+          "recargoFeriado"
+        )
+        .value =
+          parametros.recargoFeriado ?? "";
+
+      const feriados =
+        parametros.feriados || [];
+
+      for (
+        let numero = 1;
+        numero <= 12;
+        numero++
+      ) {
+
+        const campo =
+          document.getElementById(
+            "feriado" + numero
+          );
+
+        if (campo) {
+
+          campo.value =
+            feriados[
+              numero - 1
+            ] || "";
+        }
+      }
+
+      generarPlanillasDelAnio();
+
+      mostrarMensajeParametros(
+        "",
+        ""
+      );
+
+    } catch (error) {
+
+      mostrarMensajeParametros(
+        error.message,
+        "error"
+      );
+    }
+  }
+
+  async function guardarParametrosAnuales(
+    evento
+  ) {
+
+    evento.preventDefault();
+
+    const boton =
+      document.getElementById(
+        "btnGuardarParametros"
+      );
+
+    const feriados = [];
+
+    for (
+      let numero = 1;
+      numero <= 12;
+      numero++
+    ) {
+
+      const campo =
+        document.getElementById(
+          "feriado" + numero
+        );
+
+      feriados.push(
+        campo
+          ? campo.value
+          : ""
+      );
+    }
+
+    const planillas =
+      generarPlanillasDelAnio();
+
+    const datos = {
+
+      anio:
+        Number(
+          document
+            .getElementById(
+              "anioPlanilla"
+            )
+            .value
+        ),
+
+      estatusHoraEnt:
+        document
+          .getElementById(
+            "estatusHoraEnt"
+          )
+          .value,
+
+      feriados:
+        feriados,
+
+      recargoDiurno:
+        document
+          .getElementById(
+            "recargoDiurno"
+          )
+          .value,
+
+      recargoNocturno:
+        document
+          .getElementById(
+            "recargoNocturno"
+          )
+          .value,
+
+      recargoDescanso:
+        document
+          .getElementById(
+            "recargoDescanso"
+          )
+          .value,
+
+      recargoFeriado:
+        document
+          .getElementById(
+            "recargoFeriado"
+          )
+          .value,
+
+      planillas:
+        planillas
+    };
+
+    boton.disabled = true;
+
+    mostrarMensajeParametros(
+      "Guardando parámetros...",
+      "info"
+    );
+
+    try {
+
+      const respuesta =
+        await jsonp(
+          "guardarParametros",
+          datos
+        );
+
+      if (!respuesta.ok) {
+
+        throw new Error(
+          respuesta.mensaje
+        );
+      }
+
+      mostrarMensajeParametros(
+        respuesta.mensaje,
+        "ok"
+      );
+
+    } catch (error) {
+
+      mostrarMensajeParametros(
+        error.message,
+        "error"
+      );
+
+    } finally {
+
+      boton.disabled = false;
+    }
+  }
+
+  /*
+   * Sustituir la función anterior de carga
+   * por la nueva versión.
+   */
+
+  cargarParametros =
+    cargarParametrosAnuales;
 
 </script>
   
