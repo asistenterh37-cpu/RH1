@@ -970,7 +970,7 @@
      */
 
     const API_URL =
-      "https://script.google.com/macros/s/AKfycbyYYpa95GcIlFXB_BuYJbsnsjOeK5Qya2YSMBhecn2Qa5ULVaVR_rICL_YktDsDiG4/exec";
+      "https://script.google.com/macros/s/AKfycbwkOjYd44eE6X7sFHNlKu_6Vt-wnr4Tg3rfsDpedJ1GdZpL6BToSesUA6Z85wlmx1mS/exec";
 
     const camposEmpleado = [
 
@@ -4022,6 +4022,372 @@ document.addEventListener(
 
   cargarParametros =
     cargarParametrosAnuales;
+
+</script>
+<!-- BOTÓN GENERAR Y GUARDAR PLANILLAS -->
+
+<style>
+
+  .acciones-generar-planillas {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 10px;
+  }
+
+  .btn-generar-planillas {
+    padding: 12px 18px;
+    border: none;
+    border-radius: 10px;
+    color: white;
+    background: #7c3aed;
+    font-weight: bold;
+    cursor: pointer;
+  }
+
+  .btn-generar-planillas:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
+  }
+
+  @media (max-width: 650px) {
+
+    .acciones-generar-planillas {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .btn-generar-planillas {
+      width: 100%;
+    }
+  }
+
+</style>
+
+<script>
+
+  document.addEventListener(
+    "DOMContentLoaded",
+    function () {
+
+      /*
+       * Esperar a que el bloque anterior
+       * termine de crear el campo Año.
+       */
+
+      setTimeout(
+        prepararBotonGenerarPlanillas,
+        100
+      );
+    }
+  );
+
+  function prepararBotonGenerarPlanillas() {
+
+    const campoAnio =
+      document.getElementById(
+        "anioPlanilla"
+      );
+
+    if (
+      !campoAnio ||
+      document.getElementById(
+        "btnGenerarGuardarPlanillas"
+      )
+    ) {
+      return;
+    }
+
+    /*
+     * Eliminar la generación automática
+     * cuando se cambia el año.
+     */
+
+    if (
+      typeof generarPlanillasDelAnio ===
+      "function"
+    ) {
+
+      campoAnio.removeEventListener(
+        "change",
+        generarPlanillasDelAnio
+      );
+    }
+
+    /*
+     * Cuando cambie el año, limpiar la vista.
+     * Las planillas solo se regenerarán al
+     * presionar el botón.
+     */
+
+    campoAnio.addEventListener(
+      "change",
+      function () {
+
+        const contenedor =
+          document.getElementById(
+            "planillasGeneradas"
+          );
+
+        if (contenedor) {
+
+          contenedor.innerHTML = `
+
+            <div class="planilla-item">
+
+              Seleccione
+              <strong>
+                Generar y guardar planillas
+              </strong>
+              para crear los períodos del año
+              ${campoAnio.value}.
+
+            </div>
+          `;
+        }
+
+        mostrarMensajeParametros(
+          "",
+          ""
+        );
+      }
+    );
+
+    /*
+     * Crear el botón debajo del campo Año.
+     */
+
+    const acciones =
+      document.createElement("div");
+
+    acciones.className =
+      "acciones-generar-planillas";
+
+    acciones.innerHTML = `
+
+      <button
+        id="btnGenerarGuardarPlanillas"
+        class="btn-generar-planillas"
+        type="button"
+        onclick="generarYGuardarPlanillas()"
+      >
+        Generar y guardar planillas
+      </button>
+    `;
+
+    const filaAnio =
+      campoAnio.closest(
+        ".parametro-anio"
+      ) ||
+      campoAnio.parentElement;
+
+    filaAnio.insertAdjacentElement(
+      "afterend",
+      acciones
+    );
+
+    /*
+     * Mostrar instrucción inicialmente.
+     */
+
+    const contenedor =
+      document.getElementById(
+        "planillasGeneradas"
+      );
+
+    if (contenedor) {
+
+      contenedor.innerHTML = `
+
+        <div class="planilla-item">
+
+          Seleccione el año y presione
+          <strong>
+            Generar y guardar planillas
+          </strong>.
+
+        </div>
+      `;
+    }
+  }
+
+  async function generarYGuardarPlanillas() {
+
+    const campoAnio =
+      document.getElementById(
+        "anioPlanilla"
+      );
+
+    const boton =
+      document.getElementById(
+        "btnGenerarGuardarPlanillas"
+      );
+
+    const anio =
+      Number(campoAnio.value);
+
+    if (
+      !anio ||
+      anio < 2000 ||
+      anio > 2100
+    ) {
+
+      mostrarMensajeParametros(
+        "Ingrese un año válido.",
+        "error"
+      );
+
+      return;
+    }
+
+    /*
+     * Generar los 26 períodos.
+     */
+
+    const planillas =
+      generarPlanillasDelAnio();
+
+    if (
+      !planillas ||
+      planillas.length !== 26
+    ) {
+
+      mostrarMensajeParametros(
+        "No se pudieron generar las 26 planillas.",
+        "error"
+      );
+
+      return;
+    }
+
+    /*
+     * Recopilar los parámetros actuales,
+     * porque guardarParametros también mantiene
+     * I:N además de guardar las planillas en R.
+     */
+
+    const feriados = [];
+
+    for (
+      let numero = 1;
+      numero <= 12;
+      numero++
+    ) {
+
+      const campo =
+        document.getElementById(
+          "feriado" + numero
+        );
+
+      feriados.push(
+        campo
+          ? campo.value
+          : ""
+      );
+    }
+
+    const datos = {
+
+      anio:
+        anio,
+
+      estatusHoraEnt:
+        document
+          .getElementById(
+            "estatusHoraEnt"
+          )
+          .value,
+
+      feriados:
+        feriados,
+
+      recargoDiurno:
+        document
+          .getElementById(
+            "recargoDiurno"
+          )
+          .value,
+
+      recargoNocturno:
+        document
+          .getElementById(
+            "recargoNocturno"
+          )
+          .value,
+
+      recargoDescanso:
+        document
+          .getElementById(
+            "recargoDescanso"
+          )
+          .value,
+
+      recargoFeriado:
+        document
+          .getElementById(
+            "recargoFeriado"
+          )
+          .value,
+
+      planillas:
+        planillas
+    };
+
+    if (!datos.estatusHoraEnt) {
+
+      mostrarMensajeParametros(
+        "Seleccione Estatus Hora Ent antes de guardar.",
+        "error"
+      );
+
+      return;
+    }
+
+    boton.disabled = true;
+
+    mostrarMensajeParametros(
+      "Generando y guardando las planillas...",
+      "info"
+    );
+
+    try {
+
+      /*
+       * Utiliza la acción existente del GS.
+       */
+
+      const respuesta =
+        await jsonp(
+          "guardarParametros",
+          datos
+        );
+
+      if (!respuesta.ok) {
+
+        throw new Error(
+          respuesta.mensaje
+        );
+      }
+
+      mostrarMensajeParametros(
+        "Se generaron y guardaron las 26 planillas del año " +
+        anio +
+        " en Catalogos, columna R.",
+        "ok"
+      );
+
+    } catch (error) {
+
+      mostrarMensajeParametros(
+        error.message,
+        "error"
+      );
+
+    } finally {
+
+      boton.disabled = false;
+    }
+  }
 
 </script>
   
