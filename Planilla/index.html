@@ -970,7 +970,7 @@
      */
 
     const API_URL =
-      "https://script.google.com/macros/s/AKfycbwIET4Z-MibV_Hr57E4-nD8Ioh7RrL1m6KYPpOv9u_pjYOUUV5341QuIo2C761qxfT6/exec";
+      "https://script.google.com/macros/s/AKfycbwEx96IWwJqAIQggENJRpOMuhpm_lGXawYoSaFx7SEnqZMVsIt-Szm_lvlS5sHMnD7I/exec";
 
     const camposEmpleado = [
 
@@ -2534,9 +2534,9 @@ document.addEventListener(
   }
 
   .otros-ingresos-formulario {
-    display: none;
-    margin-top: 22px;
-  }
+  display: block;
+  margin-top: 22px;
+}
 
   .otros-ingresos-grid {
   display: grid;
@@ -2745,35 +2745,6 @@ document.addEventListener(
         Registre otros conceptos de ingreso
         correspondientes a los empleados.
       </p>
-
-      <div
-        class="acciones"
-      >
-
-        <label for="opcionOtrosIngresos">
-          Seleccione una opción
-        </label>
-
-        <select
-          id="opcionOtrosIngresos"
-          onchange="cambiarOpcionOtrosIngresos()"
-        >
-
-          <option value="">
-            Seleccionar
-          </option>
-
-          <option value="Catalogos">
-            Catalogos
-          </option>
-
-          <option value="Otros ingresos">
-            Otros ingresos
-          </option>
-
-        </select>
-
-      </div>
 
       <form
         id="formOtrosIngresos"
@@ -5426,6 +5397,318 @@ document.addEventListener(
   }
 
 </script>
+<!-- PLANILLAS APLICABLES EN OTROS INGRESOS -->
+
+<style>
+
+  .otros-ingresos-planillas {
+    background: #f1f5f9;
+    font-weight: bold;
+    text-align: center;
+  }
+
+</style>
+
+<script>
+
+  document.addEventListener(
+    "DOMContentLoaded",
+    function () {
+
+      setTimeout(
+        prepararPlanillasAplicables,
+        300
+      );
+    }
+  );
+
+  function prepararPlanillasAplicables() {
+
+    /*
+     * Eliminar el selector inicial si todavía
+     * existe debido a algún bloque anterior.
+     */
+
+    const selectorInicial =
+      document.getElementById(
+        "opcionOtrosIngresos"
+      );
+
+    if (selectorInicial) {
+
+      const contenedor =
+        selectorInicial.closest(
+          ".acciones"
+        );
+
+      if (contenedor) {
+        contenedor.remove();
+      }
+    }
+
+    /*
+     * Mostrar el formulario directamente.
+     */
+
+    const formulario =
+      document.getElementById(
+        "formOtrosIngresos"
+      );
+
+    if (formulario) {
+
+      formulario.style.display =
+        "block";
+    }
+
+    /*
+     * Agregar Planillas aplic. después de Días.
+     */
+
+    agregarCampoPlanillasAplicables();
+
+    /*
+     * Detectar cambios en Concepto,
+     * Desde y Hasta.
+     */
+
+    document.addEventListener(
+      "change",
+      function (evento) {
+
+        if (
+          evento.target.id ===
+            "ingresoConcepto" ||
+          evento.target.id ===
+            "ingresoDesde" ||
+          evento.target.id ===
+            "ingresoHasta"
+        ) {
+
+          /*
+           * Dar tiempo a que el cambio de concepto
+           * sustituya selectores por calendarios.
+           */
+
+          setTimeout(
+            function () {
+
+              agregarCampoPlanillasAplicables();
+
+              calcularPlanillasAplicables();
+            },
+            50
+          );
+        }
+      }
+    );
+
+    calcularPlanillasAplicables();
+  }
+
+  function agregarCampoPlanillasAplicables() {
+
+    if (
+      document.getElementById(
+        "ingresoPlanillasAplic"
+      )
+    ) {
+      return;
+    }
+
+    const campoDias =
+      document.getElementById(
+        "ingresoDias"
+      );
+
+    if (!campoDias) {
+
+      /*
+       * El campo Días se crea dinámicamente.
+       * Volver a intentar cuando esté disponible.
+       */
+
+      setTimeout(
+        agregarCampoPlanillasAplicables,
+        100
+      );
+
+      return;
+    }
+
+    const contenedorDias =
+      campoDias.closest(
+        ".otros-ingresos-campo"
+      ) ||
+      campoDias.parentElement;
+
+    const contenedorPlanillas =
+      document.createElement("div");
+
+    contenedorPlanillas.className =
+      "otros-ingresos-campo";
+
+    contenedorPlanillas.innerHTML = `
+
+      <label for="ingresoPlanillasAplic">
+        Planillas aplic.
+      </label>
+
+      <input
+        id="ingresoPlanillasAplic"
+        class="otros-ingresos-planillas"
+        type="number"
+        value="0"
+        readonly
+      >
+    `;
+
+    contenedorDias
+      .insertAdjacentElement(
+        "afterend",
+        contenedorPlanillas
+      );
+  }
+
+  function obtenerCodigoPlanilla(
+    texto
+  ) {
+
+    /*
+     * Admite:
+     *
+     * 2026-10
+     * Planilla 2026-10
+     * Planilla 2026-10 | Período...
+     */
+
+    const coincidencia =
+      String(texto || "")
+        .match(
+          /(?:Planilla\s+)?(\d{4})-(\d{1,2})/i
+        );
+
+    if (!coincidencia) {
+
+      return null;
+    }
+
+    return {
+
+      anio:
+        Number(coincidencia[1]),
+
+      numero:
+        Number(coincidencia[2]),
+
+      codigo:
+        coincidencia[1] +
+        "-" +
+        Number(coincidencia[2])
+    };
+  }
+
+  function calcularPlanillasAplicables() {
+
+    const resultado =
+      document.getElementById(
+        "ingresoPlanillasAplic"
+      );
+
+    const concepto =
+      document.getElementById(
+        "ingresoConcepto"
+      );
+
+    const desde =
+      document.getElementById(
+        "ingresoDesde"
+      );
+
+    const hasta =
+      document.getElementById(
+        "ingresoHasta"
+      );
+
+    if (
+      !resultado ||
+      !concepto ||
+      !desde ||
+      !hasta
+    ) {
+      return 0;
+    }
+
+    /*
+     * Cuando el concepto utiliza calendario,
+     * Planillas aplic. siempre será 0.
+     */
+
+    if (
+      typeof conceptoUsaCalendario ===
+        "function" &&
+      conceptoUsaCalendario(
+        concepto.value
+      )
+    ) {
+
+      resultado.value = 0;
+
+      return 0;
+    }
+
+    const planillaDesde =
+      obtenerCodigoPlanilla(
+        desde.value
+      );
+
+    const planillaHasta =
+      obtenerCodigoPlanilla(
+        hasta.value
+      );
+
+    if (
+      !planillaDesde ||
+      !planillaHasta
+    ) {
+
+      resultado.value = 0;
+
+      return 0;
+    }
+
+    /*
+     * Cada año tiene 26 planillas.
+     * Esto también permite períodos que
+     * cruzan de un año al siguiente.
+     */
+
+    const posicionDesde =
+      planillaDesde.anio *
+      26 +
+      planillaDesde.numero;
+
+    const posicionHasta =
+      planillaHasta.anio *
+      26 +
+      planillaHasta.numero;
+
+    const diferencia =
+      posicionHasta -
+      posicionDesde;
+
+    resultado.value =
+      diferencia >= 0
+        ? diferencia
+        : 0;
+
+    return Number(
+      resultado.value
+    );
+  }
+
+</script>
+
   
 </body>
 
