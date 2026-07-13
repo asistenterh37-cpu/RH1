@@ -4,7 +4,6273 @@
 
 <head>
 
-  <meta charset="UTF-8">
+  <meta charset="UTF-8">/*******************************************************
+ * GESTIÓN DE PLANILLA Y CONTROL DE ASISTENCIA
+ * Google Sheets + Apps Script + GitHub Pages
+ *******************************************************/
+
+var CONFIG = {
+
+  SHEET_ID:
+    "1qX8P30sV-1tfUS5txAXWcfMUHaIXwPVAgbiMF9vl3Wo",
+
+  SHEET_ASISTENCIA:
+    "Asistencia",
+
+  SHEET_ASISTENCIA_FINAL:
+    "AsistenciaF",
+
+  SHEET_MAESTRO:
+    "Maestro",
+
+  SHEET_CATALOGOS:
+    "Catalogos",
+
+  /*
+   * Cambia estas coordenadas por las
+   * coordenadas reales de la empresa.
+   */
+
+  LAT_EMPRESA:
+    14.0723,
+
+  LNG_EMPRESA:
+    -87.1921,
+
+  RADIO_PERMITIDO:
+    150
+};
+
+/*
+ * Columnas de la hoja Maestro, desde A hasta Q.
+ */
+
+var CAMPOS_EMPLEADO = [
+  "pin",
+  "nombre",
+  "planilla",
+  "sueldo",
+  "tipoContrato",
+  "fechaIngreso",
+  "fechaFin",
+  "posicion",
+  "departamento",
+  "centroCosto",
+  "ubicacion",
+  "jornada",
+  "estatus",
+  "correo",
+  "banco",
+  "tipoCuenta",
+  "numeroCuenta"
+];
+
+/*******************************************************
+ * SERVICIO WEB PARA GITHUB PAGES
+ *******************************************************/
+
+/**
+ * Recibe las solicitudes enviadas desde el HTML.
+ */
+
+function crearRespuestaWeb_(
+  respuesta,
+  callback
+) {
+
+  var json =
+    JSON.stringify(respuesta);
+
+  if (callback) {
+
+    return ContentService
+      .createTextOutput(
+        callback +
+        "(" +
+        json +
+        ");"
+      )
+      .setMimeType(
+        ContentService
+          .MimeType
+          .JAVASCRIPT
+      );
+  }
+
+  return ContentService
+    .createTextOutput(json)
+    .setMimeType(
+      ContentService
+        .MimeType
+        .JSON
+    );
+}
+
+/*******************************************************
+ * HOJAS DE CÁLCULO
+ *******************************************************/
+
+function obtenerSpreadsheet() {
+
+  return SpreadsheetApp
+    .openById(
+      CONFIG.SHEET_ID
+    );
+}
+
+function obtenerHoja_(nombre) {
+
+  var hoja =
+    obtenerSpreadsheet()
+      .getSheetByName(nombre);
+
+  if (!hoja) {
+
+    throw new Error(
+      'No existe la hoja "' +
+      nombre +
+      '".'
+    );
+  }
+
+  return hoja;
+}
+
+/*******************************************************
+ * CATÁLOGOS PARA LOS FILTROS DE EMPLEADOS
+ *******************************************************/
+
+/**
+ * Obtiene las opciones desde Catalogos.
+ *
+ * A = Planilla
+ * B = Tipo de contrato
+ * C = Posición
+ * D = Departamento
+ * E = Centro de costo
+ * F = Ubicación
+ * G = Jornada
+ * H = Estatus
+ * O = Banco
+ * P = Tipo de cuenta
+ */
+
+function obtenerCatalogos() {
+
+  var hoja =
+    obtenerHoja_(
+      CONFIG.SHEET_CATALOGOS
+    );
+
+  var ultimaFila =
+    Math.max(
+      hoja.getLastRow(),
+      2
+    );
+
+  var columnas = {
+
+    planilla: 1,
+
+    tipoContrato: 2,
+
+    posicion: 3,
+
+    departamento: 4,
+
+    centroCosto: 5,
+
+    ubicacion: 6,
+
+    jornada: 7,
+
+    estatus: 8,
+
+    banco: 15,
+
+    tipoCuenta: 16
+  };
+
+  var resultado = {};
+
+  Object
+    .keys(columnas)
+    .forEach(function (campo) {
+
+      var numeroColumna =
+        columnas[campo];
+
+      var valores =
+        hoja
+          .getRange(
+            2,
+            numeroColumna,
+            ultimaFila - 1,
+            1
+          )
+          .getDisplayValues()
+          .map(function (fila) {
+
+            return String(
+              fila[0] || ""
+            ).trim();
+          })
+          .filter(function (valor) {
+
+            return (
+              valor !== "" &&
+              normalizarTexto_(valor) !==
+                "seleccionar"
+            );
+          });
+
+      /*
+       * Eliminar opciones duplicadas.
+       */
+
+      resultado[campo] =
+        valores.filter(
+          function (
+            valor,
+            indice,
+            arreglo
+          ) {
+
+            return (
+              arreglo.indexOf(valor) ===
+              indice
+            );
+          }
+        );
+    });
+
+  return resultado;
+}
+
+/*******************************************************
+ * DATOS DE EMPLEADOS
+ *******************************************************/
+
+/**
+ * Guarda un nuevo empleado en Maestro A:Q.
+ */
+
+function guardarEmpleado(datos) {
+
+  validarDatosEmpleado_(datos);
+
+  var bloqueo =
+    LockService.getScriptLock();
+
+  bloqueo.waitLock(20000);
+
+  try {
+
+    var hoja =
+      obtenerHoja_(
+        CONFIG.SHEET_MAESTRO
+      );
+
+    var filaExistente =
+      encontrarFilaEmpleado_(
+        hoja,
+        datos.pin
+      );
+
+    if (filaExistente > 0) {
+
+      return {
+        ok: false,
+        mensaje:
+          "Ya existe un empleado con ese PIN."
+      };
+    }
+
+    var fila =
+      hoja.getLastRow() + 1;
+
+    var valores =
+      convertirEmpleadoAFila_(datos);
+
+    hoja
+      .getRange(
+        fila,
+        1,
+        1,
+        CAMPOS_EMPLEADO.length
+      )
+      .setValues([valores]);
+
+    aplicarFormatoEmpleado_(
+      hoja,
+      fila
+    );
+
+    SpreadsheetApp.flush();
+
+    return {
+      ok: true,
+      mensaje:
+        "Empleado guardado correctamente en Maestro."
+    };
+
+  } finally {
+
+    bloqueo.releaseLock();
+  }
+}
+
+/**
+ * Busca un empleado por PIN.
+ */
+
+function buscarEmpleado(pin) {
+
+  pin =
+    String(pin || "").trim();
+
+  if (!pin) {
+
+    return {
+      ok: false,
+      mensaje:
+        "Ingrese el No. de personal o PIN."
+    };
+  }
+
+  var hoja =
+    obtenerHoja_(
+      CONFIG.SHEET_MAESTRO
+    );
+
+  var fila =
+    encontrarFilaEmpleado_(
+      hoja,
+      pin
+    );
+
+  if (fila < 2) {
+
+    return {
+      ok: false,
+      mensaje:
+        "No se encontró un empleado con ese PIN."
+    };
+  }
+
+  var valores =
+    hoja
+      .getRange(
+        fila,
+        1,
+        1,
+        CAMPOS_EMPLEADO.length
+      )
+      .getValues()[0];
+
+  var empleado = {};
+
+  CAMPOS_EMPLEADO
+    .forEach(function (
+      campo,
+      indice
+    ) {
+
+      empleado[campo] =
+        formatearCampoEmpleado_(
+          campo,
+          valores[indice]
+        );
+    });
+
+  return {
+    ok: true,
+    empleado: empleado
+  };
+}
+
+/**
+ * Modifica un empleado existente.
+ */
+
+function actualizarEmpleado(datos) {
+
+  validarDatosEmpleado_(datos);
+
+  var bloqueo =
+    LockService.getScriptLock();
+
+  bloqueo.waitLock(20000);
+
+  try {
+
+    var hoja =
+      obtenerHoja_(
+        CONFIG.SHEET_MAESTRO
+      );
+
+    var fila =
+      encontrarFilaEmpleado_(
+        hoja,
+        datos.pin
+      );
+
+    if (fila < 2) {
+
+      return {
+        ok: false,
+        mensaje:
+          "No se encontró el empleado que desea modificar."
+      };
+    }
+
+    var valores =
+      convertirEmpleadoAFila_(datos);
+
+    hoja
+      .getRange(
+        fila,
+        1,
+        1,
+        CAMPOS_EMPLEADO.length
+      )
+      .setValues([valores]);
+
+    aplicarFormatoEmpleado_(
+      hoja,
+      fila
+    );
+
+    SpreadsheetApp.flush();
+
+    return {
+      ok: true,
+      mensaje:
+        "Empleado modificado correctamente."
+    };
+
+  } finally {
+
+    bloqueo.releaseLock();
+  }
+}
+
+/**
+ * Verifica los campos obligatorios.
+ */
+
+function validarDatosEmpleado_(datos) {
+
+  if (!datos) {
+
+    throw new Error(
+      "No se recibieron los datos del empleado."
+    );
+  }
+
+  if (
+    !String(
+      datos.pin || ""
+    ).trim()
+  ) {
+
+    throw new Error(
+      "El campo Pin es obligatorio."
+    );
+  }
+
+  if (
+    !String(
+      datos.nombre || ""
+    ).trim()
+  ) {
+
+    throw new Error(
+      "El campo Nombre es obligatorio."
+    );
+  }
+}
+
+/**
+ * Busca la fila del empleado por PIN.
+ */
+
+function encontrarFilaEmpleado_(
+  hoja,
+  pin
+) {
+
+  var ultimaFila =
+    hoja.getLastRow();
+
+  if (ultimaFila < 2) {
+    return -1;
+  }
+
+  var pinBuscado =
+    String(pin || "").trim();
+
+  var valores =
+    hoja
+      .getRange(
+        2,
+        1,
+        ultimaFila - 1,
+        1
+      )
+      .getDisplayValues();
+
+  for (
+    var i = 0;
+    i < valores.length;
+    i++
+  ) {
+
+    var pinHoja =
+      String(
+        valores[i][0] || ""
+      ).trim();
+
+    if (pinHoja === pinBuscado) {
+
+      return i + 2;
+    }
+  }
+
+  return -1;
+}
+
+/**
+ * Convierte los datos del empleado en una fila A:Q.
+ */
+
+function convertirEmpleadoAFila_(datos) {
+
+  return CAMPOS_EMPLEADO
+    .map(function (campo) {
+
+      var valor =
+        datos[campo];
+
+      if (
+        campo === "fechaIngreso" ||
+        campo === "fechaFin"
+      ) {
+
+        return convertirFecha_(
+          valor
+        );
+      }
+
+      if (campo === "sueldo") {
+
+        return convertirNumero_(
+          valor
+        );
+      }
+
+      return String(
+        valor || ""
+      ).trim();
+    });
+}
+
+/**
+ * Formatea las fechas para el HTML.
+ */
+
+function formatearCampoEmpleado_(
+  campo,
+  valor
+) {
+
+  if (
+    (
+      campo === "fechaIngreso" ||
+      campo === "fechaFin"
+    ) &&
+    valor instanceof Date
+  ) {
+
+    return Utilities.formatDate(
+      valor,
+      Session.getScriptTimeZone(),
+      "yyyy-MM-dd"
+    );
+  }
+
+  if (
+    valor === null ||
+    valor === undefined
+  ) {
+
+    return "";
+  }
+
+  return String(valor);
+}
+
+/**
+ * Formatos de la hoja Maestro.
+ */
+
+function aplicarFormatoEmpleado_(
+  hoja,
+  fila
+) {
+
+  /*
+   * A = PIN como texto.
+   */
+
+  hoja
+    .getRange(
+      fila,
+      1
+    )
+    .setNumberFormat("@");
+
+  /*
+   * D = Sueldo.
+   */
+
+  hoja
+    .getRange(
+      fila,
+      4
+    )
+    .setNumberFormat(
+      'L #,##0.00'
+    );
+
+  /*
+   * F:G = Fechas.
+   */
+
+  hoja
+    .getRange(
+      fila,
+      6,
+      1,
+      2
+    )
+    .setNumberFormat(
+      "dd/MM/yyyy"
+    );
+
+  /*
+   * Q = No. de cuenta como texto.
+   */
+
+  hoja
+    .getRange(
+      fila,
+      17
+    )
+    .setNumberFormat("@");
+}
+
+/*******************************************************
+ * PARÁMETROS DE PLANILLA
+ *
+ * I1 = Estatus Hora Ent
+ * J1 = Feriados
+ * K1 = Horas extras diu recargo
+ * L1 = Horas extras noct recargo
+ * M1 = Horas extras descanso recargo
+ * N1 = Horas extras feriado recargo
+ *
+ * I2     = Hora límite
+ * J2:J13 = 12 feriados
+ * K2:N2  = Factores de recargo
+ *******************************************************/
+
+/**
+ * Obtiene los parámetros de Catalogos I:N.
+ */
+
+
+/**
+ * Guarda los parámetros en Catalogos I:N.
+ */
+
+function guardarParametros(datos) {
+
+  if (!datos) {
+
+    return {
+      ok: false,
+      mensaje:
+        "No se recibieron los parámetros."
+    };
+  }
+
+  if (!datos.estatusHoraEnt) {
+
+    return {
+      ok: false,
+      mensaje:
+        "Debe seleccionar Estatus Hora Ent."
+    };
+  }
+
+  var bloqueo =
+    LockService.getScriptLock();
+
+  bloqueo.waitLock(20000);
+
+  try {
+
+    var hoja =
+      obtenerHoja_(
+        CONFIG.SHEET_CATALOGOS
+      );
+
+    /*
+     * Encabezados I:N.
+     */
+
+    hoja
+      .getRange("I1:N1")
+      .setValues([[
+        "Estatus Hora Ent",
+        "Feriados",
+        "Horas extras diu recargo",
+        "Horas extras noct recargo",
+        "Horas extras descanso recargo",
+        "Horas extras feriado recargo"
+      ]]);
+
+    /*
+     * I2 = Estatus Hora Ent.
+     */
+
+    var hora =
+      convertirHora_(
+        datos.estatusHoraEnt
+      );
+
+    hoja
+      .getRange("I2")
+      .setValue(hora)
+      .setNumberFormat(
+        "HH:mm:ss"
+      );
+
+    /*
+     * J2:J13 = 12 feriados.
+     */
+
+    var feriados =
+      Array.isArray(datos.feriados)
+        ? datos.feriados.slice(0, 12)
+        : [];
+
+    while (feriados.length < 12) {
+
+      feriados.push("");
+    }
+
+    var valoresFeriados =
+      feriados.map(function (fecha) {
+
+        return [
+          fecha
+            ? convertirFecha_(fecha)
+            : ""
+        ];
+      });
+
+    hoja
+      .getRange("J2:J13")
+      .setValues(
+        valoresFeriados
+      )
+      .setNumberFormat(
+        "dd/MM/yyyy"
+      );
+
+    /*
+     * K2:N2 = Recargos.
+     */
+
+    var recargos = [[
+
+      convertirNumero_(
+        datos.recargoDiurno
+      ),
+
+      convertirNumero_(
+        datos.recargoNocturno
+      ),
+
+      convertirNumero_(
+        datos.recargoDescanso
+      ),
+
+      convertirNumero_(
+        datos.recargoFeriado
+      )
+    ]];
+
+    hoja
+      .getRange("K2:N2")
+      .setValues(recargos)
+      .setNumberFormat(
+        "0.00"
+      );
+
+    /*
+     * Formato de encabezados.
+     */
+
+    hoja
+      .getRange("I1:N1")
+      .setFontWeight("bold")
+      .setHorizontalAlignment(
+        "center"
+      )
+      .setVerticalAlignment(
+        "middle"
+      )
+      .setWrap(true)
+      .setBackground("#1d4ed8")
+      .setFontColor("#ffffff");
+
+    hoja.setColumnWidth(9, 170);
+    hoja.setColumnWidth(10, 120);
+    hoja.setColumnWidth(11, 150);
+    hoja.setColumnWidth(12, 160);
+    hoja.setColumnWidth(13, 170);
+    hoja.setColumnWidth(14, 160);
+
+    SpreadsheetApp.flush();
+
+    return {
+      ok: true,
+      mensaje:
+        "Parámetros guardados correctamente en Catalogos, columnas I:N."
+    };
+
+  } finally {
+
+    bloqueo.releaseLock();
+  }
+}
+
+/*******************************************************
+ * FUNCIONES DE FECHAS, HORAS Y NÚMEROS
+ *******************************************************/
+
+function convertirFecha_(valor) {
+
+  if (!valor) {
+    return "";
+  }
+
+  if (valor instanceof Date) {
+    return valor;
+  }
+
+  var partes =
+    String(valor)
+      .split("-");
+
+  if (partes.length !== 3) {
+
+    return valor;
+  }
+
+  return new Date(
+    Number(partes[0]),
+    Number(partes[1]) - 1,
+    Number(partes[2])
+  );
+}
+
+function convertirHora_(valor) {
+
+  var partes =
+    String(valor || "")
+      .split(":");
+
+  var horas =
+    Number(
+      partes[0] || 0
+    );
+
+  var minutos =
+    Number(
+      partes[1] || 0
+    );
+
+  var segundos =
+    Number(
+      partes[2] || 0
+    );
+
+  return new Date(
+    1899,
+    11,
+    30,
+    horas,
+    minutos,
+    segundos
+  );
+}
+
+function normalizarHora_(valor) {
+
+  if (valor instanceof Date) {
+
+    return Utilities.formatDate(
+      valor,
+      Session.getScriptTimeZone(),
+      "HH:mm:ss"
+    );
+  }
+
+  var texto =
+    String(valor || "")
+      .trim();
+
+  if (!texto) {
+
+    return "";
+  }
+
+  var partes =
+    texto.split(":");
+
+  if (partes.length < 2) {
+
+    return texto;
+  }
+
+  var horas =
+    String(
+      partes[0] || "00"
+    ).padStart(2, "0");
+
+  var minutos =
+    String(
+      partes[1] || "00"
+    ).padStart(2, "0");
+
+  var segundos =
+    String(
+      partes[2] || "00"
+    ).padStart(2, "0");
+
+  return (
+    horas +
+    ":" +
+    minutos +
+    ":" +
+    segundos
+  );
+}
+
+function convertirNumero_(valor) {
+
+  if (typeof valor === "number") {
+
+    return isNaN(valor)
+      ? 0
+      : valor;
+  }
+
+  var texto =
+    String(valor || "")
+      .trim()
+      .replace(/\s/g, "");
+
+  if (!texto) {
+
+    return 0;
+  }
+
+  if (
+    texto.indexOf(",") !== -1 &&
+    texto.indexOf(".") === -1
+  ) {
+
+    texto =
+      texto.replace(",", ".");
+
+  } else {
+
+    texto =
+      texto.replace(/,/g, "");
+  }
+
+  var numero =
+    Number(texto);
+
+  return isNaN(numero)
+    ? 0
+    : numero;
+}
+
+function normalizarTexto_(valor) {
+
+  return String(valor || "")
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(
+      /[\u0300-\u036f]/g,
+      ""
+    )
+    .replace(/\s+/g, " ");
+}
+
+/*******************************************************
+ * CONTROL DE ASISTENCIA
+ *******************************************************/
+
+/**
+ * Valida el PIN contra la hoja Maestro.
+ */
+
+function validarPin(pin) {
+
+  const pinBuscado =
+    String(pin || "").trim();
+
+  if (!pinBuscado) {
+
+    return {
+      ok: false,
+      mensaje:
+        "Debe ingresar el PIN."
+    };
+  }
+
+  const ss =
+    obtenerSpreadsheet();
+
+  const hoja =
+    ss.getSheetByName(
+      CONFIG.SHEET_MAESTRO
+    );
+
+  if (!hoja) {
+
+    return {
+      ok: false,
+      mensaje:
+        'No existe la hoja "Maestro".'
+    };
+  }
+
+  const ultimaFila =
+    hoja.getLastRow();
+
+  if (ultimaFila < 2) {
+
+    return {
+      ok: false,
+      mensaje:
+        "No hay empleados registrados."
+    };
+  }
+
+  const empleados =
+    hoja
+      .getRange(
+        2,
+        1,
+        ultimaFila - 1,
+        2
+      )
+      .getDisplayValues();
+
+  for (
+    let i = 0;
+    i < empleados.length;
+    i++
+  ) {
+
+    const pinHoja =
+      String(
+        empleados[i][0] || ""
+      ).trim();
+
+    const nombre =
+      String(
+        empleados[i][1] || ""
+      ).trim();
+
+    if (pinHoja === pinBuscado) {
+
+      return {
+        ok: true,
+        pin: pinHoja,
+        empleado: nombre
+      };
+    }
+  }
+
+  return {
+    ok: false,
+    mensaje:
+      "PIN incorrecto o empleado no registrado."
+  };
+}
+
+/**
+ * Obtiene o crea la hoja Asistencia.
+ */
+
+function obtenerHojaAsistencia() {
+
+  var ss =
+    obtenerSpreadsheet();
+
+  var hoja =
+    ss.getSheetByName(
+      CONFIG.SHEET_ASISTENCIA
+    );
+
+  if (!hoja) {
+
+    hoja =
+      ss.insertSheet(
+        CONFIG.SHEET_ASISTENCIA
+      );
+
+    hoja.appendRow([
+      "Fecha",
+      "Hora",
+      "PIN",
+      "Empleado",
+      "Tipo",
+      "Latitud",
+      "Longitud",
+      "Distancia (m)",
+      "Estado",
+      "Dispositivo"
+    ]);
+
+    hoja
+      .getRange(
+        1,
+        1,
+        1,
+        10
+      )
+      .setFontWeight("bold")
+      .setBackground("#1d4ed8")
+      .setFontColor("#ffffff");
+
+    hoja.setFrozenRows(1);
+  }
+
+  return hoja;
+}
+
+/**
+ * Registra entrada o salida.
+ */
+
+function registrarAsistencia(datos) {
+
+  if (!datos) {
+
+    return {
+      ok: false,
+      mensaje:
+        "No se recibieron los datos de asistencia."
+    };
+  }
+
+  const tipo =
+    String(
+      datos.tipo || ""
+    ).trim();
+
+  if (
+    tipo !== "Entrada" &&
+    tipo !== "Salida"
+  ) {
+
+    return {
+      ok: false,
+      mensaje:
+        "Seleccione Entrada o Salida."
+    };
+  }
+
+  const empleadoValidado =
+    validarPin(datos.pin);
+
+  if (!empleadoValidado.ok) {
+
+    return empleadoValidado;
+  }
+
+  const latitud =
+    Number(datos.lat);
+
+  const longitud =
+    Number(datos.lng);
+
+  if (
+    !isFinite(latitud) ||
+    !isFinite(longitud)
+  ) {
+
+    return {
+      ok: false,
+      mensaje:
+        "No se recibió una ubicación GPS válida."
+    };
+  }
+
+  const hoja =
+    obtenerHojaAsistencia();
+
+  const fechaActual =
+    new Date();
+
+  const distancia =
+    calcularDistancia(
+      CONFIG.LAT_EMPRESA,
+      CONFIG.LNG_EMPRESA,
+      latitud,
+      longitud
+    );
+
+  const estado =
+    distancia <=
+    CONFIG.RADIO_PERMITIDO
+      ? "Válido"
+      : "Fuera del radio permitido";
+
+  const bloqueo =
+    LockService.getScriptLock();
+
+  bloqueo.waitLock(20000);
+
+  try {
+
+    hoja.appendRow([
+
+      Utilities.formatDate(
+        fechaActual,
+        Session.getScriptTimeZone(),
+        "dd/MM/yyyy"
+      ),
+
+      Utilities.formatDate(
+        fechaActual,
+        Session.getScriptTimeZone(),
+        "HH:mm:ss"
+      ),
+
+      empleadoValidado.pin,
+
+      empleadoValidado.empleado,
+
+      tipo,
+
+      latitud,
+
+      longitud,
+
+      Math.round(distancia),
+
+      estado,
+
+      String(
+        datos.dispositivo || ""
+      )
+    ]);
+
+    SpreadsheetApp.flush();
+
+  } finally {
+
+    bloqueo.releaseLock();
+  }
+
+  return {
+    ok: true,
+    empleado:
+      empleadoValidado.empleado,
+    tipo: tipo,
+    distancia:
+      Math.round(distancia),
+    estado: estado,
+    mensaje:
+      tipo +
+      " registrada correctamente."
+  };
+}
+
+/**
+ * Calcula distancia entre dos coordenadas.
+ */
+
+function calcularDistancia(
+  latitud1,
+  longitud1,
+  latitud2,
+  longitud2
+) {
+
+  var radioTierra =
+    6371000;
+
+  var diferenciaLatitud =
+    (
+      latitud2 -
+      latitud1
+    ) *
+    Math.PI /
+    180;
+
+  var diferenciaLongitud =
+    (
+      longitud2 -
+      longitud1
+    ) *
+    Math.PI /
+    180;
+
+  var calculo =
+    Math.sin(
+      diferenciaLatitud / 2
+    ) *
+    Math.sin(
+      diferenciaLatitud / 2
+    ) +
+    Math.cos(
+      latitud1 *
+      Math.PI /
+      180
+    ) *
+    Math.cos(
+      latitud2 *
+      Math.PI /
+      180
+    ) *
+    Math.sin(
+      diferenciaLongitud / 2
+    ) *
+    Math.sin(
+      diferenciaLongitud / 2
+    );
+
+  var angulo =
+    2 *
+    Math.atan2(
+      Math.sqrt(calculo),
+      Math.sqrt(
+        1 - calculo
+      )
+    );
+
+  return (
+    radioTierra *
+    angulo
+  );
+}
+
+/*******************************************************
+ * TABULAR ASISTENCIA
+ *******************************************************/
+
+/**
+ * Agrupa los registros por:
+ * Fecha + PIN + empleado.
+ *
+ * Genera:
+ * Fecha | No. | Nombre | Entrada | Salida
+ */
+
+function tabularAsistencia() {
+
+  var ss =
+    obtenerSpreadsheet();
+
+  var hojaOrigen =
+    ss.getSheetByName(
+      CONFIG.SHEET_ASISTENCIA
+    );
+
+  var hojaCatalogos =
+    ss.getSheetByName(
+      CONFIG.SHEET_CATALOGOS
+    );
+
+  var hojaMaestro =
+    ss.getSheetByName(
+      CONFIG.SHEET_MAESTRO
+    );
+
+  if (!hojaOrigen) {
+
+    SpreadsheetApp
+      .getUi()
+      .alert(
+        'No existe la hoja "' +
+        CONFIG.SHEET_ASISTENCIA +
+        '".'
+      );
+
+    return;
+  }
+
+  if (!hojaCatalogos) {
+
+    SpreadsheetApp
+      .getUi()
+      .alert(
+        'No existe la hoja "' +
+        CONFIG.SHEET_CATALOGOS +
+        '".'
+      );
+
+    return;
+  }
+
+  if (!hojaMaestro) {
+
+    SpreadsheetApp
+      .getUi()
+      .alert(
+        'No existe la hoja "' +
+        CONFIG.SHEET_MAESTRO +
+        '".'
+      );
+
+    return;
+  }
+
+  /*
+   * Hora límite de entrada:
+   * Catalogos!I2.
+   */
+
+  var horaLimite =
+    hojaCatalogos
+      .getRange("I2")
+      .getValue();
+
+  var segundosHoraLimite =
+    convertirHoraASegundos_(
+      horaLimite
+    );
+
+  if (segundosHoraLimite === null) {
+
+    SpreadsheetApp
+      .getUi()
+      .alert(
+        "No existe una hora válida en Catalogos!I2."
+      );
+
+    return;
+  }
+
+  /*
+   * Feriados:
+   * Catalogos!J2:J13.
+   */
+
+  var feriados =
+    obtenerFeriados_(
+      hojaCatalogos
+    );
+
+  /*
+   * Recargos:
+   *
+   * K2 = Diurno
+   * L2 = Nocturno
+   * M2 = Descanso
+   * N2 = Feriado
+   */
+
+  var recargos =
+    obtenerRecargosPlanilla_(
+      hojaCatalogos
+    );
+
+  /*
+   * Sueldos:
+   *
+   * Maestro A = PIN / No.
+   * Maestro D = Sueldo.
+   */
+
+  var sueldos =
+    obtenerSueldosPlanilla_(
+      hojaMaestro
+    );
+
+  var hojaDestino =
+    ss.getSheetByName(
+      CONFIG.SHEET_ASISTENCIA_FINAL
+    );
+
+  if (!hojaDestino) {
+
+    hojaDestino =
+      ss.insertSheet(
+        CONFIG.SHEET_ASISTENCIA_FINAL
+      );
+  }
+
+  /*
+   * Limpiar datos y formatos anteriores.
+   */
+
+  hojaDestino.clear();
+
+  /*
+   * Encabezados A:P.
+   */
+
+  hojaDestino
+    .getRange(
+      1,
+      1,
+      1,
+      16
+    )
+    .setValues([[
+      "Fecha",
+      "No.",
+      "Nombre",
+      "Entrada",
+      "Salida",
+      "Estatus hora entrada",
+      "Horas trabajadas",
+      "Día",
+      "Horas extras diurnas",
+      "Horas extras nocturnas",
+      "Horas extras descanso",
+      "Horas extras feriado",
+      "Horas extras diurnas lps",
+      "Horas extras nocturnas lps",
+      "Horas extras descanso lps",
+      "Horas extras feriado lps"
+    ]]);
+
+  var ultimaFila =
+    hojaOrigen.getLastRow();
+
+  if (ultimaFila < 2) {
+
+    aplicarFormatoAsistenciaMonetaria_(
+      hojaDestino
+    );
+
+    SpreadsheetApp
+      .getUi()
+      .alert(
+        "No hay registros de asistencia."
+      );
+
+    return;
+  }
+
+  /*
+   * Leer Asistencia:
+   *
+   * A = Fecha
+   * B = Hora
+   * C = No.
+   * D = Nombre
+   * E = Tipo
+   */
+
+  var datos =
+    hojaOrigen
+      .getRange(
+        2,
+        1,
+        ultimaFila - 1,
+        hojaOrigen.getLastColumn()
+      )
+      .getDisplayValues();
+
+  var agrupados = {};
+
+  datos.forEach(function (fila) {
+
+    var fecha =
+      String(
+        fila[0] || ""
+      ).trim();
+
+    var hora =
+      normalizarHoraTexto_(
+        fila[1]
+      );
+
+    var pin =
+      String(
+        fila[2] || ""
+      ).trim();
+
+    var nombre =
+      String(
+        fila[3] || ""
+      ).trim();
+
+    var tipo =
+      normalizarTexto_(
+        fila[4]
+      );
+
+    if (
+      !fecha ||
+      !hora ||
+      !pin
+    ) {
+      return;
+    }
+
+    var clave =
+      fecha +
+      "||" +
+      pin +
+      "||" +
+      nombre;
+
+    if (!agrupados[clave]) {
+
+      agrupados[clave] = {
+        fecha: fecha,
+        pin: pin,
+        nombre: nombre,
+        entrada: "",
+        salida: ""
+      };
+    }
+
+    /*
+     * Conservar la entrada más temprana.
+     */
+
+    if (tipo === "entrada") {
+
+      if (
+        !agrupados[clave].entrada ||
+        convertirHoraASegundos_(hora) <
+        convertirHoraASegundos_(
+          agrupados[clave].entrada
+        )
+      ) {
+
+        agrupados[clave].entrada =
+          hora;
+      }
+    }
+
+    /*
+     * Conservar la salida más tardía.
+     */
+
+    if (tipo === "salida") {
+
+      if (
+        !agrupados[clave].salida ||
+        convertirHoraASegundos_(hora) >
+        convertirHoraASegundos_(
+          agrupados[clave].salida
+        )
+      ) {
+
+        agrupados[clave].salida =
+          hora;
+      }
+    }
+  });
+
+  /*
+   * Construir AsistenciaF.
+   */
+
+  var resultado =
+    Object
+      .keys(agrupados)
+      .map(function (clave) {
+
+        var registro =
+          agrupados[clave];
+
+        var diaSemana =
+          obtenerDiaSemana_(
+            registro.fecha
+          );
+
+        /*
+         * G = Horas trabajadas.
+         */
+
+        var horasTrabajadas =
+          calcularHorasTrabajadas_(
+            registro.entrada,
+            registro.salida
+          );
+
+        /*
+         * F = Estatus hora entrada.
+         */
+
+        var estatusEntrada =
+          calcularEstatusEntrada_(
+            registro.entrada,
+            segundosHoraLimite
+          );
+
+        /*
+         * I = Horas extras diurnas.
+         */
+
+        var horasExtrasDiurnas =
+          calcularExtrasDiurnas_(
+            diaSemana,
+            registro.entrada,
+            registro.salida,
+            horasTrabajadas
+          );
+
+        /*
+         * J = Horas extras nocturnas.
+         */
+
+        var horasExtrasNocturnas =
+          calcularExtrasNocturnas_(
+            diaSemana,
+            registro.entrada,
+            registro.salida
+          );
+
+        /*
+         * K = Horas extras descanso.
+         */
+
+        var horasExtrasDescanso =
+          normalizarTexto_(
+            diaSemana
+          ) === "dom"
+            ? convertirDuracionSegura_(
+                horasTrabajadas
+              )
+            : 0;
+
+        /*
+         * L = Horas extras feriado.
+         */
+
+        var esFeriado =
+          feriados.has(
+            normalizarFechaClave_(
+              registro.fecha
+            )
+          );
+
+        var horasExtrasFeriado =
+          esFeriado
+            ? convertirDuracionSegura_(
+                horasTrabajadas
+              )
+            : 0;
+
+        /*
+         * Buscar sueldo por PIN.
+         */
+
+        var sueldo =
+          Number(
+            sueldos[
+              String(
+                registro.pin
+              ).trim()
+            ] || 0
+          );
+
+        /*
+         * M = Pago de extras diurnas.
+         */
+
+        var pagoExtrasDiurnas =
+          calcularPagoHoraExtra_(
+            sueldo,
+            recargos.diurno,
+            horasExtrasDiurnas
+          );
+
+        /*
+         * N = Pago de extras nocturnas.
+         */
+
+        var pagoExtrasNocturnas =
+          calcularPagoHoraExtra_(
+            sueldo,
+            recargos.nocturno,
+            horasExtrasNocturnas
+          );
+
+        /*
+         * O = Pago de extras descanso.
+         */
+
+        var pagoExtrasDescanso =
+          calcularPagoHoraExtra_(
+            sueldo,
+            recargos.descanso,
+            horasExtrasDescanso
+          );
+
+        /*
+         * P = Pago de extras feriado.
+         *
+         * Se utiliza Catalogos!N2,
+         * recargo de feriado.
+         */
+
+        var pagoExtrasFeriado =
+          calcularPagoHoraExtra_(
+            sueldo,
+            recargos.feriado,
+            horasExtrasFeriado
+          );
+
+        return [
+          registro.fecha,
+          registro.pin,
+          registro.nombre,
+          registro.entrada,
+          registro.salida,
+          estatusEntrada,
+          horasTrabajadas,
+          diaSemana,
+          horasExtrasDiurnas,
+          horasExtrasNocturnas,
+          horasExtrasDescanso,
+          horasExtrasFeriado,
+          pagoExtrasDiurnas,
+          pagoExtrasNocturnas,
+          pagoExtrasDescanso,
+          pagoExtrasFeriado
+        ];
+      });
+
+  /*
+   * Ordenar por fecha y No.
+   */
+
+  resultado.sort(
+    function (filaA, filaB) {
+
+      var fechaA =
+        convertirFechaParaOrden_(
+          filaA[0]
+        );
+
+      var fechaB =
+        convertirFechaParaOrden_(
+          filaB[0]
+        );
+
+      if (fechaA !== fechaB) {
+
+        return fechaA - fechaB;
+      }
+
+      return String(filaA[1])
+        .localeCompare(
+          String(filaB[1]),
+          undefined,
+          {
+            numeric: true,
+            sensitivity: "base"
+          }
+        );
+    }
+  );
+
+  if (resultado.length > 0) {
+
+    hojaDestino
+      .getRange(
+        2,
+        1,
+        resultado.length,
+        16
+      )
+      .setValues(resultado);
+  }
+
+  aplicarFormatoAsistenciaMonetaria_(
+    hojaDestino
+  );
+
+  ss.setActiveSheet(
+    hojaDestino
+  );
+
+  SpreadsheetApp.flush();
+
+  SpreadsheetApp
+    .getUi()
+    .alert(
+      "Asistencia tabulada correctamente.\n\n" +
+      "Registros generados: " +
+      resultado.length
+    );
+}
+
+/**
+ * Obtiene los factores de recargo.
+ *
+ * Catalogos:
+ * K2 = Diurno
+ * L2 = Nocturno
+ * M2 = Descanso
+ * N2 = Feriado
+ */
+
+function obtenerRecargosPlanilla_(
+  hojaCatalogos
+) {
+
+  var valores =
+    hojaCatalogos
+      .getRange("K2:N2")
+      .getValues()[0];
+
+  return {
+    diurno:
+      convertirNumeroPago_(
+        valores[0]
+      ),
+
+    nocturno:
+      convertirNumeroPago_(
+        valores[1]
+      ),
+
+    descanso:
+      convertirNumeroPago_(
+        valores[2]
+      ),
+
+    feriado:
+      convertirNumeroPago_(
+        valores[3]
+      )
+  };
+}
+
+/**
+ * Crea un mapa de sueldos:
+ *
+ * {
+ *   "1001": 18000,
+ *   "1002": 22000
+ * }
+ *
+ * Maestro:
+ * A = PIN / No.
+ * D = Sueldo.
+ */
+
+function obtenerSueldosPlanilla_(
+  hojaMaestro
+) {
+
+  var ultimaFila =
+    hojaMaestro.getLastRow();
+
+  var resultado = {};
+
+  if (ultimaFila < 2) {
+
+    return resultado;
+  }
+
+  var datos =
+    hojaMaestro
+      .getRange(
+        2,
+        1,
+        ultimaFila - 1,
+        4
+      )
+      .getValues();
+
+  datos.forEach(function (fila) {
+
+    var pin =
+      String(
+        fila[0] || ""
+      ).trim();
+
+    var sueldo =
+      convertirNumeroPago_(
+        fila[3]
+      );
+
+    if (pin) {
+
+      resultado[pin] =
+        sueldo;
+    }
+  });
+
+  return resultado;
+}
+
+/**
+ * Fórmula de pago:
+ *
+ * (Sueldo / 240)
+ * × recargo
+ * × horas extras.
+ *
+ * Las horas extras están guardadas como
+ * duración de Sheets, por eso se multiplican
+ * por 24 para convertirlas en horas reales.
+ */
+
+function calcularPagoHoraExtra_(
+  sueldo,
+  recargo,
+  duracionHoraExtra
+) {
+
+  var sueldoNumerico =
+    convertirNumeroPago_(
+      sueldo
+    );
+
+  var recargoNumerico =
+    convertirNumeroPago_(
+      recargo
+    );
+
+  var duracion =
+    convertirDuracionSegura_(
+      duracionHoraExtra
+    );
+
+  if (
+    sueldoNumerico <= 0 ||
+    recargoNumerico <= 0 ||
+    duracion <= 0
+  ) {
+
+    return 0;
+  }
+
+  var valorHora =
+    sueldoNumerico / 240;
+
+  var cantidadHoras =
+    duracion * 24;
+
+  var pago =
+    valorHora *
+    recargoNumerico *
+    cantidadHoras;
+
+  /*
+   * Redondear a dos decimales.
+   */
+
+  return Math.round(
+    pago * 100
+  ) / 100;
+}
+
+/**
+ * Convierte valores numéricos provenientes
+ * de Sheets o escritos como texto.
+ */
+
+function convertirNumeroPago_(
+  valor
+) {
+
+  if (typeof valor === "number") {
+
+    return isNaN(valor)
+      ? 0
+      : valor;
+  }
+
+  var texto =
+    String(valor || "")
+      .trim()
+      .replace(/\s/g, "");
+
+  if (!texto) {
+    return 0;
+  }
+
+  /*
+   * 1,25 se interpreta como 1.25.
+   */
+
+  if (
+    texto.indexOf(",") !== -1 &&
+    texto.indexOf(".") === -1
+  ) {
+
+    texto =
+      texto.replace(",", ".");
+
+  } else {
+
+    /*
+     * 15,000.00 se interpreta como 15000.
+     */
+
+    texto =
+      texto.replace(/,/g, "");
+  }
+
+  var numero =
+    Number(texto);
+
+  return isNaN(numero)
+    ? 0
+    : numero;
+}
+
+/**
+ * Formato de AsistenciaF, columnas A:P.
+ */
+
+function aplicarFormatoAsistenciaMonetaria_(
+  hoja
+) {
+
+  var ultimaFila =
+    Math.max(
+      hoja.getLastRow(),
+      1
+    );
+
+  /*
+   * Encabezados A:P.
+   */
+
+  hoja
+    .getRange(
+      1,
+      1,
+      1,
+      16
+    )
+    .setFontWeight("bold")
+    .setBackground("#1d4ed8")
+    .setFontColor("#ffffff")
+    .setHorizontalAlignment(
+      "center"
+    )
+    .setVerticalAlignment(
+      "middle"
+    )
+    .setWrap(true);
+
+  hoja.setFrozenRows(1);
+
+  if (ultimaFila > 1) {
+
+    /*
+     * Fecha y No.
+     */
+
+    hoja
+      .getRange(
+        2,
+        1,
+        ultimaFila - 1,
+        2
+      )
+      .setHorizontalAlignment(
+        "center"
+      );
+
+    /*
+     * Entrada hasta horas extras feriado.
+     */
+
+    hoja
+      .getRange(
+        2,
+        4,
+        ultimaFila - 1,
+        9
+      )
+      .setHorizontalAlignment(
+        "center"
+      );
+
+    /*
+     * G = Horas trabajadas.
+     */
+
+    hoja
+      .getRange(
+        2,
+        7,
+        ultimaFila - 1,
+        1
+      )
+      .setNumberFormat(
+        "[h]:mm:ss"
+      )
+      .setFontWeight("bold");
+
+    /*
+     * I:L = Duraciones de horas extras.
+     */
+
+    hoja
+      .getRange(
+        2,
+        9,
+        ultimaFila - 1,
+        4
+      )
+      .setNumberFormat(
+        "[h]:mm:ss"
+      )
+      .setFontWeight("bold");
+
+    /*
+     * M:P = Valores monetarios.
+     */
+
+    hoja
+      .getRange(
+        2,
+        13,
+        ultimaFila - 1,
+        4
+      )
+      .setNumberFormat(
+        'L #,##0.00'
+      )
+      .setHorizontalAlignment(
+        "right"
+      )
+      .setFontWeight("bold");
+
+    /*
+     * B = No. como texto.
+     */
+
+    hoja
+      .getRange(
+        2,
+        2,
+        ultimaFila - 1,
+        1
+      )
+      .setNumberFormat("@");
+  }
+
+  /*
+   * Anchos A:P.
+   */
+
+  hoja.setColumnWidth(1, 110);
+  hoja.setColumnWidth(2, 100);
+  hoja.setColumnWidth(3, 220);
+  hoja.setColumnWidth(4, 110);
+  hoja.setColumnWidth(5, 110);
+  hoja.setColumnWidth(6, 170);
+  hoja.setColumnWidth(7, 150);
+  hoja.setColumnWidth(8, 90);
+  hoja.setColumnWidth(9, 155);
+  hoja.setColumnWidth(10, 165);
+  hoja.setColumnWidth(11, 165);
+  hoja.setColumnWidth(12, 155);
+  hoja.setColumnWidth(13, 175);
+  hoja.setColumnWidth(14, 185);
+  hoja.setColumnWidth(15, 185);
+  hoja.setColumnWidth(16, 175);
+
+  /*
+   * Recrear filtro A:P.
+   */
+
+  if (hoja.getFilter()) {
+
+    hoja
+      .getFilter()
+      .remove();
+  }
+
+  if (ultimaFila > 1) {
+
+    hoja
+      .getRange(
+        1,
+        1,
+        ultimaFila,
+        16
+      )
+      .createFilter();
+  }
+}
+
+
+
+function calcularEstatusEntrada_(
+  entrada,
+  segundosHoraLimite
+) {
+
+  if (!entrada) {
+    return "";
+  }
+
+  var segundosEntrada =
+    convertirHoraASegundos_(
+      entrada
+    );
+
+  if (
+    segundosEntrada === null ||
+    segundosHoraLimite === null
+  ) {
+    return "";
+  }
+
+  if (
+    segundosEntrada >
+    segundosHoraLimite
+  ) {
+    return "Tarde";
+  }
+
+  if (
+    segundosEntrada ===
+    segundosHoraLimite
+  ) {
+    return "A tiempo";
+  }
+
+  return "Antes";
+}
+
+/**
+ * Horas trabajadas:
+ *
+ * Salida - Entrada - 1 hora.
+ */
+
+function calcularHorasTrabajadas_(
+  entrada,
+  salida
+) {
+
+  if (!entrada || !salida) {
+    return "";
+  }
+
+  var segundosEntrada =
+    convertirHoraASegundos_(
+      entrada
+    );
+
+  var segundosSalida =
+    convertirHoraASegundos_(
+      salida
+    );
+
+  if (
+    segundosEntrada === null ||
+    segundosSalida === null
+  ) {
+    return "";
+  }
+
+  /*
+   * Jornada que termina al día siguiente.
+   */
+
+  if (
+    segundosSalida <
+    segundosEntrada
+  ) {
+
+    segundosSalida +=
+      24 * 60 * 60;
+  }
+
+  var segundosTrabajados =
+    segundosSalida -
+    segundosEntrada -
+    60 * 60;
+
+  if (segundosTrabajados < 0) {
+    segundosTrabajados = 0;
+  }
+
+  return segundosTrabajados /
+    (
+      24 *
+      60 *
+      60
+    );
+}
+
+/**
+ * Horas extras diurnas, columna I.
+ *
+ * Lunes a viernes:
+ * exceso después de 8 horas.
+ *
+ * Sábado:
+ * exceso después de 4 horas.
+ *
+ * Solo se contabiliza el exceso que se encuentre
+ * dentro de la franja 07:00 a 19:00.
+ */
+
+function calcularExtrasDiurnas_(
+  diaSemana,
+  entrada,
+  salida,
+  horasTrabajadas
+) {
+
+  if (
+    !entrada ||
+    !salida ||
+    horasTrabajadas === ""
+  ) {
+    return 0;
+  }
+
+  var dia =
+    normalizarTexto_(
+      diaSemana
+    );
+
+  var limiteHoras;
+
+  if (
+    dia === "lun" ||
+    dia === "mar" ||
+    dia === "mie" ||
+    dia === "jue" ||
+    dia === "vie"
+  ) {
+
+    limiteHoras = 8;
+
+  } else if (dia === "sab") {
+
+    limiteHoras = 4;
+
+  } else {
+
+    return 0;
+  }
+
+  var duracionTrabajada =
+    convertirDuracionSegura_(
+      horasTrabajadas
+    );
+
+  var limiteDuracion =
+    limiteHoras / 24;
+
+  var exceso =
+    Math.max(
+      0,
+      duracionTrabajada -
+      limiteDuracion
+    );
+
+  if (exceso <= 0) {
+    return 0;
+  }
+
+  /*
+   * Tiempo real dentro de 07:00 a 19:00.
+   */
+
+  var tiempoDiurno =
+    calcularTiempoEnFranja_(
+      entrada,
+      salida,
+      7,
+      19
+    );
+
+  /*
+   * Las extras diurnas no pueden ser mayores
+   * que el exceso ni mayores que el tiempo
+   * trabajado en la franja diurna.
+   */
+
+  return Math.min(
+    exceso,
+    tiempoDiurno
+  );
+}
+
+/**
+ * Horas extras nocturnas, columna J.
+ *
+ * De lunes a sábado se contabiliza todo
+ * el tiempo transcurrido entre 19:00 y 05:00.
+ */
+
+function calcularExtrasNocturnas_(
+  diaSemana,
+  entrada,
+  salida
+) {
+
+  if (!entrada || !salida) {
+    return 0;
+  }
+
+  var dia =
+    normalizarTexto_(
+      diaSemana
+    );
+
+  if (
+    dia !== "lun" &&
+    dia !== "mar" &&
+    dia !== "mie" &&
+    dia !== "jue" &&
+    dia !== "vie" &&
+    dia !== "sab"
+  ) {
+
+    return 0;
+  }
+
+  return calcularTiempoEnFranja_(
+    entrada,
+    salida,
+    19,
+    5
+  );
+}
+
+/**
+ * Calcula la parte de una jornada que se
+ * encuentra dentro de una franja horaria.
+ *
+ * Ejemplos:
+ * 07 a 19 = franja diurna.
+ * 19 a 05 = franja nocturna.
+ *
+ * El resultado es una duración de Sheets.
+ */
+
+function calcularTiempoEnFranja_(
+  entrada,
+  salida,
+  horaInicio,
+  horaFinal
+) {
+
+  var segundosEntrada =
+    convertirHoraASegundos_(
+      entrada
+    );
+
+  var segundosSalida =
+    convertirHoraASegundos_(
+      salida
+    );
+
+  if (
+    segundosEntrada === null ||
+    segundosSalida === null
+  ) {
+    return 0;
+  }
+
+  if (
+    segundosSalida <=
+    segundosEntrada
+  ) {
+
+    segundosSalida +=
+      24 * 60 * 60;
+  }
+
+  var segundosFranja = 0;
+
+  /*
+   * Revisar el día anterior, el actual
+   * y el siguiente para cubrir jornadas nocturnas.
+   */
+
+  for (
+    var desplazamiento = -1;
+    desplazamiento <= 1;
+    desplazamiento++
+  ) {
+
+    var base =
+      desplazamiento *
+      24 *
+      60 *
+      60;
+
+    var inicioFranja =
+      base +
+      horaInicio *
+      60 *
+      60;
+
+    var finalFranja =
+      base +
+      horaFinal *
+      60 *
+      60;
+
+    /*
+     * Si la hora final es menor que la inicial,
+     * la franja termina al día siguiente.
+     */
+
+    if (horaFinal <= horaInicio) {
+
+      finalFranja +=
+        24 *
+        60 *
+        60;
+    }
+
+    var inicioCoincidencia =
+      Math.max(
+        segundosEntrada,
+        inicioFranja
+      );
+
+    var finalCoincidencia =
+      Math.min(
+        segundosSalida,
+        finalFranja
+      );
+
+    if (
+      finalCoincidencia >
+      inicioCoincidencia
+    ) {
+
+      segundosFranja +=
+        finalCoincidencia -
+        inicioCoincidencia;
+    }
+  }
+
+  return segundosFranja /
+    (
+      24 *
+      60 *
+      60
+    );
+}
+
+/**
+ * Feriados de Catalogos!J2:J13.
+ */
+
+function obtenerFeriados_(
+  hojaCatalogos
+) {
+
+  var resultado =
+    new Set();
+
+  var valores =
+    hojaCatalogos
+      .getRange("J2:J13")
+      .getValues();
+
+  valores.forEach(function (fila) {
+
+    var valor =
+      fila[0];
+
+    var clave =
+      normalizarFechaClave_(
+        valor
+      );
+
+    if (clave) {
+
+      resultado.add(clave);
+    }
+  });
+
+  return resultado;
+}
+
+/**
+ * Normaliza una fecha para comparar:
+ *
+ * dd/MM/yyyy -> yyyy-MM-dd
+ * Date -> yyyy-MM-dd
+ */
+
+function normalizarFechaClave_(
+  valor
+) {
+
+  if (!valor) {
+    return "";
+  }
+
+  if (valor instanceof Date) {
+
+    return Utilities.formatDate(
+      valor,
+      Session.getScriptTimeZone(),
+      "yyyy-MM-dd"
+    );
+  }
+
+  var texto =
+    String(valor)
+      .trim();
+
+  var partesBarra =
+    texto.split("/");
+
+  if (partesBarra.length === 3) {
+
+    return (
+      String(
+        Number(partesBarra[2])
+      ) +
+      "-" +
+      String(
+        Number(partesBarra[1])
+      ).padStart(2, "0") +
+      "-" +
+      String(
+        Number(partesBarra[0])
+      ).padStart(2, "0")
+    );
+  }
+
+  var partesGuion =
+    texto.split("-");
+
+  if (partesGuion.length === 3) {
+
+    return (
+      String(
+        Number(partesGuion[0])
+      ) +
+      "-" +
+      String(
+        Number(partesGuion[1])
+      ).padStart(2, "0") +
+      "-" +
+      String(
+        Number(partesGuion[2])
+      ).padStart(2, "0")
+    );
+  }
+
+  return "";
+}
+
+/**
+ * Día de la semana.
+ */
+
+function obtenerDiaSemana_(
+  fechaTexto
+) {
+
+  var clave =
+    normalizarFechaClave_(
+      fechaTexto
+    );
+
+  if (!clave) {
+    return "";
+  }
+
+  var partes =
+    clave.split("-");
+
+  var fecha =
+    new Date(
+      Number(partes[0]),
+      Number(partes[1]) - 1,
+      Number(partes[2])
+    );
+
+  if (isNaN(fecha.getTime())) {
+    return "";
+  }
+
+  var dias = [
+    "Dom",
+    "Lun",
+    "Mar",
+    "Mie",
+    "Jue",
+    "Vie",
+    "Sab"
+  ];
+
+  return dias[
+    fecha.getDay()
+  ];
+}
+
+/**
+ * Convierte una duración en número seguro.
+ */
+
+function convertirDuracionSegura_(
+  valor
+) {
+
+  if (
+    valor === "" ||
+    valor === null ||
+    valor === undefined
+  ) {
+    return 0;
+  }
+
+  var numero =
+    Number(valor);
+
+  return isNaN(numero)
+    ? 0
+    : numero;
+}
+
+/**
+ * Convierte una hora a segundos.
+ */
+
+function convertirHoraASegundos_(
+  valor
+) {
+
+  if (
+    valor === "" ||
+    valor === null ||
+    valor === undefined
+  ) {
+    return null;
+  }
+
+  if (valor instanceof Date) {
+
+    return (
+      valor.getHours() *
+      3600
+    ) + (
+      valor.getMinutes() *
+      60
+    ) +
+    valor.getSeconds();
+  }
+
+  var partes =
+    String(valor)
+      .trim()
+      .split(":");
+
+  if (partes.length < 2) {
+    return null;
+  }
+
+  var horas =
+    Number(partes[0]);
+
+  var minutos =
+    Number(partes[1]);
+
+  var segundos =
+    Number(
+      partes[2] || 0
+    );
+
+  if (
+    isNaN(horas) ||
+    isNaN(minutos) ||
+    isNaN(segundos)
+  ) {
+    return null;
+  }
+
+  return (
+    horas *
+    3600
+  ) + (
+    minutos *
+    60
+  ) +
+  segundos;
+}
+
+/**
+ * Normaliza una hora como HH:mm:ss.
+ */
+
+function normalizarHoraTexto_(
+  valor
+) {
+
+  var texto =
+    String(valor || "")
+      .trim();
+
+  if (!texto) {
+    return "";
+  }
+
+  var partes =
+    texto.split(":");
+
+  if (partes.length < 2) {
+    return "";
+  }
+
+  return (
+    String(
+      partes[0] || "0"
+    ).padStart(2, "0") +
+    ":" +
+    String(
+      partes[1] || "0"
+    ).padStart(2, "0") +
+    ":" +
+    String(
+      partes[2] || "0"
+    ).padStart(2, "0")
+  );
+}
+
+/**
+ * Convierte dd/MM/yyyy para ordenar.
+ */
+
+function convertirFechaParaOrden_(
+  fechaTexto
+) {
+
+  var clave =
+    normalizarFechaClave_(
+      fechaTexto
+    );
+
+  if (!clave) {
+    return 0;
+  }
+
+  var partes =
+    clave.split("-");
+
+  return new Date(
+    Number(partes[0]),
+    Number(partes[1]) - 1,
+    Number(partes[2])
+  ).getTime();
+}
+
+/**
+ * Formato de AsistenciaF, columnas A:L.
+ */
+
+
+/*******************************************************
+ * MENÚ DE GOOGLE SHEETS
+ *******************************************************/
+
+function onOpen() {
+
+  SpreadsheetApp
+    .getUi()
+    .createMenu(
+      "Control de asistencia"
+    )
+    .addItem(
+      "Mostrar asistencia tabulada",
+      "tabularAsistencia"
+    )
+    .addItem(
+      "Comprobar configuración",
+      "comprobarConfiguracion"
+    )
+    .addToUi();
+}
+
+function comprobarConfiguracion() {
+
+  try {
+
+    obtenerHoja_(
+      CONFIG.SHEET_MAESTRO
+    );
+
+    obtenerHoja_(
+      CONFIG.SHEET_CATALOGOS
+    );
+
+    SpreadsheetApp
+      .getUi()
+      .alert(
+        "Configuración correcta.\n\n" +
+        "Se encontraron las hojas Maestro y Catalogos."
+      );
+
+  } catch (error) {
+
+    SpreadsheetApp
+      .getUi()
+      .alert(
+        "Error de configuración:\n\n" +
+        error.message
+      );
+  }
+}
+/*******************************************************
+ * OTROS INGRESOS
+ *
+ * Catalogos!Q2:Q = Conceptos
+ * Maestro!A:A = No. de personal
+ * Maestro!B:B = Nombre
+ * Ingresos!A:H = Registros
+ *******************************************************/
+
+/**
+ * Servicio web definitivo.
+ *
+ * Esta versión incluye las acciones existentes
+ * y las acciones de Otros ingresos.
+ */
+
+function doGet(e) {
+
+  var parametros =
+    e && e.parameter
+      ? e.parameter
+      : {};
+
+  var accion =
+    String(
+      parametros.action || ""
+    ).trim();
+
+  var callback =
+    String(
+      parametros.callback || ""
+    ).replace(
+      /[^a-zA-Z0-9_$]/g,
+      ""
+    );
+
+  var datos = {};
+
+  try {
+
+    if (parametros.data) {
+
+      datos =
+        JSON.parse(
+          parametros.data
+        );
+    }
+
+    var respuesta;
+
+    switch (accion) {
+
+      case "catalogos":
+
+        respuesta = {
+          ok: true,
+          catalogos:
+            obtenerCatalogos()
+        };
+
+        break;
+
+      case "guardarEmpleado":
+
+        respuesta =
+          guardarEmpleado(datos);
+
+        break;
+
+      case "buscarEmpleado":
+
+        respuesta =
+          buscarEmpleado(
+            datos.pin
+          );
+
+        break;
+
+      case "actualizarEmpleado":
+
+        respuesta =
+          actualizarEmpleado(datos);
+
+        break;
+
+      case "obtenerParametros":
+
+        respuesta =
+          obtenerParametros();
+
+        break;
+
+      case "guardarParametros":
+
+        respuesta =
+          guardarParametros(datos);
+
+        break;
+
+      case "validarPin":
+
+        respuesta =
+          validarPin(datos.pin);
+
+        break;
+
+      case "registrarAsistencia":
+
+        respuesta =
+          registrarAsistencia(datos);
+
+        break;
+
+      case "configuracionIngresos":
+  respuesta =
+    obtenerConfiguracionIngresos_();
+  break;
+
+case "configuracionDeducciones":
+  respuesta =
+    obtenerConfiguracionDeducciones_();
+  break;
+
+case "guardarDeduccion":
+  respuesta =
+    guardarDeduccion_(datos);
+  break;
+
+case "buscarEmpleadoIngreso":
+
+        respuesta =
+          buscarEmpleadoIngreso_(
+            datos.numeroPersonal
+          );
+
+        break;
+
+      case "guardarOtroIngreso":
+
+        respuesta =
+          guardarOtroIngreso_(datos);
+
+        break;
+
+      default:
+
+        respuesta = {
+          ok: true,
+          mensaje:
+            "API de gestión de planilla activa."
+        };
+    }
+
+    return crearRespuestaWeb_(
+      respuesta,
+      callback
+    );
+
+  } catch (error) {
+
+    return crearRespuestaWeb_(
+      {
+        ok: false,
+        mensaje:
+          error.message ||
+          String(error)
+      },
+      callback
+    );
+  }
+}
+
+/**
+ * Obtiene los conceptos desde Catalogos!Q2:Q.
+ */
+
+function obtenerConceptosIngresos_() {
+
+  var ss =
+    obtenerSpreadsheet();
+
+  var hoja =
+    ss.getSheetByName(
+      CONFIG.SHEET_CATALOGOS
+    );
+
+  if (!hoja) {
+
+    throw new Error(
+      'No existe la hoja "Catalogos".'
+    );
+  }
+
+  var ultimaFila =
+    hoja.getLastRow();
+
+  if (ultimaFila < 2) {
+    return [];
+  }
+
+  var conceptos =
+    hoja
+      .getRange(
+        2,
+        17,
+        ultimaFila - 1,
+        1
+      )
+      .getDisplayValues()
+      .map(function (fila) {
+
+        return String(
+          fila[0] || ""
+        ).trim();
+      })
+      .filter(function (valor) {
+
+        return (
+          valor !== "" &&
+          valor.toLowerCase() !==
+            "seleccionar"
+        );
+      });
+
+  /*
+   * Eliminar conceptos duplicados.
+   */
+
+  return conceptos.filter(
+    function (
+      concepto,
+      indice,
+      arreglo
+    ) {
+
+      return (
+        arreglo.indexOf(concepto) ===
+        indice
+      );
+    }
+  );
+}
+
+/**
+ * Devuelve conceptos y usuario actual.
+ */
+
+
+/**
+ * Busca al empleado en Maestro A:B.
+ */
+
+function buscarEmpleadoIngreso_(
+  numeroPersonal
+) {
+
+  var numeroBuscado =
+    String(
+      numeroPersonal || ""
+    ).trim();
+
+  if (!numeroBuscado) {
+
+    return {
+      ok: false,
+      mensaje:
+        "Ingrese el No. de personal."
+    };
+  }
+
+  var ss =
+    obtenerSpreadsheet();
+
+  var hoja =
+    ss.getSheetByName(
+      CONFIG.SHEET_MAESTRO
+    );
+
+  if (!hoja) {
+
+    return {
+      ok: false,
+      mensaje:
+        'No existe la hoja "Maestro".'
+    };
+  }
+
+  var ultimaFila =
+    hoja.getLastRow();
+
+  if (ultimaFila < 2) {
+
+    return {
+      ok: false,
+      mensaje:
+        "No hay empleados registrados."
+    };
+  }
+
+  var empleados =
+    hoja
+      .getRange(
+        2,
+        1,
+        ultimaFila - 1,
+        2
+      )
+      .getDisplayValues();
+
+  for (
+    var i = 0;
+    i < empleados.length;
+    i++
+  ) {
+
+    var numero =
+      String(
+        empleados[i][0] || ""
+      ).trim();
+
+    var nombre =
+      String(
+        empleados[i][1] || ""
+      ).trim();
+
+    if (numero === numeroBuscado) {
+
+      return {
+        ok: true,
+        numeroPersonal: numero,
+        nombre: nombre
+      };
+    }
+  }
+
+  return {
+    ok: false,
+    mensaje:
+      "No se encontró el empleado."
+  };
+}
+
+/**
+ * Guarda el registro en Ingresos A:H.
+ */
+
+
+
+function convertirFechaIngreso_(
+  valor
+) {
+
+  if (valor instanceof Date) {
+    return valor;
+  }
+
+  var partes =
+    String(valor || "")
+      .split("-");
+
+  if (partes.length !== 3) {
+    return "";
+  }
+
+  return new Date(
+    Number(partes[0]),
+    Number(partes[1]) - 1,
+    Number(partes[2])
+  );
+}
+
+function convertirValorIngreso_(
+  valor
+) {
+
+  if (typeof valor === "number") {
+
+    return isNaN(valor)
+      ? 0
+      : valor;
+  }
+
+  var texto =
+    String(valor || "")
+      .trim()
+      .replace(/\s/g, "");
+
+  if (
+    texto.indexOf(",") !== -1 &&
+    texto.indexOf(".") === -1
+  ) {
+
+    texto =
+      texto.replace(",", ".");
+
+  } else {
+
+    texto =
+      texto.replace(/,/g, "");
+  }
+
+  var numero =
+    Number(texto);
+
+  return isNaN(numero)
+    ? 0
+    : numero;
+}
+/*******************************************************
+ * PARÁMETROS ANUALES DE PLANILLA
+ *
+ * I2      = Estatus Hora Ent
+ * J2:J13  = Feriados
+ * K2:N2   = Recargos
+ * R2:R27  = 26 planillas del año
+ *******************************************************/
+
+function obtenerParametros() {
+
+  var hoja =
+    obtenerHoja_(
+      CONFIG.SHEET_CATALOGOS
+    );
+
+  var hora =
+    hoja
+      .getRange("I2")
+      .getValue();
+
+  var valoresFeriados =
+    hoja
+      .getRange("J2:J13")
+      .getValues();
+
+  var recargos =
+    hoja
+      .getRange("K2:N2")
+      .getValues()[0];
+
+  var valoresPlanillas =
+    hoja
+      .getRange("R2:R27")
+      .getDisplayValues()
+      .map(function (fila) {
+
+        return String(
+          fila[0] || ""
+        ).trim();
+      })
+      .filter(function (valor) {
+
+        return valor !== "";
+      });
+
+  var horaFormulario = "";
+
+  if (hora instanceof Date) {
+
+    horaFormulario =
+      Utilities.formatDate(
+        hora,
+        Session.getScriptTimeZone(),
+        "HH:mm:ss"
+      );
+
+  } else if (hora !== "") {
+
+    horaFormulario =
+      normalizarHora_(
+        hora
+      );
+  }
+
+  var feriados =
+    valoresFeriados.map(
+      function (fila) {
+
+        var fecha =
+          fila[0];
+
+        if (!(fecha instanceof Date)) {
+          return "";
+        }
+
+        return Utilities.formatDate(
+          fecha,
+          Session.getScriptTimeZone(),
+          "yyyy-MM-dd"
+        );
+      }
+    );
+
+  /*
+   * Obtener el año desde la primera
+   * planilla guardada en R.
+   */
+
+  var anio =
+    new Date().getFullYear();
+
+  if (valoresPlanillas.length) {
+
+    var coincidencia =
+      valoresPlanillas[0]
+        .match(
+          /Planilla\s+(\d{4})-/
+        );
+
+    if (coincidencia) {
+
+      anio =
+        Number(coincidencia[1]);
+    }
+  }
+
+  return {
+
+    ok: true,
+
+    parametros: {
+
+      anio:
+        anio,
+
+      estatusHoraEnt:
+        horaFormulario,
+
+      feriados:
+        feriados,
+
+      recargoDiurno:
+        recargos[0] === ""
+          ? ""
+          : recargos[0],
+
+      recargoNocturno:
+        recargos[1] === ""
+          ? ""
+          : recargos[1],
+
+      recargoDescanso:
+        recargos[2] === ""
+          ? ""
+          : recargos[2],
+
+      recargoFeriado:
+        recargos[3] === ""
+          ? ""
+          : recargos[3],
+
+      planillas:
+        valoresPlanillas
+    }
+  };
+}
+
+function guardarParametros(
+  datos
+) {
+
+  if (!datos) {
+
+    return {
+      ok: false,
+      mensaje:
+        "No se recibieron los parámetros."
+    };
+  }
+
+  var anio =
+    Number(datos.anio);
+
+  if (
+    !anio ||
+    anio < 2000 ||
+    anio > 2100
+  ) {
+
+    return {
+      ok: false,
+      mensaje:
+        "Ingrese un año válido."
+    };
+  }
+
+  if (!datos.estatusHoraEnt) {
+
+    return {
+      ok: false,
+      mensaje:
+        "Debe seleccionar Estatus Hora Ent."
+    };
+  }
+
+  var hoja =
+    obtenerHoja_(
+      CONFIG.SHEET_CATALOGOS
+    );
+
+  var bloqueo =
+    LockService.getScriptLock();
+
+  bloqueo.waitLock(20000);
+
+  try {
+
+    /*
+     * Encabezados de parámetros.
+     */
+
+    hoja
+      .getRange("I1:N1")
+      .setValues([[
+        "Estatus Hora Ent",
+        "Feriados",
+        "Horas extras diu recargo",
+        "Horas extras noct recargo",
+        "Horas extras descanso recargo",
+        "Horas extras feriado recargo"
+      ]]);
+
+    /*
+     * I2 = Hora límite.
+     */
+
+    hoja
+      .getRange("I2")
+      .setValue(
+        convertirHora_(
+          datos.estatusHoraEnt
+        )
+      )
+      .setNumberFormat(
+        "HH:mm:ss"
+      );
+
+    /*
+     * J2:J13 = 12 feriados.
+     */
+
+    var feriados =
+      Array.isArray(datos.feriados)
+        ? datos.feriados.slice(0, 12)
+        : [];
+
+    while (feriados.length < 12) {
+
+      feriados.push("");
+    }
+
+    var valoresFeriados =
+      feriados.map(
+        function (fecha) {
+
+          return [
+            fecha
+              ? convertirFecha_(
+                  fecha
+                )
+              : ""
+          ];
+        }
+      );
+
+    hoja
+      .getRange("J2:J13")
+      .setValues(
+        valoresFeriados
+      )
+      .setNumberFormat(
+        "dd/MM/yyyy"
+      );
+
+    /*
+     * K2:N2 = Recargos.
+     */
+
+    hoja
+      .getRange("K2:N2")
+      .setValues([[
+        convertirNumero_(
+          datos.recargoDiurno
+        ),
+
+        convertirNumero_(
+          datos.recargoNocturno
+        ),
+
+        convertirNumero_(
+          datos.recargoDescanso
+        ),
+
+        convertirNumero_(
+          datos.recargoFeriado
+        )
+      ]])
+      .setNumberFormat(
+        "0.00"
+      );
+
+    /*
+     * R2:R27 = Planillas.
+     */
+
+    var planillas =
+      generarPlanillasAnuales_(
+        anio
+      );
+
+    hoja
+      .getRange("R1")
+      .setValue("Planillas")
+      .setFontWeight("bold")
+      .setBackground("#1d4ed8")
+      .setFontColor("#ffffff")
+      .setHorizontalAlignment(
+        "center"
+      );
+
+    hoja
+      .getRange("R2:R27")
+      .clearContent();
+
+    hoja
+      .getRange(
+        2,
+        18,
+        planillas.length,
+        1
+      )
+      .setValues(
+        planillas.map(
+          function (planilla) {
+
+            return [
+              "Planilla " +
+              planilla.codigo +
+              " | " +
+              planilla.descripcion
+            ];
+          }
+        )
+      )
+      .setWrap(true);
+
+    hoja.setColumnWidth(
+  18,
+  420
+);
+
+/* =====================================================
+ * PARÁMETROS ADICIONALES — COLUMNAS S:AL
+ * ===================================================== */
+
+/*
+ * Encabezados.
+ */
+hoja
+  .getRange("S1:AL1")
+  .setValues([[
+    "Salario mínimo",
+    "Vigencia",
+    "Antigüedad desde",
+    "Antigüedad hasta",
+    "Días de vacaciones",
+    "Concepto",
+    "Desde",
+    "Hasta",
+    "Empresa %",
+    "IHSS %",
+    "Porcentaje",
+    "Techo cotización",
+    "RAP",
+    "INFOP",
+    "Desde",
+    "Hasta",
+    "Porcentaje",
+    "Desde",
+    "Hasta",
+    "Impuesto por millar"
+  ]])
+  .setFontWeight("bold")
+  .setBackground("#facc15")
+  .setFontColor("#111827")
+  .setHorizontalAlignment("center")
+  .setVerticalAlignment("middle")
+  .setWrap(true);
+
+/*
+ * Función local para conservar vacíos y convertir números.
+ */
+var numeroOVacio = function (valor) {
+  return valor === "" ||
+         valor === null ||
+         typeof valor === "undefined"
+    ? ""
+    : convertirNumero_(valor);
+};
+
+/*
+ * S2 = Salario mínimo.
+ * T2 = Vigencia desde.
+ */
+hoja
+  .getRange("S2")
+  .setValue(
+    convertirNumero_(
+      datos.salarioMinimo
+    )
+  )
+  .setNumberFormat(
+    'L #,##0.00'
+  );
+
+hoja
+  .getRange("T2")
+  .setValue(
+    datos.salarioMinimoDesde
+      ? convertirFecha_(
+          datos.salarioMinimoDesde
+        )
+      : ""
+  )
+  .setNumberFormat(
+    "dd/MM/yyyy"
+  );
+
+/*
+ * U2:W5 = Tabla de vacaciones.
+ */
+var vacaciones =
+  Array.isArray(datos.vacaciones)
+    ? datos.vacaciones.slice(0, 4)
+    : [];
+
+while (vacaciones.length < 4) {
+  vacaciones.push({});
+}
+
+var valoresVacaciones =
+  vacaciones.map(function (fila) {
+    return [
+      numeroOVacio(fila.desde),
+      numeroOVacio(fila.hasta),
+      numeroOVacio(fila.dias)
+    ];
+  });
+
+hoja
+  .getRange("U2:W5")
+  .clearContent()
+  .setValues(
+    valoresVacaciones
+  )
+  .setNumberFormat("0");
+
+/*
+ * X2:AB6 = Incapacidades IHSS.
+ */
+var incapacidades =
+  Array.isArray(datos.incapacidadesIHSS)
+    ? datos.incapacidadesIHSS.slice(0, 5)
+    : [];
+
+while (incapacidades.length < 5) {
+  incapacidades.push({});
+}
+
+var valoresIncapacidades =
+  incapacidades.map(function (fila) {
+    return [
+      fila.concepto || "",
+      numeroOVacio(fila.desde),
+      numeroOVacio(fila.hasta),
+      numeroOVacio(fila.empresa),
+      numeroOVacio(fila.ihss)
+    ];
+  });
+
+hoja
+  .getRange("X2:AB6")
+  .clearContent()
+  .setValues(
+    valoresIncapacidades
+  );
+
+hoja
+  .getRange("Y2:AB6")
+  .setNumberFormat("0.00");
+
+/*
+ * AC2 = Porcentaje de referencia IHSS.
+ * AD2 = Techo de cotización.
+ */
+hoja
+  .getRange("AC2:AD2")
+  .setValues([[
+    numeroOVacio(
+      datos.ihssReferenciaPorcentaje
+    ),
+    numeroOVacio(
+      datos.ihssTechoCotizacion
+    )
+  ]]);
+
+hoja
+  .getRange("AC2")
+  .setNumberFormat("0.00");
+
+hoja
+  .getRange("AD2")
+  .setNumberFormat('L #,##0.00');
+
+/*
+ * AE2 = RAP.
+ * AF2 = INFOP.
+ */
+hoja
+  .getRange("AE2:AF2")
+  .setValues([[
+    numeroOVacio(
+      datos.porcentajeRap
+    ),
+    numeroOVacio(
+      datos.porcentajeInfop
+    )
+  ]])
+  .setNumberFormat("0.00");
+
+/*
+ * AG2:AI5 = Tabla de impuesto sobre la renta.
+ */
+var renta =
+  Array.isArray(datos.impuestoRenta)
+    ? datos.impuestoRenta.slice(0, 4)
+    : [];
+
+while (renta.length < 4) {
+  renta.push({});
+}
+
+var valoresRenta =
+  renta.map(function (fila) {
+    return [
+      numeroOVacio(fila.desde),
+      numeroOVacio(fila.hasta),
+      numeroOVacio(fila.porcentaje)
+    ];
+  });
+
+hoja
+  .getRange("AG2:AI5")
+  .clearContent()
+  .setValues(
+    valoresRenta
+  );
+
+hoja
+  .getRange("AG2:AH5")
+  .setNumberFormat("#,##0.00");
+
+hoja
+  .getRange("AI2:AI5")
+  .setNumberFormat("0.00");
+
+/*
+ * AJ2:AL10 = Tabla de impuesto vecinal.
+ */
+var vecinal =
+  Array.isArray(datos.impuestoVecinal)
+    ? datos.impuestoVecinal.slice(0, 9)
+    : [];
+
+while (vecinal.length < 9) {
+  vecinal.push({});
+}
+
+var valoresVecinal =
+  vecinal.map(function (fila) {
+    return [
+      numeroOVacio(fila.desde),
+      numeroOVacio(fila.hasta),
+      numeroOVacio(fila.impuesto)
+    ];
+  });
+
+hoja
+  .getRange("AJ2:AL10")
+  .clearContent()
+  .setValues(
+    valoresVecinal
+  );
+
+hoja
+  .getRange("AJ2:AK10")
+  .setNumberFormat("#,##0.00");
+
+hoja
+  .getRange("AL2:AL10")
+  .setNumberFormat('L 0.00');
+
+/*
+ * Ajustar anchos de las columnas S:AL.
+ */
+hoja.setColumnWidth(19, 120); // S
+hoja.setColumnWidth(20, 110); // T
+hoja.setColumnWidths(21, 3, 125); // U:W
+hoja.setColumnWidth(24, 220); // X
+hoja.setColumnWidths(25, 4, 105); // Y:AB
+hoja.setColumnWidths(29, 4, 125); // AC:AF
+hoja.setColumnWidths(33, 3, 125); // AG:AI
+hoja.setColumnWidths(36, 3, 135); // AJ:AL
+
+/*
+ * Mantener el formato de los encabezados originales.
+ */
+hoja
+  .getRange("I1:N1")
+  .setFontWeight("bold")
+      .setBackground("#1d4ed8")
+      .setFontColor("#ffffff")
+      .setHorizontalAlignment(
+        "center"
+      )
+      .setWrap(true);
+
+    SpreadsheetApp.flush();
+
+    return {
+      ok: true,
+      mensaje:
+        "Parámetros y planillas del año " +
+        anio +
+        " guardados correctamente."
+    };
+
+  } finally {
+
+    bloqueo.releaseLock();
+  }
+}
+function generarPlanillasAnuales_(
+  anio
+) {
+
+  anio =
+    Number(anio);
+
+  if (
+    !anio ||
+    anio < 2000 ||
+    anio > 2100
+  ) {
+
+    throw new Error(
+      "El año de planilla no es válido."
+    );
+  }
+
+  var meses = [
+    "enero",
+    "febrero",
+    "marzo",
+    "abril",
+    "mayo",
+    "junio",
+    "julio",
+    "agosto",
+    "septiembre",
+    "octubre",
+    "noviembre",
+    "diciembre"
+  ];
+
+  var planillas = [];
+
+  var numeroPlanilla = 1;
+
+  for (
+    var mes = 0;
+    mes < 12;
+    mes++
+  ) {
+
+    /*
+     * Planilla de la primera quincena.
+     */
+
+    planillas.push({
+
+      codigo:
+        anio +
+        "-" +
+        numeroPlanilla,
+
+      descripcion:
+        "Período del 1 al 15 de " +
+        meses[mes] +
+        " de " +
+        anio
+    });
+
+    numeroPlanilla++;
+
+    /*
+     * Calcular último día real del mes.
+     * También considera años bisiestos.
+     */
+
+    var ultimoDia =
+      new Date(
+        anio,
+        mes + 1,
+        0
+      ).getDate();
+
+    /*
+     * Planilla de la segunda quincena.
+     */
+
+    planillas.push({
+
+      codigo:
+        anio +
+        "-" +
+        numeroPlanilla,
+
+      descripcion:
+        "Período del 16 al " +
+        ultimoDia +
+        " de " +
+        meses[mes] +
+        " de " +
+        anio
+    });
+
+    numeroPlanilla++;
+  }
+
+  /*
+   * Planilla 25:
+   * Décimo cuarto mes.
+   */
+
+  planillas.push({
+
+    codigo:
+      anio + "-25",
+
+    descripcion:
+      "Décimo cuarto mes de salario"
+  });
+
+  /*
+   * Planilla 26:
+   * Décimo tercer mes.
+   */
+
+  planillas.push({
+
+    codigo:
+      anio + "-26",
+
+    descripcion:
+      "Décimo tercer mes de salario"
+  });
+
+  if (planillas.length !== 26) {
+
+    throw new Error(
+      "No fue posible generar las 26 planillas."
+    );
+  }
+
+  return planillas;
+}
+
+/*******************************************************
+ * OTROS INGRESOS CON PLANILLAS DESDE/HASTA
+ *
+ * Catalogos!Q2:Q  = Conceptos
+ * Catalogos!R2:R27 = Planillas
+ * Maestro!A:B     = Empleados
+ * Ingresos!A:H    = Registros
+ *******************************************************/
+
+/**
+ * Devuelve conceptos, planillas y usuario.
+ */
+
+function obtenerConfiguracionIngresos_() {
+
+  var usuario = "";
+
+  try {
+
+    usuario =
+      Session
+        .getActiveUser()
+        .getEmail() || "";
+
+  } catch (error) {
+
+    usuario = "";
+  }
+
+  return {
+    ok: true,
+
+    conceptos:
+      obtenerConceptosIngresos_(),
+
+    planillas:
+      obtenerPlanillasIngresos_(),
+
+    usuario:
+      usuario
+  };
+}
+
+/**
+ * Obtiene las planillas desde Catalogos!R2:R27.
+ */
+
+function obtenerPlanillasIngresos_() {
+
+  var hoja =
+    obtenerHoja_(
+      CONFIG.SHEET_CATALOGOS
+    );
+
+  var planillas =
+    hoja
+      .getRange("R2:R27")
+      .getDisplayValues()
+      .map(function (fila) {
+
+        return String(
+          fila[0] || ""
+        ).trim();
+      })
+      .filter(function (valor) {
+
+        return (
+          valor !== "" &&
+          normalizarTexto_(valor) !==
+            "seleccionar"
+        );
+      });
+
+  return planillas.filter(
+    function (
+      planilla,
+      indice,
+      arreglo
+    ) {
+
+      return (
+        arreglo.indexOf(planilla) ===
+        indice
+      );
+    }
+  );
+}
+
+/**
+ * Guarda Otros ingresos.
+ *
+ * Ingresos:
+ * A = No. de personal
+ * B = Nombre
+ * C = Concepto
+ * D = Desde, planilla
+ * E = Hasta, planilla
+ * F = Valor
+ * G = Fecha registro
+ * H = Usuario
+ */
+
+function guardarOtroIngreso_(
+  datos
+) {
+
+  if (!datos) {
+
+    return {
+      ok: false,
+      mensaje:
+        "No se recibieron los datos."
+    };
+  }
+
+  var numeroPersonal =
+    String(
+      datos.numeroPersonal || ""
+    ).trim();
+
+  var concepto =
+    String(
+      datos.concepto || ""
+    ).trim();
+
+  var planillaDesde =
+    String(
+      datos.desde || ""
+    ).trim();
+
+  var planillaHasta =
+    String(
+      datos.hasta || ""
+    ).trim();
+
+  var usuario =
+    String(
+      datos.usuario || ""
+    ).trim();
+
+  if (!numeroPersonal) {
+
+    return {
+      ok: false,
+      mensaje:
+        "El No. de personal es obligatorio."
+    };
+  }
+
+  if (!concepto) {
+
+    return {
+      ok: false,
+      mensaje:
+        "Seleccione un concepto."
+    };
+  }
+
+  if (!planillaDesde) {
+
+    return {
+      ok: false,
+      mensaje:
+        "Seleccione la planilla Desde."
+    };
+  }
+
+  if (!planillaHasta) {
+
+    return {
+      ok: false,
+      mensaje:
+        "Seleccione la planilla Hasta."
+    };
+  }
+
+  if (!usuario) {
+
+    return {
+      ok: false,
+      mensaje:
+        "Ingrese el Usuario."
+    };
+  }
+
+  /*
+   * Verificar que las planillas seleccionadas
+   * realmente existan en Catalogos!R2:R27.
+   */
+
+  var planillasValidas =
+    obtenerPlanillasIngresos_();
+
+  if (
+    planillasValidas.indexOf(
+      planillaDesde
+    ) === -1
+  ) {
+
+    return {
+      ok: false,
+      mensaje:
+        "La planilla Desde no existe en Catalogos."
+    };
+  }
+
+  if (
+    planillasValidas.indexOf(
+      planillaHasta
+    ) === -1
+  ) {
+
+    return {
+      ok: false,
+      mensaje:
+        "La planilla Hasta no existe en Catalogos."
+    };
+  }
+
+  /*
+   * Validar el orden de Desde y Hasta.
+   */
+
+  var posicionDesde =
+    planillasValidas.indexOf(
+      planillaDesde
+    );
+
+  var posicionHasta =
+    planillasValidas.indexOf(
+      planillaHasta
+    );
+
+  if (
+    posicionHasta <
+    posicionDesde
+  ) {
+
+    return {
+      ok: false,
+      mensaje:
+        "La planilla Hasta no puede ser anterior a la planilla Desde."
+    };
+  }
+
+  /*
+   * Verificar empleado en Maestro.
+   */
+
+  var empleado =
+    buscarEmpleadoIngreso_(
+      numeroPersonal
+    );
+
+  if (!empleado.ok) {
+
+    return empleado;
+  }
+
+  var valor =
+    convertirValorIngreso_(
+      datos.valor
+    );
+
+  if (valor < 0) {
+
+    return {
+      ok: false,
+      mensaje:
+        "El valor no puede ser negativo."
+    };
+  }
+
+  var fechaRegistro =
+    new Date();
+
+  var ss =
+    obtenerSpreadsheet();
+
+  var hoja =
+    ss.getSheetByName(
+      "Ingresos"
+    );
+
+  if (!hoja) {
+
+    hoja =
+      ss.insertSheet(
+        "Ingresos"
+      );
+  }
+
+  var bloqueo =
+    LockService.getScriptLock();
+
+  bloqueo.waitLock(20000);
+
+  try {
+
+    /*
+     * Encabezados A:H.
+     */
+
+    hoja
+      .getRange(
+        1,
+        1,
+        1,
+        8
+      )
+      .setValues([[
+        "No de personal",
+        "Nombre",
+        "Concepto",
+        "Desde",
+        "Hasta",
+        "Valor",
+        "Fecha registro",
+        "Usuario"
+      ]])
+      .setFontWeight("bold")
+      .setBackground("#1d4ed8")
+      .setFontColor("#ffffff")
+      .setHorizontalAlignment(
+        "center"
+      );
+
+    var fila =
+      hoja.getLastRow() + 1;
+
+    hoja
+      .getRange(
+        fila,
+        1,
+        1,
+        8
+      )
+      .setValues([[
+        empleado.numeroPersonal,
+        empleado.nombre,
+        concepto,
+        planillaDesde,
+        planillaHasta,
+        valor,
+        fechaRegistro,
+        usuario
+      ]]);
+
+    /*
+     * Formatos.
+     */
+
+    hoja
+      .getRange(
+        fila,
+        1
+      )
+      .setNumberFormat("@");
+
+    /*
+     * Desde y Hasta quedan como texto.
+     */
+
+    hoja
+      .getRange(
+        fila,
+        4,
+        1,
+        2
+      )
+      .setNumberFormat("@")
+      .setWrap(true);
+
+    hoja
+      .getRange(
+        fila,
+        6
+      )
+      .setNumberFormat(
+        'L #,##0.00'
+      );
+
+    hoja
+      .getRange(
+        fila,
+        7
+      )
+      .setNumberFormat(
+        "dd/MM/yyyy"
+      );
+
+    hoja.setFrozenRows(1);
+
+    hoja.setColumnWidth(1, 120);
+    hoja.setColumnWidth(2, 220);
+    hoja.setColumnWidth(3, 240);
+    hoja.setColumnWidth(4, 420);
+    hoja.setColumnWidth(5, 420);
+    hoja.setColumnWidth(6, 120);
+    hoja.setColumnWidth(7, 130);
+    hoja.setColumnWidth(8, 220);
+
+    SpreadsheetApp.flush();
+
+  } finally {
+
+    bloqueo.releaseLock();
+  }
+
+  return {
+    ok: true,
+
+    mensaje:
+      "Otro ingreso guardado correctamente.",
+
+    conceptos:
+      obtenerConceptosIngresos_(),
+
+    planillas:
+      obtenerPlanillasIngresos_()
+  };
+}
+/*******************************************************
+ * OTROS INGRESOS CON FECHAS O PLANILLAS
+ *
+ * Ingresos:
+ * A = No. de personal
+ * B = Nombre
+ * C = Concepto
+ * D = Desde
+ * E = Hasta
+ * F = Días
+ * G = Valor
+ * H = Fecha registro
+ * I = Usuario
+ *******************************************************/
+
+function obtenerConfiguracionIngresos_() {
+
+  var usuario = "";
+
+  try {
+
+    usuario =
+      Session
+        .getActiveUser()
+        .getEmail() || "";
+
+  } catch (error) {
+
+    usuario = "";
+  }
+
+  return {
+
+    ok: true,
+
+    conceptos:
+      obtenerConceptosIngresos_(),
+
+    planillas:
+      obtenerPlanillasIngresos_(),
+
+    usuario:
+      usuario
+  };
+}
+
+function conceptoIngresoUsaFecha_(
+  concepto
+) {
+
+  var conceptosConFecha = [
+
+    "adelanto vacaciones",
+
+    "incapacidad ihss: enfermedad profesional",
+
+    "incapacidad ihss: enfermedad comun",
+
+    "incapacidad ihss: maternidad"
+  ];
+
+  var conceptoNormalizado =
+    normalizarTexto_(
+      concepto
+    );
+
+  return (
+    conceptosConFecha.indexOf(
+      conceptoNormalizado
+    ) !== -1
+  );
+}
+
+function calcularDiasIngreso_(
+  desde,
+  hasta
+) {
+
+  var fechaDesde =
+    convertirFechaIngreso_(
+      desde
+    );
+
+  var fechaHasta =
+    convertirFechaIngreso_(
+      hasta
+    );
+
+  if (
+    !(fechaDesde instanceof Date) ||
+    !(fechaHasta instanceof Date) ||
+    isNaN(fechaDesde.getTime()) ||
+    isNaN(fechaHasta.getTime())
+  ) {
+
+    throw new Error(
+      "Las fechas Desde y Hasta no son válidas."
+    );
+  }
+
+  var diferencia =
+    Math.floor(
+      (
+        fechaHasta.getTime() -
+        fechaDesde.getTime()
+      ) /
+      (
+        24 *
+        60 *
+        60 *
+        1000
+      )
+    );
+
+  if (diferencia < 0) {
+
+    throw new Error(
+      "La fecha Hasta no puede ser anterior a Desde."
+    );
+  }
+
+  return {
+    desde:
+      fechaDesde,
+
+    hasta:
+      fechaHasta,
+
+    dias:
+      diferencia
+  };
+}
+
+function guardarOtroIngreso_(
+  datos
+) {
+
+  if (!datos) {
+
+    return {
+      ok: false,
+      mensaje:
+        "No se recibieron los datos."
+    };
+  }
+
+  var numeroPersonal =
+    String(
+      datos.numeroPersonal || ""
+    ).trim();
+
+  var concepto =
+    String(
+      datos.concepto || ""
+    ).trim();
+
+  var desdeRecibido =
+    String(
+      datos.desde || ""
+    ).trim();
+
+  var hastaRecibido =
+    String(
+      datos.hasta || ""
+    ).trim();
+
+  var usuario =
+    String(
+      datos.usuario || ""
+    ).trim();
+
+  if (!numeroPersonal) {
+
+    return {
+      ok: false,
+      mensaje:
+        "El No. de personal es obligatorio."
+    };
+  }
+
+  if (!concepto) {
+
+    return {
+      ok: false,
+      mensaje:
+        "Seleccione un concepto."
+    };
+  }
+
+  if (!desdeRecibido) {
+
+    return {
+      ok: false,
+      mensaje:
+        "Seleccione Desde."
+    };
+  }
+
+  if (!hastaRecibido) {
+
+    return {
+      ok: false,
+      mensaje:
+        "Seleccione Hasta."
+    };
+  }
+
+  if (!usuario) {
+
+    return {
+      ok: false,
+      mensaje:
+        "Ingrese el Usuario."
+    };
+  }
+
+  /*
+   * Validar empleado en Maestro.
+   */
+
+  var empleado =
+    buscarEmpleadoIngreso_(
+      numeroPersonal
+    );
+
+  if (!empleado.ok) {
+
+    return empleado;
+  }
+
+  var usaCalendario =
+    conceptoIngresoUsaFecha_(
+      concepto
+    );
+
+  var valorDesde;
+  var valorHasta;
+  var dias = 0;
+
+  if (usaCalendario) {
+
+    /*
+     * Para los cuatro conceptos especiales:
+     * Desde y Hasta son fechas.
+     */
+
+    var calculoFechas =
+      calcularDiasIngreso_(
+        desdeRecibido,
+        hastaRecibido
+      );
+
+    valorDesde =
+      calculoFechas.desde;
+
+    valorHasta =
+      calculoFechas.hasta;
+
+    dias =
+      calculoFechas.dias;
+
+  } else {
+
+    /*
+     * Para los demás conceptos:
+     * Desde y Hasta son planillas.
+     */
+
+    var planillasValidas =
+      obtenerPlanillasIngresos_();
+
+    var posicionDesde =
+      planillasValidas.indexOf(
+        desdeRecibido
+      );
+
+    var posicionHasta =
+      planillasValidas.indexOf(
+        hastaRecibido
+      );
+
+    if (posicionDesde === -1) {
+
+      return {
+        ok: false,
+        mensaje:
+          "La planilla Desde no existe en Catalogos."
+      };
+    }
+
+    if (posicionHasta === -1) {
+
+      return {
+        ok: false,
+        mensaje:
+          "La planilla Hasta no existe en Catalogos."
+      };
+    }
+
+    if (
+      posicionHasta <
+      posicionDesde
+    ) {
+
+      return {
+        ok: false,
+        mensaje:
+          "La planilla Hasta no puede ser anterior a Desde."
+      };
+    }
+
+    valorDesde =
+      desdeRecibido;
+
+    valorHasta =
+      hastaRecibido;
+
+    dias = 0;
+  }
+
+  var valor =
+    convertirValorIngreso_(
+      datos.valor
+    );
+
+  if (valor < 0) {
+
+    return {
+      ok: false,
+      mensaje:
+        "El valor no puede ser negativo."
+    };
+  }
+
+  var fechaRegistro =
+    new Date();
+
+  var ss =
+    obtenerSpreadsheet();
+
+  var hoja =
+    ss.getSheetByName(
+      "Ingresos"
+    );
+
+  if (!hoja) {
+
+    hoja =
+      ss.insertSheet(
+        "Ingresos"
+      );
+  }
+
+  var bloqueo =
+    LockService.getScriptLock();
+
+  bloqueo.waitLock(20000);
+
+  try {
+
+    /*
+     * Encabezados A:I.
+     */
+
+    hoja
+      .getRange(
+        1,
+        1,
+        1,
+        9
+      )
+      .setValues([[
+        "No de personal",
+        "Nombre",
+        "Concepto",
+        "Desde",
+        "Hasta",
+        "Días",
+        "Valor",
+        "Fecha registro",
+        "Usuario"
+      ]])
+      .setFontWeight("bold")
+      .setBackground("#1d4ed8")
+      .setFontColor("#ffffff")
+      .setHorizontalAlignment(
+        "center"
+      );
+
+    var fila =
+      hoja.getLastRow() + 1;
+
+    hoja
+      .getRange(
+        fila,
+        1,
+        1,
+        9
+      )
+      .setValues([[
+        empleado.numeroPersonal,
+        empleado.nombre,
+        concepto,
+        valorDesde,
+        valorHasta,
+        dias,
+        valor,
+        fechaRegistro,
+        usuario
+      ]]);
+
+    /*
+     * PIN como texto.
+     */
+
+    hoja
+      .getRange(
+        fila,
+        1
+      )
+      .setNumberFormat("@");
+
+    /*
+     * Desde y Hasta.
+     */
+
+    if (usaCalendario) {
+
+      hoja
+        .getRange(
+          fila,
+          4,
+          1,
+          2
+        )
+        .setNumberFormat(
+          "dd/MM/yyyy"
+        );
+
+    } else {
+
+      hoja
+        .getRange(
+          fila,
+          4,
+          1,
+          2
+        )
+        .setNumberFormat("@")
+        .setWrap(true);
+    }
+
+    /*
+     * Días.
+     */
+
+    hoja
+      .getRange(
+        fila,
+        6
+      )
+      .setNumberFormat("0");
+
+    /*
+     * Valor.
+     */
+
+    hoja
+      .getRange(
+        fila,
+        7
+      )
+      .setNumberFormat(
+        'L #,##0.00'
+      );
+
+    /*
+     * Fecha de registro.
+     */
+
+    hoja
+      .getRange(
+        fila,
+        8
+      )
+      .setNumberFormat(
+        "dd/MM/yyyy"
+      );
+
+    hoja.setFrozenRows(1);
+
+    hoja.setColumnWidth(1, 120);
+    hoja.setColumnWidth(2, 220);
+    hoja.setColumnWidth(3, 270);
+    hoja.setColumnWidth(4, 360);
+    hoja.setColumnWidth(5, 360);
+    hoja.setColumnWidth(6, 80);
+    hoja.setColumnWidth(7, 120);
+    hoja.setColumnWidth(8, 130);
+    hoja.setColumnWidth(9, 220);
+
+    SpreadsheetApp.flush();
+
+  } finally {
+
+    bloqueo.releaseLock();
+  }
+
+  return {
+
+    ok: true,
+
+    mensaje:
+      "Otro ingreso guardado correctamente.",
+
+    conceptos:
+      obtenerConceptosIngresos_(),
+
+    planillas:
+      obtenerPlanillasIngresos_(),
+
+    dias:
+      dias
+  };
+}
+/*******************************************************
+ * OTROS INGRESOS CON PLANILLAS APLICABLES
+ *
+ * Ingresos:
+ * A = No. de personal
+ * B = Nombre
+ * C = Concepto
+ * D = Desde
+ * E = Hasta
+ * F = Días
+ * G = Planillas aplic.
+ * H = Valor
+ * I = Fecha registro
+ * J = Usuario
+ *******************************************************/
+
+function extraerCodigoPlanilla_(
+  texto
+) {
+
+  var coincidencia =
+    String(texto || "")
+      .match(
+        /(?:Planilla\s+)?(\d{4})-(\d{1,2})/i
+      );
+
+  if (!coincidencia) {
+
+    return null;
+  }
+
+  var anio =
+    Number(coincidencia[1]);
+
+  var numero =
+    Number(coincidencia[2]);
+
+  if (
+    !anio ||
+    !numero ||
+    numero < 1 ||
+    numero > 26
+  ) {
+
+    return null;
+  }
+
+  return {
+
+    anio:
+      anio,
+
+    numero:
+      numero,
+
+    codigo:
+      anio +
+      "-" +
+      numero
+  };
+}
+
+function calcularPlanillasAplicables_(
+  planillaDesde,
+  planillaHasta
+) {
+
+  var desde =
+    extraerCodigoPlanilla_(
+      planillaDesde
+    );
+
+  var hasta =
+    extraerCodigoPlanilla_(
+      planillaHasta
+    );
+
+  if (!desde || !hasta) {
+
+    throw new Error(
+      "Las planillas Desde y Hasta no son válidas."
+    );
+  }
+
+  /*
+   * Cada año contiene 26 planillas.
+   */
+
+  var posicionDesde =
+    desde.anio *
+    26 +
+    desde.numero;
+
+  var posicionHasta =
+    hasta.anio *
+    26 +
+    hasta.numero;
+
+if (posicionHasta < posicionDesde) {
+  throw new Error(
+    "La planilla Hasta no puede ser anterior a Desde."
+  );
+}
+
+// Se suma 1 porque ambas planillas están incluidas.
+var diferencia =
+  posicionHasta -
+  posicionDesde +
+  1;
+
+return {
+  desde: desde.codigo,
+  hasta: hasta.codigo,
+  cantidad: diferencia
+};
+}
+
+function guardarOtroIngreso_(
+  datos
+) {
+
+  if (!datos) {
+
+    return {
+      ok: false,
+      mensaje:
+        "No se recibieron los datos."
+    };
+  }
+
+  var numeroPersonal =
+    String(
+      datos.numeroPersonal || ""
+    ).trim();
+
+  var concepto =
+    String(
+      datos.concepto || ""
+    ).trim();
+
+  var desdeRecibido =
+    String(
+      datos.desde || ""
+    ).trim();
+
+  var hastaRecibido =
+    String(
+      datos.hasta || ""
+    ).trim();
+
+  var usuario =
+    String(
+      datos.usuario || ""
+    ).trim();
+
+  if (!numeroPersonal) {
+
+    return {
+      ok: false,
+      mensaje:
+        "El No. de personal es obligatorio."
+    };
+  }
+
+  if (!concepto) {
+
+    return {
+      ok: false,
+      mensaje:
+        "Seleccione un concepto."
+    };
+  }
+
+  if (!desdeRecibido) {
+
+    return {
+      ok: false,
+      mensaje:
+        "Seleccione Desde."
+    };
+  }
+
+  if (!hastaRecibido) {
+
+    return {
+      ok: false,
+      mensaje:
+        "Seleccione Hasta."
+    };
+  }
+
+  if (!usuario) {
+
+    return {
+      ok: false,
+      mensaje:
+        "Ingrese el Usuario."
+    };
+  }
+
+  /*
+   * Validar empleado en Maestro.
+   */
+
+  var empleado =
+    buscarEmpleadoIngreso_(
+      numeroPersonal
+    );
+
+  if (!empleado.ok) {
+
+    return empleado;
+  }
+
+  var usaCalendario =
+    conceptoIngresoUsaFecha_(
+      concepto
+    );
+
+  var valorDesde;
+  var valorHasta;
+  var dias = 0;
+  var planillasAplicables = 0;
+
+  if (usaCalendario) {
+
+    /*
+     * Los cuatro conceptos especiales
+     * utilizan fechas.
+     */
+
+    var calculoFechas =
+      calcularDiasIngreso_(
+        desdeRecibido,
+        hastaRecibido
+      );
+
+    valorDesde =
+      calculoFechas.desde;
+
+    valorHasta =
+      calculoFechas.hasta;
+
+    dias =
+      calculoFechas.dias;
+
+    planillasAplicables = 0;
+
+  } else {
+
+    /*
+     * Los demás conceptos utilizan planillas.
+     */
+
+    var planillasValidas =
+      obtenerPlanillasIngresos_();
+
+    var posicionDesde =
+      planillasValidas.indexOf(
+        desdeRecibido
+      );
+
+    var posicionHasta =
+      planillasValidas.indexOf(
+        hastaRecibido
+      );
+
+    if (posicionDesde === -1) {
+
+      return {
+        ok: false,
+        mensaje:
+          "La planilla Desde no existe en Catalogos."
+      };
+    }
+
+    if (posicionHasta === -1) {
+
+      return {
+        ok: false,
+        mensaje:
+          "La planilla Hasta no existe en Catalogos."
+      };
+    }
+
+    if (
+      posicionHasta <
+      posicionDesde
+    ) {
+
+      return {
+        ok: false,
+        mensaje:
+          "La planilla Hasta no puede ser anterior a Desde."
+      };
+    }
+
+    var calculoPlanillas =
+      calcularPlanillasAplicables_(
+        desdeRecibido,
+        hastaRecibido
+      );
+
+    /*
+     * Guardar únicamente:
+     * 2026-1
+     * 2026-10
+     */
+
+    valorDesde =
+      calculoPlanillas.desde;
+
+    valorHasta =
+      calculoPlanillas.hasta;
+
+    planillasAplicables =
+      calculoPlanillas.cantidad;
+
+    dias = 0;
+  }
+
+  var valor =
+    convertirValorIngreso_(
+      datos.valor
+    );
+
+  if (valor < 0) {
+
+    return {
+      ok: false,
+      mensaje:
+        "El valor no puede ser negativo."
+    };
+  }
+
+  var fechaRegistro =
+    new Date();
+
+  var ss =
+    obtenerSpreadsheet();
+
+  var hoja =
+    ss.getSheetByName(
+      "Ingresos"
+    );
+
+  if (!hoja) {
+
+    hoja =
+      ss.insertSheet(
+        "Ingresos"
+      );
+  }
+
+  var bloqueo =
+    LockService.getScriptLock();
+
+  bloqueo.waitLock(20000);
+
+  try {
+
+    /*
+     * Encabezados A:J.
+     */
+
+    hoja
+      .getRange(
+        1,
+        1,
+        1,
+        10
+      )
+      .setValues([[
+        "No de personal",
+        "Nombre",
+        "Concepto",
+        "Desde",
+        "Hasta",
+        "Días",
+        "Planillas aplic.",
+        "Valor",
+        "Fecha registro",
+        "Usuario"
+      ]])
+      .setFontWeight("bold")
+      .setBackground("#1d4ed8")
+      .setFontColor("#ffffff")
+      .setHorizontalAlignment(
+        "center"
+      );
+
+    var fila =
+      hoja.getLastRow() + 1;
+
+    hoja
+      .getRange(
+        fila,
+        1,
+        1,
+        10
+      )
+      .setValues([[
+        empleado.numeroPersonal,
+        empleado.nombre,
+        concepto,
+        valorDesde,
+        valorHasta,
+        dias,
+        planillasAplicables,
+        valor,
+        fechaRegistro,
+        usuario
+      ]]);
+
+    /*
+     * No. de personal.
+     */
+
+    hoja
+      .getRange(
+        fila,
+        1
+      )
+      .setNumberFormat("@");
+
+    /*
+     * Desde y Hasta.
+     */
+
+    if (usaCalendario) {
+
+      hoja
+        .getRange(
+          fila,
+          4,
+          1,
+          2
+        )
+        .setNumberFormat(
+          "dd/MM/yyyy"
+        );
+
+    } else {
+
+      hoja
+        .getRange(
+          fila,
+          4,
+          1,
+          2
+        )
+        .setNumberFormat("@");
+    }
+
+    /*
+     * Días y Planillas aplicables.
+     */
+
+    hoja
+      .getRange(
+        fila,
+        6,
+        1,
+        2
+      )
+      .setNumberFormat("0");
+
+    /*
+     * Valor.
+     */
+
+    hoja
+      .getRange(
+        fila,
+        8
+      )
+      .setNumberFormat(
+        'L #,##0.00'
+      );
+
+    /*
+     * Fecha de registro.
+     */
+
+    hoja
+      .getRange(
+        fila,
+        9
+      )
+      .setNumberFormat(
+        "dd/MM/yyyy"
+      );
+
+    hoja.setFrozenRows(1);
+
+    hoja.setColumnWidth(1, 120);
+    hoja.setColumnWidth(2, 220);
+    hoja.setColumnWidth(3, 270);
+    hoja.setColumnWidth(4, 110);
+    hoja.setColumnWidth(5, 110);
+    hoja.setColumnWidth(6, 80);
+    hoja.setColumnWidth(7, 130);
+    hoja.setColumnWidth(8, 120);
+    hoja.setColumnWidth(9, 130);
+    hoja.setColumnWidth(10, 220);
+
+    SpreadsheetApp.flush();
+
+  } finally {
+
+    bloqueo.releaseLock();
+  }
+
+  return {
+
+    ok: true,
+
+    mensaje:
+      "Otro ingreso guardado correctamente.",
+
+    conceptos:
+      obtenerConceptosIngresos_(),
+
+    planillas:
+      obtenerPlanillasIngresos_(),
+
+    dias:
+      dias,
+
+    planillasAplicables:
+      planillasAplicables
+  };
+}
+/**
+ * Obtiene la configuración del formulario Deducciones.
+ *
+ * Conceptos: Catalogos!AM2:AM
+ * Planillas: Catalogos!R2:R
+ */
+function obtenerConfiguracionDeducciones_() {
+  var hoja = obtenerHoja_(
+    CONFIG.SHEET_CATALOGOS
+  );
+
+  var ultimaFila = Math.max(
+    hoja.getLastRow(),
+    2
+  );
+
+  var conceptos = hoja
+    .getRange(
+      2,
+      39,
+      ultimaFila - 1,
+      1
+    )
+    .getDisplayValues()
+    .map(function (fila) {
+      return String(fila[0] || "").trim();
+    })
+    .filter(function (valor, indice, arreglo) {
+      return (
+        valor !== "" &&
+        arreglo.indexOf(valor) === indice
+      );
+    });
+
+  var planillas =
+    obtenerPlanillasIngresos_();
+
+  var usuario = "";
+
+  try {
+    usuario =
+      Session
+        .getActiveUser()
+        .getEmail() || "";
+  } catch (error) {
+    usuario = "";
+  }
+
+  return {
+    ok: true,
+    conceptos: conceptos,
+    planillas: planillas,
+    usuario: usuario
+  };
+}
+/*******************************************************
+ * GUARDAR DEDUCCIONES
+ *
+ * Hoja Deducciones:
+ * A = No. de personal
+ * B = Nombre
+ * C = Concepto
+ * D = Desde
+ * E = Hasta
+ * F = Días
+ * G = Planillas aplic.
+ * H = Valor
+ * I = Fecha registro
+ * J = Usuario
+ *******************************************************/
+
+function normalizarConceptoDeduccion_(texto) {
+  return String(texto || "")
+    .toLowerCase()
+    .replace(/[áàäâ]/g, "a")
+    .replace(/[éèëê]/g, "e")
+    .replace(/[íìïî]/g, "i")
+    .replace(/[óòöô]/g, "o")
+    .replace(/[úùüû]/g, "u")
+    .replace(/ñ/g, "n")
+    .trim();
+}
+
+function conceptoDeduccionUsaFecha_(concepto) {
+  var conceptosConFecha = [
+    "dias no laborados",
+    "incapacidades no remuneradas",
+    "llegadas tardias",
+    "permisos sin goce de salario",
+    "suspensiones sin goce de sueldo"
+  ];
+
+  return conceptosConFecha.indexOf(
+    normalizarConceptoDeduccion_(concepto)
+  ) !== -1;
+}
+
+function extraerCodigoPlanillaDeduccion_(texto) {
+  var coincidencia = String(texto || "")
+    .match(
+      /(?:Planilla\s+)?(\d{4})-(\d{1,2})/i
+    );
+
+  if (!coincidencia) {
+    return null;
+  }
+
+  var anio = Number(coincidencia[1]);
+  var numero = Number(coincidencia[2]);
+
+  if (
+    !anio ||
+    !numero ||
+    numero < 1 ||
+    numero > 26
+  ) {
+    return null;
+  }
+
+  return {
+    anio: anio,
+    numero: numero,
+    codigo:
+      anio + "-" + numero
+  };
+}
+
+function convertirFechaDeduccion_(valor) {
+  var texto = String(valor || "").trim();
+
+  var coincidencia = texto.match(
+    /^(\d{4})-(\d{2})-(\d{2})$/
+  );
+
+  if (!coincidencia) {
+    throw new Error(
+      "La fecha recibida no es válida."
+    );
+  }
+
+  var fecha = new Date(
+    Number(coincidencia[1]),
+    Number(coincidencia[2]) - 1,
+    Number(coincidencia[3])
+  );
+
+  if (isNaN(fecha.getTime())) {
+    throw new Error(
+      "La fecha recibida no es válida."
+    );
+  }
+
+  return fecha;
+}
+
+function guardarDeduccion_(datos) {
+  if (!datos) {
+    return {
+      ok: false,
+      mensaje:
+        "No se recibieron los datos de la deducción."
+    };
+  }
+
+  var numeroPersonal = String(
+    datos.numeroPersonal || ""
+  ).trim();
+
+  var concepto = String(
+    datos.concepto || ""
+  ).trim();
+
+  var desdeRecibido = String(
+    datos.desde || ""
+  ).trim();
+
+  var hastaRecibido = String(
+    datos.hasta || ""
+  ).trim();
+
+  var usuario = String(
+    datos.usuario || ""
+  ).trim();
+
+  var valor = Number(datos.valor);
+
+  if (!numeroPersonal) {
+    return {
+      ok: false,
+      mensaje:
+        "Ingrese el número de personal."
+    };
+  }
+
+  if (!concepto) {
+    return {
+      ok: false,
+      mensaje:
+        "Seleccione el concepto."
+    };
+  }
+
+  if (!desdeRecibido || !hastaRecibido) {
+    return {
+      ok: false,
+      mensaje:
+        "Seleccione Desde y Hasta."
+    };
+  }
+
+  if (
+    !isFinite(valor) ||
+    valor <= 0
+  ) {
+    return {
+      ok: false,
+      mensaje:
+        "Ingrese un valor válido mayor que cero."
+    };
+  }
+
+  /*
+   * Validar al empleado directamente en Maestro.
+   */
+  var empleado =
+    buscarEmpleadoIngreso_(
+      numeroPersonal
+    );
+
+  if (!empleado.ok) {
+    return empleado;
+  }
+
+  /*
+   * Validar que el concepto exista en Catalogos!AM.
+   */
+  var configuracion =
+    obtenerConfiguracionDeducciones_();
+
+  if (
+    configuracion.conceptos.indexOf(
+      concepto
+    ) === -1
+  ) {
+    return {
+      ok: false,
+      mensaje:
+        "El concepto no existe en Catalogos, columna AM."
+    };
+  }
+
+  var usaCalendario =
+    conceptoDeduccionUsaFecha_(
+      concepto
+    );
+
+  var valorDesde;
+  var valorHasta;
+  var dias = 0;
+  var planillasAplic = 0;
+
+  if (usaCalendario) {
+    /*
+     * Conceptos especiales:
+     * Desde y Hasta se guardan como fechas.
+     */
+    valorDesde =
+      convertirFechaDeduccion_(
+        desdeRecibido
+      );
+
+    valorHasta =
+      convertirFechaDeduccion_(
+        hastaRecibido
+      );
+
+    if (
+      valorHasta.getTime() <
+      valorDesde.getTime()
+    ) {
+      return {
+        ok: false,
+        mensaje:
+          "La fecha Hasta no puede ser anterior a Desde."
+      };
+    }
+
+    /*
+     * Diferencia inclusiva:
+     * misma fecha = 1 día.
+     */
+    dias =
+      Math.floor(
+        (
+          valorHasta.getTime() -
+          valorDesde.getTime()
+        ) / 86400000
+      ) + 1;
+
+    planillasAplic = 0;
+  } else {
+    /*
+     * Para los demás conceptos:
+     * Desde y Hasta deben existir en Catalogos!R.
+     */
+    var planillasValidas =
+      obtenerPlanillasIngresos_();
+
+    if (
+      planillasValidas.indexOf(
+        desdeRecibido
+      ) === -1
+    ) {
+      return {
+        ok: false,
+        mensaje:
+          "La planilla Desde no existe en Catalogos."
+      };
+    }
+
+    if (
+      planillasValidas.indexOf(
+        hastaRecibido
+      ) === -1
+    ) {
+      return {
+        ok: false,
+        mensaje:
+          "La planilla Hasta no existe en Catalogos."
+      };
+    }
+
+    var planillaDesde =
+      extraerCodigoPlanillaDeduccion_(
+        desdeRecibido
+      );
+
+    var planillaHasta =
+      extraerCodigoPlanillaDeduccion_(
+        hastaRecibido
+      );
+
+    if (
+      !planillaDesde ||
+      !planillaHasta
+    ) {
+      return {
+        ok: false,
+        mensaje:
+          "No fue posible identificar las planillas."
+      };
+    }
+
+    var posicionDesde =
+      planillaDesde.anio * 26 +
+      planillaDesde.numero;
+
+    var posicionHasta =
+      planillaHasta.anio * 26 +
+      planillaHasta.numero;
+
+    if (
+      posicionHasta <
+      posicionDesde
+    ) {
+      return {
+        ok: false,
+        mensaje:
+          "La planilla Hasta no puede ser anterior a Desde."
+      };
+    }
+
+    /*
+     * Guardar solamente:
+     * 2026-2, 2026-6, 2026-16, etc.
+     */
+    valorDesde =
+      planillaDesde.codigo;
+
+    valorHasta =
+      planillaHasta.codigo;
+
+    /*
+     * Cantidad inclusiva:
+     * Desde 2026-2 hasta 2026-6 = 5.
+     */
+    planillasAplic =
+      posicionHasta -
+      posicionDesde +
+      1;
+
+    dias = 0;
+  }
+
+  var fechaRegistro =
+    datos.fechaRegistro
+      ? convertirFechaDeduccion_(
+          datos.fechaRegistro
+        )
+      : new Date();
+
+  var ss = obtenerSpreadsheet();
+
+  var hoja = ss.getSheetByName(
+    "Deducciones"
+  );
+
+  if (!hoja) {
+    hoja = ss.insertSheet(
+      "Deducciones"
+    );
+  }
+
+  var bloqueo =
+    LockService.getScriptLock();
+
+  bloqueo.waitLock(20000);
+
+  try {
+    /*
+     * Encabezados A:J.
+     */
+    hoja
+      .getRange("A1:J1")
+      .setValues([[
+        "No de personal",
+        "Nombre",
+        "Concepto",
+        "Desde",
+        "Hasta",
+        "Días",
+        "Planillas aplic.",
+        "Valor",
+        "Fecha registro",
+        "Usuario"
+      ]])
+      .setFontWeight("bold")
+      .setBackground("#1d4ed8")
+      .setFontColor("#ffffff")
+      .setHorizontalAlignment("center")
+      .setVerticalAlignment("middle")
+      .setWrap(true);
+
+    var fila =
+      Math.max(
+        hoja.getLastRow() + 1,
+        2
+      );
+
+    hoja
+      .getRange(
+        fila,
+        1,
+        1,
+        10
+      )
+      .setValues([[
+        empleado.numeroPersonal ||
+          numeroPersonal,
+
+        empleado.nombre || "",
+
+        concepto,
+
+        valorDesde,
+
+        valorHasta,
+
+        dias,
+
+        planillasAplic,
+
+        valor,
+
+        fechaRegistro,
+
+        usuario
+      ]]);
+
+    /*
+     * Número de personal como texto.
+     */
+    hoja
+      .getRange(fila, 1)
+      .setNumberFormat("@");
+
+    /*
+     * Desde y Hasta.
+     */
+    if (usaCalendario) {
+      hoja
+        .getRange(
+          fila,
+          4,
+          1,
+          2
+        )
+        .setNumberFormat(
+          "dd/MM/yyyy"
+        );
+    } else {
+      hoja
+        .getRange(
+          fila,
+          4,
+          1,
+          2
+        )
+        .setNumberFormat("@");
+    }
+
+    hoja
+      .getRange(
+        fila,
+        6,
+        1,
+        2
+      )
+      .setNumberFormat("0");
+
+    hoja
+      .getRange(fila, 8)
+      .setNumberFormat(
+        'L #,##0.00'
+      );
+
+    hoja
+      .getRange(fila, 9)
+      .setNumberFormat(
+        "dd/MM/yyyy"
+      );
+
+    hoja.setFrozenRows(1);
+
+    hoja.setColumnWidth(1, 125);
+    hoja.setColumnWidth(2, 220);
+    hoja.setColumnWidth(3, 280);
+    hoja.setColumnWidth(4, 115);
+    hoja.setColumnWidth(5, 115);
+    hoja.setColumnWidth(6, 80);
+    hoja.setColumnWidth(7, 120);
+    hoja.setColumnWidth(8, 115);
+    hoja.setColumnWidth(9, 125);
+    hoja.setColumnWidth(10, 220);
+
+    SpreadsheetApp.flush();
+  } finally {
+    bloqueo.releaseLock();
+  }
+
+  return {
+    ok: true,
+    mensaje:
+      "Deducción guardada correctamente.",
+    dias: dias,
+    planillasAplic:
+      planillasAplic,
+    desde: usaCalendario
+      ? desdeRecibido
+      : valorDesde,
+    hasta: usaCalendario
+      ? hastaRecibido
+      : valorHasta
+  };
+}
 
   <meta
     name="viewport"
@@ -1644,7 +7910,7 @@
      */
 
     const API_URL =
-      "https://script.google.com/macros/s/AKfycbxPxmJcE74_wD-qbd4CwJ-D2xeSiq48CjmfgHzWnYNfPtSrthbr2zI87iouvoENSARG/exec";
+      "https://script.google.com/macros/s/AKfycbz1nIqcTm98XcufnHhubxayl4bGkbLwoAwh3tUUukDbDzzoORVQ2KyxoOLkfyncOg8s/exec";
 
     const camposEmpleado = [
 
