@@ -1644,7 +1644,7 @@
      */
 
     const API_URL =
-      "https://script.google.com/macros/s/AKfycby4cLsxFOLdtGCopO_nHagMMcZjOk-DmkUZEIo8E4C0la8ecNz5jRWht21o4TPSin_e/exec";
+      "https://script.google.com/macros/s/AKfycbwYdxHrFJqVg7B_sDpL3BuAzVtBRYghYlJq4h52x2gxn7ipDwhqkU4DsEhVaIgYCk0/exec";
 
     const camposEmpleado = [
 
@@ -6881,18 +6881,29 @@ resultado.value =
   }
 
   .deducciones-grid {
-    display: grid;
-    grid-template-columns:
-      minmax(145px, 0.85fr)
-      minmax(220px, 1.4fr)
-      minmax(270px, 1.7fr)
-      minmax(215px, 1.25fr)
-      minmax(215px, 1.25fr)
-      minmax(90px, 0.55fr)
-      minmax(130px, 0.75fr);
-    gap: 14px 16px;
-    align-items: end;
-  }
+  display: grid;
+  grid-template-columns:
+    minmax(105px, 0.70fr)  /* No. personal */
+    minmax(180px, 1.20fr)  /* Nombre */
+    minmax(235px, 1.55fr)  /* Concepto */
+    minmax(145px, 0.95fr)  /* Desde */
+    minmax(145px, 0.95fr)  /* Hasta */
+    minmax(70px, 0.45fr)   /* Días */
+    minmax(105px, 0.65fr); /* Planillas aplic. */
+  gap: 12px;
+  align-items: end;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.deducciones-grid .deduccion-campo {
+  min-width: 0;
+}
+
+.deducciones-grid input,
+.deducciones-grid select {
+  min-width: 0;
+}
 
   .deduccion-campo {
     display: flex;
@@ -6929,17 +6940,22 @@ resultado.value =
     text-align: center;
   }
 
-  .deducciones-segunda-fila {
-    display: grid;
-    grid-template-columns:
-      minmax(220px, 1fr)
-      minmax(260px, 1.3fr)
-      minmax(220px, 1fr);
-    gap: 14px 16px;
-    margin-top: 16px;
-    max-width: 1150px;
-  }
+.deducciones-segunda-fila {
+  display: grid;
+  grid-template-columns:
+    minmax(145px, 0.70fr)  /* Valor */
+    minmax(170px, 0.85fr)  /* Fecha registro */
+    minmax(230px, 1.10fr); /* Usuario */
+  gap: 12px;
+  margin-top: 16px;
+  max-width: 850px;
+  align-items: end;
+}
 
+.deducciones-segunda-fila .deduccion-campo {
+  min-width: 0;
+}
+  
   .acciones-deducciones {
     margin-top: 20px;
   }
@@ -7280,20 +7296,11 @@ resultado.value =
       );
 
     document
-      .getElementById("formDeducciones")
-      .addEventListener(
-        "submit",
-        function (evento) {
-          evento.preventDefault();
-
-          mostrarMensajeDeducciones(
-            "El formulario de deducciones está listo. " +
-            "Para guardar el registro debe definirse la hoja " +
-            "y las columnas de destino.",
-            "info"
-          );
-        }
-      );
+  .getElementById("formDeducciones")
+  .addEventListener(
+    "submit",
+    guardarDeduccion
+  );
 
     establecerFechaActualDeduccion();
   }
@@ -7676,7 +7683,212 @@ resultado.value =
       );
     }
   }
+async function guardarDeduccion(evento) {
+  evento.preventDefault();
 
+  const boton = document.getElementById(
+    "btnGuardarDeduccion"
+  );
+
+  const datos = {
+    numeroPersonal:
+      document
+        .getElementById(
+          "deduccionNumeroPersonal"
+        )
+        .value
+        .trim(),
+
+    nombre:
+      document
+        .getElementById(
+          "deduccionNombre"
+        )
+        .value
+        .trim(),
+
+    concepto:
+      document
+        .getElementById(
+          "deduccionConcepto"
+        )
+        .value,
+
+    desde:
+      document
+        .getElementById(
+          "deduccionDesde"
+        )
+        .value,
+
+    hasta:
+      document
+        .getElementById(
+          "deduccionHasta"
+        )
+        .value,
+
+    dias:
+      Number(
+        document
+          .getElementById(
+            "deduccionDias"
+          )
+          .value
+      ) || 0,
+
+    planillasAplic:
+      Number(
+        document
+          .getElementById(
+            "deduccionPlanillasAplic"
+          )
+          .value
+      ) || 0,
+
+    valor:
+      document
+        .getElementById(
+          "deduccionValor"
+        )
+        .value,
+
+    fechaRegistro:
+      document
+        .getElementById(
+          "deduccionFechaRegistro"
+        )
+        .value,
+
+    usuario:
+      document
+        .getElementById(
+          "deduccionUsuario"
+        )
+        .value
+  };
+
+  if (!datos.numeroPersonal) {
+    mostrarMensajeDeducciones(
+      "Ingrese el número de personal.",
+      "error"
+    );
+    return;
+  }
+
+  if (!datos.nombre) {
+    mostrarMensajeDeducciones(
+      "Busque un empleado válido.",
+      "error"
+    );
+    return;
+  }
+
+  if (!datos.concepto) {
+    mostrarMensajeDeducciones(
+      "Seleccione el concepto.",
+      "error"
+    );
+    return;
+  }
+
+  if (!datos.desde || !datos.hasta) {
+    mostrarMensajeDeducciones(
+      "Seleccione Desde y Hasta.",
+      "error"
+    );
+    return;
+  }
+
+  if (
+    datos.valor === "" ||
+    Number(datos.valor) <= 0
+  ) {
+    mostrarMensajeDeducciones(
+      "Ingrese un valor mayor que cero.",
+      "error"
+    );
+    return;
+  }
+
+  boton.disabled = true;
+
+  mostrarMensajeDeducciones(
+    "Guardando deducción...",
+    "info"
+  );
+
+  try {
+    const respuesta = await jsonp(
+      "guardarDeduccion",
+      datos
+    );
+
+    if (!respuesta || !respuesta.ok) {
+      throw new Error(
+        respuesta && respuesta.mensaje
+          ? respuesta.mensaje
+          : "No fue posible guardar la deducción."
+      );
+    }
+
+    mostrarMensajeDeducciones(
+      respuesta.mensaje,
+      "ok"
+    );
+
+    /*
+     * Limpiar el formulario después de guardar.
+     */
+    document.getElementById(
+      "deduccionNumeroPersonal"
+    ).value = "";
+
+    document.getElementById(
+      "deduccionNombre"
+    ).value = "";
+
+    document.getElementById(
+      "deduccionConcepto"
+    ).value = "";
+
+    document.getElementById(
+      "deduccionValor"
+    ).value = "";
+
+    document.getElementById(
+      "deduccionDias"
+    ).value = 0;
+
+    document.getElementById(
+      "deduccionPlanillasAplic"
+    ).value = 0;
+
+    /*
+     * Volver Desde y Hasta a selectores
+     * de planillas con Seleccionar.
+     */
+    sustituirCampoVigenciaDeduccion(
+      "deduccionDesde",
+      false
+    );
+
+    sustituirCampoVigenciaDeduccion(
+      "deduccionHasta",
+      false
+    );
+
+    establecerFechaActualDeduccion();
+  } catch (error) {
+    mostrarMensajeDeducciones(
+      error.message,
+      "error"
+    );
+  } finally {
+    boton.disabled = false;
+  }
+}
+  
   function mostrarMensajeDeducciones(
     texto,
     tipo
