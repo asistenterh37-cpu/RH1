@@ -970,7 +970,7 @@
      */
 
     const API_URL =
-      "https://script.google.com/macros/s/AKfycbxdV7N7mBRSOwuzYHSYRCbAUFb1TjP0cCseaTp_sBvZDHlB_JsCthaRYb6DeQW2qc-X/exec";
+      "https://script.google.com/macros/s/AKfycbwIET4Z-MibV_Hr57E4-nD8Ioh7RrL1m6KYPpOv9u_pjYOUUV5341QuIo2C761qxfT6/exec";
 
     const camposEmpleado = [
 
@@ -4650,6 +4650,704 @@ document.addEventListener(
         );
       }
     );
+  }
+
+</script>
+
+<!-- REGLAS DE VIGENCIA PARA OTROS INGRESOS -->
+
+<style>
+
+  .otros-ingresos-dias {
+    background: #f1f5f9;
+    font-weight: bold;
+    text-align: center;
+  }
+
+</style>
+
+<script>
+
+  /*
+   * Conceptos que requieren fechas de calendario.
+   */
+
+  const CONCEPTOS_CON_CALENDARIO = [
+
+    "Adelanto vacaciones",
+
+    "Incapacidad IHSS: Enfermedad profesional",
+
+    "Incapacidad IHSS: Enfermedad común",
+
+    "Incapacidad IHSS: Maternidad"
+  ];
+
+  let planillasOtrosIngresos = [];
+
+  document.addEventListener(
+    "DOMContentLoaded",
+    function () {
+
+      /*
+       * Esperar a que el módulo Otros ingresos
+       * termine de construir el formulario.
+       */
+
+      setTimeout(
+        prepararVigenciaOtrosIngresos,
+        200
+      );
+    }
+  );
+
+  function prepararVigenciaOtrosIngresos() {
+
+    const concepto =
+      document.getElementById(
+        "ingresoConcepto"
+      );
+
+    const hasta =
+      document.getElementById(
+        "ingresoHasta"
+      );
+
+    if (!concepto || !hasta) {
+      return;
+    }
+
+    /*
+     * Agregar el campo Días después de Hasta.
+     */
+
+    if (
+      !document.getElementById(
+        "ingresoDias"
+      )
+    ) {
+
+      const contenedorHasta =
+        hasta.closest(
+          ".otros-ingresos-campo"
+        ) ||
+        hasta.parentElement;
+
+      const contenedorDias =
+        document.createElement("div");
+
+      contenedorDias.className =
+        "otros-ingresos-campo";
+
+      contenedorDias.innerHTML = `
+
+        <label for="ingresoDias">
+          Días
+        </label>
+
+        <input
+          id="ingresoDias"
+          class="otros-ingresos-dias"
+          type="number"
+          value="0"
+          readonly
+        >
+      `;
+
+      contenedorHasta
+        .insertAdjacentElement(
+          "afterend",
+          contenedorDias
+        );
+    }
+
+    /*
+     * Cambiar los campos cuando se seleccione
+     * otro concepto.
+     */
+
+    concepto.removeEventListener(
+      "change",
+      cambiarTipoVigenciaIngreso
+    );
+
+    concepto.addEventListener(
+      "change",
+      cambiarTipoVigenciaIngreso
+    );
+
+    cambiarTipoVigenciaIngreso();
+  }
+
+  function conceptoUsaCalendario(
+    concepto
+  ) {
+
+    const conceptoNormalizado =
+      String(concepto || "")
+        .trim()
+        .toLowerCase();
+
+    return CONCEPTOS_CON_CALENDARIO
+      .some(function (valor) {
+
+        return (
+          valor.toLowerCase() ===
+          conceptoNormalizado
+        );
+      });
+  }
+
+  function cambiarTipoVigenciaIngreso() {
+
+    const concepto =
+      document
+        .getElementById(
+          "ingresoConcepto"
+        )
+        .value;
+
+    if (
+      conceptoUsaCalendario(
+        concepto
+      )
+    ) {
+
+      convertirVigenciaACalendarios();
+
+    } else {
+
+      convertirVigenciaAPlanillas();
+    }
+  }
+
+  function convertirVigenciaACalendarios() {
+
+    const desdeActual =
+      document.getElementById(
+        "ingresoDesde"
+      );
+
+    const hastaActual =
+      document.getElementById(
+        "ingresoHasta"
+      );
+
+    if (!desdeActual || !hastaActual) {
+      return;
+    }
+
+    const valorDesde =
+      desdeActual.tagName === "INPUT"
+        ? desdeActual.value
+        : "";
+
+    const valorHasta =
+      hastaActual.tagName === "INPUT"
+        ? hastaActual.value
+        : "";
+
+    desdeActual.outerHTML = `
+
+      <input
+        id="ingresoDesde"
+        type="date"
+        value="${valorDesde}"
+        onchange="calcularDiasOtroIngreso()"
+        required
+      >
+    `;
+
+    hastaActual.outerHTML = `
+
+      <input
+        id="ingresoHasta"
+        type="date"
+        value="${valorHasta}"
+        onchange="calcularDiasOtroIngreso()"
+        required
+      >
+    `;
+
+    calcularDiasOtroIngreso();
+  }
+
+  function convertirVigenciaAPlanillas() {
+
+    const desdeActual =
+      document.getElementById(
+        "ingresoDesde"
+      );
+
+    const hastaActual =
+      document.getElementById(
+        "ingresoHasta"
+      );
+
+    if (!desdeActual || !hastaActual) {
+      return;
+    }
+
+    desdeActual.outerHTML = `
+
+      <select
+        id="ingresoDesde"
+        required
+      >
+        ${crearOpcionesPlanillasIngreso()}
+      </select>
+    `;
+
+    hastaActual.outerHTML = `
+
+      <select
+        id="ingresoHasta"
+        required
+      >
+        ${crearOpcionesPlanillasIngreso()}
+      </select>
+    `;
+
+    const dias =
+      document.getElementById(
+        "ingresoDias"
+      );
+
+    if (dias) {
+      dias.value = 0;
+    }
+  }
+
+  function crearOpcionesPlanillasIngreso() {
+
+    let opciones = `
+
+      <option value="">
+        Seleccionar
+      </option>
+    `;
+
+    planillasOtrosIngresos
+      .forEach(function (planilla) {
+
+        const texto =
+          escaparTextoIngreso(
+            planilla
+          );
+
+        opciones += `
+
+          <option value="${texto}">
+            ${texto}
+          </option>
+        `;
+      });
+
+    return opciones;
+  }
+
+  function escaparTextoIngreso(
+    valor
+  ) {
+
+    return String(valor || "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
+  /*
+   * Diferencia solicitada:
+   *
+   * Hasta - Desde.
+   *
+   * Ejemplo:
+   * 18/07 - 18/07 = 0 días.
+   * 20/07 - 18/07 = 2 días.
+   */
+
+  function calcularDiasOtroIngreso() {
+
+    const concepto =
+      document
+        .getElementById(
+          "ingresoConcepto"
+        )
+        .value;
+
+    const campoDias =
+      document.getElementById(
+        "ingresoDias"
+      );
+
+    if (!campoDias) {
+      return 0;
+    }
+
+    if (
+      !conceptoUsaCalendario(
+        concepto
+      )
+    ) {
+
+      campoDias.value = 0;
+
+      return 0;
+    }
+
+    const desde =
+      document
+        .getElementById(
+          "ingresoDesde"
+        )
+        .value;
+
+    const hasta =
+      document
+        .getElementById(
+          "ingresoHasta"
+        )
+        .value;
+
+    if (!desde || !hasta) {
+
+      campoDias.value = 0;
+
+      return 0;
+    }
+
+    /*
+     * Agregar T00:00:00 evita diferencias
+     * ocasionadas por zona horaria.
+     */
+
+    const fechaDesde =
+      new Date(
+        desde + "T00:00:00"
+      );
+
+    const fechaHasta =
+      new Date(
+        hasta + "T00:00:00"
+      );
+
+    const diferencia =
+      Math.floor(
+        (
+          fechaHasta.getTime() -
+          fechaDesde.getTime()
+        ) /
+        (
+          24 *
+          60 *
+          60 *
+          1000
+        )
+      );
+
+    if (diferencia < 0) {
+
+      campoDias.value = 0;
+
+      mostrarMensajeOtrosIngresos(
+        "Hasta no puede ser anterior a Desde.",
+        "error"
+      );
+
+      return 0;
+    }
+
+    campoDias.value =
+      diferencia;
+
+    mostrarMensajeOtrosIngresos(
+      "",
+      ""
+    );
+
+    return diferencia;
+  }
+
+  /*
+   * Sustituye la carga anterior.
+   */
+
+  async function cargarConfiguracionIngresos() {
+
+    mostrarMensajeOtrosIngresos(
+      "Cargando conceptos y planillas...",
+      "info"
+    );
+
+    try {
+
+      const respuesta =
+        await jsonp(
+          "configuracionIngresos",
+          {}
+        );
+
+      if (!respuesta.ok) {
+
+        throw new Error(
+          respuesta.mensaje
+        );
+      }
+
+      planillasOtrosIngresos =
+        respuesta.planillas || [];
+
+      llenarConceptosIngreso(
+        respuesta.conceptos || []
+      );
+
+      const usuario =
+        document.getElementById(
+          "ingresoUsuario"
+        );
+
+      if (
+        usuario &&
+        !usuario.value
+      ) {
+
+        usuario.value =
+          respuesta.usuario || "";
+      }
+
+      establecerFechaHoyIngreso();
+
+      prepararVigenciaOtrosIngresos();
+
+      mostrarMensajeOtrosIngresos(
+        "",
+        ""
+      );
+
+    } catch (error) {
+
+      mostrarMensajeOtrosIngresos(
+        error.message,
+        "error"
+      );
+    }
+  }
+
+  /*
+   * Sustituye la función anterior de guardado.
+   */
+
+  async function guardarOtroIngreso(
+    evento
+  ) {
+
+    evento.preventDefault();
+
+    const boton =
+      document.getElementById(
+        "btnGuardarOtroIngreso"
+      );
+
+    const concepto =
+      document
+        .getElementById(
+          "ingresoConcepto"
+        )
+        .value;
+
+    const usaCalendario =
+      conceptoUsaCalendario(
+        concepto
+      );
+
+    const dias =
+      usaCalendario
+        ? calcularDiasOtroIngreso()
+        : 0;
+
+    const datos = {
+
+      numeroPersonal:
+        document
+          .getElementById(
+            "ingresoNumeroPersonal"
+          )
+          .value
+          .trim(),
+
+      nombre:
+        document
+          .getElementById(
+            "ingresoNombre"
+          )
+          .value
+          .trim(),
+
+      concepto:
+        concepto,
+
+      desde:
+        document
+          .getElementById(
+            "ingresoDesde"
+          )
+          .value,
+
+      hasta:
+        document
+          .getElementById(
+            "ingresoHasta"
+          )
+          .value,
+
+      dias:
+        dias,
+
+      valor:
+        document
+          .getElementById(
+            "ingresoValor"
+          )
+          .value,
+
+      fechaRegistro:
+        document
+          .getElementById(
+            "ingresoFechaRegistro"
+          )
+          .value,
+
+      usuario:
+        document
+          .getElementById(
+            "ingresoUsuario"
+          )
+          .value
+          .trim()
+    };
+
+    if (!datos.numeroPersonal) {
+
+      mostrarMensajeOtrosIngresos(
+        "Ingrese el No. de personal.",
+        "error"
+      );
+
+      return;
+    }
+
+    if (!datos.nombre) {
+
+      mostrarMensajeOtrosIngresos(
+        "Ingrese un No. de personal válido.",
+        "error"
+      );
+
+      return;
+    }
+
+    if (!datos.concepto) {
+
+      mostrarMensajeOtrosIngresos(
+        "Seleccione un concepto.",
+        "error"
+      );
+
+      return;
+    }
+
+    if (!datos.desde) {
+
+      mostrarMensajeOtrosIngresos(
+        usaCalendario
+          ? "Seleccione la fecha Desde."
+          : "Seleccione la planilla Desde.",
+        "error"
+      );
+
+      return;
+    }
+
+    if (!datos.hasta) {
+
+      mostrarMensajeOtrosIngresos(
+        usaCalendario
+          ? "Seleccione la fecha Hasta."
+          : "Seleccione la planilla Hasta.",
+        "error"
+      );
+
+      return;
+    }
+
+    boton.disabled = true;
+
+    mostrarMensajeOtrosIngresos(
+      "Guardando ingreso...",
+      "info"
+    );
+
+    try {
+
+      const respuesta =
+        await jsonp(
+          "guardarOtroIngreso",
+          datos
+        );
+
+      if (!respuesta.ok) {
+
+        throw new Error(
+          respuesta.mensaje
+        );
+      }
+
+      mostrarMensajeOtrosIngresos(
+        respuesta.mensaje,
+        "ok"
+      );
+
+      const usuario =
+        datos.usuario;
+
+      document
+        .getElementById(
+          "formOtrosIngresos"
+        )
+        .reset();
+
+      document
+        .getElementById(
+          "ingresoUsuario"
+        )
+        .value =
+          usuario;
+
+      establecerFechaHoyIngreso();
+
+      planillasOtrosIngresos =
+        respuesta.planillas ||
+        planillasOtrosIngresos;
+
+      llenarConceptosIngreso(
+        respuesta.conceptos || []
+      );
+
+      prepararVigenciaOtrosIngresos();
+
+    } catch (error) {
+
+      mostrarMensajeOtrosIngresos(
+        error.message,
+        "error"
+      );
+
+    } finally {
+
+      boton.disabled = false;
+    }
   }
 
 </script>
