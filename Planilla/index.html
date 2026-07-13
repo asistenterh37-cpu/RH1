@@ -1,1 +1,7916 @@
 
+<!DOCTYPE html>
+
+<html lang="es">
+
+<head>
+
+  <meta charset="UTF-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+
+  <title>Gestión de planilla</title>
+
+  <style>
+
+    :root {
+      --azul: #1d4ed8;
+      --azul-oscuro: #173d7a;
+      --verde: #15803d;
+      --gris: #64748b;
+      --fondo: #f1f5f9;
+      --texto: #172033;
+      --borde: #d7dfeb;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: var(--fondo);
+      color: var(--texto);
+      font-family: Arial, sans-serif;
+      font-size: 15px;
+    }
+
+    header {
+      padding: 25px;
+      color: white;
+      text-align: center;
+      background: linear-gradient(
+        135deg,
+        var(--azul-oscuro),
+        #2563eb
+      );
+    }
+
+    header h1 {
+      margin: 0 0 5px;
+    }
+
+    main {
+      max-width: 1350px;
+      margin: 22px auto;
+      padding: 0 16px;
+    }
+
+    .menu {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+    }
+
+    button {
+      padding: 12px 16px;
+      border: none;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    button:disabled {
+      opacity: 0.65;
+      cursor: not-allowed;
+    }
+
+    .menu button {
+      color: #17417f;
+      background: white;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.07);
+    }
+
+    .menu button.activo {
+      color: white;
+      background: var(--azul);
+    }
+
+    .panel {
+      display: none;
+      margin-top: 16px;
+      padding: 28px;
+      background: white;
+      border-radius: 14px;
+      box-shadow: 0 5px 22px rgba(0, 0, 0, 0.07);
+    }
+
+    .panel.activo {
+      display: block;
+    }
+
+    h2 {
+      margin-top: 0;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 6px;
+      font-weight: bold;
+    }
+
+    input,
+    select {
+      width: 100%;
+      padding: 11px;
+      border: 1px solid var(--borde);
+      border-radius: 8px;
+      background: white;
+      font-family: Arial, sans-serif;
+      font-size: 15px;
+    }
+
+    input:disabled,
+    select:disabled {
+      background: #eef2f7;
+    }
+
+    .primario {
+      color: white;
+      background: var(--azul);
+    }
+
+    .guardar {
+      min-width: 170px;
+      margin-top: 20px;
+      color: white;
+      background: var(--verde);
+    }
+
+    .secundario {
+      color: white;
+      background: var(--gris);
+    }
+
+    .mensaje {
+      display: none;
+      margin-top: 16px;
+      padding: 14px;
+      border-radius: 8px;
+    }
+
+    .mensaje.ok {
+      display: block;
+      color: #166534;
+      background: #dcfce7;
+    }
+
+    .mensaje.error {
+      display: block;
+      color: #991b1b;
+      background: #fee2e2;
+    }
+
+    .mensaje.info {
+      display: block;
+      color: #1e40af;
+      background: #dbeafe;
+    }
+
+    /*
+     * DATOS DEL EMPLEADO:
+     * cuatro campos por fila.
+     */
+
+    .grid-empleados {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 16px;
+      align-items: end;
+    }
+
+    .acciones {
+      max-width: 340px;
+      margin-bottom: 18px;
+    }
+
+    .barra-busqueda {
+      display: flex;
+      gap: 12px;
+      align-items: end;
+      max-width: 650px;
+      margin: 12px 0 20px;
+    }
+
+    .barra-busqueda > div {
+      flex: 1;
+    }
+
+    /*
+     * PARÁMETROS DE PLANILLA.
+     */
+
+    .parametros-contenedor {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 14px;
+    }
+
+    /*
+     * Hora de entrada:
+     * etiqueta y reloj horizontalmente.
+     */
+
+    .parametro-fila {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 20px;
+      padding: 12px 14px;
+      border: 1px solid var(--borde);
+      border-radius: 10px;
+      background: #f8fafc;
+    }
+
+    .parametro-fila label {
+      flex: 0 0 330px;
+      width: 330px;
+      margin: 0;
+    }
+
+    .parametro-fila input {
+      flex: 0 0 220px;
+      width: 220px;
+      margin: 0;
+    }
+
+    /*
+     * Los cuatro recargos:
+     * etiqueta a la izquierda y campo a la derecha.
+     */
+
+    .recargo-fila {
+      display: flex !important;
+      flex-direction: row !important;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 20px;
+      width: 100%;
+      padding: 12px 14px;
+      border: 1px solid var(--borde);
+      border-radius: 10px;
+      background: #f8fafc;
+    }
+
+    .recargo-fila label {
+      flex: 0 0 330px;
+      width: 330px;
+      margin: 0;
+    }
+
+    .recargo-fila input {
+      flex: 0 0 220px;
+      width: 220px;
+      margin: 0;
+    }
+
+    /*
+     * Feriados:
+     * dos feriados por cada fila.
+     */
+
+    .seccion-feriados {
+      margin-top: 8px;
+      padding: 16px;
+      border: 1px solid var(--borde);
+      border-radius: 12px;
+    }
+
+    .seccion-feriados h3 {
+      margin-top: 0;
+      margin-bottom: 5px;
+    }
+
+    .feriados-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .feriado-item {
+      display: grid;
+      grid-template-columns: 130px minmax(170px, 1fr);
+      gap: 12px;
+      align-items: center;
+      padding: 12px 16px;
+      border: 1px solid var(--borde);
+      border-radius: 10px;
+      background: #f8fafc;
+    }
+
+    .feriado-item label {
+      margin: 0;
+      white-space: nowrap;
+    }
+
+    .feriado-item input {
+      margin: 0;
+    }
+
+    .acciones-parametros {
+      display: flex;
+      gap: 10px;
+    }
+
+    .enlace {
+      margin-top: 12px;
+      padding: 12px;
+      border: 1px solid var(--borde);
+      border-radius: 8px;
+      background: #f8fafc;
+      word-break: break-all;
+    }
+
+    /*
+     * TABLET.
+     */
+
+    @media (max-width: 950px) {
+
+      .grid-empleados {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .feriados-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /*
+     * CELULAR.
+     */
+
+    @media (max-width: 650px) {
+
+      .menu,
+      .grid-empleados {
+        grid-template-columns: 1fr;
+      }
+
+      .barra-busqueda {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .parametro-fila,
+      .recargo-fila {
+        flex-direction: column !important;
+        align-items: stretch;
+        gap: 7px;
+      }
+
+      .parametro-fila label,
+      .recargo-fila label {
+        flex: auto;
+        width: 100%;
+      }
+
+      .parametro-fila input,
+      .recargo-fila input {
+        flex: auto;
+        width: 100%;
+      }
+
+      .feriado-item {
+        grid-template-columns: 90px minmax(0, 1fr);
+      }
+    }
+
+/*
+ * PANTALLA MÓVIL DE ASISTENCIA
+ */
+
+.pantalla-asistencia {
+  display: none;
+  min-height: 100vh;
+  padding: 18px;
+  background:
+    linear-gradient(
+      135deg,
+      #e0ecff,
+      #f8fafc
+    );
+}
+
+.asistencia-card {
+  width: 100%;
+  max-width: 460px;
+  margin: 20px auto;
+  padding: 24px;
+  background: white;
+  border-radius: 18px;
+  box-shadow:
+    0 12px 35px
+    rgba(15, 23, 42, 0.15);
+}
+
+.asistencia-card h1 {
+  margin: 0 0 6px;
+  color: #173d7a;
+  text-align: center;
+}
+
+.asistencia-card .subtitulo {
+  margin: 0 0 22px;
+  color: #64748b;
+  text-align: center;
+}
+
+.asistencia-campo {
+  margin-bottom: 17px;
+}
+
+.asistencia-empleado {
+  min-height: 47px;
+  padding: 13px;
+  border: 1px solid var(--borde);
+  border-radius: 9px;
+  background: #f8fafc;
+  color: #334155;
+}
+
+.asistencia-empleado.identificado {
+  border-color: #86efac;
+  background: #dcfce7;
+  color: #166534;
+  font-weight: bold;
+}
+
+.asistencia-botones {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+.btn-marcar {
+  width: 100%;
+  padding: 15px;
+  color: white;
+  background: var(--verde);
+  font-size: 17px;
+}
+
+.btn-validar {
+  margin-top: 8px;
+  width: 100%;
+  color: white;
+  background: var(--azul);
+}
+
+.btn-abrir-asistencia {
+  margin-right: 8px;
+  color: white;
+  background: var(--verde);
+}
+
+.datos-ubicacion {
+  display: none;
+  margin-top: 16px;
+  padding: 12px;
+  border-radius: 9px;
+  background: #f8fafc;
+  color: #475569;
+  font-size: 13px;
+}
+
+.enlace-asistencia {
+  margin-top: 15px;
+  padding: 13px;
+  border: 1px solid var(--borde);
+  border-radius: 9px;
+  background: #f8fafc;
+  word-break: break-all;
+}
+
+.ocultar-aplicacion {
+  display: none !important;
+}
+
+@media (max-width: 600px) {
+
+  .pantalla-asistencia {
+    padding: 10px;
+  }
+
+  .asistencia-card {
+    margin: 8px auto;
+    padding: 20px;
+  }
+}
+    
+  </style>
+
+</head>
+
+<body>
+
+  <header>
+
+    <h1>Gestión de planilla</h1>
+
+    <div>
+      Empleados, asistencia y parámetros
+    </div>
+
+  </header>
+
+  <main>
+
+    <nav class="menu">
+
+      <button
+        type="button"
+        onclick="abrirPanel('parametros', this)"
+      >
+        Parámetros de planilla
+      </button>
+
+      <button
+        type="button"
+        onclick="abrirPanel('empleados', this)"
+      >
+        Datos empleado
+      </button>
+
+      <button
+        type="button"
+        onclick="abrirPanel('asistencia', this)"
+      >
+        Asistencia
+      </button>
+
+      <button
+        type="button"
+        onclick="abrirPanel('ordte', this)"
+      >
+        Ord y TE
+      </button>
+
+    </nav>
+
+    <!-- PARÁMETROS -->
+
+    <section
+      id="parametros"
+      class="panel"
+    >
+
+      <h2>Parámetros de planilla</h2>
+
+      <p>
+        Los parámetros se guardarán en las columnas
+        I:N de la hoja <strong>Catalogos</strong>.
+      </p>
+
+      <form
+        id="formParametros"
+        onsubmit="guardarParametros(event)"
+      >
+
+        <div class="parametros-contenedor">
+
+          <style>
+  /* Estatus, salario mínimo y fecha Desde en una fila horizontal */
+  .parametros-principales-fila {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(220px, 1fr));
+    gap: 18px;
+    align-items: end;
+    padding: 14px;
+    border: 1px solid var(--borde);
+    border-radius: 10px;
+    background: #f8fafc;
+  }
+
+  .parametros-principales-campo {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    min-width: 0;
+  }
+
+  .parametros-principales-campo label {
+    width: auto;
+    margin: 0;
+    font-weight: 700;
+  }
+
+  .parametros-principales-campo input {
+    width: 100%;
+    height: 46px;
+    margin: 0;
+    padding: 9px 12px;
+    border: 1px solid var(--borde);
+    border-radius: 8px;
+    background: #ffffff;
+    box-sizing: border-box;
+  }
+
+  .parametros-principales-campo input:focus {
+    border-color: #2563eb;
+    outline: 2px solid rgba(37, 99, 235, 0.15);
+  }
+
+  @media (max-width: 850px) {
+    .parametros-principales-fila {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+
+<div class="parametros-principales-fila">
+
+  <div class="parametros-principales-campo">
+    <label for="estatusHoraEnt">
+      Estatus Hora Ent
+    </label>
+
+    <input
+      id="estatusHoraEnt"
+      name="estatusHoraEnt"
+      type="time"
+      step="1"
+      required
+    >
+  </div>
+
+  <div class="parametros-principales-campo">
+    <label for="salarioMinimo">
+      Salario mínimo
+    </label>
+
+    <input
+      id="salarioMinimo"
+      name="salarioMinimo"
+      type="number"
+      min="0"
+      step="0.01"
+      placeholder="0.00"
+      inputmode="decimal"
+      required
+    >
+  </div>
+
+  <div class="parametros-principales-campo">
+    <label for="salarioMinimoDesde">
+      Desde
+    </label>
+
+    <input
+      id="salarioMinimoDesde"
+      name="salarioMinimoDesde"
+      type="date"
+      required
+    >
+  </div>
+
+</div>
+
+          <div class="seccion-feriados">
+
+            <h3>Feriados</h3>
+
+            <p>
+              Puede registrar hasta 12 fechas.
+            </p>
+
+            <div
+              id="feriadosGrid"
+              class="feriados-grid"
+            ></div>
+
+          </div>
+
+          <div class="recargo-fila">
+
+            <label for="recargoDiurno">
+              Horas extras diu recargo
+            </label>
+
+            <input
+              id="recargoDiurno"
+              name="recargoDiurno"
+              type="number"
+              min="0"
+              step="0.01"
+              placeholder="Ejemplo: 1.25"
+              required
+            >
+
+          </div>
+
+          <div class="recargo-fila">
+
+            <label for="recargoNocturno">
+              Horas extras noct recargo
+            </label>
+
+            <input
+              id="recargoNocturno"
+              name="recargoNocturno"
+              type="number"
+              min="0"
+              step="0.01"
+              placeholder="Ejemplo: 1.50"
+              required
+            >
+
+          </div>
+
+          <div class="recargo-fila">
+
+            <label for="recargoDescanso">
+              Horas extras descanso recargo
+            </label>
+
+            <input
+              id="recargoDescanso"
+              name="recargoDescanso"
+              type="number"
+              min="0"
+              step="0.01"
+              placeholder="Ejemplo: 2.00"
+              required
+            >
+
+          </div>
+
+          <div class="recargo-fila">
+
+            <label for="recargoFeriado">
+              Horas extras feriado recargo
+            </label>
+
+            <input
+              id="recargoFeriado"
+              name="recargoFeriado"
+              type="number"
+              min="0"
+              step="0.01"
+              placeholder="Ejemplo: 2.00"
+              required
+            >
+
+          </div>
+
+        </div>
+
+        <!-- ======================================================
+     TABLAS ADICIONALES DE PARÁMETROS DE PLANILLA
+======================================================= -->
+<style>
+  .tablas-parametros-adicionales {
+    margin-top: 26px;
+  }
+
+  .tablas-parametros-adicionales > h3 {
+    margin: 0 0 18px;
+    color: #123b75;
+  }
+
+  .parametros-tablas-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 20px;
+  }
+
+  .parametros-tabla-panel {
+    padding: 18px;
+    border: 1px solid #d6e0ee;
+    border-radius: 14px;
+    background: #f8fafc;
+    overflow-x: auto;
+  }
+
+  .parametros-tabla-panel.ancho-completo {
+    grid-column: 1 / -1;
+  }
+
+  .parametros-tabla-panel h4 {
+    margin: 0 0 14px;
+    color: #123b75;
+    font-size: 18px;
+  }
+
+  .tabla-parametros-editable {
+    width: 100%;
+    min-width: 480px;
+    border-collapse: collapse;
+    background: #ffffff;
+  }
+
+  .tabla-parametros-editable th,
+  .tabla-parametros-editable td {
+    padding: 9px;
+    border: 1px solid #d6e0ee;
+    text-align: center;
+    vertical-align: middle;
+  }
+
+  .tabla-parametros-editable th {
+    color: #ffffff;
+    background: #1d4ed8;
+    font-weight: 700;
+  }
+
+  .tabla-parametros-editable td:first-child {
+    text-align: left;
+  }
+
+  .tabla-parametros-editable input {
+    width: 100%;
+    min-width: 80px;
+    padding: 8px;
+    border: 1px solid #cbd5e1;
+    border-radius: 7px;
+    background: #ffffff;
+    text-align: right;
+    box-sizing: border-box;
+  }
+
+  .tabla-parametros-editable input[type="text"] {
+    text-align: left;
+  }
+
+  .tabla-parametros-editable input:focus {
+    border-color: #2563eb;
+    outline: 2px solid rgba(37, 99, 235, 0.15);
+  }
+
+  .referencias-ihss {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(190px, 1fr));
+    gap: 14px;
+    margin-top: 16px;
+  }
+
+  .referencia-campo {
+    display: grid;
+    grid-template-columns: minmax(110px, 1fr) minmax(100px, 150px);
+    gap: 10px;
+    align-items: center;
+  }
+
+  .referencia-campo label {
+    font-weight: 700;
+  }
+
+  .referencia-campo input {
+    width: 100%;
+    padding: 9px;
+    border: 1px solid #cbd5e1;
+    border-radius: 7px;
+    box-sizing: border-box;
+  }
+
+  @media (max-width: 950px) {
+    .parametros-tablas-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .parametros-tabla-panel.ancho-completo {
+      grid-column: auto;
+    }
+  }
+
+  @media (max-width: 650px) {
+    .referencias-ihss {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+
+<div
+  id="tablasParametrosAdicionales"
+  class="tablas-parametros-adicionales"
+>
+  <h3>Tablas de cálculo</h3>
+
+  <div class="parametros-tablas-grid">
+
+    <!-- TABLA DE VACACIONES -->
+    <div class="parametros-tabla-panel">
+      <h4>Tabla de vacaciones</h4>
+
+      <table
+        id="tablaVacaciones"
+        class="tabla-parametros-editable"
+      >
+        <thead>
+          <tr>
+            <th>Antigüedad desde</th>
+            <th>Antigüedad hasta</th>
+            <th>Días de vacaciones</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          <tr>
+            <td>
+              <input
+                id="vacacionesDesde1"
+                name="vacacionesDesde1"
+                type="number"
+                min="0"
+                step="1"
+                value="1"
+              >
+            </td>
+            <td>
+              <input
+                id="vacacionesHasta1"
+                name="vacacionesHasta1"
+                type="number"
+                min="0"
+                step="1"
+                value="1"
+              >
+            </td>
+            <td>
+              <input
+                id="vacacionesDias1"
+                name="vacacionesDias1"
+                type="number"
+                min="0"
+                step="1"
+                value="10"
+              >
+            </td>
+          </tr>
+
+          <tr>
+            <td>
+              <input
+                id="vacacionesDesde2"
+                name="vacacionesDesde2"
+                type="number"
+                min="0"
+                step="1"
+                value="2"
+              >
+            </td>
+            <td>
+              <input
+                id="vacacionesHasta2"
+                name="vacacionesHasta2"
+                type="number"
+                min="0"
+                step="1"
+                value="2"
+              >
+            </td>
+            <td>
+              <input
+                id="vacacionesDias2"
+                name="vacacionesDias2"
+                type="number"
+                min="0"
+                step="1"
+                value="12"
+              >
+            </td>
+          </tr>
+
+          <tr>
+            <td>
+              <input
+                id="vacacionesDesde3"
+                name="vacacionesDesde3"
+                type="number"
+                min="0"
+                step="1"
+                value="3"
+              >
+            </td>
+            <td>
+              <input
+                id="vacacionesHasta3"
+                name="vacacionesHasta3"
+                type="number"
+                min="0"
+                step="1"
+                value="3"
+              >
+            </td>
+            <td>
+              <input
+                id="vacacionesDias3"
+                name="vacacionesDias3"
+                type="number"
+                min="0"
+                step="1"
+                value="15"
+              >
+            </td>
+          </tr>
+
+          <tr>
+            <td>
+              <input
+                id="vacacionesDesde4"
+                name="vacacionesDesde4"
+                type="number"
+                min="0"
+                step="1"
+                value="4"
+              >
+            </td>
+            <td>
+              <input
+                id="vacacionesHasta4"
+                name="vacacionesHasta4"
+                type="number"
+                min="0"
+                step="1"
+                value="60"
+              >
+            </td>
+            <td>
+              <input
+                id="vacacionesDias4"
+                name="vacacionesDias4"
+                type="number"
+                min="0"
+                step="1"
+                value="20"
+              >
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- TABLA DE INCAPACIDADES IHSS -->
+    <div class="parametros-tabla-panel">
+      <h4>Incapacidades IHSS</h4>
+
+      <table
+        id="tablaIncapacidadesIHSS"
+        class="tabla-parametros-editable"
+      >
+        <thead>
+          <tr>
+            <th>Concepto</th>
+            <th>Desde</th>
+            <th>Hasta</th>
+            <th>Empresa %</th>
+            <th>IHSS %</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          <tr>
+            <td>
+              <input
+                id="ihssConcepto1"
+                name="ihssConcepto1"
+                type="text"
+                value="Enfermedad común"
+              >
+            </td>
+            <td><input id="ihssDesde1" type="number" value="1"></td>
+            <td><input id="ihssHasta1" type="number" value="3"></td>
+            <td><input id="ihssEmpresa1" type="number" value="100"></td>
+            <td><input id="ihssPorcentaje1" type="number" value="0"></td>
+          </tr>
+
+          <tr>
+            <td>
+              <input
+                id="ihssConcepto2"
+                name="ihssConcepto2"
+                type="text"
+                value="Enfermedad común"
+              >
+            </td>
+            <td><input id="ihssDesde2" type="number" value="4"></td>
+            <td>
+              <input
+                id="ihssHasta2"
+                type="number"
+                placeholder="Sin límite"
+              >
+            </td>
+            <td><input id="ihssEmpresa2" type="number" value="34"></td>
+            <td><input id="ihssPorcentaje2" type="number" value="66"></td>
+          </tr>
+
+          <tr>
+            <td>
+              <input
+                id="ihssConcepto3"
+                name="ihssConcepto3"
+                type="text"
+                value="Enfermedad profesional"
+              >
+            </td>
+            <td><input id="ihssDesde3" type="number" value="1"></td>
+            <td><input id="ihssHasta3" type="number" value="3"></td>
+            <td><input id="ihssEmpresa3" type="number" value="100"></td>
+            <td><input id="ihssPorcentaje3" type="number" value="0"></td>
+          </tr>
+
+          <tr>
+            <td>
+              <input
+                id="ihssConcepto4"
+                name="ihssConcepto4"
+                type="text"
+                value="Enfermedad profesional"
+              >
+            </td>
+            <td><input id="ihssDesde4" type="number" value="4"></td>
+            <td>
+              <input
+                id="ihssHasta4"
+                type="number"
+                placeholder="Sin límite"
+              >
+            </td>
+            <td><input id="ihssEmpresa4" type="number" value="34"></td>
+            <td><input id="ihssPorcentaje4" type="number" value="66"></td>
+          </tr>
+
+          <tr>
+            <td>
+              <input
+                id="ihssConcepto5"
+                name="ihssConcepto5"
+                type="text"
+                value="Maternidad"
+              >
+            </td>
+            <td><input id="ihssDesde5" type="number" value="1"></td>
+            <td><input id="ihssHasta5" type="number" value="84"></td>
+            <td><input id="ihssEmpresa5" type="number" value="34"></td>
+            <td><input id="ihssPorcentaje5" type="number" value="66"></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="referencias-ihss">
+        <div class="referencia-campo">
+          <label for="ihssReferenciaPorcentaje">
+            Porcentaje
+          </label>
+          <input
+            id="ihssReferenciaPorcentaje"
+            name="ihssReferenciaPorcentaje"
+            type="number"
+            min="0"
+            step="0.01"
+            value="7"
+          >
+        </div>
+
+        <div class="referencia-campo">
+          <label for="ihssTechoCotizacion">
+            Techo de cotización
+          </label>
+          <input
+            id="ihssTechoCotizacion"
+            name="ihssTechoCotizacion"
+            type="number"
+            min="0"
+            step="0.01"
+            value="14000"
+          >
+        </div>
+      </div>
+    </div>
+
+    <!-- RAP E INFOP -->
+    <div class="parametros-tabla-panel">
+      <h4>RAP e INFOP</h4>
+
+      <table
+        id="tablaRapInfop"
+        class="tabla-parametros-editable"
+      >
+        <thead>
+          <tr>
+            <th>Concepto</th>
+            <th>Porcentaje</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          <tr>
+            <td>RAP</td>
+            <td>
+              <input
+                id="porcentajeRap"
+                name="porcentajeRap"
+                type="number"
+                min="0"
+                step="0.01"
+                value="1.50"
+              >
+            </td>
+          </tr>
+
+          <tr>
+            <td>INFOP</td>
+            <td>
+              <input
+                id="porcentajeInfop"
+                name="porcentajeInfop"
+                type="number"
+                min="0"
+                step="0.01"
+                value="1"
+              >
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- IMPUESTO SOBRE LA RENTA -->
+    <div class="parametros-tabla-panel">
+      <h4>Tabla de impuesto sobre la renta</h4>
+
+      <table
+        id="tablaImpuestoRenta"
+        class="tabla-parametros-editable"
+      >
+        <thead>
+          <tr>
+            <th>Desde</th>
+            <th>Hasta</th>
+            <th>Porcentaje</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          <tr>
+            <td><input id="rentaDesde1" type="number" value="0"></td>
+            <td><input id="rentaHasta1" type="number" value="300000"></td>
+            <td><input id="rentaPorcentaje1" type="number" value="0"></td>
+          </tr>
+
+          <tr>
+            <td><input id="rentaDesde2" type="number" value="300001"></td>
+            <td><input id="rentaHasta2" type="number" value="500000"></td>
+            <td><input id="rentaPorcentaje2" type="number" value="15"></td>
+          </tr>
+
+          <tr>
+            <td><input id="rentaDesde3" type="number" value="500001"></td>
+            <td><input id="rentaHasta3" type="number" value="700000"></td>
+            <td><input id="rentaPorcentaje3" type="number" value="20"></td>
+          </tr>
+
+          <tr>
+            <td><input id="rentaDesde4" type="number" value="700001"></td>
+            <td><input id="rentaHasta4" type="number" value="999000000"></td>
+            <td><input id="rentaPorcentaje4" type="number" value="25"></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- IMPUESTO VECINAL -->
+    <div class="parametros-tabla-panel ancho-completo">
+      <h4>Tabla de impuesto vecinal</h4>
+
+      <table
+        id="tablaImpuestoVecinal"
+        class="tabla-parametros-editable"
+      >
+        <thead>
+          <tr>
+            <th>Desde</th>
+            <th>Hasta</th>
+            <th>Impuesto por millar</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          <tr>
+            <td><input id="vecinalDesde1" type="number" value="1"></td>
+            <td><input id="vecinalHasta1" type="number" value="5000"></td>
+            <td><input id="vecinalTasa1" type="number" step="0.01" value="1.50"></td>
+          </tr>
+
+          <tr>
+            <td><input id="vecinalDesde2" type="number" value="5001"></td>
+            <td><input id="vecinalHasta2" type="number" value="10000"></td>
+            <td><input id="vecinalTasa2" type="number" step="0.01" value="2.00"></td>
+          </tr>
+
+          <tr>
+            <td><input id="vecinalDesde3" type="number" value="10001"></td>
+            <td><input id="vecinalHasta3" type="number" value="20000"></td>
+            <td><input id="vecinalTasa3" type="number" step="0.01" value="2.50"></td>
+          </tr>
+
+          <tr>
+            <td><input id="vecinalDesde4" type="number" value="20001"></td>
+            <td><input id="vecinalHasta4" type="number" value="30000"></td>
+            <td><input id="vecinalTasa4" type="number" step="0.01" value="3.00"></td>
+          </tr>
+
+          <tr>
+            <td><input id="vecinalDesde5" type="number" value="30001"></td>
+            <td><input id="vecinalHasta5" type="number" value="50000"></td>
+            <td><input id="vecinalTasa5" type="number" step="0.01" value="3.50"></td>
+          </tr>
+
+          <tr>
+            <td><input id="vecinalDesde6" type="number" value="50001"></td>
+            <td><input id="vecinalHasta6" type="number" value="75000"></td>
+            <td><input id="vecinalTasa6" type="number" step="0.01" value="3.75"></td>
+          </tr>
+
+          <tr>
+            <td><input id="vecinalDesde7" type="number" value="75001"></td>
+            <td><input id="vecinalHasta7" type="number" value="100000"></td>
+            <td><input id="vecinalTasa7" type="number" step="0.01" value="4.00"></td>
+          </tr>
+
+          <tr>
+            <td><input id="vecinalDesde8" type="number" value="100001"></td>
+            <td><input id="vecinalHasta8" type="number" value="150000"></td>
+            <td><input id="vecinalTasa8" type="number" step="0.01" value="5.00"></td>
+          </tr>
+
+          <tr>
+            <td><input id="vecinalDesde9" type="number" value="150001"></td>
+            <td><input id="vecinalHasta9" type="number" value="99900000"></td>
+            <td><input id="vecinalTasa9" type="number" step="0.01" value="5.25"></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+</div>
+<!-- FIN DE TABLAS ADICIONALES -->
+
+        <div class="acciones-parametros">
+
+          <button
+            id="btnGuardarParametros"
+            class="guardar"
+            type="submit"
+          >
+            Guardar parámetros
+          </button>
+
+        </div>
+
+      </form>
+
+      <div
+        id="mensajeParametros"
+        class="mensaje"
+      ></div>
+
+    </section>
+
+    <!-- DATOS DEL EMPLEADO -->
+
+    <section
+      id="empleados"
+      class="panel"
+    >
+
+      <h2>Datos del empleado</h2>
+
+      <div class="acciones">
+
+        <label for="accion">
+          Seleccione una opción
+        </label>
+
+        <select
+          id="accion"
+          onchange="cambiarAccion()"
+        >
+
+          <option value="">
+            Seleccionar
+          </option>
+
+          <option value="ingresar">
+            Ingresar
+          </option>
+
+          <option value="ver">
+            Ver
+          </option>
+
+          <option value="modificar">
+            Modificar
+          </option>
+
+        </select>
+
+      </div>
+
+      <div
+        id="busqueda"
+        class="barra-busqueda"
+        hidden
+      >
+
+        <div>
+
+          <label for="pinBuscar">
+            No. de personal / PIN
+          </label>
+
+          <input
+            id="pinBuscar"
+            type="text"
+            placeholder="Ingrese el PIN"
+          >
+
+        </div>
+
+        <button
+          type="button"
+          class="primario"
+          onclick="buscarEmpleado()"
+        >
+          Buscar
+        </button>
+
+      </div>
+
+      <form
+        id="formEmpleado"
+        hidden
+        onsubmit="guardarEmpleado(event)"
+      >
+
+        <div
+          id="campos"
+          class="grid-empleados"
+        ></div>
+
+        <button
+          id="btnGuardar"
+          class="guardar"
+          type="submit"
+        >
+          Guardar
+        </button>
+
+      </form>
+
+      <div
+        id="mensajeEmpleado"
+        class="mensaje"
+      ></div>
+
+    </section>
+
+    <!-- ASISTENCIA -->
+
+ <section
+  id="asistencia"
+  class="panel"
+>
+
+  <h2>Asistencia</h2>
+
+  <p>
+    Comparta este enlace con los empleados para que
+    registren Entrada o Salida desde su celular.
+  </p>
+
+  <button
+    type="button"
+    class="btn-abrir-asistencia"
+    onclick="abrirPantallaAsistencia()"
+  >
+    Abrir pantalla de asistencia
+  </button>
+
+  <button
+    type="button"
+    class="primario"
+    onclick="compartirEnlaceAsistencia()"
+  >
+    Compartir enlace
+  </button>
+
+  <div
+    id="enlaceCompartir"
+    class="enlace-asistencia"
+    hidden
+  ></div>
+
+</section>   
+
+    <!-- ORD Y TE -->
+
+    <section
+      id="ordte"
+      class="panel"
+    >
+
+      <h2>Ord y TE</h2>
+
+      <p>
+        Módulo disponible para incorporar los procesos
+        de horas ordinarias y tiempo extra.
+      </p>
+
+    </section>
+
+  </main>
+
+  <!-- PANTALLA MÓVIL DE ASISTENCIA -->
+
+<section
+  id="pantallaAsistencia"
+  class="pantalla-asistencia"
+>
+
+  <div class="asistencia-card">
+
+    <h1>Control de asistencia</h1>
+
+    <p class="subtitulo">
+      Registre su entrada o salida
+    </p>
+
+    <div class="asistencia-campo">
+
+      <label for="pinAsistencia">
+        PIN
+      </label>
+
+      <input
+        id="pinAsistencia"
+        type="password"
+        inputmode="numeric"
+        autocomplete="off"
+        placeholder="Ingrese su PIN"
+        oninput="reiniciarEmpleadoAsistencia()"
+      >
+
+      <button
+        id="btnValidarPin"
+        type="button"
+        class="btn-validar"
+        onclick="validarPinAsistencia()"
+      >
+        Identificar empleado
+      </button>
+
+    </div>
+
+    <div class="asistencia-campo">
+
+      <label>
+        Empleado
+      </label>
+
+      <div
+        id="empleadoAsistencia"
+        class="asistencia-empleado"
+      >
+        Ingrese su PIN para identificarse
+      </div>
+
+    </div>
+
+    <div class="asistencia-campo">
+
+      <label for="tipoAsistencia">
+        Tipo de registro
+      </label>
+
+      <select id="tipoAsistencia">
+
+        <option value="">
+          Seleccionar
+        </option>
+
+        <option value="Entrada">
+          Entrada
+        </option>
+
+        <option value="Salida">
+          Salida
+        </option>
+
+      </select>
+
+    </div>
+
+    <div class="asistencia-botones">
+
+      <button
+        id="btnMarcarAsistencia"
+        type="button"
+        class="btn-marcar"
+        onclick="marcarAsistencia()"
+        disabled
+      >
+        Marcar asistencia
+      </button>
+
+    </div>
+
+    <div
+      id="ubicacionAsistencia"
+      class="datos-ubicacion"
+    ></div>
+
+    <div
+      id="mensajeAsistencia"
+      class="mensaje"
+    ></div>
+
+  </div>
+
+</section>
+
+  <script>
+
+    /*
+     * REEMPLAZA el texto siguiente por la URL
+     * de Apps Script que termina en /exec.
+     */
+
+    const API_URL =
+      "https://script.google.com/macros/s/AKfycbwYdxHrFJqVg7B_sDpL3BuAzVtBRYghYlJq4h52x2gxn7ipDwhqkU4DsEhVaIgYCk0/exec";
+
+    const camposEmpleado = [
+
+      ["pin", "Pin", "text"],
+
+      ["nombre", "Nombre", "text"],
+
+      ["planilla", "Planilla", "select"],
+
+      ["sueldo", "Sueldo", "number"],
+
+      [
+        "tipoContrato",
+        "Tipo de contrato",
+        "select"
+      ],
+
+      [
+        "fechaIngreso",
+        "Fecha de ingreso",
+        "date"
+      ],
+
+      [
+        "fechaFin",
+        "Fecha fin",
+        "date"
+      ],
+
+      [
+        "posicion",
+        "Posición",
+        "select"
+      ],
+
+      [
+        "departamento",
+        "Departamento",
+        "select"
+      ],
+
+      [
+        "centroCosto",
+        "Centro de costo",
+        "select"
+      ],
+
+      [
+        "ubicacion",
+        "Ubicación",
+        "select"
+      ],
+
+      [
+        "jornada",
+        "Jornada",
+        "select"
+      ],
+
+      [
+        "estatus",
+        "Estatus",
+        "select"
+      ],
+
+      [
+        "correo",
+        "Correo",
+        "email"
+      ],
+
+      [
+        "banco",
+        "Banco",
+        "select"
+      ],
+
+      [
+        "tipoCuenta",
+        "Tipo de cuenta",
+        "select"
+      ],
+
+      [
+        "numeroCuenta",
+        "No. de cuenta",
+        "text"
+      ]
+    ];
+
+    let catalogos = {};
+
+    let modo = "";
+
+    /*
+     * ABRIR PANELES.
+     */
+
+    function abrirPanel(
+      id,
+      boton
+    ) {
+
+      document
+        .querySelectorAll(".panel")
+        .forEach(function (panel) {
+
+          panel.classList.remove(
+            "activo"
+          );
+        });
+
+      document
+        .querySelectorAll(
+          ".menu button"
+        )
+        .forEach(function (control) {
+
+          control.classList.remove(
+            "activo"
+          );
+        });
+
+      document
+        .getElementById(id)
+        .classList.add("activo");
+
+      boton.classList.add("activo");
+
+      if (id === "parametros") {
+
+        cargarParametros();
+      }
+    }
+
+    /*
+     * CONEXIÓN JSONP CON APPS SCRIPT.
+     */
+
+    function jsonp(
+      accion,
+      datos
+    ) {
+
+      datos = datos || {};
+
+      return new Promise(
+        function (
+          resolver,
+          rechazar
+        ) {
+
+          if (
+            !API_URL ||
+            API_URL.indexOf(
+              "PEGAR_AQUI"
+            ) === 0
+          ) {
+
+            rechazar(
+              new Error(
+                "Configure la URL de Apps Script en API_URL."
+              )
+            );
+
+            return;
+          }
+
+          const callback =
+            "callback_" +
+            Date.now() +
+            "_" +
+            Math.floor(
+              Math.random() *
+              99999
+            );
+
+          const script =
+            document.createElement(
+              "script"
+            );
+
+          const tiempoEspera =
+            setTimeout(
+              function () {
+
+                terminar(
+                  new Error(
+                    "Se agotó el tiempo de conexión con Apps Script."
+                  )
+                );
+
+              },
+              20000
+            );
+
+          function terminar(
+            error,
+            respuesta
+          ) {
+
+            clearTimeout(
+              tiempoEspera
+            );
+
+            try {
+
+              delete window[callback];
+
+            } catch (e) {
+
+              window[callback] =
+                undefined;
+            }
+
+            if (script.parentNode) {
+
+              script.parentNode
+                .removeChild(script);
+            }
+
+            if (error) {
+
+              rechazar(error);
+
+            } else {
+
+              resolver(respuesta);
+            }
+          }
+
+          window[callback] =
+            function (respuesta) {
+
+              terminar(
+                null,
+                respuesta
+              );
+            };
+
+          script.onerror =
+            function () {
+
+              terminar(
+                new Error(
+                  "No se pudo conectar con Apps Script."
+                )
+              );
+            };
+
+          const parametros =
+            new URLSearchParams({
+
+              action: accion,
+
+              callback: callback,
+
+              data:
+                JSON.stringify(datos)
+            });
+
+          script.src =
+            API_URL +
+            "?" +
+            parametros.toString();
+
+          script.async = true;
+
+          document.body
+            .appendChild(script);
+        }
+      );
+    }
+
+    /*
+     * PARÁMETROS.
+     */
+
+    function crearCamposFeriados() {
+
+      const contenedor =
+        document.getElementById(
+          "feriadosGrid"
+        );
+
+      let contenido = "";
+
+      for (
+        let numero = 1;
+        numero <= 12;
+        numero++
+      ) {
+
+        contenido +=
+          '<div class="feriado-item">' +
+
+            '<label for="feriado' +
+            numero +
+            '">' +
+            "Feriado " +
+            numero +
+            "</label>" +
+
+            '<input ' +
+            'id="feriado' +
+            numero +
+            '" ' +
+            'name="feriado' +
+            numero +
+            '" ' +
+            'type="date">' +
+
+          "</div>";
+      }
+
+      contenedor.innerHTML =
+        contenido;
+    }
+
+    async function cargarParametros() {
+
+      mostrarMensajeParametros(
+        "Cargando parámetros...",
+        "info"
+      );
+
+      try {
+
+        const respuesta =
+          await jsonp(
+            "obtenerParametros",
+            {}
+          );
+
+        if (!respuesta.ok) {
+
+          throw new Error(
+            respuesta.mensaje
+          );
+        }
+
+        const parametros =
+          respuesta.parametros || {};
+
+        document
+          .getElementById(
+            "estatusHoraEnt"
+          )
+          .value =
+            parametros
+              .estatusHoraEnt || "";
+
+        document
+          .getElementById(
+            "recargoDiurno"
+          )
+          .value =
+            parametros
+              .recargoDiurno ?? "";
+
+        document
+          .getElementById(
+            "recargoNocturno"
+          )
+          .value =
+            parametros
+              .recargoNocturno ?? "";
+
+        document
+          .getElementById(
+            "recargoDescanso"
+          )
+          .value =
+            parametros
+              .recargoDescanso ?? "";
+
+        document
+          .getElementById(
+            "recargoFeriado"
+          )
+          .value =
+            parametros
+              .recargoFeriado ?? "";
+
+        const feriados =
+          parametros.feriados || [];
+
+        for (
+          let numero = 1;
+          numero <= 12;
+          numero++
+        ) {
+
+          const campo =
+            document.getElementById(
+              "feriado" + numero
+            );
+
+          campo.value =
+            feriados[
+              numero - 1
+            ] || "";
+        }
+
+        mostrarMensajeParametros(
+          "",
+          ""
+        );
+
+      } catch (error) {
+
+        mostrarMensajeParametros(
+          error.message,
+          "error"
+        );
+      }
+    }
+
+    async function guardarParametros(
+      evento
+    ) {
+
+      evento.preventDefault();
+
+      const boton =
+        document.getElementById(
+          "btnGuardarParametros"
+        );
+
+      const feriados = [];
+
+      for (
+        let numero = 1;
+        numero <= 12;
+        numero++
+      ) {
+
+        feriados.push(
+          document
+            .getElementById(
+              "feriado" +
+              numero
+            )
+            .value
+        );
+      }
+
+      const datos = {
+
+        estatusHoraEnt:
+          document
+            .getElementById(
+              "estatusHoraEnt"
+            )
+            .value,
+
+        feriados: feriados,
+
+        recargoDiurno:
+          document
+            .getElementById(
+              "recargoDiurno"
+            )
+            .value,
+
+        recargoNocturno:
+          document
+            .getElementById(
+              "recargoNocturno"
+            )
+            .value,
+
+        recargoDescanso:
+          document
+            .getElementById(
+              "recargoDescanso"
+            )
+            .value,
+
+        recargoFeriado:
+          document
+            .getElementById(
+              "recargoFeriado"
+            )
+            .value
+      };
+
+      boton.disabled = true;
+
+      mostrarMensajeParametros(
+        "Guardando parámetros...",
+        "info"
+      );
+
+      try {
+
+        const respuesta =
+          await jsonp(
+            "guardarParametros",
+            datos
+          );
+
+        if (!respuesta.ok) {
+
+          throw new Error(
+            respuesta.mensaje
+          );
+        }
+
+        mostrarMensajeParametros(
+          respuesta.mensaje,
+          "ok"
+        );
+
+      } catch (error) {
+
+        mostrarMensajeParametros(
+          error.message,
+          "error"
+        );
+
+      } finally {
+
+        boton.disabled = false;
+      }
+    }
+
+    /*
+     * DATOS DEL EMPLEADO.
+     */
+
+    async function cargarCatalogos() {
+
+      const respuesta =
+        await jsonp(
+          "catalogos",
+          {}
+        );
+
+      if (!respuesta.ok) {
+
+        throw new Error(
+          respuesta.mensaje ||
+          "No se pudieron cargar los catálogos."
+        );
+      }
+
+      catalogos =
+        respuesta.catalogos || {};
+    }
+
+    function obtenerOpciones(
+      clave
+    ) {
+
+      const valores =
+        catalogos[clave] || [];
+
+      let contenido =
+        '<option value="">' +
+        "Seleccionar" +
+        "</option>";
+
+      valores.forEach(
+        function (valor) {
+
+          const seguro =
+            escaparHtml(valor);
+
+          contenido +=
+            '<option value="' +
+            seguro +
+            '">' +
+            seguro +
+            "</option>";
+        }
+      );
+
+      return contenido;
+    }
+
+    function dibujarFormulario(
+      datos
+    ) {
+
+      datos = datos || {};
+
+      let contenido = "";
+
+      camposEmpleado.forEach(
+        function (campo) {
+
+          const id =
+            campo[0];
+
+          const etiqueta =
+            campo[1];
+
+          const tipo =
+            campo[2];
+
+          contenido += "<div>";
+
+          contenido +=
+            '<label for="' +
+            id +
+            '">' +
+            etiqueta +
+            "</label>";
+
+          if (tipo === "select") {
+
+            contenido +=
+              '<select ' +
+              'id="' +
+              id +
+              '" ' +
+              'name="' +
+              id +
+              '">' +
+              obtenerOpciones(id) +
+              "</select>";
+
+          } else {
+
+            let atributos = "";
+
+            if (id === "sueldo") {
+
+              atributos =
+                ' min="0"' +
+                ' step="0.01"';
+            }
+
+            contenido +=
+              '<input ' +
+              'id="' +
+              id +
+              '" ' +
+              'name="' +
+              id +
+              '" ' +
+              'type="' +
+              tipo +
+              '"' +
+              atributos +
+              ">";
+          }
+
+          contenido += "</div>";
+        }
+      );
+
+      document
+        .getElementById("campos")
+        .innerHTML =
+          contenido;
+
+      Object.keys(datos)
+        .forEach(function (clave) {
+
+          const control =
+            document.getElementById(
+              clave
+            );
+
+          if (control) {
+
+            control.value =
+              datos[clave] ?? "";
+          }
+        });
+
+      document
+        .getElementById(
+          "formEmpleado"
+        )
+        .hidden = false;
+    }
+
+    async function cambiarAccion() {
+
+      modo =
+        document
+          .getElementById(
+            "accion"
+          )
+          .value;
+
+      const formulario =
+        document.getElementById(
+          "formEmpleado"
+        );
+
+      const busqueda =
+        document.getElementById(
+          "busqueda"
+        );
+
+      busqueda.hidden =
+        !(
+          modo === "ver" ||
+          modo === "modificar"
+        );
+
+      formulario.hidden = true;
+
+      document
+        .getElementById(
+          "pinBuscar"
+        )
+        .value = "";
+
+      mostrarMensajeEmpleado(
+        "",
+        ""
+      );
+
+      if (modo !== "ingresar") {
+        return;
+      }
+
+      mostrarMensajeEmpleado(
+        "Cargando filtros desde Catalogos...",
+        "info"
+      );
+
+      try {
+
+        /*
+         * Primero carga las listas y después
+         * construye el formulario.
+         */
+
+        await cargarCatalogos();
+
+        dibujarFormulario({});
+
+        document
+          .querySelectorAll(
+            "#formEmpleado input, " +
+            "#formEmpleado select"
+          )
+          .forEach(
+            function (control) {
+
+              control.disabled =
+                false;
+            }
+          );
+
+        document
+          .getElementById("pin")
+          .disabled = false;
+
+        document
+          .getElementById(
+            "btnGuardar"
+          )
+          .hidden = false;
+
+        mostrarMensajeEmpleado(
+          "",
+          ""
+        );
+
+      } catch (error) {
+
+        formulario.hidden = true;
+
+        mostrarMensajeEmpleado(
+          "No se pudieron cargar los filtros: " +
+          error.message,
+          "error"
+        );
+      }
+    }
+
+    async function buscarEmpleado() {
+
+      const pin =
+        document
+          .getElementById(
+            "pinBuscar"
+          )
+          .value
+          .trim();
+
+      if (!pin) {
+
+        mostrarMensajeEmpleado(
+          "Ingrese el No. de personal o PIN.",
+          "error"
+        );
+
+        return;
+      }
+
+      mostrarMensajeEmpleado(
+        "Buscando empleado...",
+        "info"
+      );
+
+      try {
+
+        /*
+         * Los catálogos también deben cargarse
+         * para mostrar los selectores al modificar.
+         */
+
+        await cargarCatalogos();
+
+        const respuesta =
+          await jsonp(
+            "buscarEmpleado",
+            {
+              pin: pin
+            }
+          );
+
+        if (!respuesta.ok) {
+
+          throw new Error(
+            respuesta.mensaje
+          );
+        }
+
+        dibujarFormulario(
+          respuesta.empleado
+        );
+
+        const soloLectura =
+          modo === "ver";
+
+        document
+          .querySelectorAll(
+            "#formEmpleado input, " +
+            "#formEmpleado select"
+          )
+          .forEach(
+            function (control) {
+
+              control.disabled =
+                soloLectura;
+            }
+          );
+
+        document
+          .getElementById("pin")
+          .disabled = true;
+
+        document
+          .getElementById(
+            "btnGuardar"
+          )
+          .hidden = soloLectura;
+
+        mostrarMensajeEmpleado(
+          "Empleado encontrado.",
+          "ok"
+        );
+
+      } catch (error) {
+
+        document
+          .getElementById(
+            "formEmpleado"
+          )
+          .hidden = true;
+
+        mostrarMensajeEmpleado(
+          error.message,
+          "error"
+        );
+      }
+    }
+
+    async function guardarEmpleado(
+      evento
+    ) {
+
+      evento.preventDefault();
+
+      const datos = {};
+
+      camposEmpleado.forEach(
+        function (campo) {
+
+          const id =
+            campo[0];
+
+          datos[id] =
+            document
+              .getElementById(id)
+              .value
+              .trim();
+        }
+      );
+
+      if (
+        !datos.pin ||
+        !datos.nombre
+      ) {
+
+        mostrarMensajeEmpleado(
+          "Pin y Nombre son obligatorios.",
+          "error"
+        );
+
+        return;
+      }
+
+      const boton =
+        document.getElementById(
+          "btnGuardar"
+        );
+
+      boton.disabled = true;
+
+      mostrarMensajeEmpleado(
+        "Guardando empleado...",
+        "info"
+      );
+
+      try {
+
+        const accion =
+          modo === "modificar"
+            ? "actualizarEmpleado"
+            : "guardarEmpleado";
+
+        const respuesta =
+          await jsonp(
+            accion,
+            datos
+          );
+
+        if (!respuesta.ok) {
+
+          throw new Error(
+            respuesta.mensaje
+          );
+        }
+
+        mostrarMensajeEmpleado(
+          respuesta.mensaje,
+          "ok"
+        );
+
+        if (modo === "ingresar") {
+
+          document
+            .getElementById(
+              "formEmpleado"
+            )
+            .reset();
+        }
+
+      } catch (error) {
+
+        mostrarMensajeEmpleado(
+          error.message,
+          "error"
+        );
+
+      } finally {
+
+        boton.disabled = false;
+      }
+    }
+
+    /*
+     * COMPARTIR ENLACE.
+     */
+
+function obtenerEnlaceAsistencia() {
+
+  const url =
+    new URL(
+      window.location.href
+    );
+
+  url.searchParams.set(
+    "vista",
+    "asistencia"
+  );
+
+  return url.toString();
+}
+
+function abrirPantallaAsistencia() {
+
+  window.open(
+    obtenerEnlaceAsistencia(),
+    "_blank"
+  );
+}
+
+async function compartirEnlaceAsistencia() {
+
+  const enlace =
+    obtenerEnlaceAsistencia();
+
+  const caja =
+    document.getElementById(
+      "enlaceCompartir"
+    );
+
+  caja.hidden = false;
+
+  caja.textContent =
+    enlace;
+
+  try {
+
+    if (navigator.share) {
+
+      await navigator.share({
+
+        title:
+          "Control de asistencia",
+
+        text:
+          "Utilice este enlace para registrar su asistencia.",
+
+        url:
+          enlace
+      });
+
+    } else if (
+      navigator.clipboard
+    ) {
+
+      await navigator
+        .clipboard
+        .writeText(enlace);
+
+      caja.textContent =
+        "Enlace copiado: " +
+        enlace;
+    }
+
+  } catch (error) {
+
+    /*
+     * Si el usuario cancela Compartir,
+     * el enlace permanece visible.
+     */
+  }
+}
+
+/*
+ * ASISTENCIA DESDE CELULAR.
+ */
+
+let empleadoAsistenciaActual = null;
+
+function mostrarVistaCorrespondiente() {
+
+  const parametros =
+    new URLSearchParams(
+      window.location.search
+    );
+
+  const vista =
+    parametros.get("vista");
+
+  if (vista !== "asistencia") {
+    return;
+  }
+
+  const encabezado =
+    document.querySelector(
+      "body > header"
+    );
+
+  const contenido =
+    document.querySelector(
+      "body > main"
+    );
+
+  if (encabezado) {
+
+    encabezado.classList.add(
+      "ocultar-aplicacion"
+    );
+  }
+
+  if (contenido) {
+
+    contenido.classList.add(
+      "ocultar-aplicacion"
+    );
+  }
+
+  document
+    .getElementById(
+      "pantallaAsistencia"
+    )
+    .style.display = "block";
+}
+
+function reiniciarEmpleadoAsistencia() {
+
+  empleadoAsistenciaActual = null;
+
+  const empleado =
+    document.getElementById(
+      "empleadoAsistencia"
+    );
+
+  empleado.textContent =
+    "Presione Identificar empleado";
+
+  empleado.className =
+    "asistencia-empleado";
+
+  document
+    .getElementById(
+      "btnMarcarAsistencia"
+    )
+    .disabled = true;
+
+  mostrarMensajeAsistencia(
+    "",
+    ""
+  );
+}
+
+async function validarPinAsistencia() {
+
+  const pin =
+    document
+      .getElementById(
+        "pinAsistencia"
+      )
+      .value
+      .trim();
+
+  if (!pin) {
+
+    mostrarMensajeAsistencia(
+      "Ingrese su PIN.",
+      "error"
+    );
+
+    return;
+  }
+
+  const boton =
+    document.getElementById(
+      "btnValidarPin"
+    );
+
+  boton.disabled = true;
+
+  mostrarMensajeAsistencia(
+    "Validando PIN...",
+    "info"
+  );
+
+  try {
+
+    const respuesta =
+      await jsonp(
+        "validarPin",
+        {
+          pin: pin
+        }
+      );
+
+    if (!respuesta.ok) {
+
+      throw new Error(
+        respuesta.mensaje ||
+        "PIN incorrecto."
+      );
+    }
+
+    empleadoAsistenciaActual = {
+
+      pin:
+        respuesta.pin,
+
+      nombre:
+        respuesta.empleado
+    };
+
+    const empleado =
+      document.getElementById(
+        "empleadoAsistencia"
+      );
+
+    empleado.textContent =
+      respuesta.empleado;
+
+    empleado.className =
+      "asistencia-empleado identificado";
+
+    document
+      .getElementById(
+        "btnMarcarAsistencia"
+      )
+      .disabled = false;
+
+    mostrarMensajeAsistencia(
+      "Empleado identificado correctamente.",
+      "ok"
+    );
+
+  } catch (error) {
+
+    empleadoAsistenciaActual =
+      null;
+
+    document
+      .getElementById(
+        "btnMarcarAsistencia"
+      )
+      .disabled = true;
+
+    mostrarMensajeAsistencia(
+      error.message,
+      "error"
+    );
+
+  } finally {
+
+    boton.disabled = false;
+  }
+}
+
+async function marcarAsistencia() {
+
+  const tipo =
+    document
+      .getElementById(
+        "tipoAsistencia"
+      )
+      .value;
+
+  if (!empleadoAsistenciaActual) {
+
+    mostrarMensajeAsistencia(
+      "Primero debe identificar al empleado.",
+      "error"
+    );
+
+    return;
+  }
+
+  if (!tipo) {
+
+    mostrarMensajeAsistencia(
+      "Seleccione Entrada o Salida.",
+      "error"
+    );
+
+    return;
+  }
+
+  if (!navigator.geolocation) {
+
+    mostrarMensajeAsistencia(
+      "Este dispositivo no permite obtener la ubicación.",
+      "error"
+    );
+
+    return;
+  }
+
+  const boton =
+    document.getElementById(
+      "btnMarcarAsistencia"
+    );
+
+  boton.disabled = true;
+
+  mostrarMensajeAsistencia(
+    "Obteniendo ubicación GPS...",
+    "info"
+  );
+
+  navigator.geolocation
+    .getCurrentPosition(
+
+      async function (posicion) {
+
+        const latitud =
+          posicion.coords.latitude;
+
+        const longitud =
+          posicion.coords.longitude;
+
+        mostrarUbicacionAsistencia(
+          latitud,
+          longitud,
+          posicion.coords.accuracy
+        );
+
+        mostrarMensajeAsistencia(
+          "Guardando asistencia...",
+          "info"
+        );
+
+        try {
+
+          const respuesta =
+            await jsonp(
+              "registrarAsistencia",
+              {
+
+                pin:
+                  empleadoAsistenciaActual.pin,
+
+                tipo:
+                  tipo,
+
+                lat:
+                  latitud,
+
+                lng:
+                  longitud,
+
+                dispositivo:
+                  navigator.userAgent
+              }
+            );
+
+          if (!respuesta.ok) {
+
+            throw new Error(
+              respuesta.mensaje
+            );
+          }
+
+          let texto =
+            respuesta.mensaje +
+            " Empleado: " +
+            respuesta.empleado +
+            ". Distancia: " +
+            respuesta.distancia +
+            " metros. Estado: " +
+            respuesta.estado +
+            ".";
+
+          mostrarMensajeAsistencia(
+            texto,
+            respuesta.estado ===
+              "Válido"
+              ? "ok"
+              : "error"
+          );
+
+          document
+            .getElementById(
+              "tipoAsistencia"
+            )
+            .value = "";
+
+        } catch (error) {
+
+          mostrarMensajeAsistencia(
+            error.message,
+            "error"
+          );
+
+        } finally {
+
+          boton.disabled = false;
+        }
+      },
+
+      function (error) {
+
+        let mensaje =
+          "No se pudo obtener la ubicación.";
+
+        if (error.code === 1) {
+
+          mensaje =
+            "Debe permitir el acceso a la ubicación GPS.";
+        }
+
+        if (error.code === 2) {
+
+          mensaje =
+            "La ubicación no está disponible. Active el GPS.";
+        }
+
+        if (error.code === 3) {
+
+          mensaje =
+            "Se agotó el tiempo para obtener la ubicación.";
+        }
+
+        mostrarMensajeAsistencia(
+          mensaje,
+          "error"
+        );
+
+        boton.disabled = false;
+      },
+
+      {
+        enableHighAccuracy: true,
+        timeout: 20000,
+        maximumAge: 0
+      }
+    );
+}
+
+function mostrarUbicacionAsistencia(
+  latitud,
+  longitud,
+  precision
+) {
+
+  const caja =
+    document.getElementById(
+      "ubicacionAsistencia"
+    );
+
+  caja.style.display = "block";
+
+  caja.textContent =
+    "Latitud: " +
+    Number(latitud).toFixed(6) +
+    " | Longitud: " +
+    Number(longitud).toFixed(6) +
+    " | Precisión GPS: " +
+    Math.round(precision || 0) +
+    " m";
+}
+
+function mostrarMensajeAsistencia(
+  texto,
+  tipo
+) {
+
+  const mensaje =
+    document.getElementById(
+      "mensajeAsistencia"
+    );
+
+  mensaje.textContent =
+    texto || "";
+
+  mensaje.className =
+    "mensaje" +
+    (
+      tipo
+        ? " " + tipo
+        : ""
+    );
+}
+    
+    /*
+     * MENSAJES.
+     */
+
+    function mostrarMensajeParametros(
+      texto,
+      tipo
+    ) {
+
+      const mensaje =
+        document.getElementById(
+          "mensajeParametros"
+        );
+
+      mensaje.textContent =
+        texto || "";
+
+      mensaje.className =
+        "mensaje" +
+        (
+          tipo
+            ? " " + tipo
+            : ""
+        );
+    }
+
+    function mostrarMensajeEmpleado(
+      texto,
+      tipo
+    ) {
+
+      const mensaje =
+        document.getElementById(
+          "mensajeEmpleado"
+        );
+
+      mensaje.textContent =
+        texto || "";
+
+      mensaje.className =
+        "mensaje" +
+        (
+          tipo
+            ? " " + tipo
+            : ""
+        );
+    }
+
+    function escaparHtml(valor) {
+
+      return String(valor)
+        .replace(
+          /[&<>"']/g,
+          function (caracter) {
+
+            const equivalencias = {
+
+              "&": "&amp;",
+
+              "<": "&lt;",
+
+              ">": "&gt;",
+
+              '"': "&quot;",
+
+              "'": "&#39;"
+            };
+
+            return equivalencias[
+              caracter
+            ];
+          }
+        );
+    }
+
+    /*
+     * CREAR LOS 12 CALENDARIOS
+     * CUANDO CARGUE LA PÁGINA.
+     */
+
+document.addEventListener(
+  "DOMContentLoaded",
+  function () {
+
+    crearCamposFeriados();
+
+    mostrarVistaCorrespondiente();
+  }
+);
+    
+  </script>
+
+<!-- MÓDULO OTROS INGRESOS -->
+
+<style>
+
+  /*
+   * Cinco botones en el menú principal.
+   */
+
+  .menu {
+    grid-template-columns:
+      repeat(5, minmax(0, 1fr));
+  }
+
+  .otros-ingresos-formulario {
+  display: block;
+  margin-top: 22px;
+}
+
+  .otros-ingresos-grid {
+  display: grid;
+
+  /*
+   * Primera fila:
+   * No. personal, Nombre, Concepto, Desde,
+   * Hasta, Días y Valor.
+   */
+
+  grid-template-columns:
+    minmax(110px, 0.8fr)
+    minmax(160px, 1.3fr)
+    minmax(190px, 1.5fr)
+    minmax(160px, 1.2fr)
+    minmax(160px, 1.2fr)
+    minmax(70px, 0.5fr)
+    minmax(110px, 0.8fr);
+
+  gap: 14px;
+  align-items: end;
+  width: 100%;
+}
+
+  .otros-ingresos-campo label {
+    display: block;
+    margin-bottom: 6px;
+    font-weight: bold;
+  }
+
+  .otros-ingresos-campo input,
+  .otros-ingresos-campo select {
+    width: 100%;
+  }
+
+  /*
+ * Después de que JavaScript agrega Días,
+ * los campos quedan en este orden:
+ *
+ * 1 No. personal
+ * 2 Nombre
+ * 3 Concepto
+ * 4 Desde
+ * 5 Hasta
+ * 6 Días
+ * 7 Valor
+ * 8 Fecha de registro
+ * 9 Usuario
+ */
+
+/*
+ * Fecha de registro:
+ * segunda fila, columnas 1 y 2.
+ */
+
+.otros-ingresos-grid
+.otros-ingresos-campo:nth-child(8) {
+  grid-column: 1 / span 2;
+}
+
+/*
+ * Usuario:
+ * segunda fila, columnas 3 y 4.
+ */
+
+.otros-ingresos-grid
+.otros-ingresos-campo:nth-child(9) {
+  grid-column: 3 / span 2;
+}
+
+  .otros-ingresos-nombre {
+    background: #f1f5f9;
+  }
+
+  .otros-ingresos-guardar {
+    min-width: 160px;
+    margin-top: 20px;
+    color: white;
+    background: var(--verde);
+  }
+
+@media (max-width: 1100px) {
+
+  .menu {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+  }
+
+  /*
+   * En tablet se mostrarán tres campos por fila.
+   */
+
+  .otros-ingresos-grid {
+    grid-template-columns:
+      repeat(3, minmax(0, 1fr));
+  }
+
+  /*
+   * Quitar las posiciones especiales
+   * utilizadas en computadora.
+   */
+
+  .otros-ingresos-grid
+  .otros-ingresos-campo:nth-child(8),
+
+  .otros-ingresos-grid
+  .otros-ingresos-campo:nth-child(9) {
+    grid-column: auto;
+  }
+}
+  
+@media (max-width: 650px) {
+
+  .menu,
+  .otros-ingresos-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .otros-ingresos-grid
+  .otros-ingresos-campo:nth-child(8),
+
+  .otros-ingresos-grid
+  .otros-ingresos-campo:nth-child(9) {
+    grid-column: auto;
+  }
+}  
+
+</style>
+
+<script>
+
+  /*
+   * Construir automáticamente el botón y el panel
+   * para no tener que modificar otras partes del HTML.
+   */
+
+  document.addEventListener(
+    "DOMContentLoaded",
+    function () {
+
+      crearModuloOtrosIngresos();
+    }
+  );
+
+  function crearModuloOtrosIngresos() {
+
+    const menu =
+      document.querySelector(".menu");
+
+    const contenidoPrincipal =
+      document.querySelector("main");
+
+    if (
+      !menu ||
+      !contenidoPrincipal ||
+      document.getElementById(
+        "otrosIngresos"
+      )
+    ) {
+      return;
+    }
+
+    /*
+     * Botón del menú.
+     */
+
+    const boton =
+      document.createElement("button");
+
+    boton.type = "button";
+
+    boton.textContent =
+      "Otros ingresos";
+
+    boton.onclick =
+      function () {
+
+        abrirPanel(
+          "otrosIngresos",
+          boton
+        );
+
+        cargarConfiguracionIngresos();
+      };
+
+    menu.appendChild(boton);
+
+    /*
+     * Panel de Otros ingresos.
+     */
+
+    const panel =
+      document.createElement("section");
+
+    panel.id =
+      "otrosIngresos";
+
+    panel.className =
+      "panel";
+
+    panel.innerHTML = `
+
+      <h2>Otros ingresos</h2>
+
+      <p>
+        Registre otros conceptos de ingreso
+        correspondientes a los empleados.
+      </p>
+
+      <form
+        id="formOtrosIngresos"
+        class="otros-ingresos-formulario"
+        onsubmit="guardarOtroIngreso(event)"
+      >
+
+        <div class="otros-ingresos-grid">
+
+          <div class="otros-ingresos-campo">
+
+            <label for="ingresoNumeroPersonal">
+              No. de personal
+            </label>
+
+            <input
+              id="ingresoNumeroPersonal"
+              type="text"
+              autocomplete="off"
+              placeholder="Ingrese el número"
+              onblur="buscarEmpleadoIngreso()"
+              required
+            >
+
+          </div>
+
+          <div class="otros-ingresos-campo">
+
+            <label for="ingresoNombre">
+              Nombre
+            </label>
+
+            <input
+              id="ingresoNombre"
+              class="otros-ingresos-nombre"
+              type="text"
+              readonly
+              placeholder="Se completará automáticamente"
+              required
+            >
+
+          </div>
+
+          <div class="otros-ingresos-campo">
+
+            <label for="ingresoConcepto">
+              Concepto
+            </label>
+
+            <select
+              id="ingresoConcepto"
+              required
+            >
+
+              <option value="">
+                Seleccionar
+              </option>
+
+            </select>
+
+          </div>
+
+          <div class="otros-ingresos-campo">
+
+            <label for="ingresoDesde">
+              Desde
+            </label>
+
+            <input
+              id="ingresoDesde"
+              type="date"
+              required
+            >
+
+          </div>
+
+          <div class="otros-ingresos-campo">
+
+            <label for="ingresoHasta">
+              Hasta
+            </label>
+
+            <input
+              id="ingresoHasta"
+              type="date"
+              required
+            >
+
+          </div>
+
+          <div class="otros-ingresos-campo">
+
+            <label for="ingresoValor">
+              Valor
+            </label>
+
+            <input
+              id="ingresoValor"
+              type="number"
+              min="0"
+              step="0.01"
+              placeholder="0.00"
+              required
+            >
+
+          </div>
+
+          <div class="otros-ingresos-campo">
+
+            <label for="ingresoFechaRegistro">
+              Fecha de registro
+            </label>
+
+            <input
+              id="ingresoFechaRegistro"
+              type="date"
+              readonly
+              required
+            >
+
+          </div>
+
+          <div class="otros-ingresos-campo">
+
+            <label for="ingresoUsuario">
+              Usuario
+            </label>
+
+            <input
+              id="ingresoUsuario"
+              type="text"
+              placeholder="Correo o nombre del usuario"
+              required
+            >
+
+          </div>
+
+        </div>
+
+        <button
+          id="btnGuardarOtroIngreso"
+          class="otros-ingresos-guardar"
+          type="submit"
+        >
+          Guardar
+        </button>
+
+      </form>
+
+      <div
+        id="mensajeOtrosIngresos"
+        class="mensaje"
+      ></div>
+    `;
+
+    contenidoPrincipal.appendChild(
+      panel
+    );
+
+    establecerFechaHoyIngreso();
+  }
+
+  function establecerFechaHoyIngreso() {
+
+    const campo =
+      document.getElementById(
+        "ingresoFechaRegistro"
+      );
+
+    if (!campo) {
+      return;
+    }
+
+    const hoy =
+      new Date();
+
+    const anio =
+      hoy.getFullYear();
+
+    const mes =
+      String(
+        hoy.getMonth() + 1
+      ).padStart(2, "0");
+
+    const dia =
+      String(
+        hoy.getDate()
+      ).padStart(2, "0");
+
+    campo.value =
+      anio +
+      "-" +
+      mes +
+      "-" +
+      dia;
+  }
+
+  async function cargarConfiguracionIngresos() {
+
+    mostrarMensajeOtrosIngresos(
+      "Cargando conceptos...",
+      "info"
+    );
+
+    try {
+
+      const respuesta =
+        await jsonp(
+          "configuracionIngresos",
+          {}
+        );
+
+      if (!respuesta.ok) {
+
+        throw new Error(
+          respuesta.mensaje
+        );
+      }
+
+      llenarConceptosIngreso(
+        respuesta.conceptos || []
+      );
+
+      const usuario =
+        document.getElementById(
+          "ingresoUsuario"
+        );
+
+      if (
+        usuario &&
+        !usuario.value
+      ) {
+
+        usuario.value =
+          respuesta.usuario || "";
+      }
+
+      establecerFechaHoyIngreso();
+
+      mostrarMensajeOtrosIngresos(
+        "",
+        ""
+      );
+
+    } catch (error) {
+
+      mostrarMensajeOtrosIngresos(
+        error.message,
+        "error"
+      );
+    }
+  }
+
+  function llenarConceptosIngreso(
+    conceptos
+  ) {
+
+    const selector =
+      document.getElementById(
+        "ingresoConcepto"
+      );
+
+    if (!selector) {
+      return;
+    }
+
+    selector.innerHTML =
+      '<option value="">' +
+      "Seleccionar" +
+      "</option>";
+
+    conceptos.forEach(
+      function (concepto) {
+
+        const opcion =
+          document.createElement(
+            "option"
+          );
+
+        opcion.value =
+          concepto;
+
+        opcion.textContent =
+          concepto;
+
+        selector.appendChild(
+          opcion
+        );
+      }
+    );
+  }
+
+  function cambiarOpcionOtrosIngresos() {
+
+    const opcion =
+      document
+        .getElementById(
+          "opcionOtrosIngresos"
+        )
+        .value;
+
+    const formulario =
+      document.getElementById(
+        "formOtrosIngresos"
+      );
+
+    formulario.style.display =
+      opcion
+        ? "block"
+        : "none";
+
+    mostrarMensajeOtrosIngresos(
+      "",
+      ""
+    );
+
+    if (opcion) {
+
+      cargarConfiguracionIngresos();
+    }
+  }
+
+  async function buscarEmpleadoIngreso() {
+
+    const numeroPersonal =
+      document
+        .getElementById(
+          "ingresoNumeroPersonal"
+        )
+        .value
+        .trim();
+
+    const nombre =
+      document.getElementById(
+        "ingresoNombre"
+      );
+
+    nombre.value = "";
+
+    if (!numeroPersonal) {
+      return;
+    }
+
+    mostrarMensajeOtrosIngresos(
+      "Buscando empleado...",
+      "info"
+    );
+
+    try {
+
+      const respuesta =
+        await jsonp(
+          "buscarEmpleadoIngreso",
+          {
+            numeroPersonal:
+              numeroPersonal
+          }
+        );
+
+      if (!respuesta.ok) {
+
+        throw new Error(
+          respuesta.mensaje
+        );
+      }
+
+      nombre.value =
+        respuesta.nombre;
+
+      mostrarMensajeOtrosIngresos(
+        "Empleado encontrado.",
+        "ok"
+      );
+
+    } catch (error) {
+
+      nombre.value = "";
+
+      mostrarMensajeOtrosIngresos(
+        error.message,
+        "error"
+      );
+    }
+  }
+
+  async function guardarOtroIngreso(
+    evento
+  ) {
+
+    evento.preventDefault();
+
+    const boton =
+      document.getElementById(
+        "btnGuardarOtroIngreso"
+      );
+
+    const datos = {
+
+      numeroPersonal:
+        document
+          .getElementById(
+            "ingresoNumeroPersonal"
+          )
+          .value
+          .trim(),
+
+      nombre:
+        document
+          .getElementById(
+            "ingresoNombre"
+          )
+          .value
+          .trim(),
+
+      concepto:
+        document
+          .getElementById(
+            "ingresoConcepto"
+          )
+          .value,
+
+      desde:
+        document
+          .getElementById(
+            "ingresoDesde"
+          )
+          .value,
+
+      hasta:
+        document
+          .getElementById(
+            "ingresoHasta"
+          )
+          .value,
+
+      valor:
+        document
+          .getElementById(
+            "ingresoValor"
+          )
+          .value,
+
+      fechaRegistro:
+        document
+          .getElementById(
+            "ingresoFechaRegistro"
+          )
+          .value,
+
+      usuario:
+        document
+          .getElementById(
+            "ingresoUsuario"
+          )
+          .value
+          .trim()
+    };
+
+    if (!datos.nombre) {
+
+      mostrarMensajeOtrosIngresos(
+        "Ingrese un No. de personal válido.",
+        "error"
+      );
+
+      return;
+    }
+
+    boton.disabled = true;
+
+    mostrarMensajeOtrosIngresos(
+      "Guardando ingreso...",
+      "info"
+    );
+
+    try {
+
+      const respuesta =
+        await jsonp(
+          "guardarOtroIngreso",
+          datos
+        );
+
+      if (!respuesta.ok) {
+
+        throw new Error(
+          respuesta.mensaje
+        );
+      }
+
+      mostrarMensajeOtrosIngresos(
+        respuesta.mensaje,
+        "ok"
+      );
+
+      /*
+       * Limpiar los campos del nuevo registro,
+       * conservando usuario y fecha de hoy.
+       */
+
+      const usuario =
+        datos.usuario;
+
+      document
+        .getElementById(
+          "formOtrosIngresos"
+        )
+        .reset();
+
+      document
+        .getElementById(
+          "ingresoUsuario"
+        )
+        .value = usuario;
+
+      establecerFechaHoyIngreso();
+
+      llenarConceptosIngreso(
+        respuesta.conceptos || []
+      );
+
+    } catch (error) {
+
+      mostrarMensajeOtrosIngresos(
+        error.message,
+        "error"
+      );
+
+    } finally {
+
+      boton.disabled = false;
+    }
+  }
+
+  function mostrarMensajeOtrosIngresos(
+    texto,
+    tipo
+  ) {
+
+    const mensaje =
+      document.getElementById(
+        "mensajeOtrosIngresos"
+      );
+
+    if (!mensaje) {
+      return;
+    }
+
+    mensaje.textContent =
+      texto || "";
+
+    mensaje.className =
+      "mensaje" +
+      (
+        tipo
+          ? " " + tipo
+          : ""
+      );
+  }
+
+</script>
+
+<!-- AJUSTE COMPLETO DE PARÁMETROS DE PLANILLA -->
+
+<style>
+
+  /*
+   * Año y hora de entrada.
+   */
+
+  .parametro-anio {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 12px 14px;
+    border: 1px solid var(--borde);
+    border-radius: 10px;
+    background: #f8fafc;
+  }
+
+  .parametro-anio label {
+    flex: 0 0 330px;
+    margin: 0;
+  }
+
+  .parametro-anio input {
+    width: 220px;
+    margin: 0;
+  }
+
+  /*
+   * Planillas generadas.
+   */
+
+  .seccion-planillas {
+    margin-top: 8px;
+    padding: 16px;
+    border: 1px solid var(--borde);
+    border-radius: 12px;
+    background: white;
+  }
+
+  .seccion-planillas h3 {
+    margin: 0 0 6px;
+  }
+
+  .planillas-grid {
+    display: grid;
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+    gap: 9px;
+    margin-top: 14px;
+  }
+
+  .planilla-item {
+    padding: 10px 12px;
+    border: 1px solid #d7dfeb;
+    border-radius: 8px;
+    background: #f8fafc;
+    color: #334155;
+    line-height: 1.35;
+  }
+
+  .planilla-item strong {
+    color: #173d7a;
+  }
+
+  /*
+   * Tres feriados por cada fila.
+   */
+
+  #feriadosGrid {
+    display: grid !important;
+    grid-template-columns:
+      repeat(3, minmax(0, 1fr)) !important;
+    gap: 12px;
+  }
+
+  #feriadosGrid .feriado-item {
+    display: grid;
+    grid-template-columns:
+      90px minmax(130px, 1fr);
+    gap: 10px;
+    align-items: center;
+    padding: 11px;
+  }
+
+  #feriadosGrid .feriado-item label {
+    margin: 0;
+    white-space: nowrap;
+  }
+
+  #feriadosGrid .feriado-item input {
+    width: 100%;
+    margin: 0;
+  }
+
+  /*
+   * Dos recargos en cada fila.
+   */
+
+  .recargos-grid-dos {
+    display: grid;
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+    gap: 14px;
+  }
+
+  #formParametros .recargos-grid-dos
+  .recargo-fila {
+    display: grid !important;
+    grid-template-columns:
+      minmax(190px, 1fr) 130px;
+    gap: 12px;
+    align-items: center;
+    width: 100%;
+  }
+
+  #formParametros .recargos-grid-dos
+  .recargo-fila label {
+    width: auto;
+    margin: 0;
+  }
+
+  #formParametros .recargos-grid-dos
+  .recargo-fila input {
+    width: 130px;
+    margin: 0;
+  }
+
+  @media (max-width: 1000px) {
+
+    #feriadosGrid {
+      grid-template-columns:
+        repeat(2, minmax(0, 1fr)) !important;
+    }
+
+    .planillas-grid,
+    .recargos-grid-dos {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  @media (max-width: 650px) {
+
+    .parametro-anio {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 7px;
+    }
+
+    .parametro-anio label,
+    .parametro-anio input {
+      flex: auto;
+      width: 100%;
+    }
+
+    #feriadosGrid {
+      grid-template-columns: 1fr !important;
+    }
+
+    #formParametros .recargos-grid-dos
+    .recargo-fila {
+      grid-template-columns: 1fr;
+    }
+
+    #formParametros .recargos-grid-dos
+    .recargo-fila input {
+      width: 100%;
+    }
+  }
+
+</style>
+
+<script>
+
+  document.addEventListener(
+    "DOMContentLoaded",
+    function () {
+
+      prepararParametrosAnuales();
+    }
+  );
+
+  function prepararParametrosAnuales() {
+
+    const formulario =
+      document.getElementById(
+        "formParametros"
+      );
+
+    const campoHora =
+      document.getElementById(
+        "estatusHoraEnt"
+      );
+
+    const feriados =
+      document.getElementById(
+        "feriadosGrid"
+      );
+
+    if (
+      !formulario ||
+      !campoHora ||
+      !feriados
+    ) {
+      return;
+    }
+
+    /*
+     * Agregar Año antes de Estatus Hora Ent.
+     */
+
+    if (
+      !document.getElementById(
+        "anioPlanilla"
+      )
+    ) {
+
+      const contenedorHora =
+        campoHora.closest("div");
+
+      const filaAnio =
+        document.createElement("div");
+
+      filaAnio.className =
+        "parametro-anio";
+
+      filaAnio.innerHTML = `
+
+        <label for="anioPlanilla">
+          Año
+        </label>
+
+        <input
+          id="anioPlanilla"
+          name="anioPlanilla"
+          type="number"
+          min="2000"
+          max="2100"
+          step="1"
+          required
+        >
+      `;
+
+      contenedorHora.parentNode
+        .insertBefore(
+          filaAnio,
+          contenedorHora
+        );
+
+      document
+        .getElementById(
+          "anioPlanilla"
+        )
+        .value =
+          new Date().getFullYear();
+
+      document
+        .getElementById(
+          "anioPlanilla"
+        )
+        .addEventListener(
+          "change",
+          generarPlanillasDelAnio
+        );
+    }
+
+    /*
+     * Agregar períodos arriba de Feriados.
+     */
+
+    if (
+      !document.getElementById(
+        "seccionPlanillas"
+      )
+    ) {
+
+      const seccionFeriados =
+        feriados.closest(
+          ".seccion-feriados"
+        ) ||
+        feriados.parentElement;
+
+      const seccionPlanillas =
+        document.createElement("div");
+
+      seccionPlanillas.id =
+        "seccionPlanillas";
+
+      seccionPlanillas.className =
+        "seccion-planillas";
+
+      seccionPlanillas.innerHTML = `
+
+        <h3>
+          Períodos de planilla
+        </h3>
+
+        <p>
+          Se generan automáticamente de acuerdo
+          con el año seleccionado.
+        </p>
+
+        <div
+          id="planillasGeneradas"
+          class="planillas-grid"
+        ></div>
+      `;
+
+      seccionFeriados.parentNode
+        .insertBefore(
+          seccionPlanillas,
+          seccionFeriados
+        );
+    }
+
+    /*
+     * Agrupar los cuatro recargos
+     * en dos columnas.
+     */
+
+    if (
+      !document.getElementById(
+        "recargosGridDos"
+      )
+    ) {
+
+      const recargos =
+        Array.from(
+          formulario.querySelectorAll(
+            ".recargo-fila"
+          )
+        );
+
+      if (recargos.length) {
+
+        const contenedor =
+          document.createElement("div");
+
+        contenedor.id =
+          "recargosGridDos";
+
+        contenedor.className =
+          "recargos-grid-dos";
+
+        recargos[0].parentNode
+          .insertBefore(
+            contenedor,
+            recargos[0]
+          );
+
+        recargos.forEach(
+          function (recargo) {
+
+            contenedor.appendChild(
+              recargo
+            );
+          }
+        );
+      }
+    }
+
+    /*
+     * Utilizar la nueva función de guardado.
+     */
+
+    formulario.onsubmit =
+      guardarParametrosAnuales;
+
+    generarPlanillasDelAnio();
+  }
+
+  function generarPlanillasDelAnio() {
+
+    const campoAnio =
+      document.getElementById(
+        "anioPlanilla"
+      );
+
+    const contenedor =
+      document.getElementById(
+        "planillasGeneradas"
+      );
+
+    if (
+      !campoAnio ||
+      !contenedor
+    ) {
+      return [];
+    }
+
+    const anio =
+      Number(campoAnio.value) ||
+      new Date().getFullYear();
+
+    const meses = [
+      "enero",
+      "febrero",
+      "marzo",
+      "abril",
+      "mayo",
+      "junio",
+      "julio",
+      "agosto",
+      "septiembre",
+      "octubre",
+      "noviembre",
+      "diciembre"
+    ];
+
+    const planillas = [];
+
+    let numeroPlanilla = 1;
+
+    for (
+      let mes = 0;
+      mes < 12;
+      mes++
+    ) {
+
+      /*
+       * Primera quincena.
+       */
+
+      planillas.push({
+
+        codigo:
+          anio +
+          "-" +
+          numeroPlanilla,
+
+        descripcion:
+          "Período del 1 al 15 de " +
+          meses[mes] +
+          " de " +
+          anio
+      });
+
+      numeroPlanilla++;
+
+      /*
+       * Último día real del mes.
+       */
+
+      const ultimoDia =
+        new Date(
+          anio,
+          mes + 1,
+          0
+        ).getDate();
+
+      /*
+       * Segunda quincena.
+       */
+
+      planillas.push({
+
+        codigo:
+          anio +
+          "-" +
+          numeroPlanilla,
+
+        descripcion:
+          "Período del 16 al " +
+          ultimoDia +
+          " de " +
+          meses[mes] +
+          " de " +
+          anio
+      });
+
+      numeroPlanilla++;
+    }
+
+    /*
+     * Planillas especiales.
+     */
+
+    planillas.push({
+
+      codigo:
+        anio + "-25",
+
+      descripcion:
+        "Décimo cuarto mes de salario"
+    });
+
+    planillas.push({
+
+      codigo:
+        anio + "-26",
+
+      descripcion:
+        "Décimo tercer mes de salario"
+    });
+
+    contenedor.innerHTML =
+      planillas
+        .map(function (planilla) {
+
+          return `
+
+            <div class="planilla-item">
+
+              <strong>
+                Planilla ${planilla.codigo}
+              </strong>
+
+              <br>
+
+              ${planilla.descripcion}
+
+            </div>
+          `;
+        })
+        .join("");
+
+    return planillas;
+  }
+
+  async function cargarParametrosAnuales() {
+
+    mostrarMensajeParametros(
+      "Cargando parámetros...",
+      "info"
+    );
+
+    try {
+
+      const respuesta =
+        await jsonp(
+          "obtenerParametros",
+          {}
+        );
+
+      if (!respuesta.ok) {
+
+        throw new Error(
+          respuesta.mensaje
+        );
+      }
+
+      const parametros =
+        respuesta.parametros || {};
+
+      const campoAnio =
+        document.getElementById(
+          "anioPlanilla"
+        );
+
+      campoAnio.value =
+        parametros.anio ||
+        new Date().getFullYear();
+
+      document
+        .getElementById(
+          "estatusHoraEnt"
+        )
+        .value =
+          parametros.estatusHoraEnt || "";
+
+      document
+        .getElementById(
+          "recargoDiurno"
+        )
+        .value =
+          parametros.recargoDiurno ?? "";
+
+      document
+        .getElementById(
+          "recargoNocturno"
+        )
+        .value =
+          parametros.recargoNocturno ?? "";
+
+      document
+        .getElementById(
+          "recargoDescanso"
+        )
+        .value =
+          parametros.recargoDescanso ?? "";
+
+      document
+        .getElementById(
+          "recargoFeriado"
+        )
+        .value =
+          parametros.recargoFeriado ?? "";
+
+      const feriados =
+        parametros.feriados || [];
+
+      for (
+        let numero = 1;
+        numero <= 12;
+        numero++
+      ) {
+
+        const campo =
+          document.getElementById(
+            "feriado" + numero
+          );
+
+        if (campo) {
+
+          campo.value =
+            feriados[
+              numero - 1
+            ] || "";
+        }
+      }
+
+      generarPlanillasDelAnio();
+
+      mostrarMensajeParametros(
+        "",
+        ""
+      );
+
+    } catch (error) {
+
+      mostrarMensajeParametros(
+        error.message,
+        "error"
+      );
+    }
+  }
+
+  async function guardarParametrosAnuales(
+    evento
+  ) {
+
+    evento.preventDefault();
+
+    const boton =
+      document.getElementById(
+        "btnGuardarParametros"
+      );
+
+    const feriados = [];
+
+    for (
+      let numero = 1;
+      numero <= 12;
+      numero++
+    ) {
+
+      const campo =
+        document.getElementById(
+          "feriado" + numero
+        );
+
+      feriados.push(
+        campo
+          ? campo.value
+          : ""
+      );
+    }
+
+    const planillas =
+      generarPlanillasDelAnio();
+
+    const datos = {
+
+      anio:
+        Number(
+          document
+            .getElementById(
+              "anioPlanilla"
+            )
+            .value
+        ),
+
+      estatusHoraEnt:
+        document
+          .getElementById(
+            "estatusHoraEnt"
+          )
+          .value,
+
+      feriados:
+        feriados,
+
+      recargoDiurno:
+        document
+          .getElementById(
+            "recargoDiurno"
+          )
+          .value,
+
+      recargoNocturno:
+        document
+          .getElementById(
+            "recargoNocturno"
+          )
+          .value,
+
+      recargoDescanso:
+        document
+          .getElementById(
+            "recargoDescanso"
+          )
+          .value,
+
+      recargoFeriado:
+  document
+    .getElementById("recargoFeriado")
+    .value,
+
+planillas:
+  planillas,
+
+/*
+ * Salario mínimo:
+ * S = Salario mínimo
+ * T = Vigencia
+ */
+salarioMinimo:
+  document.getElementById("salarioMinimo").value,
+
+salarioMinimoDesde:
+  document.getElementById("salarioMinimoDesde").value,
+
+/*
+ * Tabla de vacaciones:
+ * U = Antigüedad desde
+ * V = Antigüedad hasta
+ * W = Días de vacaciones
+ */
+vacaciones:
+  Array.from({ length: 4 }, function (_, indice) {
+    const numero = indice + 1;
+
+    return {
+      desde:
+        document.getElementById(
+          "vacacionesDesde" + numero
+        ).value,
+
+      hasta:
+        document.getElementById(
+          "vacacionesHasta" + numero
+        ).value,
+
+      dias:
+        document.getElementById(
+          "vacacionesDias" + numero
+        ).value
+    };
+  }),
+
+/*
+ * Incapacidades IHSS:
+ * X  = Concepto
+ * Y  = Desde
+ * Z  = Hasta
+ * AA = Empresa %
+ * AB = IHSS %
+ */
+incapacidadesIHSS:
+  Array.from({ length: 5 }, function (_, indice) {
+    const numero = indice + 1;
+
+    return {
+      concepto:
+        document.getElementById(
+          "ihssConcepto" + numero
+        ).value,
+
+      desde:
+        document.getElementById(
+          "ihssDesde" + numero
+        ).value,
+
+      hasta:
+        document.getElementById(
+          "ihssHasta" + numero
+        ).value,
+
+      empresa:
+        document.getElementById(
+          "ihssEmpresa" + numero
+        ).value,
+
+      ihss:
+        document.getElementById(
+          "ihssPorcentaje" + numero
+        ).value
+    };
+  }),
+
+/*
+ * Referencias IHSS:
+ * AC = Porcentaje
+ * AD = Techo de cotización
+ */
+ihssReferenciaPorcentaje:
+  document.getElementById(
+    "ihssReferenciaPorcentaje"
+  ).value,
+
+ihssTechoCotizacion:
+  document.getElementById(
+    "ihssTechoCotizacion"
+  ).value,
+
+/*
+ * AE = RAP
+ * AF = INFOP
+ */
+porcentajeRap:
+  document.getElementById(
+    "porcentajeRap"
+  ).value,
+
+porcentajeInfop:
+  document.getElementById(
+    "porcentajeInfop"
+  ).value,
+
+/*
+ * Impuesto sobre la renta:
+ * AG = Desde
+ * AH = Hasta
+ * AI = Porcentaje
+ */
+impuestoRenta:
+  Array.from({ length: 4 }, function (_, indice) {
+    const numero = indice + 1;
+
+    return {
+      desde:
+        document.getElementById(
+          "rentaDesde" + numero
+        ).value,
+
+      hasta:
+        document.getElementById(
+          "rentaHasta" + numero
+        ).value,
+
+      porcentaje:
+        document.getElementById(
+          "rentaPorcentaje" + numero
+        ).value
+    };
+  }),
+
+/*
+ * Impuesto vecinal:
+ * AJ = Desde
+ * AK = Hasta
+ * AL = Impuesto por millar
+ */
+impuestoVecinal:
+  Array.from({ length: 9 }, function (_, indice) {
+    const numero = indice + 1;
+
+    return {
+      desde:
+        document.getElementById(
+          "vecinalDesde" + numero
+        ).value,
+
+      hasta:
+        document.getElementById(
+          "vecinalHasta" + numero
+        ).value,
+
+      impuesto:
+        document.getElementById(
+          "vecinalTasa" + numero
+        ).value
+    };
+  })
+};
+    boton.disabled = true;
+
+    mostrarMensajeParametros(
+      "Guardando parámetros...",
+      "info"
+    );
+
+    try {
+
+      const respuesta =
+        await jsonp(
+          "guardarParametros",
+          datos
+        );
+
+      if (!respuesta.ok) {
+
+        throw new Error(
+          respuesta.mensaje
+        );
+      }
+
+      mostrarMensajeParametros(
+        respuesta.mensaje,
+        "ok"
+      );
+
+    } catch (error) {
+
+      mostrarMensajeParametros(
+        error.message,
+        "error"
+      );
+
+    } finally {
+
+      boton.disabled = false;
+    }
+  }
+
+  /*
+   * Sustituir la función anterior de carga
+   * por la nueva versión.
+   */
+
+  cargarParametros =
+    cargarParametrosAnuales;
+
+</script>
+<!-- BOTÓN GENERAR Y GUARDAR PLANILLAS -->
+
+<style>
+
+  .acciones-generar-planillas {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 10px;
+  }
+
+  .btn-generar-planillas {
+    padding: 12px 18px;
+    border: none;
+    border-radius: 10px;
+    color: white;
+    background: #7c3aed;
+    font-weight: bold;
+    cursor: pointer;
+  }
+
+  .btn-generar-planillas:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
+  }
+
+  @media (max-width: 650px) {
+
+    .acciones-generar-planillas {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .btn-generar-planillas {
+      width: 100%;
+    }
+  }
+
+</style>
+
+<script>
+
+  document.addEventListener(
+    "DOMContentLoaded",
+    function () {
+
+      /*
+       * Esperar a que el bloque anterior
+       * termine de crear el campo Año.
+       */
+
+      setTimeout(
+        prepararBotonGenerarPlanillas,
+        100
+      );
+    }
+  );
+
+  function prepararBotonGenerarPlanillas() {
+
+    const campoAnio =
+      document.getElementById(
+        "anioPlanilla"
+      );
+
+    if (
+      !campoAnio ||
+      document.getElementById(
+        "btnGenerarGuardarPlanillas"
+      )
+    ) {
+      return;
+    }
+
+    /*
+     * Eliminar la generación automática
+     * cuando se cambia el año.
+     */
+
+    if (
+      typeof generarPlanillasDelAnio ===
+      "function"
+    ) {
+
+      campoAnio.removeEventListener(
+        "change",
+        generarPlanillasDelAnio
+      );
+    }
+
+    /*
+     * Cuando cambie el año, limpiar la vista.
+     * Las planillas solo se regenerarán al
+     * presionar el botón.
+     */
+
+    campoAnio.addEventListener(
+      "change",
+      function () {
+
+        const contenedor =
+          document.getElementById(
+            "planillasGeneradas"
+          );
+
+        if (contenedor) {
+
+          contenedor.innerHTML = `
+
+            <div class="planilla-item">
+
+              Seleccione
+              <strong>
+                Generar y guardar planillas
+              </strong>
+              para crear los períodos del año
+              ${campoAnio.value}.
+
+            </div>
+          `;
+        }
+
+        mostrarMensajeParametros(
+          "",
+          ""
+        );
+      }
+    );
+
+    /*
+     * Crear el botón debajo del campo Año.
+     */
+
+    const acciones =
+      document.createElement("div");
+
+    acciones.className =
+      "acciones-generar-planillas";
+
+    acciones.innerHTML = `
+
+      <button
+        id="btnGenerarGuardarPlanillas"
+        class="btn-generar-planillas"
+        type="button"
+        onclick="generarYGuardarPlanillas()"
+      >
+        Generar y guardar planillas
+      </button>
+    `;
+
+    const filaAnio =
+      campoAnio.closest(
+        ".parametro-anio"
+      ) ||
+      campoAnio.parentElement;
+
+    filaAnio.insertAdjacentElement(
+      "afterend",
+      acciones
+    );
+
+    /*
+     * Mostrar instrucción inicialmente.
+     */
+
+    const contenedor =
+      document.getElementById(
+        "planillasGeneradas"
+      );
+
+    if (contenedor) {
+
+      contenedor.innerHTML = `
+
+        <div class="planilla-item">
+
+          Seleccione el año y presione
+          <strong>
+            Generar y guardar planillas
+          </strong>.
+
+        </div>
+      `;
+    }
+  }
+
+  async function generarYGuardarPlanillas() {
+
+    const campoAnio =
+      document.getElementById(
+        "anioPlanilla"
+      );
+
+    const boton =
+      document.getElementById(
+        "btnGenerarGuardarPlanillas"
+      );
+
+    const anio =
+      Number(campoAnio.value);
+
+    if (
+      !anio ||
+      anio < 2000 ||
+      anio > 2100
+    ) {
+
+      mostrarMensajeParametros(
+        "Ingrese un año válido.",
+        "error"
+      );
+
+      return;
+    }
+
+    /*
+     * Generar los 26 períodos.
+     */
+
+    const planillas =
+      generarPlanillasDelAnio();
+
+    if (
+      !planillas ||
+      planillas.length !== 26
+    ) {
+
+      mostrarMensajeParametros(
+        "No se pudieron generar las 26 planillas.",
+        "error"
+      );
+
+      return;
+    }
+
+    /*
+     * Recopilar los parámetros actuales,
+     * porque guardarParametros también mantiene
+     * I:N además de guardar las planillas en R.
+     */
+
+    const feriados = [];
+
+    for (
+      let numero = 1;
+      numero <= 12;
+      numero++
+    ) {
+
+      const campo =
+        document.getElementById(
+          "feriado" + numero
+        );
+
+      feriados.push(
+        campo
+          ? campo.value
+          : ""
+      );
+    }
+
+    const datos = {
+
+      anio:
+        anio,
+
+      estatusHoraEnt:
+        document
+          .getElementById(
+            "estatusHoraEnt"
+          )
+          .value,
+
+      feriados:
+        feriados,
+
+      recargoDiurno:
+        document
+          .getElementById(
+            "recargoDiurno"
+          )
+          .value,
+
+      recargoNocturno:
+        document
+          .getElementById(
+            "recargoNocturno"
+          )
+          .value,
+
+      recargoDescanso:
+        document
+          .getElementById(
+            "recargoDescanso"
+          )
+          .value,
+
+      recargoFeriado:
+        document
+          .getElementById(
+            "recargoFeriado"
+          )
+          .value,
+
+      planillas:
+        planillas
+    };
+
+    if (!datos.estatusHoraEnt) {
+
+      mostrarMensajeParametros(
+        "Seleccione Estatus Hora Ent antes de guardar.",
+        "error"
+      );
+
+      return;
+    }
+
+    boton.disabled = true;
+
+    mostrarMensajeParametros(
+      "Generando y guardando las planillas...",
+      "info"
+    );
+
+    try {
+
+      /*
+       * Utiliza la acción existente del GS.
+       */
+
+      const respuesta =
+        await jsonp(
+          "guardarParametros",
+          datos
+        );
+
+      if (!respuesta.ok) {
+
+        throw new Error(
+          respuesta.mensaje
+        );
+      }
+
+      mostrarMensajeParametros(
+        "Se generaron y guardaron las 26 planillas del año " +
+        anio +
+        " en Catalogos, columna R.",
+        "ok"
+      );
+
+    } catch (error) {
+
+      mostrarMensajeParametros(
+        error.message,
+        "error"
+      );
+
+    } finally {
+
+      boton.disabled = false;
+    }
+  }
+
+</script>
+
+<!-- AJUSTE DE OTROS INGRESOS: PLANILLAS DESDE/HASTA -->
+
+<script>
+
+  document.addEventListener(
+    "DOMContentLoaded",
+    function () {
+
+      /*
+       * Esperar a que el módulo Otros ingresos
+       * termine de construir sus controles.
+       */
+
+      setTimeout(
+        configurarSelectoresPlanillasIngreso,
+        150
+      );
+    }
+  );
+
+  function configurarSelectoresPlanillasIngreso() {
+
+    const selectorOpcion =
+      document.getElementById(
+        "opcionOtrosIngresos"
+      );
+
+    if (!selectorOpcion) {
+      return;
+    }
+
+    /*
+     * Eliminar Catalogos del selector principal.
+     */
+
+    selectorOpcion.innerHTML = `
+
+      <option value="">
+        Seleccionar
+      </option>
+
+      <option value="Otros ingresos">
+        Otros ingresos
+      </option>
+    `;
+
+    /*
+     * Cambiar Desde de calendario a selector.
+     */
+
+    const controlDesde =
+      document.getElementById(
+        "ingresoDesde"
+      );
+
+    if (
+      controlDesde &&
+      controlDesde.tagName !== "SELECT"
+    ) {
+
+      controlDesde.outerHTML = `
+
+        <select
+          id="ingresoDesde"
+          required
+        >
+
+          <option value="">
+            Seleccionar
+          </option>
+
+        </select>
+      `;
+    }
+
+    /*
+     * Cambiar Hasta de calendario a selector.
+     */
+
+    const controlHasta =
+      document.getElementById(
+        "ingresoHasta"
+      );
+
+    if (
+      controlHasta &&
+      controlHasta.tagName !== "SELECT"
+    ) {
+
+      controlHasta.outerHTML = `
+
+        <select
+          id="ingresoHasta"
+          required
+        >
+
+          <option value="">
+            Seleccionar
+          </option>
+
+        </select>
+      `;
+    }
+  }
+
+  /*
+   * Esta función reemplaza la versión anterior.
+   * Carga conceptos desde Q y planillas desde R.
+   */
+
+  async function cargarConfiguracionIngresos() {
+
+    mostrarMensajeOtrosIngresos(
+      "Cargando conceptos y planillas...",
+      "info"
+    );
+
+    try {
+
+      /*
+       * Asegurar que Desde y Hasta
+       * ya sean selectores.
+       */
+
+      configurarSelectoresPlanillasIngreso();
+
+      const respuesta =
+        await jsonp(
+          "configuracionIngresos",
+          {}
+        );
+
+      if (!respuesta.ok) {
+
+        throw new Error(
+          respuesta.mensaje
+        );
+      }
+
+      /*
+       * Conceptos desde Catalogos!Q2:Q.
+       */
+
+      llenarConceptosIngreso(
+        respuesta.conceptos || []
+      );
+
+      /*
+       * Planillas desde Catalogos!R2:R27.
+       */
+
+      llenarSelectoresPlanillasIngreso(
+        respuesta.planillas || []
+      );
+
+      const usuario =
+        document.getElementById(
+          "ingresoUsuario"
+        );
+
+      if (
+        usuario &&
+        !usuario.value
+      ) {
+
+        usuario.value =
+          respuesta.usuario || "";
+      }
+
+      establecerFechaHoyIngreso();
+
+      mostrarMensajeOtrosIngresos(
+        "",
+        ""
+      );
+
+    } catch (error) {
+
+      mostrarMensajeOtrosIngresos(
+        error.message,
+        "error"
+      );
+    }
+  }
+
+  function llenarSelectoresPlanillasIngreso(
+    planillas
+  ) {
+
+    const selectorDesde =
+      document.getElementById(
+        "ingresoDesde"
+      );
+
+    const selectorHasta =
+      document.getElementById(
+        "ingresoHasta"
+      );
+
+    if (
+      !selectorDesde ||
+      !selectorHasta
+    ) {
+      return;
+    }
+
+    const opcionInicial =
+      '<option value="">' +
+      "Seleccionar" +
+      "</option>";
+
+    selectorDesde.innerHTML =
+      opcionInicial;
+
+    selectorHasta.innerHTML =
+      opcionInicial;
+
+    planillas.forEach(
+      function (planilla) {
+
+        const texto =
+          String(planilla || "")
+            .trim();
+
+        if (!texto) {
+          return;
+        }
+
+        const opcionDesde =
+          document.createElement(
+            "option"
+          );
+
+        opcionDesde.value =
+          texto;
+
+        opcionDesde.textContent =
+          texto;
+
+        selectorDesde.appendChild(
+          opcionDesde
+        );
+
+        const opcionHasta =
+          document.createElement(
+            "option"
+          );
+
+        opcionHasta.value =
+          texto;
+
+        opcionHasta.textContent =
+          texto;
+
+        selectorHasta.appendChild(
+          opcionHasta
+        );
+      }
+    );
+  }
+
+</script>
+
+<!-- REGLAS DE VIGENCIA PARA OTROS INGRESOS -->
+
+<style>
+
+  .otros-ingresos-dias {
+    background: #f1f5f9;
+    font-weight: bold;
+    text-align: center;
+  }
+
+</style>
+
+<script>
+
+  /*
+   * Conceptos que requieren fechas de calendario.
+   */
+
+  const CONCEPTOS_CON_CALENDARIO = [
+
+    "Adelanto vacaciones",
+
+    "Incapacidad IHSS: Enfermedad profesional",
+
+    "Incapacidad IHSS: Enfermedad común",
+
+    "Incapacidad IHSS: Maternidad"
+  ];
+
+  let planillasOtrosIngresos = [];
+
+  document.addEventListener(
+    "DOMContentLoaded",
+    function () {
+
+      /*
+       * Esperar a que el módulo Otros ingresos
+       * termine de construir el formulario.
+       */
+
+      setTimeout(
+        prepararVigenciaOtrosIngresos,
+        200
+      );
+    }
+  );
+
+  function prepararVigenciaOtrosIngresos() {
+
+    const concepto =
+      document.getElementById(
+        "ingresoConcepto"
+      );
+
+    const hasta =
+      document.getElementById(
+        "ingresoHasta"
+      );
+
+    if (!concepto || !hasta) {
+      return;
+    }
+
+    /*
+     * Agregar el campo Días después de Hasta.
+     */
+
+    if (
+      !document.getElementById(
+        "ingresoDias"
+      )
+    ) {
+
+      const contenedorHasta =
+        hasta.closest(
+          ".otros-ingresos-campo"
+        ) ||
+        hasta.parentElement;
+
+      const contenedorDias =
+        document.createElement("div");
+
+      contenedorDias.className =
+        "otros-ingresos-campo";
+
+      contenedorDias.innerHTML = `
+
+        <label for="ingresoDias">
+          Días
+        </label>
+
+        <input
+          id="ingresoDias"
+          class="otros-ingresos-dias"
+          type="number"
+          value="0"
+          readonly
+        >
+      `;
+
+      contenedorHasta
+        .insertAdjacentElement(
+          "afterend",
+          contenedorDias
+        );
+    }
+
+    /*
+     * Cambiar los campos cuando se seleccione
+     * otro concepto.
+     */
+
+    concepto.removeEventListener(
+      "change",
+      cambiarTipoVigenciaIngreso
+    );
+
+    concepto.addEventListener(
+      "change",
+      cambiarTipoVigenciaIngreso
+    );
+
+    cambiarTipoVigenciaIngreso();
+  }
+
+  function conceptoUsaCalendario(
+    concepto
+  ) {
+
+    const conceptoNormalizado =
+      String(concepto || "")
+        .trim()
+        .toLowerCase();
+
+    return CONCEPTOS_CON_CALENDARIO
+      .some(function (valor) {
+
+        return (
+          valor.toLowerCase() ===
+          conceptoNormalizado
+        );
+      });
+  }
+
+  function cambiarTipoVigenciaIngreso() {
+
+    const concepto =
+      document
+        .getElementById(
+          "ingresoConcepto"
+        )
+        .value;
+
+    if (
+      conceptoUsaCalendario(
+        concepto
+      )
+    ) {
+
+      convertirVigenciaACalendarios();
+
+    } else {
+
+      convertirVigenciaAPlanillas();
+    }
+  }
+
+  function convertirVigenciaACalendarios() {
+
+    const desdeActual =
+      document.getElementById(
+        "ingresoDesde"
+      );
+
+    const hastaActual =
+      document.getElementById(
+        "ingresoHasta"
+      );
+
+    if (!desdeActual || !hastaActual) {
+      return;
+    }
+
+    const valorDesde =
+      desdeActual.tagName === "INPUT"
+        ? desdeActual.value
+        : "";
+
+    const valorHasta =
+      hastaActual.tagName === "INPUT"
+        ? hastaActual.value
+        : "";
+
+    desdeActual.outerHTML = `
+
+      <input
+        id="ingresoDesde"
+        type="date"
+        value="${valorDesde}"
+        onchange="calcularDiasOtroIngreso()"
+        required
+      >
+    `;
+
+    hastaActual.outerHTML = `
+
+      <input
+        id="ingresoHasta"
+        type="date"
+        value="${valorHasta}"
+        onchange="calcularDiasOtroIngreso()"
+        required
+      >
+    `;
+
+    calcularDiasOtroIngreso();
+  }
+
+  function convertirVigenciaAPlanillas() {
+
+    const desdeActual =
+      document.getElementById(
+        "ingresoDesde"
+      );
+
+    const hastaActual =
+      document.getElementById(
+        "ingresoHasta"
+      );
+
+    if (!desdeActual || !hastaActual) {
+      return;
+    }
+
+    desdeActual.outerHTML = `
+
+      <select
+        id="ingresoDesde"
+        required
+      >
+        ${crearOpcionesPlanillasIngreso()}
+      </select>
+    `;
+
+    hastaActual.outerHTML = `
+
+      <select
+        id="ingresoHasta"
+        required
+      >
+        ${crearOpcionesPlanillasIngreso()}
+      </select>
+    `;
+
+    const dias =
+      document.getElementById(
+        "ingresoDias"
+      );
+
+    if (dias) {
+      dias.value = 0;
+    }
+  }
+
+  function crearOpcionesPlanillasIngreso() {
+
+    let opciones = `
+
+      <option value="">
+        Seleccionar
+      </option>
+    `;
+
+    planillasOtrosIngresos
+      .forEach(function (planilla) {
+
+        const texto =
+          escaparTextoIngreso(
+            planilla
+          );
+
+        opciones += `
+
+          <option value="${texto}">
+            ${texto}
+          </option>
+        `;
+      });
+
+    return opciones;
+  }
+
+  function escaparTextoIngreso(
+    valor
+  ) {
+
+    return String(valor || "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
+  /*
+   * Diferencia solicitada:
+   *
+   * Hasta - Desde.
+   *
+   * Ejemplo:
+   * 18/07 - 18/07 = 0 días.
+   * 20/07 - 18/07 = 2 días.
+   */
+
+  function calcularDiasOtroIngreso() {
+
+    const concepto =
+      document
+        .getElementById(
+          "ingresoConcepto"
+        )
+        .value;
+
+    const campoDias =
+      document.getElementById(
+        "ingresoDias"
+      );
+
+    if (!campoDias) {
+      return 0;
+    }
+
+    if (
+      !conceptoUsaCalendario(
+        concepto
+      )
+    ) {
+
+      campoDias.value = 0;
+
+      return 0;
+    }
+
+    const desde =
+      document
+        .getElementById(
+          "ingresoDesde"
+        )
+        .value;
+
+    const hasta =
+      document
+        .getElementById(
+          "ingresoHasta"
+        )
+        .value;
+
+    if (!desde || !hasta) {
+
+      campoDias.value = 0;
+
+      return 0;
+    }
+
+    /*
+     * Agregar T00:00:00 evita diferencias
+     * ocasionadas por zona horaria.
+     */
+
+    const fechaDesde =
+      new Date(
+        desde + "T00:00:00"
+      );
+
+    const fechaHasta =
+      new Date(
+        hasta + "T00:00:00"
+      );
+
+    const diferencia =
+      Math.floor(
+        (
+          fechaHasta.getTime() -
+          fechaDesde.getTime()
+        ) /
+        (
+          24 *
+          60 *
+          60 *
+          1000
+        )
+      );
+
+    if (diferencia < 0) {
+
+      campoDias.value = 0;
+
+      mostrarMensajeOtrosIngresos(
+        "Hasta no puede ser anterior a Desde.",
+        "error"
+      );
+
+      return 0;
+    }
+
+    campoDias.value =
+      diferencia;
+
+    mostrarMensajeOtrosIngresos(
+      "",
+      ""
+    );
+
+    return diferencia;
+  }
+
+  /*
+   * Sustituye la carga anterior.
+   */
+
+  async function cargarConfiguracionIngresos() {
+
+    mostrarMensajeOtrosIngresos(
+      "Cargando conceptos y planillas...",
+      "info"
+    );
+
+    try {
+
+      const respuesta =
+        await jsonp(
+          "configuracionIngresos",
+          {}
+        );
+
+      if (!respuesta.ok) {
+
+        throw new Error(
+          respuesta.mensaje
+        );
+      }
+
+      planillasOtrosIngresos =
+        respuesta.planillas || [];
+
+      llenarConceptosIngreso(
+        respuesta.conceptos || []
+      );
+
+      const usuario =
+        document.getElementById(
+          "ingresoUsuario"
+        );
+
+      if (
+        usuario &&
+        !usuario.value
+      ) {
+
+        usuario.value =
+          respuesta.usuario || "";
+      }
+
+      establecerFechaHoyIngreso();
+
+      prepararVigenciaOtrosIngresos();
+
+      mostrarMensajeOtrosIngresos(
+        "",
+        ""
+      );
+
+    } catch (error) {
+
+      mostrarMensajeOtrosIngresos(
+        error.message,
+        "error"
+      );
+    }
+  }
+
+  /*
+   * Sustituye la función anterior de guardado.
+   */
+
+  async function guardarOtroIngreso(
+    evento
+  ) {
+
+    evento.preventDefault();
+
+    const boton =
+      document.getElementById(
+        "btnGuardarOtroIngreso"
+      );
+
+    const concepto =
+      document
+        .getElementById(
+          "ingresoConcepto"
+        )
+        .value;
+
+    const usaCalendario =
+      conceptoUsaCalendario(
+        concepto
+      );
+
+    const dias =
+      usaCalendario
+        ? calcularDiasOtroIngreso()
+        : 0;
+
+    const datos = {
+
+      numeroPersonal:
+        document
+          .getElementById(
+            "ingresoNumeroPersonal"
+          )
+          .value
+          .trim(),
+
+      nombre:
+        document
+          .getElementById(
+            "ingresoNombre"
+          )
+          .value
+          .trim(),
+
+      concepto:
+        concepto,
+
+      desde:
+        document
+          .getElementById(
+            "ingresoDesde"
+          )
+          .value,
+
+      hasta:
+        document
+          .getElementById(
+            "ingresoHasta"
+          )
+          .value,
+
+      dias:
+        dias,
+
+      valor:
+        document
+          .getElementById(
+            "ingresoValor"
+          )
+          .value,
+
+      fechaRegistro:
+        document
+          .getElementById(
+            "ingresoFechaRegistro"
+          )
+          .value,
+
+      usuario:
+        document
+          .getElementById(
+            "ingresoUsuario"
+          )
+          .value
+          .trim()
+    };
+
+    if (!datos.numeroPersonal) {
+
+      mostrarMensajeOtrosIngresos(
+        "Ingrese el No. de personal.",
+        "error"
+      );
+
+      return;
+    }
+
+    if (!datos.nombre) {
+
+      mostrarMensajeOtrosIngresos(
+        "Ingrese un No. de personal válido.",
+        "error"
+      );
+
+      return;
+    }
+
+    if (!datos.concepto) {
+
+      mostrarMensajeOtrosIngresos(
+        "Seleccione un concepto.",
+        "error"
+      );
+
+      return;
+    }
+
+    if (!datos.desde) {
+
+      mostrarMensajeOtrosIngresos(
+        usaCalendario
+          ? "Seleccione la fecha Desde."
+          : "Seleccione la planilla Desde.",
+        "error"
+      );
+
+      return;
+    }
+
+    if (!datos.hasta) {
+
+      mostrarMensajeOtrosIngresos(
+        usaCalendario
+          ? "Seleccione la fecha Hasta."
+          : "Seleccione la planilla Hasta.",
+        "error"
+      );
+
+      return;
+    }
+
+    boton.disabled = true;
+
+    mostrarMensajeOtrosIngresos(
+      "Guardando ingreso...",
+      "info"
+    );
+
+    try {
+
+      const respuesta =
+        await jsonp(
+          "guardarOtroIngreso",
+          datos
+        );
+
+      if (!respuesta.ok) {
+
+        throw new Error(
+          respuesta.mensaje
+        );
+      }
+
+      mostrarMensajeOtrosIngresos(
+        respuesta.mensaje,
+        "ok"
+      );
+
+      const usuario =
+        datos.usuario;
+
+      document
+        .getElementById(
+          "formOtrosIngresos"
+        )
+        .reset();
+
+      document
+        .getElementById(
+          "ingresoUsuario"
+        )
+        .value =
+          usuario;
+
+      establecerFechaHoyIngreso();
+
+      planillasOtrosIngresos =
+        respuesta.planillas ||
+        planillasOtrosIngresos;
+
+      llenarConceptosIngreso(
+        respuesta.conceptos || []
+      );
+
+      prepararVigenciaOtrosIngresos();
+
+    } catch (error) {
+
+      mostrarMensajeOtrosIngresos(
+        error.message,
+        "error"
+      );
+
+    } finally {
+
+      boton.disabled = false;
+    }
+  }
+
+</script>
+<!-- PLANILLAS APLICABLES EN OTROS INGRESOS -->
+
+<style>
+
+  .otros-ingresos-planillas {
+    background: #f1f5f9;
+    font-weight: bold;
+    text-align: center;
+  }
+
+</style>
+
+<script>
+
+  document.addEventListener(
+    "DOMContentLoaded",
+    function () {
+
+      setTimeout(
+        prepararPlanillasAplicables,
+        300
+      );
+    }
+  );
+
+  function prepararPlanillasAplicables() {
+
+    /*
+     * Eliminar el selector inicial si todavía
+     * existe debido a algún bloque anterior.
+     */
+
+    const selectorInicial =
+      document.getElementById(
+        "opcionOtrosIngresos"
+      );
+
+    if (selectorInicial) {
+
+      const contenedor =
+        selectorInicial.closest(
+          ".acciones"
+        );
+
+      if (contenedor) {
+        contenedor.remove();
+      }
+    }
+
+    /*
+     * Mostrar el formulario directamente.
+     */
+
+    const formulario =
+      document.getElementById(
+        "formOtrosIngresos"
+      );
+
+    if (formulario) {
+
+      formulario.style.display =
+        "block";
+    }
+
+    /*
+     * Agregar Planillas aplic. después de Días.
+     */
+
+    agregarCampoPlanillasAplicables();
+
+    /*
+     * Detectar cambios en Concepto,
+     * Desde y Hasta.
+     */
+
+    document.addEventListener(
+      "change",
+      function (evento) {
+
+        if (
+          evento.target.id ===
+            "ingresoConcepto" ||
+          evento.target.id ===
+            "ingresoDesde" ||
+          evento.target.id ===
+            "ingresoHasta"
+        ) {
+
+          /*
+           * Dar tiempo a que el cambio de concepto
+           * sustituya selectores por calendarios.
+           */
+
+          setTimeout(
+            function () {
+
+              agregarCampoPlanillasAplicables();
+
+              calcularPlanillasAplicables();
+            },
+            50
+          );
+        }
+      }
+    );
+
+    calcularPlanillasAplicables();
+  }
+
+  function agregarCampoPlanillasAplicables() {
+
+    if (
+      document.getElementById(
+        "ingresoPlanillasAplic"
+      )
+    ) {
+      return;
+    }
+
+    const campoDias =
+      document.getElementById(
+        "ingresoDias"
+      );
+
+    if (!campoDias) {
+
+      /*
+       * El campo Días se crea dinámicamente.
+       * Volver a intentar cuando esté disponible.
+       */
+
+      setTimeout(
+        agregarCampoPlanillasAplicables,
+        100
+      );
+
+      return;
+    }
+
+    const contenedorDias =
+      campoDias.closest(
+        ".otros-ingresos-campo"
+      ) ||
+      campoDias.parentElement;
+
+    const contenedorPlanillas =
+      document.createElement("div");
+
+    contenedorPlanillas.className =
+      "otros-ingresos-campo";
+
+    contenedorPlanillas.innerHTML = `
+
+      <label for="ingresoPlanillasAplic">
+        Planillas aplic.
+      </label>
+
+      <input
+        id="ingresoPlanillasAplic"
+        class="otros-ingresos-planillas"
+        type="number"
+        value="0"
+        readonly
+      >
+    `;
+
+    contenedorDias
+      .insertAdjacentElement(
+        "afterend",
+        contenedorPlanillas
+      );
+  }
+
+  function obtenerCodigoPlanilla(
+    texto
+  ) {
+
+    /*
+     * Admite:
+     *
+     * 2026-10
+     * Planilla 2026-10
+     * Planilla 2026-10 | Período...
+     */
+
+    const coincidencia =
+      String(texto || "")
+        .match(
+          /(?:Planilla\s+)?(\d{4})-(\d{1,2})/i
+        );
+
+    if (!coincidencia) {
+
+      return null;
+    }
+
+    return {
+
+      anio:
+        Number(coincidencia[1]),
+
+      numero:
+        Number(coincidencia[2]),
+
+      codigo:
+        coincidencia[1] +
+        "-" +
+        Number(coincidencia[2])
+    };
+  }
+
+  function calcularPlanillasAplicables() {
+
+    const resultado =
+      document.getElementById(
+        "ingresoPlanillasAplic"
+      );
+
+    const concepto =
+      document.getElementById(
+        "ingresoConcepto"
+      );
+
+    const desde =
+      document.getElementById(
+        "ingresoDesde"
+      );
+
+    const hasta =
+      document.getElementById(
+        "ingresoHasta"
+      );
+
+    if (
+      !resultado ||
+      !concepto ||
+      !desde ||
+      !hasta
+    ) {
+      return 0;
+    }
+
+    /*
+     * Cuando el concepto utiliza calendario,
+     * Planillas aplic. siempre será 0.
+     */
+
+    if (
+      typeof conceptoUsaCalendario ===
+        "function" &&
+      conceptoUsaCalendario(
+        concepto.value
+      )
+    ) {
+
+      resultado.value = 0;
+
+      return 0;
+    }
+
+    const planillaDesde =
+      obtenerCodigoPlanilla(
+        desde.value
+      );
+
+    const planillaHasta =
+      obtenerCodigoPlanilla(
+        hasta.value
+      );
+
+    if (
+      !planillaDesde ||
+      !planillaHasta
+    ) {
+
+      resultado.value = 0;
+
+      return 0;
+    }
+
+    /*
+     * Cada año tiene 26 planillas.
+     * Esto también permite períodos que
+     * cruzan de un año al siguiente.
+     */
+
+    const posicionDesde =
+      planillaDesde.anio *
+      26 +
+      planillaDesde.numero;
+
+    const posicionHasta =
+      planillaHasta.anio *
+      26 +
+      planillaHasta.numero;
+
+    // Se suma 1 porque se incluyen las planillas Desde y Hasta.
+const diferencia =
+  posicionHasta -
+  posicionDesde +
+  1;
+
+resultado.value =
+  diferencia > 0
+    ? diferencia
+    : 0;
+    return Number(
+      resultado.value
+    );
+  }
+
+</script>
+
+<!-- GUARDADO DEFINITIVO DE TODOS LOS PARÁMETROS -->
+<script>
+(function () {
+  "use strict";
+
+  function obtenerValor(id) {
+    const campo = document.getElementById(id);
+    return campo ? campo.value : "";
+  }
+
+  function obtenerFilas(cantidad, creador) {
+    return Array.from(
+      { length: cantidad },
+      function (_, indice) {
+        return creador(indice + 1);
+      }
+    );
+  }
+
+  async function guardarTodosLosParametros(evento) {
+    evento.preventDefault();
+    evento.stopPropagation();
+    evento.stopImmediatePropagation();
+
+    const boton = document.getElementById(
+      "btnGuardarParametros"
+    );
+
+    const feriados = obtenerFilas(
+      12,
+      function (numero) {
+        return obtenerValor(
+          "feriado" + numero
+        );
+      }
+    );
+
+    const planillas =
+      typeof generarPlanillasDelAnio === "function"
+        ? generarPlanillasDelAnio()
+        : [];
+
+    const datos = {
+      anio:
+        Number(
+          obtenerValor("anioPlanilla")
+        ),
+
+      estatusHoraEnt:
+        obtenerValor("estatusHoraEnt"),
+
+      feriados:
+        feriados,
+
+      recargoDiurno:
+        obtenerValor("recargoDiurno"),
+
+      recargoNocturno:
+        obtenerValor("recargoNocturno"),
+
+      recargoDescanso:
+        obtenerValor("recargoDescanso"),
+
+      recargoFeriado:
+        obtenerValor("recargoFeriado"),
+
+      planillas:
+        planillas,
+
+      /*
+       * S = Salario mínimo
+       * T = Vigencia
+       */
+      salarioMinimo:
+        obtenerValor("salarioMinimo"),
+
+      salarioMinimoDesde:
+        obtenerValor("salarioMinimoDesde"),
+
+      /*
+       * U:W = Vacaciones
+       */
+      vacaciones:
+        obtenerFilas(
+          4,
+          function (numero) {
+            return {
+              desde:
+                obtenerValor(
+                  "vacacionesDesde" + numero
+                ),
+
+              hasta:
+                obtenerValor(
+                  "vacacionesHasta" + numero
+                ),
+
+              dias:
+                obtenerValor(
+                  "vacacionesDias" + numero
+                )
+            };
+          }
+        ),
+
+      /*
+       * X:AB = Incapacidades IHSS
+       */
+      incapacidadesIHSS:
+        obtenerFilas(
+          5,
+          function (numero) {
+            return {
+              concepto:
+                obtenerValor(
+                  "ihssConcepto" + numero
+                ),
+
+              desde:
+                obtenerValor(
+                  "ihssDesde" + numero
+                ),
+
+              hasta:
+                obtenerValor(
+                  "ihssHasta" + numero
+                ),
+
+              empresa:
+                obtenerValor(
+                  "ihssEmpresa" + numero
+                ),
+
+              ihss:
+                obtenerValor(
+                  "ihssPorcentaje" + numero
+                )
+            };
+          }
+        ),
+
+      /*
+       * AC:AD = Referencias IHSS
+       */
+      ihssReferenciaPorcentaje:
+        obtenerValor(
+          "ihssReferenciaPorcentaje"
+        ),
+
+      ihssTechoCotizacion:
+        obtenerValor(
+          "ihssTechoCotizacion"
+        ),
+
+      /*
+       * AE:AF = RAP e INFOP
+       */
+      porcentajeRap:
+        obtenerValor("porcentajeRap"),
+
+      porcentajeInfop:
+        obtenerValor("porcentajeInfop"),
+
+      /*
+       * AG:AI = Impuesto sobre la renta
+       */
+      impuestoRenta:
+        obtenerFilas(
+          4,
+          function (numero) {
+            return {
+              desde:
+                obtenerValor(
+                  "rentaDesde" + numero
+                ),
+
+              hasta:
+                obtenerValor(
+                  "rentaHasta" + numero
+                ),
+
+              porcentaje:
+                obtenerValor(
+                  "rentaPorcentaje" + numero
+                )
+            };
+          }
+        ),
+
+      /*
+       * AJ:AL = Impuesto vecinal
+       */
+      impuestoVecinal:
+        obtenerFilas(
+          9,
+          function (numero) {
+            return {
+              desde:
+                obtenerValor(
+                  "vecinalDesde" + numero
+                ),
+
+              hasta:
+                obtenerValor(
+                  "vecinalHasta" + numero
+                ),
+
+              impuesto:
+                obtenerValor(
+                  "vecinalTasa" + numero
+                )
+            };
+          }
+        )
+    };
+
+    if (!datos.anio) {
+      mostrarMensajeParametros(
+        "Ingrese un año válido.",
+        "error"
+      );
+      return;
+    }
+
+    if (!datos.estatusHoraEnt) {
+      mostrarMensajeParametros(
+        "Seleccione Estatus Hora Ent.",
+        "error"
+      );
+      return;
+    }
+
+    if (
+      datos.salarioMinimo === "" ||
+      datos.salarioMinimoDesde === ""
+    ) {
+      mostrarMensajeParametros(
+        "Ingrese el salario mínimo y su vigencia.",
+        "error"
+      );
+      return;
+    }
+
+    if (boton) {
+      boton.disabled = true;
+    }
+
+    mostrarMensajeParametros(
+      "Guardando todos los parámetros...",
+      "info"
+    );
+
+    try {
+      const respuesta = await jsonp(
+        "guardarParametros",
+        datos
+      );
+
+      if (!respuesta || !respuesta.ok) {
+        throw new Error(
+          respuesta && respuesta.mensaje
+            ? respuesta.mensaje
+            : "No fue posible guardar los parámetros."
+        );
+      }
+
+      mostrarMensajeParametros(
+        respuesta.mensaje,
+        "ok"
+      );
+    } catch (error) {
+      mostrarMensajeParametros(
+        error.message,
+        "error"
+      );
+    } finally {
+      if (boton) {
+        boton.disabled = false;
+      }
+    }
+  }
+
+  function activarGuardadoCompleto() {
+    const formulario = document.getElementById(
+      "formParametros"
+    );
+
+    if (!formulario) {
+      return;
+    }
+
+    /*
+     * Elimina el manejador anterior:
+     * onsubmit="guardarParametros(event)"
+     */
+    formulario.removeAttribute("onsubmit");
+    formulario.onsubmit = null;
+
+    /*
+     * Se utiliza capture para asegurar que esta función
+     * sea la única que procese el guardado.
+     */
+    formulario.addEventListener(
+      "submit",
+      guardarTodosLosParametros,
+      true
+    );
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener(
+      "DOMContentLoaded",
+      activarGuardadoCompleto
+    );
+  } else {
+    activarGuardadoCompleto();
+  }
+})();
+</script>
+<!-- =====================================================
+     MÓDULO DE DEDUCCIONES
+====================================================== -->
+<style>
+  /*
+   * Ahora el menú contiene seis botones.
+   */
+  .menu {
+    grid-template-columns:
+      repeat(6, minmax(0, 1fr)) !important;
+  }
+
+  .deducciones-formulario {
+    margin-top: 22px;
+  }
+
+  .deducciones-grid {
+  display: grid;
+  grid-template-columns:
+    minmax(105px, 0.70fr)  /* No. personal */
+    minmax(180px, 1.20fr)  /* Nombre */
+    minmax(235px, 1.55fr)  /* Concepto */
+    minmax(145px, 0.95fr)  /* Desde */
+    minmax(145px, 0.95fr)  /* Hasta */
+    minmax(70px, 0.45fr)   /* Días */
+    minmax(105px, 0.65fr); /* Planillas aplic. */
+  gap: 12px;
+  align-items: end;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.deducciones-grid .deduccion-campo {
+  min-width: 0;
+}
+
+.deducciones-grid input,
+.deducciones-grid select {
+  min-width: 0;
+}
+
+  .deduccion-campo {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    min-width: 0;
+  }
+
+  .deduccion-campo label {
+    margin: 0;
+    font-weight: 700;
+  }
+
+  .deduccion-campo input,
+  .deduccion-campo select {
+    width: 100%;
+    height: 47px;
+    padding: 9px 12px;
+    border: 1px solid var(--borde);
+    border-radius: 9px;
+    background: #ffffff;
+    box-sizing: border-box;
+  }
+
+  .deduccion-campo input:focus,
+  .deduccion-campo select:focus {
+    border-color: #2563eb;
+    outline: 2px solid rgba(37, 99, 235, 0.15);
+  }
+
+  .deduccion-campo input[readonly] {
+    background: #eef2f7;
+    font-weight: 700;
+    text-align: center;
+  }
+
+.deducciones-segunda-fila {
+  display: grid;
+  grid-template-columns:
+    minmax(145px, 0.70fr)  /* Valor */
+    minmax(170px, 0.85fr)  /* Fecha registro */
+    minmax(230px, 1.10fr); /* Usuario */
+  gap: 12px;
+  margin-top: 16px;
+  max-width: 850px;
+  align-items: end;
+}
+
+.deducciones-segunda-fila .deduccion-campo {
+  min-width: 0;
+}
+  
+  .acciones-deducciones {
+    margin-top: 20px;
+  }
+
+  .acciones-deducciones button {
+    min-width: 180px;
+    color: #ffffff;
+    background: var(--verde);
+  }
+
+  .mensaje-deducciones {
+    display: none;
+    margin-top: 16px;
+    padding: 13px 16px;
+    border-radius: 9px;
+  }
+
+  .mensaje-deducciones.info {
+    display: block;
+    color: #1e40af;
+    background: #dbeafe;
+  }
+
+  .mensaje-deducciones.ok {
+    display: block;
+    color: #166534;
+    background: #dcfce7;
+  }
+
+  .mensaje-deducciones.error {
+    display: block;
+    color: #991b1b;
+    background: #fee2e2;
+  }
+
+  @media (max-width: 1250px) {
+    .menu {
+      grid-template-columns:
+        repeat(3, minmax(0, 1fr)) !important;
+    }
+
+    .deducciones-grid {
+      grid-template-columns:
+        repeat(4, minmax(0, 1fr));
+    }
+  }
+
+  @media (max-width: 850px) {
+    .menu {
+      grid-template-columns:
+        repeat(2, minmax(0, 1fr)) !important;
+    }
+
+    .deducciones-grid,
+    .deducciones-segunda-fila {
+      grid-template-columns:
+        repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @media (max-width: 650px) {
+    .menu,
+    .deducciones-grid,
+    .deducciones-segunda-fila {
+      grid-template-columns: 1fr !important;
+    }
+  }
+</style>
+
+<script>
+(function () {
+  "use strict";
+
+  let planillasDeducciones = [];
+
+  const CONCEPTOS_DEDUCCION_CON_CALENDARIO = [
+    "Días no laborados",
+    "Incapacidades no remuneradas",
+    "Llegadas tardías",
+    "Permisos sin goce de salario",
+    "Suspensiones sin goce de sueldo"
+  ];
+
+  document.addEventListener(
+    "DOMContentLoaded",
+    crearModuloDeducciones
+  );
+
+  function normalizarTextoDeduccion(texto) {
+    return String(texto || "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .trim()
+      .toLowerCase();
+  }
+
+  function conceptoDeduccionUsaCalendario(concepto) {
+    const conceptoNormalizado =
+      normalizarTextoDeduccion(concepto);
+
+    return CONCEPTOS_DEDUCCION_CON_CALENDARIO.some(
+      function (elemento) {
+        return normalizarTextoDeduccion(elemento) ===
+          conceptoNormalizado;
+      }
+    );
+  }
+
+  function crearModuloDeducciones() {
+    const menu = document.querySelector(".menu");
+    const principal = document.querySelector("main");
+
+    if (
+      !menu ||
+      !principal ||
+      document.getElementById("deducciones")
+    ) {
+      return;
+    }
+
+    /*
+     * Crear botón del menú.
+     */
+    const boton = document.createElement("button");
+
+    boton.type = "button";
+    boton.textContent = "Deducciones";
+
+    boton.addEventListener(
+      "click",
+      function () {
+        abrirPanel(
+          "deducciones",
+          boton
+        );
+
+        cargarConfiguracionDeducciones();
+      }
+    );
+
+    menu.appendChild(boton);
+
+    /*
+     * Crear panel.
+     */
+    const panel = document.createElement("section");
+
+    panel.id = "deducciones";
+    panel.className = "panel";
+
+    panel.innerHTML = `
+      <h2>Deducciones</h2>
+
+      <p>
+        Registre los conceptos de deducción
+        correspondientes a los empleados.
+      </p>
+
+      <form
+        id="formDeducciones"
+        class="deducciones-formulario"
+      >
+        <div class="deducciones-grid">
+
+          <div class="deduccion-campo">
+            <label for="deduccionNumeroPersonal">
+              No. de personal
+            </label>
+
+            <input
+              id="deduccionNumeroPersonal"
+              type="text"
+              autocomplete="off"
+              placeholder="Ingrese el número"
+              required
+            >
+          </div>
+
+          <div class="deduccion-campo">
+            <label for="deduccionNombre">
+              Nombre
+            </label>
+
+            <input
+              id="deduccionNombre"
+              type="text"
+              placeholder="Se completará automáticamente"
+              readonly
+            >
+          </div>
+
+          <div class="deduccion-campo">
+            <label for="deduccionConcepto">
+              Concepto
+            </label>
+
+            <select
+              id="deduccionConcepto"
+              required
+            >
+              <option value="">
+                Seleccionar
+              </option>
+            </select>
+          </div>
+
+          <div class="deduccion-campo">
+            <label for="deduccionDesde">
+              Desde
+            </label>
+
+            <select
+              id="deduccionDesde"
+              required
+            >
+              <option value="">
+                Seleccionar
+              </option>
+            </select>
+          </div>
+
+          <div class="deduccion-campo">
+            <label for="deduccionHasta">
+              Hasta
+            </label>
+
+            <select
+              id="deduccionHasta"
+              required
+            >
+              <option value="">
+                Seleccionar
+              </option>
+            </select>
+          </div>
+
+          <div class="deduccion-campo">
+            <label for="deduccionDias">
+              Días
+            </label>
+
+            <input
+              id="deduccionDias"
+              type="number"
+              value="0"
+              readonly
+            >
+          </div>
+
+          <div class="deduccion-campo">
+            <label for="deduccionPlanillasAplic">
+              Planillas aplic.
+            </label>
+
+            <input
+              id="deduccionPlanillasAplic"
+              type="number"
+              value="0"
+              readonly
+            >
+          </div>
+
+        </div>
+
+        <div class="deducciones-segunda-fila">
+
+          <div class="deduccion-campo">
+            <label for="deduccionValor">
+              Valor
+            </label>
+
+            <input
+              id="deduccionValor"
+              type="number"
+              min="0"
+              step="0.01"
+              placeholder="0.00"
+              required
+            >
+          </div>
+
+          <div class="deduccion-campo">
+            <label for="deduccionFechaRegistro">
+              Fecha de registro
+            </label>
+
+            <input
+              id="deduccionFechaRegistro"
+              type="date"
+              readonly
+            >
+          </div>
+
+          <div class="deduccion-campo">
+            <label for="deduccionUsuario">
+              Usuario
+            </label>
+
+            <input
+              id="deduccionUsuario"
+              type="text"
+              readonly
+            >
+          </div>
+
+        </div>
+
+        <div class="acciones-deducciones">
+          <button
+            id="btnGuardarDeduccion"
+            type="submit"
+          >
+            Guardar
+          </button>
+        </div>
+
+        <div
+          id="mensajeDeducciones"
+          class="mensaje-deducciones"
+        ></div>
+      </form>
+    `;
+
+    principal.appendChild(panel);
+
+    document
+      .getElementById("deduccionNumeroPersonal")
+      .addEventListener(
+        "blur",
+        buscarEmpleadoDeduccion
+      );
+
+    document
+      .getElementById("deduccionConcepto")
+      .addEventListener(
+        "change",
+        cambiarVigenciaDeduccion
+      );
+
+    document
+  .getElementById("formDeducciones")
+  .addEventListener(
+    "submit",
+    guardarDeduccion
+  );
+
+    establecerFechaActualDeduccion();
+  }
+
+  function establecerFechaActualDeduccion() {
+    const campo = document.getElementById(
+      "deduccionFechaRegistro"
+    );
+
+    if (!campo) {
+      return;
+    }
+
+    const fecha = new Date();
+    const anio = fecha.getFullYear();
+    const mes = String(
+      fecha.getMonth() + 1
+    ).padStart(2, "0");
+
+    const dia = String(
+      fecha.getDate()
+    ).padStart(2, "0");
+
+    campo.value =
+      anio + "-" + mes + "-" + dia;
+  }
+
+  async function cargarConfiguracionDeducciones() {
+    mostrarMensajeDeducciones(
+      "Cargando conceptos y planillas...",
+      "info"
+    );
+
+    try {
+      const respuesta = await jsonp(
+        "configuracionDeducciones",
+        {}
+      );
+
+      if (!respuesta || !respuesta.ok) {
+        throw new Error(
+          respuesta && respuesta.mensaje
+            ? respuesta.mensaje
+            : "No se pudo cargar la configuración."
+        );
+      }
+
+      planillasDeducciones =
+        Array.isArray(respuesta.planillas)
+          ? respuesta.planillas
+          : [];
+
+      llenarSelectorDeducciones(
+        document.getElementById(
+          "deduccionConcepto"
+        ),
+        respuesta.conceptos || []
+      );
+
+      llenarSelectorDeducciones(
+        document.getElementById(
+          "deduccionDesde"
+        ),
+        planillasDeducciones
+      );
+
+      llenarSelectorDeducciones(
+        document.getElementById(
+          "deduccionHasta"
+        ),
+        planillasDeducciones
+      );
+
+      document.getElementById(
+        "deduccionUsuario"
+      ).value = respuesta.usuario || "";
+
+      mostrarMensajeDeducciones(
+        "",
+        ""
+      );
+    } catch (error) {
+      mostrarMensajeDeducciones(
+        error.message,
+        "error"
+      );
+    }
+  }
+
+  function llenarSelectorDeducciones(
+    selector,
+    opciones
+  ) {
+    if (!selector) {
+      return;
+    }
+
+    const valorAnterior = selector.value;
+
+    selector.innerHTML = "";
+
+    const opcionInicial =
+      document.createElement("option");
+
+    opcionInicial.value = "";
+    opcionInicial.textContent =
+      "Seleccionar";
+
+    selector.appendChild(opcionInicial);
+
+    opciones.forEach(function (opcion) {
+      if (!opcion) {
+        return;
+      }
+
+      const elemento =
+        document.createElement("option");
+
+      elemento.value = opcion;
+      elemento.textContent = opcion;
+
+      selector.appendChild(elemento);
+    });
+
+    if (
+      valorAnterior &&
+      opciones.indexOf(valorAnterior) !== -1
+    ) {
+      selector.value = valorAnterior;
+    }
+  }
+
+  function cambiarVigenciaDeduccion() {
+    const concepto = document
+      .getElementById("deduccionConcepto")
+      .value;
+
+    const usaCalendario =
+      conceptoDeduccionUsaCalendario(
+        concepto
+      );
+
+    sustituirCampoVigenciaDeduccion(
+      "deduccionDesde",
+      usaCalendario
+    );
+
+    sustituirCampoVigenciaDeduccion(
+      "deduccionHasta",
+      usaCalendario
+    );
+
+    document.getElementById(
+      "deduccionDias"
+    ).value = 0;
+
+    document.getElementById(
+      "deduccionPlanillasAplic"
+    ).value = 0;
+  }
+
+  function sustituirCampoVigenciaDeduccion(
+    id,
+    usaCalendario
+  ) {
+    const campoAnterior =
+      document.getElementById(id);
+
+    if (!campoAnterior) {
+      return;
+    }
+
+    let campoNuevo;
+
+    if (usaCalendario) {
+      campoNuevo =
+        document.createElement("input");
+
+      campoNuevo.type = "date";
+    } else {
+      campoNuevo =
+        document.createElement("select");
+
+      llenarSelectorDeducciones(
+        campoNuevo,
+        planillasDeducciones
+      );
+    }
+
+    campoNuevo.id = id;
+    campoNuevo.required = true;
+
+    campoAnterior.replaceWith(
+      campoNuevo
+    );
+
+    campoNuevo.addEventListener(
+      "change",
+      calcularVigenciaDeduccion
+    );
+  }
+
+  function calcularVigenciaDeduccion() {
+    const concepto = document
+      .getElementById("deduccionConcepto")
+      .value;
+
+    if (
+      conceptoDeduccionUsaCalendario(
+        concepto
+      )
+    ) {
+      calcularDiasDeduccion();
+    } else {
+      calcularPlanillasDeduccion();
+    }
+  }
+
+  function calcularDiasDeduccion() {
+    const desde = document
+      .getElementById("deduccionDesde")
+      .value;
+
+    const hasta = document
+      .getElementById("deduccionHasta")
+      .value;
+
+    const campoDias = document.getElementById(
+      "deduccionDias"
+    );
+
+    document.getElementById(
+      "deduccionPlanillasAplic"
+    ).value = 0;
+
+    if (!desde || !hasta) {
+      campoDias.value = 0;
+      return;
+    }
+
+    const fechaDesde = new Date(
+      desde + "T00:00:00"
+    );
+
+    const fechaHasta = new Date(
+      hasta + "T00:00:00"
+    );
+
+    const diferencia = Math.floor(
+      (
+        fechaHasta.getTime() -
+        fechaDesde.getTime()
+      ) / 86400000
+    ) + 1;
+
+    campoDias.value =
+      diferencia > 0
+        ? diferencia
+        : 0;
+  }
+
+  function obtenerCodigoPlanillaDeduccion(texto) {
+    const coincidencia = String(texto || "")
+      .match(
+        /(?:Planilla\s+)?(\d{4})-(\d{1,2})/i
+      );
+
+    if (!coincidencia) {
+      return null;
+    }
+
+    return {
+      anio: Number(coincidencia[1]),
+      numero: Number(coincidencia[2])
+    };
+  }
+
+  function calcularPlanillasDeduccion() {
+    const desde = obtenerCodigoPlanillaDeduccion(
+      document.getElementById(
+        "deduccionDesde"
+      ).value
+    );
+
+    const hasta = obtenerCodigoPlanillaDeduccion(
+      document.getElementById(
+        "deduccionHasta"
+      ).value
+    );
+
+    const campoPlanillas =
+      document.getElementById(
+        "deduccionPlanillasAplic"
+      );
+
+    document.getElementById(
+      "deduccionDias"
+    ).value = 0;
+
+    if (!desde || !hasta) {
+      campoPlanillas.value = 0;
+      return;
+    }
+
+    /*
+     * Se consideran 26 planillas por año.
+     * Se suma 1 porque Desde y Hasta son inclusivas.
+     */
+    const posicionDesde =
+      desde.anio * 26 +
+      desde.numero;
+
+    const posicionHasta =
+      hasta.anio * 26 +
+      hasta.numero;
+
+    const cantidad =
+      posicionHasta -
+      posicionDesde +
+      1;
+
+    campoPlanillas.value =
+      cantidad > 0
+        ? cantidad
+        : 0;
+  }
+
+  async function buscarEmpleadoDeduccion() {
+    const numeroPersonal = document
+      .getElementById(
+        "deduccionNumeroPersonal"
+      ).value.trim();
+
+    const campoNombre = document
+      .getElementById(
+        "deduccionNombre"
+      );
+
+    campoNombre.value = "";
+
+    if (!numeroPersonal) {
+      return;
+    }
+
+    mostrarMensajeDeducciones(
+      "Buscando empleado...",
+      "info"
+    );
+
+    try {
+      const respuesta = await jsonp(
+        "buscarEmpleadoIngreso",
+        {
+          numeroPersonal:
+            numeroPersonal
+        }
+      );
+
+      if (!respuesta || !respuesta.ok) {
+        throw new Error(
+          respuesta && respuesta.mensaje
+            ? respuesta.mensaje
+            : "Empleado no encontrado."
+        );
+      }
+
+      campoNombre.value =
+        respuesta.nombre || "";
+
+      mostrarMensajeDeducciones(
+        "",
+        ""
+      );
+    } catch (error) {
+      campoNombre.value = "";
+
+      mostrarMensajeDeducciones(
+        error.message,
+        "error"
+      );
+    }
+  }
+async function guardarDeduccion(evento) {
+  evento.preventDefault();
+
+  const boton = document.getElementById(
+    "btnGuardarDeduccion"
+  );
+
+  const datos = {
+    numeroPersonal:
+      document
+        .getElementById(
+          "deduccionNumeroPersonal"
+        )
+        .value
+        .trim(),
+
+    nombre:
+      document
+        .getElementById(
+          "deduccionNombre"
+        )
+        .value
+        .trim(),
+
+    concepto:
+      document
+        .getElementById(
+          "deduccionConcepto"
+        )
+        .value,
+
+    desde:
+      document
+        .getElementById(
+          "deduccionDesde"
+        )
+        .value,
+
+    hasta:
+      document
+        .getElementById(
+          "deduccionHasta"
+        )
+        .value,
+
+    dias:
+      Number(
+        document
+          .getElementById(
+            "deduccionDias"
+          )
+          .value
+      ) || 0,
+
+    planillasAplic:
+      Number(
+        document
+          .getElementById(
+            "deduccionPlanillasAplic"
+          )
+          .value
+      ) || 0,
+
+    valor:
+      document
+        .getElementById(
+          "deduccionValor"
+        )
+        .value,
+
+    fechaRegistro:
+      document
+        .getElementById(
+          "deduccionFechaRegistro"
+        )
+        .value,
+
+    usuario:
+      document
+        .getElementById(
+          "deduccionUsuario"
+        )
+        .value
+  };
+
+  if (!datos.numeroPersonal) {
+    mostrarMensajeDeducciones(
+      "Ingrese el número de personal.",
+      "error"
+    );
+    return;
+  }
+
+  if (!datos.nombre) {
+    mostrarMensajeDeducciones(
+      "Busque un empleado válido.",
+      "error"
+    );
+    return;
+  }
+
+  if (!datos.concepto) {
+    mostrarMensajeDeducciones(
+      "Seleccione el concepto.",
+      "error"
+    );
+    return;
+  }
+
+  if (!datos.desde || !datos.hasta) {
+    mostrarMensajeDeducciones(
+      "Seleccione Desde y Hasta.",
+      "error"
+    );
+    return;
+  }
+
+  if (
+    datos.valor === "" ||
+    Number(datos.valor) <= 0
+  ) {
+    mostrarMensajeDeducciones(
+      "Ingrese un valor mayor que cero.",
+      "error"
+    );
+    return;
+  }
+
+  boton.disabled = true;
+
+  mostrarMensajeDeducciones(
+    "Guardando deducción...",
+    "info"
+  );
+
+  try {
+    const respuesta = await jsonp(
+      "guardarDeduccion",
+      datos
+    );
+
+    if (!respuesta || !respuesta.ok) {
+      throw new Error(
+        respuesta && respuesta.mensaje
+          ? respuesta.mensaje
+          : "No fue posible guardar la deducción."
+      );
+    }
+
+    mostrarMensajeDeducciones(
+      respuesta.mensaje,
+      "ok"
+    );
+
+    /*
+     * Limpiar el formulario después de guardar.
+     */
+    document.getElementById(
+      "deduccionNumeroPersonal"
+    ).value = "";
+
+    document.getElementById(
+      "deduccionNombre"
+    ).value = "";
+
+    document.getElementById(
+      "deduccionConcepto"
+    ).value = "";
+
+    document.getElementById(
+      "deduccionValor"
+    ).value = "";
+
+    document.getElementById(
+      "deduccionDias"
+    ).value = 0;
+
+    document.getElementById(
+      "deduccionPlanillasAplic"
+    ).value = 0;
+
+    /*
+     * Volver Desde y Hasta a selectores
+     * de planillas con Seleccionar.
+     */
+    sustituirCampoVigenciaDeduccion(
+      "deduccionDesde",
+      false
+    );
+
+    sustituirCampoVigenciaDeduccion(
+      "deduccionHasta",
+      false
+    );
+
+    establecerFechaActualDeduccion();
+  } catch (error) {
+    mostrarMensajeDeducciones(
+      error.message,
+      "error"
+    );
+  } finally {
+    boton.disabled = false;
+  }
+}
+  
+  function mostrarMensajeDeducciones(
+    texto,
+    tipo
+  ) {
+    const mensaje = document.getElementById(
+      "mensajeDeducciones"
+    );
+
+    if (!mensaje) {
+      return;
+    }
+
+    mensaje.textContent = texto || "";
+    mensaje.className =
+      "mensaje-deducciones" +
+      (tipo ? " " + tipo : "");
+  }
+})();
+</script>
+  
+</body>
+
+</html>
+
