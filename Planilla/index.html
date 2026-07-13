@@ -1644,7 +1644,7 @@
      */
 
     const API_URL =
-      "https://script.google.com/macros/s/AKfycbxVnWiHIqUB7YSPME4Czt7xeCMFDkx0QQdo6hh4FhMHORyobkH5Bbq9cOtuHXQC5ZeR/exec";
+      "https://script.google.com/macros/s/AKfycby4cLsxFOLdtGCopO_nHagMMcZjOk-DmkUZEIo8E4C0la8ecNz5jRWht21o4TPSin_e/exec";
 
     const camposEmpleado = [
 
@@ -6861,6 +6861,838 @@ resultado.value =
     );
   } else {
     activarGuardadoCompleto();
+  }
+})();
+</script>
+<!-- =====================================================
+     MÓDULO DE DEDUCCIONES
+====================================================== -->
+<style>
+  /*
+   * Ahora el menú contiene seis botones.
+   */
+  .menu {
+    grid-template-columns:
+      repeat(6, minmax(0, 1fr)) !important;
+  }
+
+  .deducciones-formulario {
+    margin-top: 22px;
+  }
+
+  .deducciones-grid {
+    display: grid;
+    grid-template-columns:
+      minmax(145px, 0.85fr)
+      minmax(220px, 1.4fr)
+      minmax(270px, 1.7fr)
+      minmax(215px, 1.25fr)
+      minmax(215px, 1.25fr)
+      minmax(90px, 0.55fr)
+      minmax(130px, 0.75fr);
+    gap: 14px 16px;
+    align-items: end;
+  }
+
+  .deduccion-campo {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    min-width: 0;
+  }
+
+  .deduccion-campo label {
+    margin: 0;
+    font-weight: 700;
+  }
+
+  .deduccion-campo input,
+  .deduccion-campo select {
+    width: 100%;
+    height: 47px;
+    padding: 9px 12px;
+    border: 1px solid var(--borde);
+    border-radius: 9px;
+    background: #ffffff;
+    box-sizing: border-box;
+  }
+
+  .deduccion-campo input:focus,
+  .deduccion-campo select:focus {
+    border-color: #2563eb;
+    outline: 2px solid rgba(37, 99, 235, 0.15);
+  }
+
+  .deduccion-campo input[readonly] {
+    background: #eef2f7;
+    font-weight: 700;
+    text-align: center;
+  }
+
+  .deducciones-segunda-fila {
+    display: grid;
+    grid-template-columns:
+      minmax(220px, 1fr)
+      minmax(260px, 1.3fr)
+      minmax(220px, 1fr);
+    gap: 14px 16px;
+    margin-top: 16px;
+    max-width: 1150px;
+  }
+
+  .acciones-deducciones {
+    margin-top: 20px;
+  }
+
+  .acciones-deducciones button {
+    min-width: 180px;
+    color: #ffffff;
+    background: var(--verde);
+  }
+
+  .mensaje-deducciones {
+    display: none;
+    margin-top: 16px;
+    padding: 13px 16px;
+    border-radius: 9px;
+  }
+
+  .mensaje-deducciones.info {
+    display: block;
+    color: #1e40af;
+    background: #dbeafe;
+  }
+
+  .mensaje-deducciones.ok {
+    display: block;
+    color: #166534;
+    background: #dcfce7;
+  }
+
+  .mensaje-deducciones.error {
+    display: block;
+    color: #991b1b;
+    background: #fee2e2;
+  }
+
+  @media (max-width: 1250px) {
+    .menu {
+      grid-template-columns:
+        repeat(3, minmax(0, 1fr)) !important;
+    }
+
+    .deducciones-grid {
+      grid-template-columns:
+        repeat(4, minmax(0, 1fr));
+    }
+  }
+
+  @media (max-width: 850px) {
+    .menu {
+      grid-template-columns:
+        repeat(2, minmax(0, 1fr)) !important;
+    }
+
+    .deducciones-grid,
+    .deducciones-segunda-fila {
+      grid-template-columns:
+        repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @media (max-width: 650px) {
+    .menu,
+    .deducciones-grid,
+    .deducciones-segunda-fila {
+      grid-template-columns: 1fr !important;
+    }
+  }
+</style>
+
+<script>
+(function () {
+  "use strict";
+
+  let planillasDeducciones = [];
+
+  const CONCEPTOS_DEDUCCION_CON_CALENDARIO = [
+    "Días no laborados",
+    "Incapacidades no remuneradas",
+    "Llegadas tardías",
+    "Permisos sin goce de salario",
+    "Suspensiones sin goce de sueldo"
+  ];
+
+  document.addEventListener(
+    "DOMContentLoaded",
+    crearModuloDeducciones
+  );
+
+  function normalizarTextoDeduccion(texto) {
+    return String(texto || "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .trim()
+      .toLowerCase();
+  }
+
+  function conceptoDeduccionUsaCalendario(concepto) {
+    const conceptoNormalizado =
+      normalizarTextoDeduccion(concepto);
+
+    return CONCEPTOS_DEDUCCION_CON_CALENDARIO.some(
+      function (elemento) {
+        return normalizarTextoDeduccion(elemento) ===
+          conceptoNormalizado;
+      }
+    );
+  }
+
+  function crearModuloDeducciones() {
+    const menu = document.querySelector(".menu");
+    const principal = document.querySelector("main");
+
+    if (
+      !menu ||
+      !principal ||
+      document.getElementById("deducciones")
+    ) {
+      return;
+    }
+
+    /*
+     * Crear botón del menú.
+     */
+    const boton = document.createElement("button");
+
+    boton.type = "button";
+    boton.textContent = "Deducciones";
+
+    boton.addEventListener(
+      "click",
+      function () {
+        abrirPanel(
+          "deducciones",
+          boton
+        );
+
+        cargarConfiguracionDeducciones();
+      }
+    );
+
+    menu.appendChild(boton);
+
+    /*
+     * Crear panel.
+     */
+    const panel = document.createElement("section");
+
+    panel.id = "deducciones";
+    panel.className = "panel";
+
+    panel.innerHTML = `
+      <h2>Deducciones</h2>
+
+      <p>
+        Registre los conceptos de deducción
+        correspondientes a los empleados.
+      </p>
+
+      <form
+        id="formDeducciones"
+        class="deducciones-formulario"
+      >
+        <div class="deducciones-grid">
+
+          <div class="deduccion-campo">
+            <label for="deduccionNumeroPersonal">
+              No. de personal
+            </label>
+
+            <input
+              id="deduccionNumeroPersonal"
+              type="text"
+              autocomplete="off"
+              placeholder="Ingrese el número"
+              required
+            >
+          </div>
+
+          <div class="deduccion-campo">
+            <label for="deduccionNombre">
+              Nombre
+            </label>
+
+            <input
+              id="deduccionNombre"
+              type="text"
+              placeholder="Se completará automáticamente"
+              readonly
+            >
+          </div>
+
+          <div class="deduccion-campo">
+            <label for="deduccionConcepto">
+              Concepto
+            </label>
+
+            <select
+              id="deduccionConcepto"
+              required
+            >
+              <option value="">
+                Seleccionar
+              </option>
+            </select>
+          </div>
+
+          <div class="deduccion-campo">
+            <label for="deduccionDesde">
+              Desde
+            </label>
+
+            <select
+              id="deduccionDesde"
+              required
+            >
+              <option value="">
+                Seleccionar
+              </option>
+            </select>
+          </div>
+
+          <div class="deduccion-campo">
+            <label for="deduccionHasta">
+              Hasta
+            </label>
+
+            <select
+              id="deduccionHasta"
+              required
+            >
+              <option value="">
+                Seleccionar
+              </option>
+            </select>
+          </div>
+
+          <div class="deduccion-campo">
+            <label for="deduccionDias">
+              Días
+            </label>
+
+            <input
+              id="deduccionDias"
+              type="number"
+              value="0"
+              readonly
+            >
+          </div>
+
+          <div class="deduccion-campo">
+            <label for="deduccionPlanillasAplic">
+              Planillas aplic.
+            </label>
+
+            <input
+              id="deduccionPlanillasAplic"
+              type="number"
+              value="0"
+              readonly
+            >
+          </div>
+
+        </div>
+
+        <div class="deducciones-segunda-fila">
+
+          <div class="deduccion-campo">
+            <label for="deduccionValor">
+              Valor
+            </label>
+
+            <input
+              id="deduccionValor"
+              type="number"
+              min="0"
+              step="0.01"
+              placeholder="0.00"
+              required
+            >
+          </div>
+
+          <div class="deduccion-campo">
+            <label for="deduccionFechaRegistro">
+              Fecha de registro
+            </label>
+
+            <input
+              id="deduccionFechaRegistro"
+              type="date"
+              readonly
+            >
+          </div>
+
+          <div class="deduccion-campo">
+            <label for="deduccionUsuario">
+              Usuario
+            </label>
+
+            <input
+              id="deduccionUsuario"
+              type="text"
+              readonly
+            >
+          </div>
+
+        </div>
+
+        <div class="acciones-deducciones">
+          <button
+            id="btnGuardarDeduccion"
+            type="submit"
+          >
+            Guardar
+          </button>
+        </div>
+
+        <div
+          id="mensajeDeducciones"
+          class="mensaje-deducciones"
+        ></div>
+      </form>
+    `;
+
+    principal.appendChild(panel);
+
+    document
+      .getElementById("deduccionNumeroPersonal")
+      .addEventListener(
+        "blur",
+        buscarEmpleadoDeduccion
+      );
+
+    document
+      .getElementById("deduccionConcepto")
+      .addEventListener(
+        "change",
+        cambiarVigenciaDeduccion
+      );
+
+    document
+      .getElementById("formDeducciones")
+      .addEventListener(
+        "submit",
+        function (evento) {
+          evento.preventDefault();
+
+          mostrarMensajeDeducciones(
+            "El formulario de deducciones está listo. " +
+            "Para guardar el registro debe definirse la hoja " +
+            "y las columnas de destino.",
+            "info"
+          );
+        }
+      );
+
+    establecerFechaActualDeduccion();
+  }
+
+  function establecerFechaActualDeduccion() {
+    const campo = document.getElementById(
+      "deduccionFechaRegistro"
+    );
+
+    if (!campo) {
+      return;
+    }
+
+    const fecha = new Date();
+    const anio = fecha.getFullYear();
+    const mes = String(
+      fecha.getMonth() + 1
+    ).padStart(2, "0");
+
+    const dia = String(
+      fecha.getDate()
+    ).padStart(2, "0");
+
+    campo.value =
+      anio + "-" + mes + "-" + dia;
+  }
+
+  async function cargarConfiguracionDeducciones() {
+    mostrarMensajeDeducciones(
+      "Cargando conceptos y planillas...",
+      "info"
+    );
+
+    try {
+      const respuesta = await jsonp(
+        "configuracionDeducciones",
+        {}
+      );
+
+      if (!respuesta || !respuesta.ok) {
+        throw new Error(
+          respuesta && respuesta.mensaje
+            ? respuesta.mensaje
+            : "No se pudo cargar la configuración."
+        );
+      }
+
+      planillasDeducciones =
+        Array.isArray(respuesta.planillas)
+          ? respuesta.planillas
+          : [];
+
+      llenarSelectorDeducciones(
+        document.getElementById(
+          "deduccionConcepto"
+        ),
+        respuesta.conceptos || []
+      );
+
+      llenarSelectorDeducciones(
+        document.getElementById(
+          "deduccionDesde"
+        ),
+        planillasDeducciones
+      );
+
+      llenarSelectorDeducciones(
+        document.getElementById(
+          "deduccionHasta"
+        ),
+        planillasDeducciones
+      );
+
+      document.getElementById(
+        "deduccionUsuario"
+      ).value = respuesta.usuario || "";
+
+      mostrarMensajeDeducciones(
+        "",
+        ""
+      );
+    } catch (error) {
+      mostrarMensajeDeducciones(
+        error.message,
+        "error"
+      );
+    }
+  }
+
+  function llenarSelectorDeducciones(
+    selector,
+    opciones
+  ) {
+    if (!selector) {
+      return;
+    }
+
+    const valorAnterior = selector.value;
+
+    selector.innerHTML = "";
+
+    const opcionInicial =
+      document.createElement("option");
+
+    opcionInicial.value = "";
+    opcionInicial.textContent =
+      "Seleccionar";
+
+    selector.appendChild(opcionInicial);
+
+    opciones.forEach(function (opcion) {
+      if (!opcion) {
+        return;
+      }
+
+      const elemento =
+        document.createElement("option");
+
+      elemento.value = opcion;
+      elemento.textContent = opcion;
+
+      selector.appendChild(elemento);
+    });
+
+    if (
+      valorAnterior &&
+      opciones.indexOf(valorAnterior) !== -1
+    ) {
+      selector.value = valorAnterior;
+    }
+  }
+
+  function cambiarVigenciaDeduccion() {
+    const concepto = document
+      .getElementById("deduccionConcepto")
+      .value;
+
+    const usaCalendario =
+      conceptoDeduccionUsaCalendario(
+        concepto
+      );
+
+    sustituirCampoVigenciaDeduccion(
+      "deduccionDesde",
+      usaCalendario
+    );
+
+    sustituirCampoVigenciaDeduccion(
+      "deduccionHasta",
+      usaCalendario
+    );
+
+    document.getElementById(
+      "deduccionDias"
+    ).value = 0;
+
+    document.getElementById(
+      "deduccionPlanillasAplic"
+    ).value = 0;
+  }
+
+  function sustituirCampoVigenciaDeduccion(
+    id,
+    usaCalendario
+  ) {
+    const campoAnterior =
+      document.getElementById(id);
+
+    if (!campoAnterior) {
+      return;
+    }
+
+    let campoNuevo;
+
+    if (usaCalendario) {
+      campoNuevo =
+        document.createElement("input");
+
+      campoNuevo.type = "date";
+    } else {
+      campoNuevo =
+        document.createElement("select");
+
+      llenarSelectorDeducciones(
+        campoNuevo,
+        planillasDeducciones
+      );
+    }
+
+    campoNuevo.id = id;
+    campoNuevo.required = true;
+
+    campoAnterior.replaceWith(
+      campoNuevo
+    );
+
+    campoNuevo.addEventListener(
+      "change",
+      calcularVigenciaDeduccion
+    );
+  }
+
+  function calcularVigenciaDeduccion() {
+    const concepto = document
+      .getElementById("deduccionConcepto")
+      .value;
+
+    if (
+      conceptoDeduccionUsaCalendario(
+        concepto
+      )
+    ) {
+      calcularDiasDeduccion();
+    } else {
+      calcularPlanillasDeduccion();
+    }
+  }
+
+  function calcularDiasDeduccion() {
+    const desde = document
+      .getElementById("deduccionDesde")
+      .value;
+
+    const hasta = document
+      .getElementById("deduccionHasta")
+      .value;
+
+    const campoDias = document.getElementById(
+      "deduccionDias"
+    );
+
+    document.getElementById(
+      "deduccionPlanillasAplic"
+    ).value = 0;
+
+    if (!desde || !hasta) {
+      campoDias.value = 0;
+      return;
+    }
+
+    const fechaDesde = new Date(
+      desde + "T00:00:00"
+    );
+
+    const fechaHasta = new Date(
+      hasta + "T00:00:00"
+    );
+
+    const diferencia = Math.floor(
+      (
+        fechaHasta.getTime() -
+        fechaDesde.getTime()
+      ) / 86400000
+    ) + 1;
+
+    campoDias.value =
+      diferencia > 0
+        ? diferencia
+        : 0;
+  }
+
+  function obtenerCodigoPlanillaDeduccion(texto) {
+    const coincidencia = String(texto || "")
+      .match(
+        /(?:Planilla\s+)?(\d{4})-(\d{1,2})/i
+      );
+
+    if (!coincidencia) {
+      return null;
+    }
+
+    return {
+      anio: Number(coincidencia[1]),
+      numero: Number(coincidencia[2])
+    };
+  }
+
+  function calcularPlanillasDeduccion() {
+    const desde = obtenerCodigoPlanillaDeduccion(
+      document.getElementById(
+        "deduccionDesde"
+      ).value
+    );
+
+    const hasta = obtenerCodigoPlanillaDeduccion(
+      document.getElementById(
+        "deduccionHasta"
+      ).value
+    );
+
+    const campoPlanillas =
+      document.getElementById(
+        "deduccionPlanillasAplic"
+      );
+
+    document.getElementById(
+      "deduccionDias"
+    ).value = 0;
+
+    if (!desde || !hasta) {
+      campoPlanillas.value = 0;
+      return;
+    }
+
+    /*
+     * Se consideran 26 planillas por año.
+     * Se suma 1 porque Desde y Hasta son inclusivas.
+     */
+    const posicionDesde =
+      desde.anio * 26 +
+      desde.numero;
+
+    const posicionHasta =
+      hasta.anio * 26 +
+      hasta.numero;
+
+    const cantidad =
+      posicionHasta -
+      posicionDesde +
+      1;
+
+    campoPlanillas.value =
+      cantidad > 0
+        ? cantidad
+        : 0;
+  }
+
+  async function buscarEmpleadoDeduccion() {
+    const numeroPersonal = document
+      .getElementById(
+        "deduccionNumeroPersonal"
+      ).value.trim();
+
+    const campoNombre = document
+      .getElementById(
+        "deduccionNombre"
+      );
+
+    campoNombre.value = "";
+
+    if (!numeroPersonal) {
+      return;
+    }
+
+    mostrarMensajeDeducciones(
+      "Buscando empleado...",
+      "info"
+    );
+
+    try {
+      const respuesta = await jsonp(
+        "buscarEmpleadoIngreso",
+        {
+          numeroPersonal:
+            numeroPersonal
+        }
+      );
+
+      if (!respuesta || !respuesta.ok) {
+        throw new Error(
+          respuesta && respuesta.mensaje
+            ? respuesta.mensaje
+            : "Empleado no encontrado."
+        );
+      }
+
+      campoNombre.value =
+        respuesta.nombre || "";
+
+      mostrarMensajeDeducciones(
+        "",
+        ""
+      );
+    } catch (error) {
+      campoNombre.value = "";
+
+      mostrarMensajeDeducciones(
+        error.message,
+        "error"
+      );
+    }
+  }
+
+  function mostrarMensajeDeducciones(
+    texto,
+    tipo
+  ) {
+    const mensaje = document.getElementById(
+      "mensajeDeducciones"
+    );
+
+    if (!mensaje) {
+      return;
+    }
+
+    mensaje.textContent = texto || "";
+    mensaje.className =
+      "mensaje-deducciones" +
+      (tipo ? " " + tipo : "");
   }
 })();
 </script>
