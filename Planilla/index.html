@@ -6545,6 +6545,325 @@ resultado.value =
 
 </script>
 
+<!-- GUARDADO DEFINITIVO DE TODOS LOS PARÁMETROS -->
+<script>
+(function () {
+  "use strict";
+
+  function obtenerValor(id) {
+    const campo = document.getElementById(id);
+    return campo ? campo.value : "";
+  }
+
+  function obtenerFilas(cantidad, creador) {
+    return Array.from(
+      { length: cantidad },
+      function (_, indice) {
+        return creador(indice + 1);
+      }
+    );
+  }
+
+  async function guardarTodosLosParametros(evento) {
+    evento.preventDefault();
+    evento.stopPropagation();
+    evento.stopImmediatePropagation();
+
+    const boton = document.getElementById(
+      "btnGuardarParametros"
+    );
+
+    const feriados = obtenerFilas(
+      12,
+      function (numero) {
+        return obtenerValor(
+          "feriado" + numero
+        );
+      }
+    );
+
+    const planillas =
+      typeof generarPlanillasDelAnio === "function"
+        ? generarPlanillasDelAnio()
+        : [];
+
+    const datos = {
+      anio:
+        Number(
+          obtenerValor("anioPlanilla")
+        ),
+
+      estatusHoraEnt:
+        obtenerValor("estatusHoraEnt"),
+
+      feriados:
+        feriados,
+
+      recargoDiurno:
+        obtenerValor("recargoDiurno"),
+
+      recargoNocturno:
+        obtenerValor("recargoNocturno"),
+
+      recargoDescanso:
+        obtenerValor("recargoDescanso"),
+
+      recargoFeriado:
+        obtenerValor("recargoFeriado"),
+
+      planillas:
+        planillas,
+
+      /*
+       * S = Salario mínimo
+       * T = Vigencia
+       */
+      salarioMinimo:
+        obtenerValor("salarioMinimo"),
+
+      salarioMinimoDesde:
+        obtenerValor("salarioMinimoDesde"),
+
+      /*
+       * U:W = Vacaciones
+       */
+      vacaciones:
+        obtenerFilas(
+          4,
+          function (numero) {
+            return {
+              desde:
+                obtenerValor(
+                  "vacacionesDesde" + numero
+                ),
+
+              hasta:
+                obtenerValor(
+                  "vacacionesHasta" + numero
+                ),
+
+              dias:
+                obtenerValor(
+                  "vacacionesDias" + numero
+                )
+            };
+          }
+        ),
+
+      /*
+       * X:AB = Incapacidades IHSS
+       */
+      incapacidadesIHSS:
+        obtenerFilas(
+          5,
+          function (numero) {
+            return {
+              concepto:
+                obtenerValor(
+                  "ihssConcepto" + numero
+                ),
+
+              desde:
+                obtenerValor(
+                  "ihssDesde" + numero
+                ),
+
+              hasta:
+                obtenerValor(
+                  "ihssHasta" + numero
+                ),
+
+              empresa:
+                obtenerValor(
+                  "ihssEmpresa" + numero
+                ),
+
+              ihss:
+                obtenerValor(
+                  "ihssPorcentaje" + numero
+                )
+            };
+          }
+        ),
+
+      /*
+       * AC:AD = Referencias IHSS
+       */
+      ihssReferenciaPorcentaje:
+        obtenerValor(
+          "ihssReferenciaPorcentaje"
+        ),
+
+      ihssTechoCotizacion:
+        obtenerValor(
+          "ihssTechoCotizacion"
+        ),
+
+      /*
+       * AE:AF = RAP e INFOP
+       */
+      porcentajeRap:
+        obtenerValor("porcentajeRap"),
+
+      porcentajeInfop:
+        obtenerValor("porcentajeInfop"),
+
+      /*
+       * AG:AI = Impuesto sobre la renta
+       */
+      impuestoRenta:
+        obtenerFilas(
+          4,
+          function (numero) {
+            return {
+              desde:
+                obtenerValor(
+                  "rentaDesde" + numero
+                ),
+
+              hasta:
+                obtenerValor(
+                  "rentaHasta" + numero
+                ),
+
+              porcentaje:
+                obtenerValor(
+                  "rentaPorcentaje" + numero
+                )
+            };
+          }
+        ),
+
+      /*
+       * AJ:AL = Impuesto vecinal
+       */
+      impuestoVecinal:
+        obtenerFilas(
+          9,
+          function (numero) {
+            return {
+              desde:
+                obtenerValor(
+                  "vecinalDesde" + numero
+                ),
+
+              hasta:
+                obtenerValor(
+                  "vecinalHasta" + numero
+                ),
+
+              impuesto:
+                obtenerValor(
+                  "vecinalTasa" + numero
+                )
+            };
+          }
+        )
+    };
+
+    if (!datos.anio) {
+      mostrarMensajeParametros(
+        "Ingrese un año válido.",
+        "error"
+      );
+      return;
+    }
+
+    if (!datos.estatusHoraEnt) {
+      mostrarMensajeParametros(
+        "Seleccione Estatus Hora Ent.",
+        "error"
+      );
+      return;
+    }
+
+    if (
+      datos.salarioMinimo === "" ||
+      datos.salarioMinimoDesde === ""
+    ) {
+      mostrarMensajeParametros(
+        "Ingrese el salario mínimo y su vigencia.",
+        "error"
+      );
+      return;
+    }
+
+    if (boton) {
+      boton.disabled = true;
+    }
+
+    mostrarMensajeParametros(
+      "Guardando todos los parámetros...",
+      "info"
+    );
+
+    try {
+      const respuesta = await jsonp(
+        "guardarParametros",
+        datos
+      );
+
+      if (!respuesta || !respuesta.ok) {
+        throw new Error(
+          respuesta && respuesta.mensaje
+            ? respuesta.mensaje
+            : "No fue posible guardar los parámetros."
+        );
+      }
+
+      mostrarMensajeParametros(
+        respuesta.mensaje,
+        "ok"
+      );
+    } catch (error) {
+      mostrarMensajeParametros(
+        error.message,
+        "error"
+      );
+    } finally {
+      if (boton) {
+        boton.disabled = false;
+      }
+    }
+  }
+
+  function activarGuardadoCompleto() {
+    const formulario = document.getElementById(
+      "formParametros"
+    );
+
+    if (!formulario) {
+      return;
+    }
+
+    /*
+     * Elimina el manejador anterior:
+     * onsubmit="guardarParametros(event)"
+     */
+    formulario.removeAttribute("onsubmit");
+    formulario.onsubmit = null;
+
+    /*
+     * Se utiliza capture para asegurar que esta función
+     * sea la única que procese el guardado.
+     */
+    formulario.addEventListener(
+      "submit",
+      guardarTodosLosParametros,
+      true
+    );
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener(
+      "DOMContentLoaded",
+      activarGuardadoCompleto
+    );
+  } else {
+    activarGuardadoCompleto();
+  }
+})();
+</script>
   
 </body>
 
