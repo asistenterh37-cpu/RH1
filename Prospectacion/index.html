@@ -1,540 +1,1388 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>Extractor Google Maps Autónomo</title>
+
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+
 <style>
-body{font-family:Arial,sans-serif;background:#f4f7fb;margin:0;padding:24px;color:#1f2937;user-select:none}
-.container{max-width:1400px;margin:auto;background:white;padding:28px;border-radius:16px;box-shadow:0 8px 24px rgba(0,0,0,.08)}
-h1{margin-top:0;color:#0f172a}
-table{width:100%;border-collapse:collapse;font-size:14px}
-th{background:#dbeafe;padding:10px;border:1px solid #cbd5e1;text-align:left}
-td{padding:8px;border:1px solid #e2e8f0;vertical-align:top}
-input,select{width:100%;padding:10px;border:1px solid #cbd5e1;border-radius:8px;box-sizing:border-box;user-select:auto}
-button{border:none;padding:12px 18px;border-radius:10px;font-weight:bold;cursor:pointer;color:white;background:#2563eb}
-button:hover{background:#1d4ed8}
-.green{background:#059669}.green:hover{background:#047857}
-.red{background:#dc2626}.red:hover{background:#b91c1c}
-.purple{background:#7c3aed}.purple:hover{background:#6d28d9}
-.gray{background:#475569}.gray:hover{background:#334155}
-.plus-btn,.delete-btn{width:42px;height:42px;border-radius:50%;font-size:22px;padding:0;margin-right:6px}
-.plus-btn{background:#0f766e}.delete-btn{background:#dc2626}
-.actions{display:flex;gap:10px;flex-wrap:wrap;margin:18px 0}
-.automation-row{display:grid;grid-template-columns:repeat(7,1fr);margin-bottom:8px}
-.automation-btn-wrap{grid-column:5 / 7}
-#estadoGeneral{font-weight:bold;margin:14px 0;color:#334155}
-.results-table{margin-top:15px}.results-table tr:nth-child(even){background:#f8fafc}
-.modal{display:none;position:fixed;z-index:1000;left:0;top:0;width:100%;height:100%;background:rgba(15,23,42,.55)}
-.modal-content{background:white;margin:5% auto;padding:24px;width:85%;max-width:1000px;border-radius:16px;box-shadow:0 12px 30px rgba(0,0,0,.25);max-height:80vh;overflow:auto}
-.close{float:right;font-size:28px;font-weight:bold;cursor:pointer;color:#475569}
-.card-auto{border:1px solid #cbd5e1;border-radius:12px;padding:16px;margin:12px 0;background:#f8fafc}
-.card-auto h3{margin:0 0 8px;color:#0f172a}.card-auto p{margin:0;line-height:1.5}
-.contact-card{background:#ecfdf5;border-color:#10b981}.contact-card h3{color:#047857}
-#pantallaSalida{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:#0f172a;color:white;justify-content:center;align-items:center;flex-direction:column;z-index:99999;text-align:center}
-#pantallaSalida button{margin-top:25px;padding:15px 35px;font-size:18px;background:#2563eb}
+body {
+  font-family: Arial, sans-serif;
+  background: #f4f7fb;
+  margin: 0;
+  padding: 24px;
+  color: #1f2937;
+  user-select: none;
+}
+
+.container {
+  max-width: 1400px;
+  margin: auto;
+  background: #fff;
+  padding: 28px;
+  border-radius: 16px;
+  box-shadow: 0 8px 24px rgba(0,0,0,.08);
+}
+
+h1 {
+  margin-top: 0;
+  color: #0f172a;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+th {
+  background: #dbeafe;
+  padding: 10px;
+  border: 1px solid #cbd5e1;
+  text-align: left;
+}
+
+td {
+  padding: 8px;
+  border: 1px solid #e2e8f0;
+  vertical-align: top;
+}
+
+input,
+select {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  box-sizing: border-box;
+  user-select: auto;
+}
+
+button {
+  border: none;
+  padding: 12px 18px;
+  border-radius: 10px;
+  font-weight: bold;
+  cursor: pointer;
+  color: #fff;
+  background: #2563eb;
+}
+
+button:hover {
+  background: #1d4ed8;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: .65;
+}
+
+.green {
+  background: #059669;
+}
+
+.green:hover {
+  background: #047857;
+}
+
+.red {
+  background: #dc2626;
+}
+
+.red:hover {
+  background: #b91c1c;
+}
+
+.purple {
+  background: #7c3aed;
+}
+
+.purple:hover {
+  background: #6d28d9;
+}
+
+.gray {
+  background: #475569;
+}
+
+.gray:hover {
+  background: #334155;
+}
+
+.plus-btn,
+.delete-btn {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  font-size: 22px;
+  padding: 0;
+  margin-right: 6px;
+}
+
+.plus-btn {
+  background: #0f766e;
+}
+
+.delete-btn {
+  background: #dc2626;
+}
+
+.actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 18px 0;
+}
+
+.automation-row {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  margin-bottom: 8px;
+}
+
+.automation-btn-wrap {
+  grid-column: 5 / 7;
+}
+
+#estadoGeneral {
+  font-weight: bold;
+  margin: 14px 0;
+  color: #334155;
+}
+
+.results-table {
+  margin-top: 15px;
+}
+
+.results-table tr:nth-child(even) {
+  background: #f8fafc;
+}
+
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 1000;
+  inset: 0;
+  background: rgba(15,23,42,.55);
+}
+
+.modal-content {
+  background: #fff;
+  margin: 5% auto;
+  padding: 24px;
+  width: 85%;
+  max-width: 1000px;
+  border-radius: 16px;
+  box-shadow: 0 12px 30px rgba(0,0,0,.25);
+  max-height: 80vh;
+  overflow: auto;
+}
+
+.close {
+  float: right;
+  font-size: 28px;
+  font-weight: bold;
+  cursor: pointer;
+  color: #475569;
+}
+
+.card-auto {
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  padding: 16px;
+  margin: 12px 0;
+  background: #f8fafc;
+}
+
+.card-auto h3 {
+  margin: 0 0 8px;
+  color: #0f172a;
+}
+
+.card-auto p {
+  margin: 0;
+  line-height: 1.5;
+}
+
+.contact-card {
+  background: #ecfdf5;
+  border-color: #10b981;
+}
+
+.contact-card h3 {
+  color: #047857;
+}
+
+#pantallaSalida {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: #0f172a;
+  color: #fff;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  z-index: 99999;
+  text-align: center;
+}
+
+#pantallaSalida button {
+  margin-top: 25px;
+  padding: 15px 35px;
+  font-size: 18px;
+  background: #2563eb;
+}
+
+/*
+ El mapa se mantiene disponible para Google Maps,
+ pero fuera del área visible.
+*/
+#map {
+  height: 1px;
+  width: 1px;
+  position: absolute;
+  left: -9999px;
+}
+
+@media (max-width: 900px) {
+  body {
+    padding: 10px;
+  }
+
+  .container {
+    padding: 15px;
+    overflow-x: auto;
+  }
+
+  table {
+    min-width: 900px;
+  }
+
+  .automation-btn-wrap {
+    grid-column: 1 / 8;
+  }
+}
 </style>
 </head>
 
 <body>
+
 <div class="container">
-<h1>Extractor Google Maps</h1>
 
-<div class="automation-row">
-  <div class="automation-btn-wrap">
-    <button class="purple" onclick="abrirAutomatizaciones()">Mis automatizaciones</button>
+  <h1>Extractor Google Maps</h1>
+
+  <div class="automation-row">
+    <div class="automation-btn-wrap">
+      <button
+        type="button"
+        class="purple"
+        onclick="abrirAutomatizaciones()"
+      >
+        Mis automatizaciones
+      </button>
+    </div>
   </div>
-</div>
 
-<table>
-<thead>
-<tr>
-<th>Búsqueda</th>
-<th>Ciudad</th>
-<th>Departamento</th>
-<th>País</th>
-<th>Radio KM</th>
-<th>Estado</th>
-<th>Acciones</th>
-</tr>
-</thead>
+  <table>
+    <thead>
+      <tr>
+        <th>Búsqueda</th>
+        <th>Ciudad</th>
+        <th>Departamento</th>
+        <th>País</th>
+        <th>Radio KM</th>
+        <th>Estado</th>
+        <th>Acciones</th>
+      </tr>
+    </thead>
 
-<tbody id="tbodyBusquedas">
-<tr>
-<td><input class="busqueda" value="Empresas"></td>
-<td><input class="ciudad" value="San Pedro Sula"></td>
-<td><input class="departamento" value="Cortés"></td>
-<td><input class="pais" value="Honduras"></td>
-<td><input class="radioKm" type="number" value="3" min="1"></td>
-<td>
-<select class="estado">
-<option value="Pendiente" selected>Pendiente</option>
-<option value="Procesando">Procesando</option>
-<option value="Procesado">Procesado</option>
-<option value="Sin resultados">Sin resultados</option>
-<option value="Error">Error</option>
-</select>
-</td>
-<td>
-<button class="plus-btn" onclick="agregarBusqueda()">+</button>
-<button class="delete-btn" onclick="borrarFila(this)">×</button>
-</td>
-</tr>
-</tbody>
-</table>
+    <tbody id="tbodyBusquedas">
+      <tr>
+        <td>
+          <input class="busqueda" value="Empresas">
+        </td>
 
-<div class="actions">
-<button onclick="buscarTodas()">Buscar</button>
-<button class="green" onclick="exportarExcel()">Exportar a Excel</button>
-<button class="red" onclick="limpiarResultados()">Limpiar resultados</button>
-<button class="gray" onclick="salirSistema()">Salir</button>
-</div>
+        <td>
+          <input class="ciudad" value="San Pedro Sula">
+        </td>
 
-<input id="filtro" placeholder="Filtrar resultados..." onkeyup="filtrarTabla()">
+        <td>
+          <input class="departamento" value="Cortés">
+        </td>
 
-<div id="estadoGeneral">Resultados: 0</div>
+        <td>
+          <input class="pais" value="Honduras">
+        </td>
 
-<table class="results-table" id="tabla">
-<thead>
-<tr>
-<th>No</th>
-<th>Nombre</th>
-<th>Teléfono</th>
-<th>Dirección</th>
-<th>Sitio web</th>
-<th>Categoría</th>
-</tr>
-</thead>
-<tbody></tbody>
-</table>
+        <td>
+          <input
+            class="radioKm"
+            type="number"
+            value="3"
+            min="1"
+            max="50"
+          >
+        </td>
+
+        <td>
+          <select class="estado">
+            <option value="Pendiente" selected>Pendiente</option>
+            <option value="Procesando">Procesando</option>
+            <option value="Procesado">Procesado</option>
+            <option value="Sin resultados">Sin resultados</option>
+            <option value="Error">Error</option>
+          </select>
+        </td>
+
+        <td>
+          <button
+            type="button"
+            class="plus-btn"
+            onclick="agregarBusqueda()"
+          >
+            +
+          </button>
+
+          <button
+            type="button"
+            class="delete-btn"
+            onclick="borrarFila(this)"
+          >
+            ×
+          </button>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="actions">
+    <button
+      type="button"
+      id="btnBuscar"
+      onclick="buscarTodas()"
+    >
+      Buscar
+    </button>
+
+    <button
+      type="button"
+      class="green"
+      onclick="exportarExcel()"
+    >
+      Exportar a Excel
+    </button>
+
+    <button
+      type="button"
+      class="red"
+      onclick="limpiarResultados()"
+    >
+      Limpiar resultados
+    </button>
+
+    <button
+      type="button"
+      class="gray"
+      onclick="salirSistema()"
+    >
+      Salir
+    </button>
+  </div>
+
+  <input
+    id="filtro"
+    placeholder="Filtrar resultados..."
+    onkeyup="filtrarTabla()"
+  >
+
+  <div id="estadoGeneral">
+    Cargando Google Maps...
+  </div>
+
+  <table class="results-table" id="tabla">
+    <thead>
+      <tr>
+        <th>No</th>
+        <th>Nombre</th>
+        <th>Teléfono</th>
+        <th>Dirección</th>
+        <th>Sitio web</th>
+        <th>Categoría</th>
+      </tr>
+    </thead>
+
+    <tbody></tbody>
+  </table>
+
 </div>
 
 <div id="modalAutomatizaciones" class="modal">
-<div class="modal-content">
-<span class="close" onclick="cerrarAutomatizaciones()">&times;</span>
-<h2>Mis automatizaciones</h2>
-<div id="listaAutomatizaciones"></div>
-</div>
+  <div class="modal-content">
+    <span
+      class="close"
+      onclick="cerrarAutomatizaciones()"
+    >
+      &times;
+    </span>
+
+    <h2>Mis automatizaciones</h2>
+
+    <div id="listaAutomatizaciones"></div>
+  </div>
 </div>
 
 <div id="pantallaSalida">
-<h1>Sesión finalizada</h1>
-<p>Gracias por utilizar el sistema.</p>
-<button onclick="location.reload()">Ingresar nuevamente</button>
+  <h1>Sesión finalizada</h1>
+  <p>Gracias por utilizar el sistema.</p>
+
+  <button
+    type="button"
+    onclick="location.reload()"
+  >
+    Ingresar nuevamente
+  </button>
 </div>
 
-<div id="map" style="display:none"></div>
+<div id="map"></div>
 
 <script>
-let map, service, geocoder;
+let map;
+let geocoder;
+let Place;
+
 let resultados = [];
+let mapsListo = false;
+let buscando = false;
 
 const automatizaciones = [
-  {titulo:"Descripción de puestos", descripcion:"Este módulo permite recopilar y documentar de manera estructurada la información necesaria para elaborar descripciones de puesto dentro de la organización."},
-  {titulo:"Reclutamiento", descripcion:"Automatiza y centraliza el proceso de reclutamiento y selección de personal."},
-  {titulo:"Marco normativo", descripcion:"Centraliza políticas, normas y procedimientos institucionales."},
-  {titulo:"Evaluación del desempeño", descripcion:"Centraliza medición, seguimiento y desarrollo del talento humano."},
-  {titulo:"Mapeo del talento", descripcion:"Permite evaluar y clasificar talento mediante rendimiento y potencial."},
-  {titulo:"Administración de salarios", descripcion:"Permite analizar y gestionar estructuras de compensación."},
-  {titulo:"Clima laboral", descripcion:"Permite medir y analizar el clima laboral mediante encuestas y dashboards."},
-  {titulo:"Expedientes de personal", descripcion:"Administra el expediente digital del colaborador."},
-  {titulo:"Compensación variable", descripcion:"Automatiza el cálculo de bonos."},
-  {titulo:"Plan de retiro", descripcion:"Calcula y proyecta el costo futuro de prestaciones laborales."},
-  {titulo:"Automatización de procesos con IA", descripcion:"Automatiza procesos administrativos mediante inteligencia artificial."},
-  {titulo:"Contáctame", descripcion:"Puedo llevar tu organización a otro nivel. WhatsApp: 9879 0377", contacto:true}
+  {
+    titulo: "Descripción de puestos",
+    descripcion: "Este módulo permite recopilar y documentar de manera estructurada la información necesaria para elaborar descripciones de puesto dentro de la organización."
+  },
+  {
+    titulo: "Reclutamiento",
+    descripcion: "Automatiza y centraliza el proceso de reclutamiento y selección de personal."
+  },
+  {
+    titulo: "Marco normativo",
+    descripcion: "Centraliza políticas, normas y procedimientos institucionales."
+  },
+  {
+    titulo: "Evaluación del desempeño",
+    descripcion: "Centraliza medición, seguimiento y desarrollo del talento humano."
+  },
+  {
+    titulo: "Mapeo del talento",
+    descripcion: "Permite evaluar y clasificar talento mediante rendimiento y potencial."
+  },
+  {
+    titulo: "Administración de salarios",
+    descripcion: "Permite analizar y gestionar estructuras de compensación."
+  },
+  {
+    titulo: "Clima laboral",
+    descripcion: "Permite medir y analizar el clima laboral mediante encuestas y dashboards."
+  },
+  {
+    titulo: "Expedientes de personal",
+    descripcion: "Administra el expediente digital del colaborador."
+  },
+  {
+    titulo: "Compensación variable",
+    descripcion: "Automatiza el cálculo de bonos."
+  },
+  {
+    titulo: "Plan de retiro",
+    descripcion: "Calcula y proyecta el costo futuro de prestaciones laborales."
+  },
+  {
+    titulo: "Automatización de procesos con IA",
+    descripcion: "Automatiza procesos administrativos mediante inteligencia artificial."
+  },
+  {
+    titulo: "Contáctame",
+    descripcion: "Puedo llevar tu organización a otro nivel. WhatsApp: 9879 0377",
+    contacto: true
+  }
 ];
 
-function initMap(){
-  map = new google.maps.Map(document.getElementById("map"), {
-    center:{lat:15.5,lng:-88.03},
-    zoom:8
-  });
+/* =====================================================
+   INICIALIZACIÓN DE GOOGLE MAPS
+===================================================== */
 
-  service = new google.maps.places.PlacesService(map);
-  geocoder = new google.maps.Geocoder();
-  setEstadoGeneral("Resultados: 0");
-}
+async function initMap() {
+  try {
+    const [
+      { Map },
+      { Geocoder },
+      { Place: PlaceClass }
+    ] = await Promise.all([
+      google.maps.importLibrary("maps"),
+      google.maps.importLibrary("geocoding"),
+      google.maps.importLibrary("places")
+    ]);
 
-function googleMapsError(){
-  alert("No cargó Google Maps. Revisa API Key, facturación, restricciones HTTP y que Places API/Geocoding API estén habilitadas.");
-  setEstadoGeneral("Error cargando Google Maps");
-}
+    Place = PlaceClass;
 
-function abrirAutomatizaciones(){
-  const c=document.getElementById("listaAutomatizaciones");
-  c.innerHTML="";
+    map = new Map(document.getElementById("map"), {
+      center: {
+        lat: 15.5,
+        lng: -88.03
+      },
+      zoom: 8
+    });
 
-  automatizaciones.forEach(item=>{
-    const div=document.createElement("div");
-    div.className=item.contacto ? "card-auto contact-card" : "card-auto";
-    div.innerHTML=`<h3>${escapeHtml(item.titulo)}</h3><p>${escapeHtml(item.descripcion)}</p>`;
-    c.appendChild(div);
-  });
+    geocoder = new Geocoder();
+    mapsListo = true;
 
-  document.getElementById("modalAutomatizaciones").style.display="block";
-}
+    setEstadoGeneral("Resultados: 0");
 
-function cerrarAutomatizaciones(){
-  document.getElementById("modalAutomatizaciones").style.display="none";
-}
+  } catch (error) {
+    console.error("Error iniciando Google Maps:", error);
 
-window.onclick=function(e){
-  const m=document.getElementById("modalAutomatizaciones");
-  if(e.target===m) cerrarAutomatizaciones();
-};
+    mapsListo = false;
 
-function setEstadoGeneral(t){
-  document.getElementById("estadoGeneral").innerText=t;
-}
-
-function setEstadoFila(fila,valor){
-  agregarOpcionEstado(fila,valor);
-  fila.querySelector(".estado").value=valor;
-}
-
-function agregarOpcionEstado(fila,valor){
-  const select=fila.querySelector(".estado");
-  if(!Array.from(select.options).some(o=>o.value===valor)){
-    const option=document.createElement("option");
-    option.value=valor;
-    option.textContent=valor;
-    select.appendChild(option);
+    setEstadoGeneral(
+      "Error cargando Google Maps: " +
+      obtenerMensajeError(error)
+    );
   }
 }
 
-function agregarBusqueda(){
-  const filas=document.querySelectorAll("#tbodyBusquedas tr");
-  const ultima=filas[filas.length-1];
+function googleMapsError() {
+  mapsListo = false;
 
-  const ciudad=ultima.querySelector(".ciudad").value;
-  const departamento=ultima.querySelector(".departamento").value;
-  const pais=ultima.querySelector(".pais").value;
-  const radioKm=ultima.querySelector(".radioKm").value;
+  setEstadoGeneral(
+    "No cargó Google Maps. Revisa tu clave y las APIs habilitadas."
+  );
 
-  const tr=document.createElement("tr");
-
-  tr.innerHTML=`
-  <td><input class="busqueda" placeholder="Nueva búsqueda"></td>
-  <td><input class="ciudad" value="${escapeAttr(ciudad)}"></td>
-  <td><input class="departamento" value="${escapeAttr(departamento)}"></td>
-  <td><input class="pais" value="${escapeAttr(pais)}"></td>
-  <td><input class="radioKm" type="number" value="${escapeAttr(radioKm)}" min="1"></td>
-  <td>
-    <select class="estado">
-      <option value="Pendiente" selected>Pendiente</option>
-      <option value="Procesando">Procesando</option>
-      <option value="Procesado">Procesado</option>
-      <option value="Sin resultados">Sin resultados</option>
-      <option value="Error">Error</option>
-    </select>
-  </td>
-  <td>
-    <button class="plus-btn" onclick="agregarBusqueda()">+</button>
-    <button class="delete-btn" onclick="borrarFila(this)">×</button>
-  </td>`;
-
-  document.getElementById("tbodyBusquedas").appendChild(tr);
-  tr.querySelector(".busqueda").focus();
+  alert(
+    "No cargó Google Maps. Revisa la API Key, " +
+    "la facturación y las restricciones del dominio."
+  );
 }
 
-function borrarFila(btn){
-  const tbody=document.getElementById("tbodyBusquedas");
+/* =====================================================
+   MODAL DE AUTOMATIZACIONES
+===================================================== */
 
-  if(tbody.querySelectorAll("tr").length===1){
+function abrirAutomatizaciones() {
+  const contenedor = document.getElementById(
+    "listaAutomatizaciones"
+  );
+
+  contenedor.innerHTML = "";
+
+  automatizaciones.forEach(item => {
+    const div = document.createElement("div");
+
+    div.className = item.contacto
+      ? "card-auto contact-card"
+      : "card-auto";
+
+    div.innerHTML = `
+      <h3>${escapeHtml(item.titulo)}</h3>
+      <p>${escapeHtml(item.descripcion)}</p>
+    `;
+
+    contenedor.appendChild(div);
+  });
+
+  document.getElementById(
+    "modalAutomatizaciones"
+  ).style.display = "block";
+}
+
+function cerrarAutomatizaciones() {
+  document.getElementById(
+    "modalAutomatizaciones"
+  ).style.display = "none";
+}
+
+window.onclick = function(evento) {
+  const modal = document.getElementById(
+    "modalAutomatizaciones"
+  );
+
+  if (evento.target === modal) {
+    cerrarAutomatizaciones();
+  }
+};
+
+/* =====================================================
+   ESTADOS
+===================================================== */
+
+function setEstadoGeneral(texto) {
+  document.getElementById(
+    "estadoGeneral"
+  ).innerText = texto;
+}
+
+function setEstadoFila(fila, valor) {
+  agregarOpcionEstado(fila, valor);
+  fila.querySelector(".estado").value = valor;
+}
+
+function agregarOpcionEstado(fila, valor) {
+  const select = fila.querySelector(".estado");
+
+  const existe = Array.from(select.options).some(
+    opcion => opcion.value === valor
+  );
+
+  if (!existe) {
+    const opcion = document.createElement("option");
+
+    opcion.value = valor;
+    opcion.textContent = valor;
+
+    select.appendChild(opcion);
+  }
+}
+
+/* =====================================================
+   FILAS DE BÚSQUEDA
+===================================================== */
+
+function agregarBusqueda() {
+  const filas = document.querySelectorAll(
+    "#tbodyBusquedas tr"
+  );
+
+  const ultimaFila = filas[filas.length - 1];
+
+  const ciudad = ultimaFila
+    .querySelector(".ciudad").value;
+
+  const departamento = ultimaFila
+    .querySelector(".departamento").value;
+
+  const pais = ultimaFila
+    .querySelector(".pais").value;
+
+  const radioKm = ultimaFila
+    .querySelector(".radioKm").value;
+
+  const fila = document.createElement("tr");
+
+  fila.innerHTML = `
+    <td>
+      <input
+        class="busqueda"
+        placeholder="Nueva búsqueda"
+      >
+    </td>
+
+    <td>
+      <input
+        class="ciudad"
+        value="${escapeAttr(ciudad)}"
+      >
+    </td>
+
+    <td>
+      <input
+        class="departamento"
+        value="${escapeAttr(departamento)}"
+      >
+    </td>
+
+    <td>
+      <input
+        class="pais"
+        value="${escapeAttr(pais)}"
+      >
+    </td>
+
+    <td>
+      <input
+        class="radioKm"
+        type="number"
+        value="${escapeAttr(radioKm)}"
+        min="1"
+        max="50"
+      >
+    </td>
+
+    <td>
+      <select class="estado">
+        <option value="Pendiente" selected>
+          Pendiente
+        </option>
+
+        <option value="Procesando">
+          Procesando
+        </option>
+
+        <option value="Procesado">
+          Procesado
+        </option>
+
+        <option value="Sin resultados">
+          Sin resultados
+        </option>
+
+        <option value="Error">
+          Error
+        </option>
+      </select>
+    </td>
+
+    <td>
+      <button
+        type="button"
+        class="plus-btn"
+        onclick="agregarBusqueda()"
+      >
+        +
+      </button>
+
+      <button
+        type="button"
+        class="delete-btn"
+        onclick="borrarFila(this)"
+      >
+        ×
+      </button>
+    </td>
+  `;
+
+  document
+    .getElementById("tbodyBusquedas")
+    .appendChild(fila);
+
+  fila.querySelector(".busqueda").focus();
+}
+
+function borrarFila(boton) {
+  const tbody = document.getElementById(
+    "tbodyBusquedas"
+  );
+
+  if (tbody.querySelectorAll("tr").length === 1) {
     alert("Debe quedar al menos una fila de búsqueda.");
     return;
   }
 
-  btn.closest("tr").remove();
+  boton.closest("tr").remove();
 }
 
-async function buscarTodas(){
-  if(!service || !geocoder){
-    alert("Google Maps todavía no ha cargado o la API Key está incorrecta.");
+/* =====================================================
+   PROCESAR TODAS LAS BÚSQUEDAS
+===================================================== */
+
+async function buscarTodas() {
+  if (buscando) {
     return;
   }
 
-  resultados=[];
+  if (!mapsListo || !geocoder || !Place) {
+    alert(
+      "Google Maps no está listo.\n\n" +
+      "Revisa la API Key y habilita:\n" +
+      "• Maps JavaScript API\n" +
+      "• Geocoding API\n" +
+      "• Places API (New)"
+    );
+
+    return;
+  }
+
+  buscando = true;
+
+  const botonBuscar = document.getElementById(
+    "btnBuscar"
+  );
+
+  botonBuscar.disabled = true;
+  botonBuscar.textContent = "Buscando...";
+
+  resultados = [];
   pintarTabla(resultados);
 
-  const filas=Array.from(document.querySelectorAll("#tbodyBusquedas tr"));
+  try {
+    const filas = Array.from(
+      document.querySelectorAll(
+        "#tbodyBusquedas tr"
+      )
+    );
 
-  for(const fila of filas){
-    const estado=fila.querySelector(".estado").value;
+    for (const fila of filas) {
+      const busqueda = fila
+        .querySelector(".busqueda")
+        .value
+        .trim();
 
-    if(estado==="Procesado") continue;
+      const ciudad = fila
+        .querySelector(".ciudad")
+        .value
+        .trim();
 
-    const busqueda=fila.querySelector(".busqueda").value.trim();
-    const ciudad=fila.querySelector(".ciudad").value.trim();
-    const departamento=fila.querySelector(".departamento").value.trim();
-    const pais=fila.querySelector(".pais").value.trim();
-    const radioKm=Number(fila.querySelector(".radioKm").value)||3;
+      const departamento = fila
+        .querySelector(".departamento")
+        .value
+        .trim();
 
-    if(!busqueda || !ciudad || !pais){
-      setEstadoFila(fila,"Pendiente");
-      continue;
+      const pais = fila
+        .querySelector(".pais")
+        .value
+        .trim();
+
+      const radioIntroducido = Number(
+        fila.querySelector(".radioKm").value
+      ) || 3;
+
+      const radioKm = Math.min(
+        Math.max(radioIntroducido, 1),
+        50
+      );
+
+      if (!busqueda || !ciudad || !pais) {
+        setEstadoFila(fila, "Pendiente");
+        continue;
+      }
+
+      try {
+        setEstadoFila(fila, "Procesando");
+
+        const cantidadAnterior = resultados.length;
+
+        await buscarPorRadio({
+          busqueda,
+          ciudad,
+          departamento,
+          pais,
+          radioKm
+        });
+
+        if (resultados.length > cantidadAnterior) {
+          setEstadoFila(fila, "Procesado");
+        } else {
+          setEstadoFila(fila, "Sin resultados");
+        }
+
+      } catch (error) {
+        console.error(
+          "Error procesando la fila:",
+          error
+        );
+
+        setEstadoFila(fila, "Error");
+
+        setEstadoGeneral(
+          "Error: " + obtenerMensajeError(error)
+        );
+      }
     }
 
-    try{
-      setEstadoFila(fila,"Procesando");
-      const antes=resultados.length;
+    setEstadoGeneral(
+      "Resultados: " + resultados.length
+    );
 
-      await buscarPorRadio({
-        busqueda,
-        ciudad,
-        departamento,
-        pais,
-        radioKm
-      });
+  } finally {
+    buscando = false;
 
-      setEstadoFila(fila,resultados.length>antes ? "Procesado" : "Sin resultados");
-    }catch(error){
-      console.error(error);
-      setEstadoFila(fila,"Error");
-      setEstadoGeneral(String(error));
+    botonBuscar.disabled = false;
+    botonBuscar.textContent = "Buscar";
+  }
+}
+
+/* =====================================================
+   GEOCODIFICACIÓN
+===================================================== */
+
+function geocodificar(direccion) {
+  const consulta = geocoder.geocode({
+    address: direccion,
+    region: "HN"
+  }).then(respuesta => {
+    if (
+      !respuesta.results ||
+      !respuesta.results.length
+    ) {
+      throw new Error(
+        "No se encontró la ubicación: " +
+        direccion
+      );
     }
-  }
 
-  setEstadoGeneral("Resultados: "+resultados.length);
-}
-
-function geocodificar(direccion){
-  return new Promise((resolve,reject)=>{
-    geocoder.geocode({address:direccion},(results,status)=>{
-      if(status==="OK" && results && results[0]){
-        resolve(results[0].geometry.location);
-      }else{
-        reject("No se pudo ubicar: "+direccion+" / Estado: "+status);
-      }
-    });
+    return respuesta.results[0]
+      .geometry
+      .location;
   });
+
+  const limiteTiempo = new Promise(
+    (_, reject) => {
+      setTimeout(() => {
+        reject(
+          new Error(
+            "Google Maps tardó demasiado " +
+            "en ubicar la dirección."
+          )
+        );
+      }, 15000);
+    }
+  );
+
+  return Promise.race([
+    consulta,
+    limiteTiempo
+  ]);
 }
 
-async function buscarPorRadio(params){
-  const ubicacionTexto = `${params.ciudad}, ${params.departamento}, ${params.pais}`;
+/* =====================================================
+   PLACES API (NEW)
+===================================================== */
 
-  setEstadoGeneral("Ubicando: "+ubicacionTexto);
+async function buscarPorRadio(parametros) {
+  const ubicacionTexto = [
+    parametros.ciudad,
+    parametros.departamento,
+    parametros.pais
+  ]
+    .filter(Boolean)
+    .join(", ");
 
-  const location=await geocodificar(ubicacionTexto);
-  const radioMetros=params.radioKm*1000;
+  setEstadoGeneral(
+    "Ubicando: " + ubicacionTexto
+  );
 
-  setEstadoGeneral("Buscando: "+params.busqueda+" a "+params.radioKm+" KM de "+params.ciudad);
+  const ubicacion = await geocodificar(
+    ubicacionTexto
+  );
 
-  return new Promise(resolve=>{
-    const request={
-      location,
-      radius:radioMetros,
-      keyword:params.busqueda
+  const centro = {
+    lat: ubicacion.lat(),
+    lng: ubicacion.lng()
+  };
+
+  const radioMetros =
+    parametros.radioKm * 1000;
+
+  setEstadoGeneral(
+    "Buscando: " +
+    parametros.busqueda +
+    " a " +
+    parametros.radioKm +
+    " KM de " +
+    parametros.ciudad
+  );
+
+  const solicitud = {
+    textQuery:
+      parametros.busqueda +
+      " en " +
+      ubicacionTexto,
+
+    fields: [
+      "id",
+      "displayName",
+      "formattedAddress",
+      "nationalPhoneNumber",
+      "internationalPhoneNumber",
+      "websiteURI",
+      "types",
+      "location"
+    ],
+
+    locationBias: {
+      center: centro,
+      radius: radioMetros
+    },
+
+    language: "es",
+    region: "HN",
+    maxResultCount: 20
+  };
+
+  const respuesta = await Place.searchByText(
+    solicitud
+  );
+
+  const lugares = respuesta.places || [];
+
+  /*
+   locationBias ayuda a Google a priorizar la zona,
+   pero no garantiza el radio. Por eso se filtran
+   nuevamente las distancias.
+  */
+  const lugaresDentroDelRadio = lugares.filter(
+    lugar => {
+      if (!lugar.location) {
+        return false;
+      }
+
+      const distancia = calcularDistanciaMetros(
+        centro.lat,
+        centro.lng,
+        lugar.location.lat(),
+        lugar.location.lng()
+      );
+
+      return distancia <= radioMetros;
+    }
+  );
+
+  lugaresDentroDelRadio.forEach(lugar => {
+    const registro = {
+      nombre:
+        lugar.displayName || "",
+
+      telefono:
+        lugar.nationalPhoneNumber ||
+        lugar.internationalPhoneNumber ||
+        "",
+
+      direccion:
+        lugar.formattedAddress || "",
+
+      sitioWeb:
+        lugar.websiteURI || "",
+
+      categoria:
+        traducirCategoria(
+          lugar.types || []
+        )
     };
 
-    const manejarPagina=(places,status,pagination)=>{
-      if(status!==google.maps.places.PlacesServiceStatus.OK || !places || !places.length){
-        setEstadoGeneral("Sin resultados o estado de búsqueda: "+status);
-        resolve();
-        return;
-      }
-
-      procesarPlaces(places,()=>{
-        if(pagination && pagination.hasNextPage){
-          setTimeout(()=>pagination.nextPage(),2000);
-        }else{
-          resolve();
-        }
-      });
-    };
-
-    service.nearbySearch(request,manejarPagina);
+    if (!existeRegistro(registro)) {
+      resultados.push(registro);
+    }
   });
+
+  pintarTabla(resultados);
 }
 
-function procesarPlaces(places,callback){
-  let procesados=0;
+/* =====================================================
+   CALCULAR DISTANCIA REAL
+===================================================== */
 
-  if(!places || !places.length){
-    callback();
-    return;
-  }
+function calcularDistanciaMetros(
+  latitud1,
+  longitud1,
+  latitud2,
+  longitud2
+) {
+  const radioTierra = 6371000;
+  const radianes = Math.PI / 180;
 
-  places.forEach(place=>{
-    service.getDetails({
-      placeId:place.place_id,
-      fields:[
-        "name",
-        "formatted_address",
-        "formatted_phone_number",
-        "international_phone_number",
-        "website",
-        "types"
-      ]
-    },(detalle,status)=>{
-      if(status===google.maps.places.PlacesServiceStatus.OK && detalle){
-        const registro={
-          nombre:detalle.name||"",
-          telefono:detalle.formatted_phone_number||detalle.international_phone_number||"",
-          direccion:detalle.formatted_address||"",
-          sitioWeb:detalle.website||"",
-          categoria:traducirCategoria(detalle.types)
-        };
+  const diferenciaLatitud =
+    (latitud2 - latitud1) * radianes;
 
-        if(!existeRegistro(registro)){
-          resultados.push(registro);
-          pintarTabla(resultados);
-        }
-      }
+  const diferenciaLongitud =
+    (longitud2 - longitud1) * radianes;
 
-      procesados++;
+  const calculo =
+    Math.sin(diferenciaLatitud / 2) ** 2 +
+    Math.cos(latitud1 * radianes) *
+    Math.cos(latitud2 * radianes) *
+    Math.sin(diferenciaLongitud / 2) ** 2;
 
-      if(procesados===places.length) callback();
-    });
-  });
+  return radioTierra *
+    2 *
+    Math.atan2(
+      Math.sqrt(calculo),
+      Math.sqrt(1 - calculo)
+    );
 }
 
-function existeRegistro(nuevo){
-  return resultados.some(r=>
-    r.nombre===nuevo.nombre ||
-    (nuevo.telefono && r.telefono===nuevo.telefono) ||
-    (nuevo.direccion && r.direccion===nuevo.direccion)
+/* =====================================================
+   VALIDACIÓN DE DUPLICADOS
+===================================================== */
+
+function existeRegistro(nuevoRegistro) {
+  return resultados.some(registro =>
+    (
+      nuevoRegistro.nombre &&
+      registro.nombre === nuevoRegistro.nombre
+    ) ||
+    (
+      nuevoRegistro.telefono &&
+      registro.telefono === nuevoRegistro.telefono
+    ) ||
+    (
+      nuevoRegistro.direccion &&
+      registro.direccion === nuevoRegistro.direccion
+    )
   );
 }
 
-function traducirCategoria(types){
-  if(!types || !types.length) return "";
+/* =====================================================
+   CATEGORÍAS
+===================================================== */
 
-  const mapa={
-    employment_agency:"Agencia de empleo",
-    local_government_office:"Oficina gubernamental",
-    corporate_office:"Oficina corporativa",
-    store:"Tienda",
-    restaurant:"Restaurante",
-    school:"Escuela",
-    university:"Universidad",
-    lodging:"Hotel",
-    shopping_mall:"Centro comercial",
-    point_of_interest:"Punto de interés",
-    establishment:"Establecimiento",
-    business_center:"Centro de negocios",
-    accounting:"Contabilidad",
-    lawyer:"Abogado",
-    real_estate_agency:"Bienes raíces",
-    finance:"Finanzas",
-    bank:"Banco",
-    insurance_agency:"Agencia de seguros",
-    car_dealer:"Venta de autos",
-    hardware_store:"Ferretería",
-    pharmacy:"Farmacia",
-    hospital:"Hospital",
-    doctor:"Doctor",
-    dentist:"Dentista",
-    gym:"Gimnasio",
-    beauty_salon:"Salón de belleza",
-    bar:"Bar",
-    cafe:"Café",
-    bakery:"Panadería"
+function traducirCategoria(tipos) {
+  if (!tipos || !tipos.length) {
+    return "";
+  }
+
+  const categorias = {
+    employment_agency: "Agencia de empleo",
+    local_government_office: "Oficina gubernamental",
+    corporate_office: "Oficina corporativa",
+    store: "Tienda",
+    restaurant: "Restaurante",
+    school: "Escuela",
+    university: "Universidad",
+    lodging: "Hotel",
+    shopping_mall: "Centro comercial",
+    point_of_interest: "Punto de interés",
+    establishment: "Establecimiento",
+    business_center: "Centro de negocios",
+    accounting: "Contabilidad",
+    lawyer: "Abogado",
+    real_estate_agency: "Bienes raíces",
+    finance: "Finanzas",
+    bank: "Banco",
+    insurance_agency: "Agencia de seguros",
+    car_dealer: "Venta de autos",
+    hardware_store: "Ferretería",
+    pharmacy: "Farmacia",
+    hospital: "Hospital",
+    doctor: "Doctor",
+    dentist: "Dentista",
+    gym: "Gimnasio",
+    beauty_salon: "Salón de belleza",
+    bar: "Bar",
+    cafe: "Café",
+    bakery: "Panadería"
   };
 
-  return mapa[types[0]] || types[0].replaceAll("_"," ");
+  const tipoPrincipal = tipos[0];
+
+  return categorias[tipoPrincipal] ||
+    tipoPrincipal.replaceAll("_", " ");
 }
 
-function pintarTabla(data){
-  const tbody=document.querySelector("#tabla tbody");
-  tbody.innerHTML="";
+/* =====================================================
+   TABLA DE RESULTADOS
+===================================================== */
 
-  data.forEach((row,index)=>{
-    const tr=document.createElement("tr");
-    const sitio=escapeAttr(row.sitioWeb);
+function pintarTabla(datos) {
+  const tbody = document.querySelector(
+    "#tabla tbody"
+  );
 
-    tr.innerHTML=`
-    <td>${index+1}</td>
-    <td>${escapeHtml(row.nombre)}</td>
-    <td>${escapeHtml(row.telefono)}</td>
-    <td>${escapeHtml(row.direccion)}</td>
-    <td>${row.sitioWeb ? `<a href="${sitio}" target="_blank" rel="noopener noreferrer">${escapeHtml(row.sitioWeb)}</a>` : ""}</td>
-    <td>${escapeHtml(row.categoria)}</td>`;
+  tbody.innerHTML = "";
 
-    tbody.appendChild(tr);
+  datos.forEach((registro, indice) => {
+    const fila = document.createElement("tr");
+
+    const sitioSeguro = escapeAttr(
+      registro.sitioWeb
+    );
+
+    fila.innerHTML = `
+      <td>${indice + 1}</td>
+
+      <td>
+        ${escapeHtml(registro.nombre)}
+      </td>
+
+      <td>
+        ${escapeHtml(registro.telefono)}
+      </td>
+
+      <td>
+        ${escapeHtml(registro.direccion)}
+      </td>
+
+      <td>
+        ${
+          registro.sitioWeb
+            ? `
+              <a
+                href="${sitioSeguro}"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                ${escapeHtml(registro.sitioWeb)}
+              </a>
+            `
+            : ""
+        }
+      </td>
+
+      <td>
+        ${escapeHtml(registro.categoria)}
+      </td>
+    `;
+
+    tbody.appendChild(fila);
   });
 }
 
-function filtrarTabla(){
-  const texto=document.getElementById("filtro").value.toLowerCase();
+/* =====================================================
+   FILTRAR RESULTADOS
+===================================================== */
 
-  const filtrados=resultados.filter(row=>
-    Object.values(row).some(valor=>
-      String(valor||"").toLowerCase().includes(texto)
-    )
+function filtrarTabla() {
+  const texto = document
+    .getElementById("filtro")
+    .value
+    .toLowerCase();
+
+  const filtrados = resultados.filter(
+    registro =>
+      Object.values(registro).some(
+        valor =>
+          String(valor || "")
+            .toLowerCase()
+            .includes(texto)
+      )
   );
 
   pintarTabla(filtrados);
 }
 
-function exportarExcel(){
-  if(!resultados.length){
-    alert("No hay resultados para exportar.");
+/* =====================================================
+   EXPORTAR A EXCEL
+===================================================== */
+
+function exportarExcel() {
+  if (!resultados.length) {
+    alert(
+      "No hay resultados para exportar."
+    );
+
     return;
   }
 
-  const dataExcel=resultados.map((row,index)=>({
-    "No":index+1,
-    "Nombre":row.nombre,
-    "Teléfono":row.telefono,
-    "Dirección":row.direccion,
-    "Sitio web":row.sitioWeb,
-    "Categoría":row.categoria
-  }));
+  const datosExcel = resultados.map(
+    (registro, indice) => ({
+      "No": indice + 1,
+      "Nombre": registro.nombre,
+      "Teléfono": registro.telefono,
+      "Dirección": registro.direccion,
+      "Sitio web": registro.sitioWeb,
+      "Categoría": registro.categoria
+    })
+  );
 
-  const ws=XLSX.utils.json_to_sheet(dataExcel);
-  const wb=XLSX.utils.book_new();
+  const hoja = XLSX.utils.json_to_sheet(
+    datosExcel
+  );
 
-  XLSX.utils.book_append_sheet(wb,ws,"Base");
-  XLSX.writeFile(wb,"Base_Google_Maps.xlsx");
+  const libro = XLSX.utils.book_new();
+
+  XLSX.utils.book_append_sheet(
+    libro,
+    hoja,
+    "Base"
+  );
+
+  XLSX.writeFile(
+    libro,
+    "Base_Google_Maps.xlsx"
+  );
 }
 
-function limpiarResultados(){
-  resultados=[];
-  pintarTabla(resultados);
-  document.getElementById("filtro").value="";
-  document.querySelectorAll(".estado").forEach(e=>e.value="Pendiente");
+/* =====================================================
+   LIMPIAR RESULTADOS
+===================================================== */
+
+function limpiarResultados() {
+  resultados = [];
+
+  pintarTabla([]);
+
+  document.getElementById(
+    "filtro"
+  ).value = "";
+
+  document
+    .querySelectorAll(".estado")
+    .forEach(elemento => {
+      elemento.value = "Pendiente";
+    });
+
   setEstadoGeneral("Resultados: 0");
 }
 
-function salirSistema(){
-  if(!confirm("¿Desea salir del sistema?")) return;
+/* =====================================================
+   SALIR
+===================================================== */
 
-  resultados=[];
+function salirSistema() {
+  if (!confirm("¿Desea salir del sistema?")) {
+    return;
+  }
+
+  resultados = [];
   pintarTabla([]);
 
-  document.getElementById("filtro").value="";
-  document.querySelectorAll(".busqueda").forEach(x=>x.value="");
-  document.querySelectorAll(".radioKm").forEach(x=>x.value=3);
-  document.querySelectorAll(".estado").forEach(x=>x.value="Pendiente");
+  document.getElementById(
+    "filtro"
+  ).value = "";
+
+  document
+    .querySelectorAll(".busqueda")
+    .forEach(elemento => {
+      elemento.value = "";
+    });
+
+  document
+    .querySelectorAll(".radioKm")
+    .forEach(elemento => {
+      elemento.value = 3;
+    });
+
+  document
+    .querySelectorAll(".estado")
+    .forEach(elemento => {
+      elemento.value = "Pendiente";
+    });
 
   cerrarAutomatizaciones();
 
-  document.querySelector(".container").style.display="none";
-  document.getElementById("pantallaSalida").style.display="flex";
+  document.querySelector(
+    ".container"
+  ).style.display = "none";
+
+  document.getElementById(
+    "pantallaSalida"
+  ).style.display = "flex";
 }
 
-function escapeHtml(texto){
-  return String(texto||"")
-    .replaceAll("&","&amp;")
-    .replaceAll("<","&lt;")
-    .replaceAll(">","&gt;")
-    .replaceAll('"',"&quot;")
-    .replaceAll("'","&#039;");
+/* =====================================================
+   UTILIDADES
+===================================================== */
+
+function obtenerMensajeError(error) {
+  return error?.message ||
+    String(error || "Error desconocido");
 }
 
-function escapeAttr(texto){
-  return escapeHtml(texto).replaceAll("`","&#096;");
+function escapeHtml(texto) {
+  return String(texto || "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+function escapeAttr(texto) {
+  return escapeHtml(texto)
+    .replaceAll("`", "&#096;");
 }
 </script>
 
-<script 
-src="https://maps.googleapis.com/maps/api/js?key=TU_API_KEY&libraries=places&callback=initMap" 
-async 
-defer 
-onerror="googleMapsError()">
-</script>
+<!--
+IMPORTANTE:
+Reemplaza COLOCA_AQUI_TU_API_KEY
+por tu clave real de Google Cloud.
+-->
+
+<script
+  async
+  src="AIzaSyBsgz7efsoezaDRKtcZBSE_vIDyRnPCY4U
+"
+  onerror="googleMapsError()"
+></script>
 
 </body>
 </html>
