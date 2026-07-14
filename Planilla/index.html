@@ -1645,7 +1645,7 @@
      */
 
     const API_URL =
-      "https://script.google.com/macros/s/AKfycbxujHh2iPdNUc93Mt3ln30kA2nt-XQxfWHhfjFWGWKpTNkFGdPeoVuWAU--SIlp9L3E/exec";
+      "https://script.google.com/macros/s/AKfycbzNv6NWgab3VQlhGefnypMOu997wbHNL9HiyO3JOSWZsvXjskfMGqvGLuUjeRighBVb/exec";
 
     const camposEmpleado = [
 
@@ -4973,372 +4973,798 @@ impuestoVecinal:
   cargarParametros =
     cargarParametrosAnuales;
 
-</script>
-<!-- BOTÓN GENERAR Y GUARDAR PLANILLAS -->
+</script>>
+
+  <!-- GENERACIÓN Y CONTROL DE PERÍODOS DE PLANILLA -->
 
 <style>
-
-  .acciones-generar-planillas {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-top: 10px;
+  .generacion-periodos {
+    margin: 18px 0;
+    padding: 18px;
+    border: 1px solid var(--borde);
+    border-radius: 12px;
+    background: #f8fafc;
   }
 
-  .btn-generar-planillas {
-    padding: 12px 18px;
-    border: none;
-    border-radius: 10px;
-    color: white;
-    background: #7c3aed;
-    font-weight: bold;
+  .generacion-periodos h3 {
+    margin: 0 0 8px;
+    color: #173b7a;
+  }
+
+  .generacion-periodos-grid {
+    display: grid;
+    grid-template-columns:
+      minmax(150px, 0.7fr)
+      minmax(260px, 1.2fr)
+      minmax(210px, 1fr)
+      minmax(180px, 0.8fr);
+    gap: 16px;
+    align-items: end;
+  }
+
+  .campo-periodo {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    min-width: 0;
+  }
+
+  .campo-periodo label,
+  .campo-periodo .titulo-campo {
+    margin: 0;
+    font-weight: 700;
+  }
+
+  .campo-periodo input,
+  .campo-periodo select {
+    width: 100%;
+    height: 46px;
+    padding: 8px 11px;
+    border: 1px solid var(--borde);
+    border-radius: 8px;
+    background: #fff;
+    box-sizing: border-box;
+  }
+
+  .tipos-planilla {
+    display: flex;
+    min-height: 46px;
+    gap: 18px;
+    align-items: center;
+    padding: 7px 12px;
+    border: 1px solid var(--borde);
+    border-radius: 8px;
+    background: #fff;
+  }
+
+  .tipos-planilla label {
+    display: flex;
+    gap: 7px;
+    align-items: center;
+    margin: 0;
+    white-space: nowrap;
+  }
+
+  .tipos-planilla input {
+    width: 18px;
+    height: 18px;
+    margin: 0;
+  }
+
+  .acciones-periodos {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 18px;
+  }
+
+  .acciones-periodos button {
+    min-height: 44px;
+    padding: 11px 18px;
+    border: 0;
+    border-radius: 9px;
+    color: #fff;
+    font-weight: 700;
     cursor: pointer;
   }
 
-  .btn-generar-planillas:disabled {
-    opacity: 0.65;
+  .btn-vista-periodos {
+    background: #2563eb;
+  }
+
+  .btn-generar-periodos {
+    background: #15803d;
+  }
+
+  .btn-cargar-periodos {
+    background: #475569;
+  }
+
+  .acciones-periodos button:disabled {
+    opacity: 0.6;
     cursor: not-allowed;
   }
 
-  @media (max-width: 650px) {
+  .contenedor-tabla-periodos {
+    display: none;
+    width: 100%;
+    margin-top: 18px;
+    overflow-x: auto;
+    border: 1px solid var(--borde);
+    border-radius: 9px;
+    background: #fff;
+  }
 
-    .acciones-generar-planillas {
-      flex-direction: column;
-      align-items: stretch;
+  .tabla-periodos {
+    width: 100%;
+    min-width: 900px;
+    border-collapse: collapse;
+  }
+
+  .tabla-periodos th,
+  .tabla-periodos td {
+    padding: 9px 10px;
+    border-bottom: 1px solid #dbe3ef;
+    text-align: center;
+    white-space: nowrap;
+  }
+
+  .tabla-periodos th {
+    color: #fff;
+    background: #2555d9;
+  }
+
+  .tabla-periodos select {
+    min-width: 125px;
+    height: 37px;
+    border: 1px solid var(--borde);
+    border-radius: 7px;
+    background: #fff;
+  }
+
+  .btn-estado-periodo {
+    padding: 7px 10px;
+    border: 0;
+    border-radius: 7px;
+    color: #fff;
+    background: #7c3aed;
+    cursor: pointer;
+  }
+
+  @media (max-width: 1050px) {
+    .generacion-periodos-grid {
+      grid-template-columns: repeat(2, minmax(220px, 1fr));
+    }
+  }
+
+  @media (max-width: 650px) {
+    .generacion-periodos-grid {
+      grid-template-columns: 1fr;
     }
 
-    .btn-generar-planillas {
+    .tipos-planilla {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+
+    .acciones-periodos {
+      flex-direction: column;
+    }
+
+    .acciones-periodos button {
       width: 100%;
     }
   }
-
 </style>
 
 <script>
+  var periodosControlVista = [];
 
-  document.addEventListener(
-    "DOMContentLoaded",
-    function () {
+  document.addEventListener("DOMContentLoaded", function () {
+    setTimeout(prepararGeneracionPeriodos, 150);
+  });
 
-      /*
-       * Esperar a que el bloque anterior
-       * termine de crear el campo Año.
-       */
+  function prepararGeneracionPeriodos() {
+    const campoAnio = document.getElementById("anioPlanilla");
+    const seccion = document.getElementById("seccionPlanillas");
 
-      setTimeout(
-        prepararBotonGenerarPlanillas,
-        100
-      );
-    }
-  );
-
-  function prepararBotonGenerarPlanillas() {
-
-    const campoAnio =
-      document.getElementById(
-        "anioPlanilla"
-      );
-
-    if (
-      !campoAnio ||
-      document.getElementById(
-        "btnGenerarGuardarPlanillas"
-      )
-    ) {
+    if (!campoAnio || !seccion) {
       return;
     }
 
     /*
-     * Eliminar la generación automática
-     * cuando se cambia el año.
+     * Evita que la implementación anterior genere automáticamente
+     * las 26 planillas cuando se cambia el año.
      */
-
-    if (
-      typeof generarPlanillasDelAnio ===
-      "function"
-    ) {
-
-      campoAnio.removeEventListener(
-        "change",
-        generarPlanillasDelAnio
-      );
+    if (typeof generarPlanillasDelAnio === "function") {
+      campoAnio.removeEventListener("change", generarPlanillasDelAnio);
     }
 
-    /*
-     * Cuando cambie el año, limpiar la vista.
-     * Las planillas solo se regenerarán al
-     * presionar el botón.
-     */
+    campoAnio.value = new Date().getFullYear();
 
-    campoAnio.addEventListener(
-      "change",
-      function () {
+    seccion.className = "generacion-periodos";
 
-        const contenedor =
-          document.getElementById(
-            "planillasGeneradas"
-          );
+    seccion.innerHTML = `
+      <h3>Generación de períodos de planilla</h3>
 
-        if (contenedor) {
+      <p>
+        Genere períodos semanales y quincenales para el año seleccionado.
+        Los períodos se guardarán en la hoja
+        <strong>ControlPlanillas</strong>.
+      </p>
 
-          contenedor.innerHTML = `
+      <div class="generacion-periodos-grid">
+        <div class="campo-periodo">
+          <label for="anioControlPlanillas">Año</label>
 
-            <div class="planilla-item">
+          <input
+            id="anioControlPlanillas"
+            type="number"
+            min="2000"
+            max="2100"
+            step="1"
+            required
+          >
+        </div>
 
-              Seleccione
-              <strong>
-                Generar y guardar planillas
-              </strong>
-              para crear los períodos del año
-              ${campoAnio.value}.
+        <div class="campo-periodo">
+          <span class="titulo-campo">Tipos de planilla</span>
 
-            </div>
-          `;
-        }
+          <div class="tipos-planilla">
+            <label>
+              <input
+                id="tipoQuincenal"
+                type="checkbox"
+                checked
+              >
+              Quincenal
+            </label>
 
-        mostrarMensajeParametros(
-          "",
-          ""
-        );
-      }
-    );
+            <label>
+              <input
+                id="tipoSemanal"
+                type="checkbox"
+              >
+              Semanal
+            </label>
+          </div>
+        </div>
 
-    /*
-     * Crear el botón debajo del campo Año.
-     */
+        <div class="campo-periodo">
+          <label for="inicioSemanas">
+            Fecha de inicio de las semanas
+          </label>
 
-    const acciones =
-      document.createElement("div");
+          <input
+            id="inicioSemanas"
+            type="date"
+            disabled
+          >
+        </div>
 
-    acciones.className =
-      "acciones-generar-planillas";
+        <div class="campo-periodo">
+          <label for="estadoInicialPlanilla">
+            Estado inicial
+          </label>
 
-    acciones.innerHTML = `
+          <select id="estadoInicialPlanilla">
+            <option value="Pendiente">Pendiente</option>
+            <option value="Calculada">Calculada</option>
+            <option value="Revisada">Revisada</option>
+            <option value="Cerrada">Cerrada</option>
+            <option value="Pagada">Pagada</option>
+            <option value="Anulada">Anulada</option>
+          </select>
+        </div>
+      </div>
 
-      <button
-        id="btnGenerarGuardarPlanillas"
-        class="btn-generar-planillas"
-        type="button"
-        onclick="generarYGuardarPlanillas()"
+      <div class="acciones-periodos">
+        <button
+          class="btn-vista-periodos"
+          type="button"
+          onclick="mostrarVistaPreviaPeriodos()"
+        >
+          Vista previa
+        </button>
+
+        <button
+          id="btnGuardarPeriodos"
+          class="btn-generar-periodos"
+          type="button"
+          onclick="guardarPeriodosControl()"
+        >
+          Generar períodos
+        </button>
+
+        <button
+          class="btn-cargar-periodos"
+          type="button"
+          onclick="cargarPeriodosControl()"
+        >
+          Cargar períodos existentes
+        </button>
+      </div>
+
+      <div
+        id="contenedorTablaPeriodos"
+        class="contenedor-tabla-periodos"
       >
-        Generar y guardar planillas
-      </button>
+        <table class="tabla-periodos">
+          <thead>
+            <tr>
+              <th>Código</th>
+              <th>Año</th>
+              <th>No.</th>
+              <th>Desde</th>
+              <th>Hasta</th>
+              <th>Tipo</th>
+              <th>Estado</th>
+              <th>Acción</th>
+            </tr>
+          </thead>
+
+          <tbody id="cuerpoTablaPeriodos"></tbody>
+        </table>
+      </div>
     `;
 
-    const filaAnio =
-      campoAnio.closest(
-        ".parametro-anio"
-      ) ||
-      campoAnio.parentElement;
+    const anioControl =
+      document.getElementById("anioControlPlanillas");
 
-    filaAnio.insertAdjacentElement(
-      "afterend",
-      acciones
-    );
+    const tipoSemanal =
+      document.getElementById("tipoSemanal");
 
-    /*
-     * Mostrar instrucción inicialmente.
-     */
+    const inicioSemanas =
+      document.getElementById("inicioSemanas");
+
+    anioControl.value =
+      Number(campoAnio.value) || new Date().getFullYear();
+
+    campoAnio.addEventListener("change", function () {
+      anioControl.value = campoAnio.value;
+      limpiarVistaPeriodos();
+    });
+
+    anioControl.addEventListener("change", function () {
+      campoAnio.value = anioControl.value;
+      limpiarVistaPeriodos();
+    });
+
+    tipoSemanal.addEventListener("change", function () {
+      inicioSemanas.disabled = !tipoSemanal.checked;
+
+      if (!tipoSemanal.checked) {
+        inicioSemanas.value = "";
+      }
+
+      limpiarVistaPeriodos();
+    });
+  }
+
+  function limpiarVistaPeriodos() {
+    periodosControlVista = [];
 
     const contenedor =
-      document.getElementById(
-        "planillasGeneradas"
-      );
+      document.getElementById("contenedorTablaPeriodos");
+
+    const cuerpo =
+      document.getElementById("cuerpoTablaPeriodos");
+
+    if (cuerpo) {
+      cuerpo.innerHTML = "";
+    }
 
     if (contenedor) {
-
-      contenedor.innerHTML = `
-
-        <div class="planilla-item">
-
-          Seleccione el año y presione
-          <strong>
-            Generar y guardar planillas
-          </strong>.
-
-        </div>
-      `;
+      contenedor.style.display = "none";
     }
   }
 
-  async function generarYGuardarPlanillas() {
+  function fechaLocalDesdeTexto(texto) {
+    const partes = String(texto || "").split("-");
 
-    const campoAnio =
-      document.getElementById(
-        "anioPlanilla"
-      );
-
-    const boton =
-      document.getElementById(
-        "btnGenerarGuardarPlanillas"
-      );
-
-    const anio =
-      Number(campoAnio.value);
-
-    if (
-      !anio ||
-      anio < 2000 ||
-      anio > 2100
-    ) {
-
-      mostrarMensajeParametros(
-        "Ingrese un año válido.",
-        "error"
-      );
-
-      return;
+    if (partes.length !== 3) {
+      return null;
     }
 
-    /*
-     * Generar los 26 períodos.
-     */
+    return new Date(
+      Number(partes[0]),
+      Number(partes[1]) - 1,
+      Number(partes[2]),
+      12,
+      0,
+      0
+    );
+  }
 
-    const planillas =
-      generarPlanillasDelAnio();
+  function fechaISOControl(fecha) {
+    const anio = fecha.getFullYear();
+    const mes = String(fecha.getMonth() + 1).padStart(2, "0");
+    const dia = String(fecha.getDate()).padStart(2, "0");
 
-    if (
-      !planillas ||
-      planillas.length !== 26
-    ) {
+    return anio + "-" + mes + "-" + dia;
+  }
 
-      mostrarMensajeParametros(
-        "No se pudieron generar las 26 planillas.",
-        "error"
-      );
+  function fechaVisibleControl(texto) {
+    const fecha = fechaLocalDesdeTexto(texto);
 
-      return;
+    if (!fecha) {
+      return texto || "";
     }
 
-    /*
-     * Recopilar los parámetros actuales,
-     * porque guardarParametros también mantiene
-     * I:N además de guardar las planillas en R.
-     */
+    return String(fecha.getDate()).padStart(2, "0") + "/" +
+      String(fecha.getMonth() + 1).padStart(2, "0") + "/" +
+      fecha.getFullYear();
+  }
 
-    const feriados = [];
-
-    for (
-      let numero = 1;
-      numero <= 12;
-      numero++
-    ) {
-
-      const campo =
-        document.getElementById(
-          "feriado" + numero
-        );
-
-      feriados.push(
-        campo
-          ? campo.value
-          : ""
-      );
-    }
-
-    const datos = {
-
-      anio:
-        anio,
-
-      estatusHoraEnt:
-        document
-          .getElementById(
-            "estatusHoraEnt"
-          )
-          .value,
-
-      feriados:
-        feriados,
-
-      recargoDiurno:
-        document
-          .getElementById(
-            "recargoDiurno"
-          )
-          .value,
-
-      recargoNocturno:
-        document
-          .getElementById(
-            "recargoNocturno"
-          )
-          .value,
-
-      recargoDescanso:
-        document
-          .getElementById(
-            "recargoDescanso"
-          )
-          .value,
-
-      recargoFeriado:
-        document
-          .getElementById(
-            "recargoFeriado"
-          )
-          .value,
-
-      planillas:
-        planillas
-    };
-
-    if (!datos.estatusHoraEnt) {
-
-      mostrarMensajeParametros(
-        "Seleccione Estatus Hora Ent antes de guardar.",
-        "error"
-      );
-
-      return;
-    }
-
-    boton.disabled = true;
-
-    mostrarMensajeParametros(
-      "Generando y guardando las planillas...",
-      "info"
+  function generarVistaPeriodos() {
+    const anio = Number(
+      document.getElementById("anioControlPlanillas").value
     );
 
-    try {
+    const generarQuincenal =
+      document.getElementById("tipoQuincenal").checked;
 
-      /*
-       * Utiliza la acción existente del GS.
-       */
+    const generarSemanal =
+      document.getElementById("tipoSemanal").checked;
 
-      const respuesta =
-        await jsonp(
-          "guardarParametros",
-          datos
-        );
+    const inicioSemanas =
+      document.getElementById("inicioSemanas").value;
 
-      if (!respuesta.ok) {
+    const estado =
+      document.getElementById("estadoInicialPlanilla").value;
 
+    if (!anio || anio < 2000 || anio > 2100) {
+      throw new Error("Ingrese un año válido.");
+    }
+
+    if (!generarQuincenal && !generarSemanal) {
+      throw new Error(
+        "Seleccione al menos un tipo de planilla."
+      );
+    }
+
+    const periodos = [];
+
+    if (generarQuincenal) {
+      let numero = 1;
+
+      for (let mes = 0; mes < 12; mes++) {
+        const primeraDesde =
+          new Date(anio, mes, 1, 12, 0, 0);
+
+        const primeraHasta =
+          new Date(anio, mes, 15, 12, 0, 0);
+
+        periodos.push({
+          codigo:
+            "Q-" + anio + "-" +
+            String(numero).padStart(2, "0"),
+          anio: anio,
+          numero: numero,
+          desde: fechaISOControl(primeraDesde),
+          hasta: fechaISOControl(primeraHasta),
+          tipo: "Quincenal",
+          estado: estado
+        });
+
+        numero++;
+
+        const segundaDesde =
+          new Date(anio, mes, 16, 12, 0, 0);
+
+        const segundaHasta =
+          new Date(anio, mes + 1, 0, 12, 0, 0);
+
+        periodos.push({
+          codigo:
+            "Q-" + anio + "-" +
+            String(numero).padStart(2, "0"),
+          anio: anio,
+          numero: numero,
+          desde: fechaISOControl(segundaDesde),
+          hasta: fechaISOControl(segundaHasta),
+          tipo: "Quincenal",
+          estado: estado
+        });
+
+        numero++;
+      }
+    }
+
+    if (generarSemanal) {
+      if (!inicioSemanas) {
         throw new Error(
-          respuesta.mensaje
+          "Seleccione la fecha de inicio de las semanas."
         );
       }
 
+      let fechaInicio = fechaLocalDesdeTexto(inicioSemanas);
+
+      if (
+        !fechaInicio ||
+        fechaInicio.getFullYear() !== anio
+      ) {
+        throw new Error(
+          "La fecha inicial debe pertenecer al año seleccionado."
+        );
+      }
+
+      const finAnio =
+        new Date(anio, 11, 31, 12, 0, 0);
+
+      let numeroSemanal = 1;
+
+      while (fechaInicio <= finAnio) {
+        let fechaFinal = new Date(fechaInicio);
+        fechaFinal.setDate(fechaFinal.getDate() + 6);
+
+        if (fechaFinal > finAnio) {
+          fechaFinal = new Date(finAnio);
+        }
+
+        periodos.push({
+          codigo:
+            "S-" + anio + "-" +
+            String(numeroSemanal).padStart(2, "0"),
+          anio: anio,
+          numero: numeroSemanal,
+          desde: fechaISOControl(fechaInicio),
+          hasta: fechaISOControl(fechaFinal),
+          tipo: "Semanal",
+          estado: estado
+        });
+
+        fechaInicio = new Date(fechaInicio);
+        fechaInicio.setDate(fechaInicio.getDate() + 7);
+
+        numeroSemanal++;
+      }
+    }
+
+    periodos.sort(function (a, b) {
+      return (
+        a.anio - b.anio ||
+        a.desde.localeCompare(b.desde) ||
+        a.tipo.localeCompare(b.tipo) ||
+        a.numero - b.numero
+      );
+    });
+
+    return periodos;
+  }
+
+  function mostrarVistaPreviaPeriodos() {
+    try {
+      periodosControlVista = generarVistaPeriodos();
+      dibujarTablaPeriodos(periodosControlVista, false);
+
       mostrarMensajeParametros(
-        "Se generaron y guardaron las 26 planillas del año " +
-        anio +
-        " en Catalogos, columna R.",
+        "Vista previa generada: " +
+          periodosControlVista.length +
+          " períodos.",
+        "ok"
+      );
+    } catch (error) {
+      mostrarMensajeParametros(error.message, "error");
+    }
+  }
+
+  function opcionesEstadoControl(estadoActual) {
+    const estados = [
+      "Pendiente",
+      "Calculada",
+      "Revisada",
+      "Cerrada",
+      "Pagada",
+      "Anulada"
+    ];
+
+    return estados.map(function (estado) {
+      return (
+        '<option value="' + estado + '"' +
+        (estado === estadoActual ? " selected" : "") +
+        ">" + estado + "</option>"
+      );
+    }).join("");
+  }
+
+  function dibujarTablaPeriodos(periodos, guardados) {
+    const cuerpo =
+      document.getElementById("cuerpoTablaPeriodos");
+
+    const contenedor =
+      document.getElementById("contenedorTablaPeriodos");
+
+    cuerpo.innerHTML = "";
+
+    periodos.forEach(function (periodo) {
+      const fila = document.createElement("tr");
+
+      fila.innerHTML = `
+        <td>${periodo.codigo}</td>
+        <td>${periodo.anio}</td>
+        <td>${periodo.numero}</td>
+        <td>${fechaVisibleControl(periodo.desde)}</td>
+        <td>${fechaVisibleControl(periodo.hasta)}</td>
+        <td>${periodo.tipo}</td>
+        <td>
+          <select id="estado_${periodo.codigo}">
+            ${opcionesEstadoControl(periodo.estado)}
+          </select>
+        </td>
+        <td>
+          ${
+            guardados
+              ? `<button
+                   type="button"
+                   class="btn-estado-periodo"
+                   onclick="cambiarEstadoPeriodo('${periodo.codigo}')"
+                 >
+                   Cambiar
+                 </button>`
+              : "Vista previa"
+          }
+        </td>
+      `;
+
+      cuerpo.appendChild(fila);
+    });
+
+    contenedor.style.display = "block";
+  }
+
+  async function guardarPeriodosControl() {
+    const boton =
+      document.getElementById("btnGuardarPeriodos");
+
+    try {
+      periodosControlVista = generarVistaPeriodos();
+
+      if (!periodosControlVista.length) {
+        throw new Error(
+          "No existen períodos para guardar."
+        );
+      }
+
+      const usuario =
+        obtenerUsuarioControlPlanillas();
+
+      boton.disabled = true;
+
+      mostrarMensajeParametros(
+        "Guardando períodos en ControlPlanillas...",
+        "info"
+      );
+
+      const respuesta = await jsonp(
+        "controlPlanillas",
+        {
+          operacion: "guardar",
+          periodos: periodosControlVista,
+          usuario: usuario
+        }
+      );
+
+      if (!respuesta.ok) {
+        throw new Error(respuesta.mensaje);
+      }
+
+      mostrarMensajeParametros(
+        respuesta.mensaje,
         "ok"
       );
 
+      await cargarPeriodosControl();
     } catch (error) {
-
-      mostrarMensajeParametros(
-        error.message,
-        "error"
-      );
-
+      mostrarMensajeParametros(error.message, "error");
     } finally {
-
       boton.disabled = false;
     }
   }
 
+  async function cargarPeriodosControl() {
+    try {
+      const anio = Number(
+        document.getElementById("anioControlPlanillas").value
+      );
+
+      const respuesta = await jsonp(
+        "controlPlanillas",
+        {
+          operacion: "listar",
+          anio: anio
+        }
+      );
+
+      if (!respuesta.ok) {
+        throw new Error(respuesta.mensaje);
+      }
+
+      periodosControlVista = respuesta.periodos || [];
+
+      dibujarTablaPeriodos(
+        periodosControlVista,
+        true
+      );
+
+      mostrarMensajeParametros(
+        "Se cargaron " +
+          periodosControlVista.length +
+          " períodos.",
+        "ok"
+      );
+    } catch (error) {
+      mostrarMensajeParametros(error.message, "error");
+    }
+  }
+
+  async function cambiarEstadoPeriodo(codigo) {
+    const selector =
+      document.getElementById("estado_" + codigo);
+
+    if (!selector) {
+      return;
+    }
+
+    const nuevoEstado = selector.value;
+
+    if (
+      nuevoEstado === "Anulada" &&
+      !window.confirm(
+        "¿Confirma que desea anular la planilla " +
+        codigo +
+        "?"
+      )
+    ) {
+      await cargarPeriodosControl();
+      return;
+    }
+
+    try {
+      const respuesta = await jsonp(
+        "controlPlanillas",
+        {
+          operacion: "estado",
+          codigo: codigo,
+          estado: nuevoEstado,
+          usuario: obtenerUsuarioControlPlanillas()
+        }
+      );
+
+      if (!respuesta.ok) {
+        throw new Error(respuesta.mensaje);
+      }
+
+      mostrarMensajeParametros(
+        respuesta.mensaje,
+        "ok"
+      );
+
+      await cargarPeriodosControl();
+    } catch (error) {
+      mostrarMensajeParametros(error.message, "error");
+      await cargarPeriodosControl();
+    }
+  }
+
+  function obtenerUsuarioControlPlanillas() {
+    const posiblesCampos = [
+      "usuarioMovimiento",
+      "usuarioIngreso",
+      "usuario"
+    ];
+
+    for (let i = 0; i < posiblesCampos.length; i++) {
+      const campo =
+        document.getElementById(posiblesCampos[i]);
+
+      if (campo && String(campo.value || "").trim()) {
+        return String(campo.value).trim();
+      }
+    }
+
+    return "GitHub Pages";
+  }
 </script>
 
 <!-- AJUSTE DE OTROS INGRESOS: PLANILLAS DESDE/HASTA -->
