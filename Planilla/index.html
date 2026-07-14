@@ -5330,15 +5330,26 @@ impuestoVecinal:
       limpiarVistaPeriodos();
     });
 
-    tipoSemanal.addEventListener("change", function () {
-      inicioSemanas.disabled = !tipoSemanal.checked;
+ tipoSemanal.addEventListener("change", function () {
+  inicioSemanas.disabled = !tipoSemanal.checked;
 
-      if (!tipoSemanal.checked) {
-        inicioSemanas.value = "";
+  if (tipoSemanal.checked) {
+    if (!inicioSemanas.value) {
+      const anio = Number(anioControl.value);
+      const primerLunes = new Date(anio, 0, 1, 12, 0, 0);
+
+      while (primerLunes.getDay() !== 1) {
+        primerLunes.setDate(primerLunes.getDate() + 1);
       }
 
-      limpiarVistaPeriodos();
-    });
+      inicioSemanas.value = fechaISOControl(primerLunes);
+    }
+  } else {
+    inicioSemanas.value = "";
+  }
+
+  limpiarVistaPeriodos();
+});   
   }
 
   function limpiarVistaPeriodos() {
@@ -5613,26 +5624,56 @@ impuestoVecinal:
     contenedor.style.display = "block";
   }
 
-  async function guardarPeriodosControl() {
-    const boton =
-      document.getElementById("btnGuardarPeriodos");
+async function guardarPeriodosControl() {
+  const boton = document.getElementById(
+    "btnGuardarPeriodos"
+  );
 
-    try {
-      periodosControlVista = generarVistaPeriodos();
+  try {
+    periodosControlVista = generarVistaPeriodos();
 
-      if (!periodosControlVista.length) {
-        throw new Error(
-          "No existen períodos para guardar."
+    if (!periodosControlVista.length) {
+      throw new Error(
+        "No existen períodos para guardar."
+      );
+    }
+
+    const usuario = obtenerUsuarioControlPlanillas();
+
+    /*
+     * JSONP utiliza una solicitud GET.
+     * Se envían lotes pequeños para evitar una URL demasiado larga.
+     */
+    const TAMANO_LOTE = 12;
+    let guardados = 0;
+    let omitidos = 0;
+
+    boton.disabled = true;
+
+    for (
+      let inicio = 0;
+      inicio < periodosControlVista.length;
+      inicio += TAMANO_LOTE
+    ) {
+      const lote = periodosControlVista.slice(
+        inicio,
+        inicio + TAMANO_LOTE
+      );
+
+      const numeroLote =
+        Math.floor(inicio / TAMANO_LOTE) + 1;
+
+      const totalLotes =
+        Math.ceil(
+          periodosControlVista.length / TAMANO_LOTE
         );
-      }
-
-      const usuario =
-        obtenerUsuarioControlPlanillas();
-
-      boton.disabled = true;
 
       mostrarMensajeParametros(
-        "Guardando períodos en ControlPlanillas...",
+        "Guardando lote " +
+          numeroLote +
+          " de " +
+          totalLotes +
+          "...",
         "info"
       );
 
@@ -5640,27 +5681,49 @@ impuestoVecinal:
         "controlPlanillas",
         {
           operacion: "guardar",
-          periodos: periodosControlVista,
+          periodos: lote,
           usuario: usuario
         }
       );
 
       if (!respuesta.ok) {
-        throw new Error(respuesta.mensaje);
+        throw new Error(
+          respuesta.mensaje ||
+          "No se pudo guardar el lote " +
+            numeroLote +
+            "."
+        );
       }
 
-      mostrarMensajeParametros(
-        respuesta.mensaje,
-        "ok"
+      guardados += Number(
+        respuesta.guardados || 0
       );
 
-      await cargarPeriodosControl();
-    } catch (error) {
-      mostrarMensajeParametros(error.message, "error");
-    } finally {
-      boton.disabled = false;
+      omitidos += Number(
+        respuesta.omitidos || 0
+      );
     }
+
+    mostrarMensajeParametros(
+      "Proceso completado. Períodos guardados: " +
+        guardados +
+        ". Omitidos por duplicidad: " +
+        omitidos +
+        ".",
+      "ok"
+    );
+
+    await cargarPeriodosControl();
+
+  } catch (error) {
+    mostrarMensajeParametros(
+      error.message,
+      "error"
+    );
+  } finally {
+    boton.disabled = false;
   }
+}
 
   async function cargarPeriodosControl() {
     try {
