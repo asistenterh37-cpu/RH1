@@ -1751,7 +1751,7 @@
      */
 
     const API_URL =
-      "https://script.google.com/macros/s/AKfycbz6WvsAhmdQ_Q7WbkEtuGuZhClC5YBawgjMzGMDw5Q3bMCLc1fn9bpJ3_-d9lM1c2TS/exec";
+      "https://script.google.com/macros/s/AKfycbyGFh4Jyrcvvk5up__S6CGFfqOkR1Zd2ntpZYNjDZ3KAKhkNPmnJw93u9vDsbQAihce/exec";
 
     const camposEmpleado = [
 
@@ -3966,69 +3966,85 @@ document.addEventListener(
     }
   }
 
-  async function buscarEmpleadoIngreso() {
+async function buscarEmpleadoIngreso() {
+  const numeroPersonal =
+    document
+      .getElementById(
+        "ingresoNumeroPersonal"
+      )
+      .value
+      .trim();
 
-    const numeroPersonal =
-      document
-        .getElementById(
-          "ingresoNumeroPersonal"
-        )
-        .value
-        .trim();
-
-    const nombre =
-      document.getElementById(
-        "ingresoNombre"
-      );
-
-    nombre.value = "";
-
-    if (!numeroPersonal) {
-      return;
-    }
-
-    mostrarMensajeOtrosIngresos(
-      "Buscando empleado...",
-      "info"
+  const nombre =
+    document.getElementById(
+      "ingresoNombre"
     );
 
-    try {
+  nombre.value = "";
+  planillasOtrosIngresos = [];
 
-      const respuesta =
-        await jsonp(
-          "buscarEmpleadoIngreso",
-          {
-            numeroPersonal:
-              numeroPersonal
-          }
-        );
+  convertirVigenciaAPlanillas();
 
-      if (!respuesta.ok) {
-
-        throw new Error(
-          respuesta.mensaje
-        );
-      }
-
-      nombre.value =
-        respuesta.nombre;
-
-      mostrarMensajeOtrosIngresos(
-        "Empleado encontrado.",
-        "ok"
-      );
-
-    } catch (error) {
-
-      nombre.value = "";
-
-      mostrarMensajeOtrosIngresos(
-        error.message,
-        "error"
-      );
-    }
+  if (!numeroPersonal) {
+    return;
   }
 
+  mostrarMensajeOtrosIngresos(
+    "Buscando empleado y períodos...",
+    "info"
+  );
+
+  try {
+    const respuesta =
+      await jsonp(
+        "buscarEmpleadoIngreso",
+        {
+          numeroPersonal:
+            numeroPersonal
+        }
+      );
+
+    if (
+      !respuesta ||
+      !respuesta.ok
+    ) {
+      throw new Error(
+        respuesta &&
+        respuesta.mensaje
+          ? respuesta.mensaje
+          : "No se pudo buscar el empleado."
+      );
+    }
+
+    nombre.value =
+      respuesta.nombre || "";
+
+    planillasOtrosIngresos =
+      respuesta.planillas || [];
+
+    convertirVigenciaAPlanillas();
+
+    mostrarMensajeOtrosIngresos(
+      "Empleado encontrado. Tipo de planilla: " +
+      respuesta.tipoPlanilla +
+      ". Períodos disponibles: " +
+      planillasOtrosIngresos.length +
+      ".",
+      "ok"
+    );
+
+  } catch (error) {
+    nombre.value = "";
+    planillasOtrosIngresos = [];
+
+    convertirVigenciaAPlanillas();
+
+    mostrarMensajeOtrosIngresos(
+      error.message,
+      "error"
+    );
+  }
+}  
   async function guardarOtroIngreso(
     evento
   ) {
@@ -6514,33 +6530,34 @@ async function guardarPeriodosControl() {
   }
 
   function crearOpcionesPlanillasIngreso() {
+  let opciones = `
+    <option value="">
+      Seleccionar
+    </option>
+  `;
 
-    let opciones = `
+  planillasOtrosIngresos.forEach(
+    function (planilla) {
+      const valor =
+        escaparTextoIngreso(
+          planilla.valor || ""
+        );
 
-      <option value="">
-        Seleccionar
-      </option>
-    `;
+      const texto =
+        escaparTextoIngreso(
+          planilla.texto || ""
+        );
 
-    planillasOtrosIngresos
-      .forEach(function (planilla) {
+      opciones += `
+        <option value="${valor}">
+          ${texto}
+        </option>
+      `;
+    }
+  );
 
-        const texto =
-          escaparTextoIngreso(
-            planilla
-          );
-
-        opciones += `
-
-          <option value="${texto}">
-            ${texto}
-          </option>
-        `;
-      });
-
-    return opciones;
-  }
-
+  return opciones;
+}
   function escaparTextoIngreso(
     valor
   ) {
