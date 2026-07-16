@@ -1751,7 +1751,7 @@
      */
 
     const API_URL =
-      "https://script.google.com/macros/s/AKfycbw7tjCX4_qxVgm6BUfTBWzSdl-0afut4OwQ5g1LgQwIZcxkTFLrlGTGcUaXsX64wc0/exec";
+      "https://script.google.com/macros/s/AKfycbybPIv4uvl3Z8uFRaiwoJRfSjeFbJoVqb5csyYfx5ce779rxvW6FLXVRPlFaXEvxbNR/exec";
 
     const camposEmpleado = [
 
@@ -6409,29 +6409,76 @@ async function guardarPeriodosControl() {
       });
   }
 
-  function cambiarTipoVigenciaIngreso() {
-
-    const concepto =
-      document
-        .getElementById(
-          "ingresoConcepto"
-        )
-        .value;
-
-    if (
-      conceptoUsaCalendario(
-        concepto
+function cambiarTipoVigenciaIngreso() {
+  const concepto =
+    document
+      .getElementById(
+        "ingresoConcepto"
       )
+      .value;
+
+  const tipo =
+    document
+      .getElementById(
+        "movimientoTipo"
+      )
+      .value;
+
+  const valor =
+    document.getElementById(
+      "ingresoValor"
+    );
+
+  const conceptoNormalizado =
+    normalizarConceptoMovimiento(
+      concepto
+    );
+
+  const incapacidadesIHSS = [
+    "incapacidad ihss: enfermedad comun",
+    "incapacidad ihss: enfermedad profesional",
+    "incapacidad ihss: maternidad"
+  ];
+
+  const esIncapacidadIHSS =
+    tipo === "Ingresos" &&
+    incapacidadesIHSS.indexOf(
+      conceptoNormalizado
+    ) !== -1;
+
+  if (esIncapacidadIHSS) {
+    /*
+     * El GS calculará automáticamente el valor
+     * con la tabla X:AB y el techo de AE2.
+     */
+    valor.value = "0";
+    valor.readOnly = true;
+    valor.dataset.calculoAutomatico = "true";
+    valor.placeholder = "Cálculo automático";
+  } else {
+    if (
+      valor.dataset.calculoAutomatico ===
+      "true"
     ) {
-
-      convertirVigenciaACalendarios();
-
-    } else {
-
-      convertirVigenciaAPlanillas();
+      valor.value = "";
     }
+
+    valor.readOnly = false;
+    valor.dataset.calculoAutomatico = "";
+    valor.placeholder = "0.00";
   }
 
+  if (
+    conceptoUsaCalendario(
+      concepto
+    )
+  ) {
+    convertirVigenciaACalendarios();
+  } else {
+    convertirVigenciaAPlanillas();
+  }
+}
+  
   function convertirVigenciaACalendarios() {
 
     const desdeActual =
@@ -7612,16 +7659,34 @@ async function guardarOtroIngreso(evento) {
     return;
   }
 
-  if (
+const conceptoNormalizado =
+  normalizarConceptoMovimiento(
+    datos.concepto
+  );
+
+const esIncapacidadIHSS =
+  datos.tipo === "Ingresos" &&
+  [
+    "incapacidad ihss: enfermedad comun",
+    "incapacidad ihss: enfermedad profesional",
+    "incapacidad ihss: maternidad"
+  ].indexOf(
+    conceptoNormalizado
+  ) !== -1;
+
+if (
+  !esIncapacidadIHSS &&
+  (
     datos.valor === "" ||
     Number(datos.valor) <= 0
-  ) {
-    mostrarMensajeOtrosIngresos(
-      "Ingrese un valor mayor que cero.",
-      "error"
-    );
-    return;
-  }
+  )
+) {
+  mostrarMensajeOtrosIngresos(
+    "Ingrese un valor mayor que cero.",
+    "error"
+  );
+  return;
+}
 
   boton.disabled = true;
 
