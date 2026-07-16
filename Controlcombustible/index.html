@@ -1,1 +1,1047 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Control de Combustible</title>
 
+  <style>
+    :root {
+      --principal: #0f766e;
+      --oscuro: #123b32;
+      --fondo: #f3f6f5;
+      --borde: #dbe4e1;
+      --error: #b91c1c;
+      --correcto: #15803d;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: var(--fondo);
+      color: #17211f;
+    }
+
+    header {
+      background: linear-gradient(120deg, var(--oscuro), var(--principal));
+      color: white;
+      padding: 24px;
+      text-align: center;
+    }
+
+    header h1 {
+      margin: 0 0 6px;
+    }
+
+    header p {
+      margin: 0;
+      color: #d6eee8;
+    }
+
+    main {
+      max-width: 1000px;
+      margin: 25px auto;
+      padding: 0 16px 40px;
+    }
+
+    .aviso {
+      background: #fffbeb;
+      border: 1px solid #fde68a;
+      border-left: 5px solid #f59e0b;
+      border-radius: 10px;
+      padding: 14px;
+      margin-bottom: 20px;
+      color: #713f12;
+    }
+
+    .pasos {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 18px;
+      overflow-x: auto;
+    }
+
+    .paso {
+      flex: 1;
+      min-width: 125px;
+      text-align: center;
+      padding: 11px;
+      border-radius: 9px;
+      background: #dfe8e5;
+      color: #64748b;
+      font-size: 13px;
+      font-weight: bold;
+    }
+
+    .paso.activo {
+      background: var(--principal);
+      color: white;
+    }
+
+    .paso.completado {
+      background: #dcfce7;
+      color: var(--correcto);
+    }
+
+    form {
+      background: white;
+      border: 1px solid var(--borde);
+      border-radius: 15px;
+      padding: 24px;
+      box-shadow: 0 10px 30px rgba(15, 45, 39, 0.08);
+    }
+
+    .seccion {
+      display: none;
+    }
+
+    .seccion.activa {
+      display: block;
+    }
+
+    h2 {
+      margin-top: 0;
+      color: var(--oscuro);
+    }
+
+    .descripcion {
+      color: #64748b;
+      font-size: 14px;
+      margin-bottom: 20px;
+    }
+
+    .cuadricula {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+    }
+
+    .campo-completo {
+      grid-column: 1 / -1;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 13px;
+      font-weight: bold;
+    }
+
+    input,
+    select,
+    textarea {
+      width: 100%;
+      padding: 11px;
+      border: 1px solid #cbd8d4;
+      border-radius: 8px;
+      background: white;
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      outline: none;
+      border-color: var(--principal);
+      box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.12);
+    }
+
+    input[readonly] {
+      background: #f1f5f4;
+    }
+
+    .obligatorio {
+      color: var(--error);
+    }
+
+    .verificacion {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      padding: 12px;
+      margin-bottom: 10px;
+      border: 1px solid var(--borde);
+      border-radius: 9px;
+      background: #fafcfc;
+    }
+
+    .verificacion input {
+      width: 18px;
+      height: 18px;
+    }
+
+    .mensaje {
+      display: none;
+      margin-top: 16px;
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 13px;
+    }
+
+    .mensaje.error {
+      display: block;
+      color: #991b1b;
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+    }
+
+    .mensaje.correcto {
+      display: block;
+      color: #166534;
+      background: #ecfdf5;
+      border: 1px solid #bbf7d0;
+    }
+
+    .resumen {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+      padding: 16px;
+      background: #f7faf9;
+      border: 1px solid var(--borde);
+      border-radius: 10px;
+    }
+
+    .resumen small {
+      display: block;
+      color: #64748b;
+      margin-bottom: 4px;
+    }
+
+    .acciones {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 24px;
+      padding-top: 18px;
+      border-top: 1px solid var(--borde);
+    }
+
+    button {
+      border: none;
+      border-radius: 8px;
+      padding: 11px 18px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .principal {
+      background: var(--principal);
+      color: white;
+    }
+
+    .secundario {
+      background: #e7eeec;
+      color: var(--oscuro);
+    }
+
+    canvas {
+      width: 100%;
+      height: 140px;
+      border: 1px dashed #94a3b8;
+      border-radius: 8px;
+      background: white;
+      touch-action: none;
+    }
+
+    .modal {
+      position: fixed;
+      inset: 0;
+      display: none;
+      place-items: center;
+      padding: 20px;
+      background: rgba(0, 0, 0, 0.65);
+    }
+
+    .modal.visible {
+      display: grid;
+    }
+
+    .modal-contenido {
+      max-width: 430px;
+      width: 100%;
+      padding: 28px;
+      border-radius: 14px;
+      background: white;
+      text-align: center;
+    }
+
+    .folio {
+      margin: 18px 0;
+      padding: 12px;
+      border-radius: 8px;
+      background: #ecfdf5;
+      color: var(--oscuro);
+      font-size: 20px;
+      font-weight: bold;
+    }
+
+    @media (max-width: 700px) {
+      .cuadricula,
+      .resumen {
+        grid-template-columns: 1fr;
+      }
+
+      .campo-completo {
+        grid-column: auto;
+      }
+
+      form {
+        padding: 18px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+<header>
+  <h1>⛽ Control de Combustible</h1>
+  <p>Registro, validación y trazabilidad de despachos</p>
+</header>
+
+<main>
+
+  <div class="aviso">
+    <strong>Control obligatorio:</strong>
+    queda prohibido realizar un despacho sin validar la placa, registrar el
+    odómetro y completar la bitácora. La bomba será manipulada únicamente por
+    el encargado autorizado.
+  </div>
+
+  <div class="pasos">
+    <div class="paso activo">1. Unidad</div>
+    <div class="paso">2. Odómetro</div>
+    <div class="paso">3. Validación</div>
+    <div class="paso">4. Despacho</div>
+    <div class="paso">5. Cierre</div>
+  </div>
+
+  <form id="formulario">
+
+    <!-- PASO 1 -->
+
+    <section class="seccion activa">
+      <h2>Identificación de la unidad</h2>
+      <p class="descripcion">
+        Ingrese la placa para comprobar que la unidad está autorizada.
+      </p>
+
+      <div class="cuadricula">
+        <div>
+          <label>Placa <span class="obligatorio">*</span></label>
+          <input id="placa" maxlength="12" placeholder="Ej. HAA-1234">
+        </div>
+
+        <div>
+          <label>Código de unidad</label>
+          <input id="unidad" readonly>
+        </div>
+
+        <div>
+          <label>Conductor <span class="obligatorio">*</span></label>
+          <input id="conductor" placeholder="Nombre completo">
+        </div>
+
+        <div>
+          <label>Número de empleado</label>
+          <input id="empleado" placeholder="Ej. 1045">
+        </div>
+
+        <div>
+          <label>Departamento <span class="obligatorio">*</span></label>
+          <select id="departamento">
+            <option value="">Seleccionar</option>
+            <option>Ventas</option>
+            <option>Operaciones</option>
+            <option>Logística</option>
+            <option>Mantenimiento</option>
+            <option>Administración</option>
+          </select>
+        </div>
+
+        <div>
+          <label>Encargado de combustible <span class="obligatorio">*</span></label>
+          <input id="despachador" placeholder="Personal autorizado">
+        </div>
+      </div>
+
+      <div id="mensajeUnidad" class="mensaje"></div>
+
+      <div class="acciones">
+        <span></span>
+        <button type="button" class="principal" onclick="siguiente()">
+          Validar y continuar
+        </button>
+      </div>
+    </section>
+
+    <!-- PASO 2 -->
+
+    <section class="seccion">
+      <h2>Lectura del odómetro</h2>
+      <p class="descripcion">
+        La lectura actual no puede ser menor que la registrada anteriormente.
+      </p>
+
+      <div class="cuadricula">
+        <div>
+          <label>Última lectura</label>
+          <input id="odometroAnterior" type="number" readonly>
+        </div>
+
+        <div>
+          <label>Lectura actual <span class="obligatorio">*</span></label>
+          <input id="odometroActual" type="number" min="0">
+        </div>
+
+        <div>
+          <label>Fecha y hora</label>
+          <input id="fechaHora" readonly>
+        </div>
+
+        <div>
+          <label>Fotografía del odómetro</label>
+          <input id="fotoOdometro" type="file" accept="image/*" capture="environment">
+        </div>
+      </div>
+
+      <div id="mensajeOdometro" class="mensaje"></div>
+
+      <div class="acciones">
+        <button type="button" class="secundario" onclick="anterior()">Anterior</button>
+        <button type="button" class="principal" onclick="siguiente()">
+          Validar y continuar
+        </button>
+      </div>
+    </section>
+
+    <!-- PASO 3 -->
+
+    <section class="seccion">
+      <h2>Control previo al despacho</h2>
+      <p class="descripcion">
+        Todos los controles deben confirmarse para autorizar la carga.
+      </p>
+
+      <div id="listaControl">
+        <label class="verificacion">
+          <input type="checkbox">
+          <span>La placa aparece en el listado de unidades autorizadas.</span>
+        </label>
+
+        <label class="verificacion">
+          <input type="checkbox">
+          <span>El conductor fue identificado correctamente.</span>
+        </label>
+
+        <label class="verificacion">
+          <input type="checkbox">
+          <span>La lectura del odómetro fue registrada antes de la carga.</span>
+        </label>
+
+        <label class="verificacion">
+          <input type="checkbox">
+          <span>El tipo de combustible asignado fue verificado.</span>
+        </label>
+
+        <label class="verificacion">
+          <input type="checkbox">
+          <span>El despacho será realizado únicamente por el encargado autorizado.</span>
+        </label>
+      </div>
+
+      <div id="mensajeControl" class="mensaje"></div>
+
+      <div class="acciones">
+        <button type="button" class="secundario" onclick="anterior()">Anterior</button>
+        <button type="button" class="principal" onclick="siguiente()">
+          Autorizar despacho
+        </button>
+      </div>
+    </section>
+
+    <!-- PASO 4 -->
+
+    <section class="seccion">
+      <h2>Registro del despacho</h2>
+      <p class="descripcion">
+        Registre las lecturas del dispensador y la cantidad entregada.
+      </p>
+
+      <div class="cuadricula">
+        <div>
+          <label>Tipo de combustible <span class="obligatorio">*</span></label>
+          <select id="combustible">
+            <option value="">Seleccionar</option>
+            <option>Diésel</option>
+            <option>Gasolina regular</option>
+            <option>Gasolina superior</option>
+          </select>
+        </div>
+
+        <div>
+          <label>Bomba <span class="obligatorio">*</span></label>
+          <select id="bomba">
+            <option value="">Seleccionar</option>
+            <option>Bomba 1</option>
+            <option>Bomba 2</option>
+            <option>Bomba 3</option>
+          </select>
+        </div>
+
+        <div>
+          <label>Lectura inicial <span class="obligatorio">*</span></label>
+          <input id="lecturaInicial" type="number" min="0" step="0.01">
+        </div>
+
+        <div>
+          <label>Lectura final <span class="obligatorio">*</span></label>
+          <input id="lecturaFinal" type="number" min="0" step="0.01">
+        </div>
+
+        <div>
+          <label>Cantidad despachada</label>
+          <input id="cantidad" readonly>
+        </div>
+
+        <div>
+          <label>Unidad de medida</label>
+          <select id="medida">
+            <option>Galones</option>
+            <option>Litros</option>
+          </select>
+        </div>
+
+        <div>
+          <label>Motivo <span class="obligatorio">*</span></label>
+          <select id="motivo">
+            <option value="">Seleccionar</option>
+            <option>Operación regular</option>
+            <option>Viaje autorizado</option>
+            <option>Emergencia</option>
+            <option>Otro</option>
+          </select>
+        </div>
+
+        <div>
+          <label>Fotografía del medidor</label>
+          <input id="fotoMedidor" type="file" accept="image/*" capture="environment">
+        </div>
+
+        <div class="campo-completo">
+          <label>Observaciones</label>
+          <textarea id="observaciones" rows="3"></textarea>
+        </div>
+      </div>
+
+      <div id="mensajeDespacho" class="mensaje"></div>
+
+      <div class="acciones">
+        <button type="button" class="secundario" onclick="anterior()">Anterior</button>
+        <button type="button" class="principal" onclick="siguiente()">
+          Revisar registro
+        </button>
+      </div>
+    </section>
+
+    <!-- PASO 5 -->
+
+    <section class="seccion">
+      <h2>Firma y cierre</h2>
+      <p class="descripcion">
+        Revise la información antes de cerrar el registro.
+      </p>
+
+      <div id="resumen" class="resumen"></div>
+
+      <div class="cuadricula" style="margin-top:20px">
+        <div>
+          <label>Firma del conductor <span class="obligatorio">*</span></label>
+          <canvas id="firmaConductor"></canvas>
+          <button type="button" onclick="limpiarFirma('firmaConductor')">
+            Limpiar firma
+          </button>
+        </div>
+
+        <div>
+          <label>Firma del despachador <span class="obligatorio">*</span></label>
+          <canvas id="firmaDespachador"></canvas>
+          <button type="button" onclick="limpiarFirma('firmaDespachador')">
+            Limpiar firma
+          </button>
+        </div>
+
+        <label class="verificacion campo-completo">
+          <input id="confirmacion" type="checkbox">
+          <span>Confirmo que la información registrada es correcta.</span>
+        </label>
+      </div>
+
+      <div id="mensajeCierre" class="mensaje"></div>
+
+      <div class="acciones">
+        <button type="button" class="secundario" onclick="anterior()">Anterior</button>
+        <button type="submit" class="principal">Firmar y cerrar registro</button>
+      </div>
+    </section>
+
+  </form>
+</main>
+
+<div id="modal" class="modal">
+  <div class="modal-contenido">
+    <h2>✅ Despacho registrado</h2>
+    <p>La transacción fue cerrada correctamente.</p>
+    <div id="folioFinal" class="folio"></div>
+    <button class="principal" onclick="location.reload()">Nuevo registro</button>
+  </div>
+</div>
+
+<script>
+  /*
+   * Cuando tengas el Google Apps Script, pega aquí su URL.
+   * Mientras esté vacío, los registros se guardarán en el navegador.
+   */
+  const APPS_SCRIPT_URL = "";
+
+  /*
+   * Catálogo de prueba.
+   * Posteriormente se obtendrá desde Google Sheets.
+   */
+  const unidadesAutorizadas = {
+    "HAA-1234": {
+      codigo: "UNI-001",
+      odometro: 45210,
+      combustible: "Diésel"
+    },
+    "HAB-5678": {
+      codigo: "UNI-002",
+      odometro: 31890,
+      combustible: "Gasolina regular"
+    },
+    "HAC-9012": {
+      codigo: "UNI-003",
+      odometro: 67420,
+      combustible: "Diésel"
+    }
+  };
+
+  let pasoActual = 0;
+
+  const firmas = {
+    firmaConductor: false,
+    firmaDespachador: false
+  };
+
+  const obtener = id => document.getElementById(id);
+  const valor = id => obtener(id).value.trim();
+
+  obtener("placa").addEventListener("input", function () {
+    this.value = this.value.toUpperCase().replace(/\s+/g, "");
+  });
+
+  obtener("lecturaInicial").addEventListener("input", calcularCantidad);
+  obtener("lecturaFinal").addEventListener("input", calcularCantidad);
+
+  function mostrarMensaje(id, texto, tipo = "error") {
+    const elemento = obtener(id);
+    elemento.textContent = texto;
+    elemento.className = "mensaje " + tipo;
+  }
+
+  function calcularCantidad() {
+    const inicial = Number(valor("lecturaInicial"));
+    const final = Number(valor("lecturaFinal"));
+
+    if (
+      valor("lecturaInicial") !== "" &&
+      valor("lecturaFinal") !== "" &&
+      final >= inicial
+    ) {
+      obtener("cantidad").value = (final - inicial).toFixed(2);
+    } else {
+      obtener("cantidad").value = "";
+    }
+  }
+
+  function validarPaso() {
+    if (pasoActual === 0) {
+      if (
+        !valor("placa") ||
+        !valor("conductor") ||
+        !valor("departamento") ||
+        !valor("despachador")
+      ) {
+        mostrarMensaje(
+          "mensajeUnidad",
+          "Complete todos los campos obligatorios."
+        );
+        return false;
+      }
+
+      const unidad = unidadesAutorizadas[valor("placa")];
+
+      if (!unidad) {
+        obtener("unidad").value = "";
+
+        mostrarMensaje(
+          "mensajeUnidad",
+          "Placa no autorizada. El despacho queda bloqueado y requiere revisión."
+        );
+
+        return false;
+      }
+
+      obtener("unidad").value = unidad.codigo;
+      obtener("odometroAnterior").value = unidad.odometro;
+      obtener("combustible").value = unidad.combustible;
+
+      mostrarMensaje(
+        "mensajeUnidad",
+        "Unidad autorizada correctamente.",
+        "correcto"
+      );
+
+      return true;
+    }
+
+    if (pasoActual === 1) {
+      const anterior = Number(valor("odometroAnterior"));
+      const actual = Number(valor("odometroActual"));
+
+      if (!valor("odometroActual")) {
+        mostrarMensaje(
+          "mensajeOdometro",
+          "Ingrese la lectura actual del odómetro."
+        );
+
+        return false;
+      }
+
+      if (actual < anterior) {
+        mostrarMensaje(
+          "mensajeOdometro",
+          "La lectura actual no puede ser menor que la lectura anterior."
+        );
+
+        return false;
+      }
+
+      if (actual - anterior > 5000) {
+        mostrarMensaje(
+          "mensajeOdometro",
+          "La diferencia supera 5,000 km y requiere revisión."
+        );
+
+        return false;
+      }
+
+      mostrarMensaje(
+        "mensajeOdometro",
+        "Lectura validada correctamente. Recorrido: " +
+          (actual - anterior).toLocaleString() +
+          " km.",
+        "correcto"
+      );
+
+      return true;
+    }
+
+    if (pasoActual === 2) {
+      const controles = [
+        ...document.querySelectorAll("#listaControl input")
+      ];
+
+      if (controles.some(control => !control.checked)) {
+        mostrarMensaje(
+          "mensajeControl",
+          "Debe completar todos los controles antes de autorizar."
+        );
+
+        return false;
+      }
+
+      mostrarMensaje(
+        "mensajeControl",
+        "Controles completados. Despacho autorizado.",
+        "correcto"
+      );
+
+      return true;
+    }
+
+    if (pasoActual === 3) {
+      if (
+        !valor("combustible") ||
+        !valor("bomba") ||
+        !valor("lecturaInicial") ||
+        !valor("lecturaFinal") ||
+        !valor("motivo")
+      ) {
+        mostrarMensaje(
+          "mensajeDespacho",
+          "Complete todos los campos obligatorios."
+        );
+
+        return false;
+      }
+
+      if (
+        Number(valor("lecturaFinal")) <=
+        Number(valor("lecturaInicial"))
+      ) {
+        mostrarMensaje(
+          "mensajeDespacho",
+          "La lectura final debe ser mayor que la lectura inicial."
+        );
+
+        return false;
+      }
+
+      if (Number(valor("cantidad")) > 100) {
+        mostrarMensaje(
+          "mensajeDespacho",
+          "La cantidad supera el límite establecido y requiere autorización."
+        );
+
+        return false;
+      }
+
+      crearResumen();
+      return true;
+    }
+
+    return true;
+  }
+
+  function siguiente() {
+    if (!validarPaso()) return;
+
+    if (pasoActual < 4) {
+      pasoActual++;
+      mostrarPaso();
+    }
+  }
+
+  function anterior() {
+    if (pasoActual > 0) {
+      pasoActual--;
+      mostrarPaso();
+    }
+  }
+
+  function mostrarPaso() {
+    const secciones = document.querySelectorAll(".seccion");
+    const pasos = document.querySelectorAll(".paso");
+
+    secciones.forEach((seccion, indice) => {
+      seccion.classList.toggle("activa", indice === pasoActual);
+    });
+
+    pasos.forEach((paso, indice) => {
+      paso.classList.toggle("activo", indice === pasoActual);
+      paso.classList.toggle("completado", indice < pasoActual);
+    });
+
+    if (pasoActual === 4) {
+      setTimeout(ajustarFirmas, 50);
+    }
+
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth"
+    });
+  }
+
+  function crearResumen() {
+    const datos = [
+      ["Placa", valor("placa")],
+      ["Unidad", valor("unidad")],
+      ["Conductor", valor("conductor")],
+      ["Odómetro", valor("odometroActual") + " km"],
+      ["Combustible", valor("combustible")],
+      ["Cantidad", valor("cantidad") + " " + valor("medida")],
+      ["Bomba", valor("bomba")],
+      ["Motivo", valor("motivo")],
+      ["Despachador", valor("despachador")]
+    ];
+
+    obtener("resumen").innerHTML = datos.map(dato => `
+      <div>
+        <small>${dato[0]}</small>
+        <strong>${dato[1]}</strong>
+      </div>
+    `).join("");
+  }
+
+  function prepararFirma(id) {
+    const canvas = obtener(id);
+    const contexto = canvas.getContext("2d");
+
+    let dibujando = false;
+
+    function posicion(evento) {
+      const rectangulo = canvas.getBoundingClientRect();
+
+      return {
+        x: (evento.clientX - rectangulo.left) *
+          (canvas.width / rectangulo.width),
+
+        y: (evento.clientY - rectangulo.top) *
+          (canvas.height / rectangulo.height)
+      };
+    }
+
+    canvas.addEventListener("pointerdown", evento => {
+      dibujando = true;
+
+      const punto = posicion(evento);
+
+      contexto.beginPath();
+      contexto.moveTo(punto.x, punto.y);
+    });
+
+    canvas.addEventListener("pointermove", evento => {
+      if (!dibujando) return;
+
+      const punto = posicion(evento);
+
+      contexto.lineWidth = 2;
+      contexto.lineCap = "round";
+      contexto.strokeStyle = "#123b32";
+      contexto.lineTo(punto.x, punto.y);
+      contexto.stroke();
+
+      firmas[id] = true;
+    });
+
+    window.addEventListener("pointerup", () => {
+      dibujando = false;
+    });
+  }
+
+  function ajustarFirmas() {
+    ["firmaConductor", "firmaDespachador"].forEach(id => {
+      const canvas = obtener(id);
+      const ancho = canvas.getBoundingClientRect().width;
+
+      canvas.width = ancho;
+      canvas.height = 140;
+      firmas[id] = false;
+    });
+  }
+
+  function limpiarFirma(id) {
+    const canvas = obtener(id);
+
+    canvas
+      .getContext("2d")
+      .clearRect(0, 0, canvas.width, canvas.height);
+
+    firmas[id] = false;
+  }
+
+  obtener("formulario").addEventListener("submit", async evento => {
+    evento.preventDefault();
+
+    if (!firmas.firmaConductor || !firmas.firmaDespachador) {
+      mostrarMensaje(
+        "mensajeCierre",
+        "Se requieren las firmas del conductor y del despachador."
+      );
+
+      return;
+    }
+
+    if (!obtener("confirmacion").checked) {
+      mostrarMensaje(
+        "mensajeCierre",
+        "Debe confirmar que la información es correcta."
+      );
+
+      return;
+    }
+
+    const folio =
+      "COMB-" +
+      new Date().getFullYear() +
+      "-" +
+      String(Date.now()).slice(-6);
+
+    const registro = {
+      folio: folio,
+      fecha: new Date().toISOString(),
+      estado: "Cerrado",
+      placa: valor("placa"),
+      unidad: valor("unidad"),
+      conductor: valor("conductor"),
+      empleado: valor("empleado"),
+      departamento: valor("departamento"),
+      despachador: valor("despachador"),
+      odometroAnterior: Number(valor("odometroAnterior")),
+      odometroActual: Number(valor("odometroActual")),
+      combustible: valor("combustible"),
+      bomba: valor("bomba"),
+      lecturaInicial: Number(valor("lecturaInicial")),
+      lecturaFinal: Number(valor("lecturaFinal")),
+      cantidad: Number(valor("cantidad")),
+      medida: valor("medida"),
+      motivo: valor("motivo"),
+      observaciones: valor("observaciones"),
+      firmaConductor: obtener("firmaConductor").toDataURL(),
+      firmaDespachador: obtener("firmaDespachador").toDataURL()
+    };
+
+    try {
+      if (APPS_SCRIPT_URL) {
+        const respuesta = await fetch(APPS_SCRIPT_URL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "text/plain;charset=utf-8"
+          },
+          body: JSON.stringify(registro)
+        });
+
+        if (!respuesta.ok) {
+          throw new Error("Error al guardar");
+        }
+      } else {
+        const registros = JSON.parse(
+          localStorage.getItem("despachosCombustible") || "[]"
+        );
+
+        registros.push(registro);
+
+        localStorage.setItem(
+          "despachosCombustible",
+          JSON.stringify(registros)
+        );
+      }
+
+      obtener("folioFinal").textContent = folio;
+      obtener("modal").classList.add("visible");
+
+    } catch (error) {
+      mostrarMensaje(
+        "mensajeCierre",
+        "No fue posible guardar. Verifique la conexión e intente nuevamente."
+      );
+    }
+  });
+
+  obtener("fechaHora").value =
+    new Intl.DateTimeFormat("es-HN", {
+      dateStyle: "medium",
+      timeStyle: "short"
+    }).format(new Date());
+
+  prepararFirma("firmaConductor");
+  prepararFirma("firmaDespachador");
+</script>
+
+</body>
+</html>
