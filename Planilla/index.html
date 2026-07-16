@@ -576,16 +576,27 @@
         <div class="parametros-contenedor">
 
           <style>
-  /* Estatus, salario mínimo y fecha Desde en una fila horizontal */
+  /*
+   * Año, hora de entrada, salario mínimo,
+   * vigencia y reserva de cesantía.
+   */
+
   .parametros-principales-fila {
     display: grid;
-    grid-template-columns: repeat(3, minmax(220px, 1fr));
-    gap: 18px;
+    grid-template-columns:
+      minmax(135px, 0.65fr)
+      minmax(170px, 1fr)
+      minmax(155px, 1fr)
+      minmax(165px, 1fr)
+      minmax(175px, 1fr);
+    gap: 12px;
     align-items: end;
+    width: 100%;
     padding: 14px;
     border: 1px solid var(--borde);
     border-radius: 10px;
     background: #f8fafc;
+    box-sizing: border-box;
   }
 
   .parametros-principales-campo {
@@ -599,13 +610,15 @@
     width: auto;
     margin: 0;
     font-weight: 700;
+    white-space: normal;
   }
 
   .parametros-principales-campo input {
     width: 100%;
+    min-width: 0;
     height: 46px;
     margin: 0;
-    padding: 9px 12px;
+    padding: 9px 11px;
     border: 1px solid var(--borde);
     border-radius: 8px;
     background: #ffffff;
@@ -617,7 +630,21 @@
     outline: 2px solid rgba(37, 99, 235, 0.15);
   }
 
-  @media (max-width: 850px) {
+  @media (max-width: 1200px) {
+    .parametros-principales-fila {
+      grid-template-columns:
+        repeat(3, minmax(150px, 1fr));
+    }
+  }
+
+  @media (max-width: 780px) {
+    .parametros-principales-fila {
+      grid-template-columns:
+        repeat(2, minmax(140px, 1fr));
+    }
+  }
+
+  @media (max-width: 520px) {
     .parametros-principales-fila {
       grid-template-columns: 1fr;
     }
@@ -625,6 +652,20 @@
 </style>
 
 <div class="parametros-principales-fila">
+
+  <div class="parametros-principales-campo">
+    <label for="anioPlanilla">Año</label>
+
+    <input
+      id="anioPlanilla"
+      name="anioPlanilla"
+      type="number"
+      min="2000"
+      max="2100"
+      step="1"
+      required
+    >
+  </div>
 
   <div class="parametros-principales-campo">
     <label for="estatusHoraEnt">
@@ -670,8 +711,24 @@
     >
   </div>
 
-</div>
+  <div class="parametros-principales-campo">
+    <label for="reservaCesantia">
+      % reserva cesantía
+    </label>
 
+    <input
+      id="reservaCesantia"
+      name="reservaCesantia"
+      type="number"
+      min="0"
+      max="100"
+      step="0.01"
+      placeholder="0.00"
+      inputmode="decimal"
+    >
+  </div>
+
+</div>
           <div class="seccion-feriados">
 
             <h3>Feriados</h3>
@@ -843,11 +900,39 @@
     outline: 2px solid rgba(37, 99, 235, 0.15);
   }
 
-  .referencias-ihss {
+    .referencias-ihss {
     display: grid;
-    grid-template-columns: repeat(2, minmax(190px, 1fr));
-    gap: 14px;
+    grid-template-columns:
+      repeat(3, minmax(145px, 1fr));
+    gap: 12px;
+    width: 100%;
     margin-top: 16px;
+  }
+
+  .referencias-ihss .referencia-campo {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    min-width: 0;
+  }
+
+  .referencias-ihss .referencia-campo input {
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+  }
+
+  @media (max-width: 850px) {
+    .referencias-ihss {
+      grid-template-columns:
+        repeat(2, minmax(140px, 1fr));
+    }
+  }
+
+  @media (max-width: 550px) {
+    .referencias-ihss {
+      grid-template-columns: 1fr;
+    }
   }
 
   .referencia-campo {
@@ -1154,18 +1239,37 @@
         </tbody>
       </table>
 
-      <div class="referencias-ihss">
+            <div class="referencias-ihss">
+
         <div class="referencia-campo">
-          <label for="ihssReferenciaPorcentaje">
-            Porcentaje
+          <label for="ihssPorcentajePatrono">
+            % Patrono
           </label>
+
           <input
-            id="ihssReferenciaPorcentaje"
-            name="ihssReferenciaPorcentaje"
+            id="ihssPorcentajePatrono"
+            name="ihssPorcentajePatrono"
             type="number"
             min="0"
+            max="100"
             step="0.01"
-            value="7"
+            placeholder="0.00"
+          >
+        </div>
+
+        <div class="referencia-campo">
+          <label for="ihssPorcentajeEmpleado">
+            % Empleado
+          </label>
+
+          <input
+            id="ihssPorcentajeEmpleado"
+            name="ihssPorcentajeEmpleado"
+            type="number"
+            min="0"
+            max="100"
+            step="0.01"
+            placeholder="0.00"
           >
         </div>
 
@@ -1173,15 +1277,17 @@
           <label for="ihssTechoCotizacion">
             Techo de cotización
           </label>
+
           <input
             id="ihssTechoCotizacion"
             name="ihssTechoCotizacion"
             type="number"
             min="0"
             step="0.01"
-            value="14000"
+            placeholder="0.00"
           >
         </div>
+
       </div>
     </div>
 
@@ -1645,7 +1751,7 @@
      */
 
     const API_URL =
-      "https://script.google.com/macros/s/AKfycbw1eWiUhjYHMd_jdiOivtDmnmQZt7jwGtr3IyQ4tDMp5cTJ0gcx-2UZdTszQoXvefEg/exec";
+      "https://script.google.com/macros/s/AKfycbysOFPpE8eoR3FSagqYY9QAzyJOzOIGy8Lj_2xMp0VzNR0Cfdb55-O7fCfLBC81beEq/exec";
 
     const camposEmpleado = [
 
@@ -1997,6 +2103,50 @@
           .value =
             parametros
               .estatusHoraEnt || "";
+              const asignarParametro =
+        function (id, valor) {
+
+          const campo =
+            document.getElementById(id);
+
+          if (campo) {
+            campo.value =
+              valor === null ||
+              typeof valor === "undefined"
+                ? ""
+                : valor;
+          }
+        };
+
+      asignarParametro(
+        "salarioMinimo",
+        parametros.salarioMinimo
+      );
+
+      asignarParametro(
+        "salarioMinimoDesde",
+        parametros.salarioMinimoDesde
+      );
+
+      asignarParametro(
+        "reservaCesantia",
+        parametros.reservaCesantia
+      );
+
+      asignarParametro(
+        "ihssPorcentajePatrono",
+        parametros.ihssPorcentajePatrono
+      );
+
+      asignarParametro(
+        "ihssPorcentajeEmpleado",
+        parametros.ihssPorcentajeEmpleado
+      );
+
+      asignarParametro(
+        "ihssTechoCotizacion",
+        parametros.ihssTechoCotizacion
+      );
 
         document
           .getElementById(
@@ -7593,6 +7743,9 @@ async function guardarOtroIngreso(evento) {
       salarioMinimoDesde:
         obtenerValor("salarioMinimoDesde"),
 
+            reservaCesantia:
+        obtenerValor("reservaCesantia"),
+
       /*
        * U:W = Vacaciones
        */
@@ -7655,12 +7808,17 @@ async function guardarOtroIngreso(evento) {
           }
         ),
 
-      /*
-       * AC:AD = Referencias IHSS
+            /*
+       * AC:AE = Parámetros de cotización IHSS
        */
-      ihssReferenciaPorcentaje:
+      ihssPorcentajePatrono:
         obtenerValor(
-          "ihssReferenciaPorcentaje"
+          "ihssPorcentajePatrono"
+        ),
+
+      ihssPorcentajeEmpleado:
+        obtenerValor(
+          "ihssPorcentajeEmpleado"
         ),
 
       ihssTechoCotizacion:
@@ -7669,14 +7827,13 @@ async function guardarOtroIngreso(evento) {
         ),
 
       /*
-       * AE:AF = RAP e INFOP
+       * AF:AG = RAP e INFOP
        */
       porcentajeRap:
         obtenerValor("porcentajeRap"),
 
       porcentajeInfop:
         obtenerValor("porcentajeInfop"),
-
       /*
        * AG:AI = Impuesto sobre la renta
        */
