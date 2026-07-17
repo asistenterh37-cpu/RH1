@@ -1751,7 +1751,7 @@
      */
 
     const API_URL =
-      "https://script.google.com/macros/s/AKfycbyf2wiKtwG-tYEgX5V2oSVUa1W6MQTDgrdWBL3yiFrEcLFG_hVU0EDeJ-dQ7Nu0_g3d/exec";
+      "https://script.google.com/macros/s/AKfycbxFCp63at68Xon9L7NAeDTw1VJ-BxHxKKwMSotZfXB5W4w9MnW_AkHBSfATDZ2fI1QS/exec";
 
     const camposEmpleado = [
 
@@ -8285,5 +8285,448 @@ if (
 </style>
   
 </body>
+<style>
+  .procesar-controles {
+    display: grid;
+    grid-template-columns: minmax(230px, 420px) auto;
+    gap: 14px;
+    align-items: end;
+    margin-bottom: 20px;
+  }
 
+  .procesar-tabla-contenedor {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    border: 1px solid var(--borde);
+    border-radius: 10px;
+  }
+
+  .procesar-tabla {
+    width: max-content;
+    min-width: 100%;
+    border-collapse: collapse;
+    background: white;
+  }
+
+  .procesar-tabla th,
+  .procesar-tabla td {
+    padding: 9px 11px;
+    border: 1px solid var(--borde);
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  .procesar-tabla th {
+    color: white;
+    background: var(--azul);
+    text-align: center;
+  }
+
+  .procesar-tabla td:nth-child(-n+7) {
+    text-align: left;
+  }
+
+  .procesar-resumen {
+    margin-top: 14px;
+    font-weight: bold;
+  }
+
+  @media (max-width: 760px) {
+    .procesar-controles {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+
+<script>
+  document.addEventListener(
+    "DOMContentLoaded",
+    function () {
+      crearModuloProcesarPlanilla();
+    }
+  );
+
+  function crearModuloProcesarPlanilla() {
+    const menu =
+      document.querySelector(".menu");
+
+    const principal =
+      document.querySelector("main");
+
+    if (
+      !menu ||
+      !principal ||
+      document.getElementById(
+        "procesarPlanilla"
+      )
+    ) {
+      return;
+    }
+
+    const boton =
+      document.createElement("button");
+
+    boton.type = "button";
+    boton.textContent =
+      "Procesar planilla";
+
+    boton.addEventListener(
+      "click",
+      function () {
+        abrirPanel(
+          "procesarPlanilla",
+          boton
+        );
+
+        cargarPeriodosPendientes();
+      }
+    );
+
+    /*
+     * El botón se agrega después de Movimientos,
+     * porque Movimientos ya es el último botón.
+     */
+    menu.appendChild(boton);
+
+    const panel =
+      document.createElement("section");
+
+    panel.id =
+      "procesarPlanilla";
+
+    panel.className =
+      "panel";
+
+    panel.innerHTML = `
+      <h2>Procesar planilla</h2>
+
+      <p>
+        Seleccione un período pendiente para calcular
+        los ingresos, deducciones y total a pagar.
+      </p>
+
+      <div class="procesar-controles">
+
+        <div>
+          <label for="periodoProcesar">
+            Período de planilla
+          </label>
+
+          <select id="periodoProcesar">
+            <option value="">
+              Seleccionar
+            </option>
+          </select>
+        </div>
+
+        <div>
+          <button
+            id="botonProcesarPlanilla"
+            type="button"
+            class="guardar"
+            onclick="procesarPeriodoSeleccionado()"
+          >
+            Procesar planilla
+          </button>
+        </div>
+
+      </div>
+
+      <div
+        id="mensajeProcesarPlanilla"
+        class="mensaje"
+      ></div>
+
+      <div
+        id="contenedorResultadoPlanilla"
+        class="procesar-tabla-contenedor"
+        hidden
+      >
+        <table
+          id="tablaResultadoPlanilla"
+          class="procesar-tabla"
+        >
+          <thead></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
+      <div
+        id="resumenProcesarPlanilla"
+        class="procesar-resumen"
+      ></div>
+    `;
+
+    principal.appendChild(panel);
+  }
+
+  function mensajeProcesarPlanilla(
+    texto,
+    tipo
+  ) {
+    const mensaje =
+      document.getElementById(
+        "mensajeProcesarPlanilla"
+      );
+
+    if (!mensaje) {
+      return;
+    }
+
+    mensaje.className =
+      "mensaje" +
+      (
+        tipo
+          ? " " + tipo
+          : ""
+      );
+
+    mensaje.textContent =
+      texto || "";
+  }
+
+  async function cargarPeriodosPendientes() {
+    const selector =
+      document.getElementById(
+        "periodoProcesar"
+      );
+
+    selector.innerHTML =
+      '<option value="">Cargando...</option>';
+
+    mensajeProcesarPlanilla(
+      "Cargando períodos pendientes...",
+      "info"
+    );
+
+    try {
+      const respuesta =
+        await jsonp(
+          "listarPeriodosProcesar",
+          {}
+        );
+
+      if (
+        !respuesta ||
+        !respuesta.ok
+      ) {
+        throw new Error(
+          respuesta &&
+          respuesta.mensaje
+            ? respuesta.mensaje
+            : "No se pudieron cargar los períodos."
+        );
+      }
+
+      selector.innerHTML =
+        '<option value="">Seleccionar</option>';
+
+      (
+        respuesta.periodos || []
+      ).forEach(function (periodo) {
+        const opcion =
+          document.createElement(
+            "option"
+          );
+
+        opcion.value =
+          periodo.codigo;
+
+        opcion.textContent =
+          periodo.texto;
+
+        selector.appendChild(
+          opcion
+        );
+      });
+
+      mensajeProcesarPlanilla(
+        respuesta.periodos.length
+          ? ""
+          : "No existen períodos pendientes.",
+        respuesta.periodos.length
+          ? ""
+          : "info"
+      );
+
+    } catch (error) {
+      selector.innerHTML =
+        '<option value="">Seleccionar</option>';
+
+      mensajeProcesarPlanilla(
+        error.message,
+        "error"
+      );
+    }
+  }
+
+  async function procesarPeriodoSeleccionado() {
+    const codigo =
+      document.getElementById(
+        "periodoProcesar"
+      ).value;
+
+    const boton =
+      document.getElementById(
+        "botonProcesarPlanilla"
+      );
+
+    if (!codigo) {
+      mensajeProcesarPlanilla(
+        "Seleccione un período de planilla.",
+        "error"
+      );
+
+      return;
+    }
+
+    boton.disabled = true;
+
+    mensajeProcesarPlanilla(
+      "Procesando planilla...",
+      "info"
+    );
+
+    try {
+      const respuesta =
+        await jsonp(
+          "procesarPlanilla",
+          {
+            codigo: codigo
+          }
+        );
+
+      if (
+        !respuesta ||
+        !respuesta.ok
+      ) {
+        throw new Error(
+          respuesta &&
+          respuesta.mensaje
+            ? respuesta.mensaje
+            : "No se pudo procesar la planilla."
+        );
+      }
+
+      mostrarResultadoPlanilla(
+        respuesta
+      );
+
+      mensajeProcesarPlanilla(
+        respuesta.mensaje,
+        "ok"
+      );
+
+    } catch (error) {
+      mensajeProcesarPlanilla(
+        error.message,
+        "error"
+      );
+
+    } finally {
+      boton.disabled = false;
+    }
+  }
+
+  function mostrarResultadoPlanilla(
+    respuesta
+  ) {
+    const contenedor =
+      document.getElementById(
+        "contenedorResultadoPlanilla"
+      );
+
+    const tabla =
+      document.getElementById(
+        "tablaResultadoPlanilla"
+      );
+
+    const encabezado =
+      tabla.querySelector("thead");
+
+    const cuerpo =
+      tabla.querySelector("tbody");
+
+    const columnas =
+      respuesta.columnas || [];
+
+    const filas =
+      respuesta.filas || [];
+
+    encabezado.innerHTML = "";
+    cuerpo.innerHTML = "";
+
+    const filaEncabezado =
+      document.createElement("tr");
+
+    columnas.forEach(
+      function (columna) {
+        const th =
+          document.createElement("th");
+
+        th.textContent =
+          columna;
+
+        filaEncabezado.appendChild(
+          th
+        );
+      }
+    );
+
+    encabezado.appendChild(
+      filaEncabezado
+    );
+
+    filas.forEach(function (fila) {
+      const tr =
+        document.createElement("tr");
+
+      fila.forEach(
+        function (valor, indice) {
+          const td =
+            document.createElement("td");
+
+          if (
+            indice >= 7 &&
+            typeof valor === "number"
+          ) {
+            td.textContent =
+              new Intl.NumberFormat(
+                "es-HN",
+                {
+                  style: "currency",
+                  currency: "HNL",
+                  minimumFractionDigits: 2
+                }
+              ).format(valor);
+          } else {
+            td.textContent =
+              valor === null ||
+              valor === undefined
+                ? ""
+                : valor;
+          }
+
+          tr.appendChild(td);
+        }
+      );
+
+      cuerpo.appendChild(tr);
+    });
+
+    contenedor.hidden = false;
+
+    document.getElementById(
+      "resumenProcesarPlanilla"
+    ).textContent =
+      filas.length +
+      (
+        filas.length === 1
+          ? " empleado procesado."
+          : " empleados procesados."
+      );
+  }
+</script>
+  
 </html>
