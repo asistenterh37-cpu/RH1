@@ -1751,7 +1751,7 @@
      */
 
     const API_URL =
-      "https://script.google.com/macros/s/AKfycbw_ScvrsJ7oQQZVUgpA-X7EUiLe6j5elRBcJnHyW79n3ubUSLAHmIGmL-Abx5IZiqvh/exec";
+      "https://script.google.com/macros/s/AKfycbwLhCFXvw9M6y-0Ui-aZBU6qazVEL5ZYTYRRJrSa5MWij82xgHXweauG2DmTgkNau9B/exec";
 
     const camposEmpleado = [
 
@@ -6531,51 +6531,52 @@ function cambiarTipoVigenciaIngreso() {
   }
 
   function convertirVigenciaAPlanillas() {
+  const desdeActual =
+    document.getElementById("ingresoDesde");
 
-    const desdeActual =
-      document.getElementById(
-        "ingresoDesde"
-      );
+  const hastaActual =
+    document.getElementById("ingresoHasta");
 
-    const hastaActual =
-      document.getElementById(
-        "ingresoHasta"
-      );
-
-    if (!desdeActual || !hastaActual) {
-      return;
-    }
-
-    desdeActual.outerHTML = `
-
-      <select
-        id="ingresoDesde"
-        required
-      >
-        ${crearOpcionesPlanillasIngreso()}
-      </select>
-    `;
-
-    hastaActual.outerHTML = `
-
-      <select
-        id="ingresoHasta"
-        required
-      >
-        ${crearOpcionesPlanillasIngreso()}
-      </select>
-    `;
-
-    const dias =
-      document.getElementById(
-        "ingresoDias"
-      );
-
-    if (dias) {
-      dias.value = 0;
-    }
+  if (!desdeActual || !hastaActual) {
+    return;
   }
 
+  desdeActual.outerHTML = `
+    <select
+      id="ingresoDesde"
+      required
+      onchange="calcularPlanillasAplicables()"
+    >
+      ${crearOpcionesPlanillasIngreso()}
+    </select>
+  `;
+
+  hastaActual.outerHTML = `
+    <select
+      id="ingresoHasta"
+      required
+      onchange="calcularPlanillasAplicables()"
+    >
+      ${crearOpcionesPlanillasIngreso()}
+    </select>
+  `;
+
+  const dias =
+    document.getElementById("ingresoDias");
+
+  const planillasAplic =
+    document.getElementById(
+      "ingresoPlanillasAplic"
+    );
+
+  if (dias) {
+    dias.value = 0;
+  }
+
+  if (planillasAplic) {
+    planillasAplic.value = 0;
+  }
+}
   function crearOpcionesPlanillasIngreso() {
   let opciones = `
     <option value="">
@@ -6628,106 +6629,124 @@ function cambiarTipoVigenciaIngreso() {
    */
 
   function calcularDiasOtroIngreso() {
-
-    const concepto =
-      document
-        .getElementById(
-          "ingresoConcepto"
-        )
-        .value;
-
-    const campoDias =
-      document.getElementById(
-        "ingresoDias"
-      );
-
-    if (!campoDias) {
-      return 0;
-    }
-
-    if (
-      !conceptoUsaCalendario(
-        concepto
-      )
-    ) {
-
-      campoDias.value = 0;
-
-      return 0;
-    }
-
-    const desde =
-      document
-        .getElementById(
-          "ingresoDesde"
-        )
-        .value;
-
-    const hasta =
-      document
-        .getElementById(
-          "ingresoHasta"
-        )
-        .value;
-
-    if (!desde || !hasta) {
-
-      campoDias.value = 0;
-
-      return 0;
-    }
-
-    /*
-     * Agregar T00:00:00 evita diferencias
-     * ocasionadas por zona horaria.
-     */
-
-    const fechaDesde =
-      new Date(
-        desde + "T00:00:00"
-      );
-
-    const fechaHasta =
-      new Date(
-        hasta + "T00:00:00"
-      );
-
-    const diferencia =
-      Math.floor(
-        (
-          fechaHasta.getTime() -
-          fechaDesde.getTime()
-        ) /
-        (
-          24 *
-          60 *
-          60 *
-          1000
-        )
-      );
-
-    if (diferencia < 0) {
-
-      campoDias.value = 0;
-
-      mostrarMensajeOtrosIngresos(
-        "Hasta no puede ser anterior a Desde.",
-        "error"
-      );
-
-      return 0;
-    }
-
-    campoDias.value =
-      diferencia;
-
-    mostrarMensajeOtrosIngresos(
-      "",
-      ""
+  const desde =
+    document.getElementById(
+      "ingresoDesde"
     );
 
-    return diferencia;
+  const hasta =
+    document.getElementById(
+      "ingresoHasta"
+    );
+
+  const campoDias =
+    document.getElementById(
+      "ingresoDias"
+    );
+
+  const campoPlanillas =
+    document.getElementById(
+      "ingresoPlanillasAplic"
+    );
+
+  if (!desde || !hasta || !campoDias) {
+    return 0;
   }
+
+  /*
+   * Esta función calcula días solamente cuando
+   * Desde y Hasta son campos de calendario.
+   */
+  const usaCalendario =
+    desde.tagName === "INPUT" &&
+    hasta.tagName === "INPUT" &&
+    desde.type === "date" &&
+    hasta.type === "date";
+
+  if (!usaCalendario) {
+    campoDias.value = 0;
+    return 0;
+  }
+
+  if (!desde.value || !hasta.value) {
+    campoDias.value = 0;
+
+    if (campoPlanillas) {
+      campoPlanillas.value = 0;
+    }
+
+    return 0;
+  }
+
+  const fechaDesde =
+    new Date(
+      desde.value + "T00:00:00"
+    );
+
+  const fechaHasta =
+    new Date(
+      hasta.value + "T00:00:00"
+    );
+
+  if (
+    isNaN(fechaDesde.getTime()) ||
+    isNaN(fechaHasta.getTime())
+  ) {
+    campoDias.value = 0;
+    return 0;
+  }
+
+  const diferencia =
+    Math.floor(
+      (
+        fechaHasta.getTime() -
+        fechaDesde.getTime()
+      ) / 86400000
+    );
+
+  if (diferencia < 0) {
+    campoDias.value = 0;
+
+    if (campoPlanillas) {
+      campoPlanillas.value = 0;
+    }
+
+    mostrarMensajeOtrosIngresos(
+      "Hasta no puede ser anterior a Desde.",
+      "error"
+    );
+
+    return 0;
+  }
+
+  /*
+   * Se suma uno porque se incluyen
+   * la fecha Desde y la fecha Hasta.
+   *
+   * 16/07 al 16/07 = 1 día.
+   * 16/07 al 18/07 = 3 días.
+   */
+  const diasInclusivos =
+    diferencia + 1;
+
+  campoDias.value =
+    diasInclusivos;
+
+  /*
+   * Cuando se seleccionan fechas,
+   * Planillas aplicables debe ser cero.
+   */
+  if (campoPlanillas) {
+    campoPlanillas.value = 0;
+  }
+
+  mostrarMensajeOtrosIngresos(
+    "",
+    ""
+  );
+
+  return diasInclusivos;
+}
 
   /*
    * Sustituye la carga anterior.
