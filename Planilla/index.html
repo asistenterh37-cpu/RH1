@@ -1619,16 +1619,321 @@
 
     <!-- ORD Y TE -->
 
-    <section
-      id="ordte"
-      class="panel"
+<section
+  id="ordte"
+  class="panel"
+>
+
+<style>
+  .ordte-controles {
+    display: grid;
+    grid-template-columns: minmax(260px, 520px);
+    gap: 12px;
+    margin-bottom: 18px;
+  }
+
+  .ordte-tabla-contenedor {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    border: 1px solid var(--borde);
+    border-radius: 10px;
+  }
+
+  .ordte-tabla {
+    width: 100%;
+    min-width: 900px;
+    border-collapse: collapse;
+    background: #ffffff;
+  }
+
+  .ordte-tabla th,
+  .ordte-tabla td {
+    padding: 8px 10px;
+    border: 1px solid var(--borde);
+    vertical-align: middle;
+    white-space: nowrap;
+  }
+
+  .ordte-tabla th {
+    color: #ffffff;
+    background: var(--azul);
+    text-align: center;
+    white-space: normal;
+    line-height: 1.15;
+  }
+
+  .ordte-tabla td {
+    text-align: right;
+  }
+
+  .ordte-tabla td:nth-child(-n+6) {
+    text-align: left;
+  }
+
+  @media (max-width: 600px) {
+    .ordte-controles {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+
+<h2>Ord y TE</h2>
+
+<p>
+  Consulte las horas ordinarias y el tiempo extra
+  correspondientes a un período pendiente.
+</p>
+
+<div class="ordte-controles">
+  <div>
+    <label for="periodoOrdTe">
+      Período de planilla
+    </label>
+
+    <select
+      id="periodoOrdTe"
+      onchange="consultarPeriodoOrdTe()"
     >
+      <option value="">
+        Seleccionar
+      </option>
+    </select>
+  </div>
+</div>
 
-      <h2>Ord y TE</h2>
+<div
+  id="mensajeOrdTe"
+  class="mensaje"
+></div>
 
-      <p>
-        Módulo disponible para incorporar los procesos
-        de horas ordinarias y tiempo extra.
+<div
+  id="contenedorOrdTe"
+  class="ordte-tabla-contenedor"
+  hidden
+>
+  <table
+    id="tablaOrdTe"
+    class="ordte-tabla"
+  >
+    <thead></thead>
+    <tbody></tbody>
+  </table>
+</div>
+
+<div
+  id="resumenOrdTe"
+  class="procesar-resumen"
+></div>
+
+<script>
+  function mostrarMensajeOrdTe(texto, tipo) {
+    const mensaje =
+      document.getElementById("mensajeOrdTe");
+
+    mensaje.className =
+      "mensaje" + (tipo ? " " + tipo : "");
+
+    mensaje.textContent = texto || "";
+  }
+
+  async function cargarPeriodosOrdTe() {
+    const selector =
+      document.getElementById("periodoOrdTe");
+
+    if (!selector) {
+      return;
+    }
+
+    selector.innerHTML =
+      '<option value="">Cargando...</option>';
+
+    try {
+      const respuesta = await jsonp(
+        "listarPeriodosProcesar",
+        {}
+      );
+
+      if (!respuesta || !respuesta.ok) {
+        throw new Error(
+          respuesta && respuesta.mensaje
+            ? respuesta.mensaje
+            : "No se pudieron cargar los períodos."
+        );
+      }
+
+      selector.innerHTML =
+        '<option value="">Seleccionar</option>';
+
+      (respuesta.periodos || []).forEach(
+        function (periodo) {
+          const opcion =
+            document.createElement("option");
+
+          opcion.value = periodo.codigo;
+          opcion.textContent = periodo.texto;
+
+          selector.appendChild(opcion);
+        }
+      );
+
+      if (!respuesta.periodos.length) {
+        mostrarMensajeOrdTe(
+          "No existen períodos pendientes.",
+          "info"
+        );
+      }
+    } catch (error) {
+      selector.innerHTML =
+        '<option value="">Seleccionar</option>';
+
+      mostrarMensajeOrdTe(
+        error.message,
+        "error"
+      );
+    }
+  }
+
+  async function consultarPeriodoOrdTe() {
+    const selector =
+      document.getElementById("periodoOrdTe");
+
+    const codigo = selector.value;
+
+    const contenedor =
+      document.getElementById("contenedorOrdTe");
+
+    const resumen =
+      document.getElementById("resumenOrdTe");
+
+    if (!codigo) {
+      contenedor.hidden = true;
+      resumen.textContent = "";
+      mostrarMensajeOrdTe("", "");
+      return;
+    }
+
+    mostrarMensajeOrdTe(
+      "Cargando información del período...",
+      "info"
+    );
+
+    try {
+      const respuesta = await jsonp(
+        "obtenerOrdTe",
+        {
+          codigo: codigo
+        }
+      );
+
+      if (!respuesta || !respuesta.ok) {
+        throw new Error(
+          respuesta && respuesta.mensaje
+            ? respuesta.mensaje
+            : "No se pudo consultar el período."
+        );
+      }
+
+      mostrarTablaOrdTe(respuesta);
+
+      mostrarMensajeOrdTe(
+        respuesta.mensaje || "",
+        "ok"
+      );
+    } catch (error) {
+      contenedor.hidden = true;
+      resumen.textContent = "";
+
+      mostrarMensajeOrdTe(
+        error.message,
+        "error"
+      );
+    }
+  }
+
+  function mostrarTablaOrdTe(respuesta) {
+    const contenedor =
+      document.getElementById("contenedorOrdTe");
+
+    const tabla =
+      document.getElementById("tablaOrdTe");
+
+    const encabezado =
+      tabla.querySelector("thead");
+
+    const cuerpo =
+      tabla.querySelector("tbody");
+
+    encabezado.innerHTML = "";
+    cuerpo.innerHTML = "";
+
+    const filaEncabezado =
+      document.createElement("tr");
+
+    (respuesta.columnas || []).forEach(
+      function (columna) {
+        const celda =
+          document.createElement("th");
+
+        celda.textContent = columna;
+        filaEncabezado.appendChild(celda);
+      }
+    );
+
+    encabezado.appendChild(filaEncabezado);
+
+    (respuesta.filas || []).forEach(
+      function (fila) {
+        const filaTabla =
+          document.createElement("tr");
+
+        fila.forEach(function (valor, indice) {
+          const celda =
+            document.createElement("td");
+
+          if (
+            respuesta.tipo === "Quincenal" &&
+            indice === 6
+          ) {
+            celda.textContent =
+              new Intl.NumberFormat(
+                "es-HN",
+                {
+                  style: "currency",
+                  currency: "HNL"
+                }
+              ).format(Number(valor || 0));
+          } else {
+            celda.textContent =
+              valor === null ||
+              valor === undefined
+                ? ""
+                : String(valor);
+          }
+
+          filaTabla.appendChild(celda);
+        });
+
+        cuerpo.appendChild(filaTabla);
+      }
+    );
+
+    contenedor.hidden = false;
+
+    document.getElementById(
+      "resumenOrdTe"
+    ).textContent =
+      (respuesta.filas || []).length +
+      " empleados activos.";
+  }
+
+  document.addEventListener(
+    "DOMContentLoaded",
+    cargarPeriodosOrdTe
+  );
+</script>
+
+</section>
       </p>
 
     </section>
@@ -1751,7 +2056,7 @@
      */
 
     const API_URL =
-      "https://script.google.com/macros/s/AKfycby2ko9oLSHF_Fb22TS2xU_g4ypZYJr1P0xwXszMpTC4rCLUH-5BkL3bf_gP5jagg5vE/exec";
+      "https://script.google.com/macros/s/AKfycbztg1FmvjNhdGVLqP6Fb3gOrajpLJiybdC18Hs1rxgDnVjkkqcR9WmTz1iE0osZ3vTh/exec";
 
     const camposEmpleado = [
 
