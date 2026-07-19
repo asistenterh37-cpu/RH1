@@ -2056,7 +2056,7 @@
      */
 
     const API_URL =
-      "https://script.google.com/macros/s/AKfycbwDwMbmtHGilKCJovu-hX8wTmDBDbSrVgH2T2VGdtjagthY8GBH32eqFcCDhkMaovxd/exec";
+      "https://script.google.com/macros/s/AKfycbwxCsDm1dkY9BZHS4YeRlLxSah-dwyj4Lmep9k9bxZPFKvS5Ae4gtAhlGYBZzeYc5wD/exec";
 
     const camposEmpleado = [
 
@@ -8742,6 +8742,27 @@ if (
     opacity: 0.55;
   }
 
+  .contenedor-pago-planilla {
+    width: 100%;
+    max-width: 520px;
+    margin-top: 16px;
+    padding: 16px;
+    border: 1px solid #d6deeb;
+    border-radius: 12px;
+    background: #f8faff;
+  }
+
+  .contenedor-pago-planilla label {
+    display: block;
+    margin-bottom: 7px;
+    font-weight: 700;
+  }
+
+  .contenedor-pago-planilla select {
+    width: 100%;
+    min-height: 46px;
+  }
+  
   @media (max-width: 760px) {
     .procesar-controles {
       grid-template-columns: 1fr;
@@ -8841,7 +8862,7 @@ if (
           </select>
         </div>
 
-               <div class="acciones-procesar-planilla">
+        <div class="acciones-procesar-planilla">
           <button
             id="botonProcesarPlanilla"
             type="button"
@@ -8873,8 +8894,7 @@ if (
             id="botonGenerarPlanilla"
             type="button"
             class="boton-secundario"
-            disabled
-            title="Disponible después de definir el formato final de la planilla"
+            onclick="generarPlanillaSeleccionada()"
           >
             Generar planilla
           </button>
@@ -8883,13 +8903,40 @@ if (
             id="botonPagarPlanilla"
             type="button"
             class="boton-secundario"
-            disabled
-            title="Disponible después de generar la planilla"
+            onclick="mostrarOpcionesPagoPlanilla()"
           >
             Pagar planilla
           </button>
         </div>
 
+        <div
+          id="contenedorPagoPlanilla"
+          class="contenedor-pago-planilla"
+          hidden
+        >
+          <label for="opcionPagoPlanilla">
+            Operación de pago
+          </label>
+
+          <select
+            id="opcionPagoPlanilla"
+            onchange="seleccionarOperacionPagoPlanilla()"
+          >
+            <option value="">
+              Seleccionar
+            </option>
+
+            <option value="recibos">
+              Emitir recibos de pago
+            </option>
+
+            <option value="deposito">
+              Generar depósito banco
+            </option>
+          </select>
+        </div>
+
+      </div>               
       </div>
       <div
         id="mensajeProcesarPlanilla"
@@ -9187,7 +9234,7 @@ if (
   async function aplicarPeriodoSeleccionado() {
     var selector =
       document.getElementById(
-        "periodoProcesarPlanilla"
+        "periodoProcesar"
       );
 
     var codigo =
@@ -9214,7 +9261,7 @@ if (
     }
 
     mensajeProcesarPlanilla(
-      "Guardando el detalle en PlanillaF...",
+      "Guardando los conceptos en PlanillaF...",
       "info"
     );
 
@@ -9236,10 +9283,10 @@ if (
 
       mensajeProcesarPlanilla(
         respuesta.mensaje,
-        "success"
+        "ok"
       );
 
-      await cargarPeriodosProcesarPlanilla();
+      await cargarPeriodosPendientes();
 
     } catch (error) {
       mensajeProcesarPlanilla(
@@ -9255,7 +9302,102 @@ if (
       }
     }
   }
-  
+
+  function obtenerCodigoPeriodoSeleccionado() {
+    var selector =
+      document.getElementById(
+        "periodoProcesar"
+      );
+
+    return selector
+      ? String(selector.value || "").trim()
+      : "";
+  }
+
+  function generarPlanillaSeleccionada() {
+    var codigo =
+      obtenerCodigoPeriodoSeleccionado();
+
+    if (!codigo) {
+      mensajeProcesarPlanilla(
+        "Seleccione el período que desea generar.",
+        "error"
+      );
+      return;
+    }
+
+    mensajeProcesarPlanilla(
+      "La planilla " +
+        codigo +
+        " está disponible para generar.",
+      "info"
+    );
+  }
+
+  function mostrarOpcionesPagoPlanilla() {
+    var codigo =
+      obtenerCodigoPeriodoSeleccionado();
+
+    if (!codigo) {
+      mensajeProcesarPlanilla(
+        "Seleccione el período que desea pagar.",
+        "error"
+      );
+      return;
+    }
+
+    var contenedor =
+      document.getElementById(
+        "contenedorPagoPlanilla"
+      );
+
+    var selector =
+      document.getElementById(
+        "opcionPagoPlanilla"
+      );
+
+    if (!contenedor || !selector) {
+      return;
+    }
+
+    contenedor.hidden = false;
+    selector.value = "";
+    selector.focus();
+
+    mensajeProcesarPlanilla(
+      "Seleccione la operación de pago para " +
+        codigo +
+        ".",
+      "info"
+    );
+  }
+
+  function seleccionarOperacionPagoPlanilla() {
+    var selector =
+      document.getElementById(
+        "opcionPagoPlanilla"
+      );
+
+    var codigo =
+      obtenerCodigoPeriodoSeleccionado();
+
+    if (!selector || !selector.value) {
+      return;
+    }
+
+    var mensaje =
+      selector.value === "recibos"
+        ? "Emitir recibos de pago"
+        : "Generar depósito banco";
+
+    mensajeProcesarPlanilla(
+      mensaje +
+        " para la planilla " +
+        codigo +
+        ".",
+      "info"
+    );
+  }  
   function mostrarResultadoPlanilla(
     respuesta
   ) {
