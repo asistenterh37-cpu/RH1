@@ -2056,7 +2056,7 @@
      */
 
     const API_URL =
-      "https://script.google.com/macros/s/AKfycbwB-D-mD1-54CA6ePyueA3IznGOK9DfdH6Yk7Zq8JtpwH_qjNaIgKpygEmKonjlBl7R/exec";
+      "https://script.google.com/macros/s/AKfycbxBEDDgi99WEw-1RlCPXWmuy8RBXvNRP3qWFcOweiuU1NJzAaUsNKCC7ZpLfnRIJ_ci/exec";
 
     const camposEmpleado = [
 
@@ -9743,7 +9743,7 @@ if (
     );
   }
 
-  function mostrarRecibosPago(
+    function mostrarRecibosPago(
     contenedor,
     recibos
   ) {
@@ -9760,6 +9760,12 @@ if (
           'onclick="window.print()">' +
           "Imprimir recibos" +
         "</button>" +
+
+        '<button type="button" ' +
+          'class="boton-guardar" ' +
+          'onclick="enviarRecibosPagoPorCorreo(this)">' +
+          "Enviar recibos" +
+        "</button>" +
       "</div>" +
       '<div class="lista-recibos-pago">';
 
@@ -9767,6 +9773,7 @@ if (
       html +=
         '<article class="recibo-pago">' +
           '<h3 class="recibo-empresa">Empresa</h3>' +
+
           '<p class="recibo-periodo">' +
             "<strong>Recibo de pago:</strong> " +
             escaparPagoPlanilla(recibo.periodo) +
@@ -9776,14 +9783,17 @@ if (
             "<div><strong>Nombre:</strong> " +
               escaparPagoPlanilla(recibo.nombre) +
             "</div>" +
+
             "<div><strong>No. de personal:</strong> " +
               escaparPagoPlanilla(recibo.numero) +
             "</div>" +
+
             "<div><strong>Departamento:</strong> " +
               escaparPagoPlanilla(
                 recibo.departamento
               ) +
             "</div>" +
+
             "<div><strong>Planilla:</strong> " +
               escaparPagoPlanilla(recibo.planilla) +
             "</div>" +
@@ -9833,6 +9843,72 @@ if (
     contenedor.innerHTML = html;
   }
 
+  async function enviarRecibosPagoPorCorreo(
+    boton
+  ) {
+    var codigo =
+      obtenerCodigoPeriodoSeleccionado();
+
+    if (!codigo) {
+      mensajeProcesarPlanilla(
+        "Seleccione el período de planilla.",
+        "error"
+      );
+      return;
+    }
+
+    var confirmar = window.confirm(
+      "Se enviará un recibo de pago al correo " +
+      "registrado para cada empleado en Maestro. " +
+      "¿Desea continuar?"
+    );
+
+    if (!confirmar) {
+      return;
+    }
+
+    var textoOriginal = boton.textContent;
+
+    boton.disabled = true;
+    boton.textContent = "Enviando...";
+
+    mensajeProcesarPlanilla(
+      "Enviando recibos de pago...",
+      "info"
+    );
+
+    try {
+      var respuesta = await jsonp(
+        "enviarRecibosPagoCorreo",
+        {
+          codigo: codigo
+        }
+      );
+
+      if (!respuesta || !respuesta.ok) {
+        throw new Error(
+          respuesta && respuesta.mensaje
+            ? respuesta.mensaje
+            : "No fue posible enviar los recibos."
+        );
+      }
+
+      mensajeProcesarPlanilla(
+        respuesta.mensaje,
+        "ok"
+      );
+    } catch (error) {
+      mensajeProcesarPlanilla(
+        error.message ||
+          "No fue posible enviar los recibos.",
+        "error"
+      );
+    } finally {
+      boton.disabled = false;
+      boton.textContent = textoOriginal;
+    }
+  }
+  
   function generarTablaConceptosPago(
     titulo,
     conceptos
