@@ -2056,7 +2056,7 @@
      */
 
     const API_URL =
-      "https://script.google.com/macros/s/AKfycbwHvk5JkDA2D4AZmJZ5nLLRKm8wCuZl-xMHvcKmZt-l433T6Q5u0LfCAC-5jsPfh8DR/exec";
+      "https://script.google.com/macros/s/AKfycbwB-D-mD1-54CA6ePyueA3IznGOK9DfdH6Yk7Zq8JtpwH_qjNaIgKpygEmKonjlBl7R/exec";
 
     const camposEmpleado = [
 
@@ -9026,7 +9026,7 @@ if (
           </button>
         </div>
 
-                <div
+        <div
           id="contenedorPagoPlanilla"
           class="contenedor-pago-planilla"
           hidden
@@ -9049,11 +9049,35 @@ if (
           </select>
 
           <div
+            id="contenedorPeriodoPagoPlanilla"
+            style="margin-top: 14px;"
+            hidden
+          >
+            <label for="periodoPagoPlanilla">
+              Período de pago vigente
+            </label>
+
+            <select id="periodoPagoPlanilla">
+              <option value="">Seleccionar</option>
+            </select>
+
+            <button
+              id="botonGenerarPagoPlanilla"
+              type="button"
+              class="guardar"
+              style="margin-top: 12px;"
+              onclick="generarOperacionPagoPlanilla()"
+            >
+              Generar
+            </button>
+          </div>
+
+          <div
             id="resultadoPagoPlanilla"
             class="resultado-pago-planilla"
             hidden
           ></div>
-        </div>
+        </div>                
       </div>               
       </div>
       <div
@@ -9452,26 +9476,25 @@ if (
     );
   }
 
-  function mostrarOpcionesPagoPlanilla() {
-    var codigo =
-      obtenerCodigoPeriodoSeleccionado();
-
-    if (!codigo) {
-      mensajeProcesarPlanilla(
-        "Seleccione el período que desea pagar.",
-        "error"
-      );
-      return;
-    }
-
+    function mostrarOpcionesPagoPlanilla() {
     var contenedor =
       document.getElementById(
         "contenedorPagoPlanilla"
       );
 
-    var selector =
+    var operacion =
       document.getElementById(
         "opcionPagoPlanilla"
+      );
+
+    var contenedorPeriodo =
+      document.getElementById(
+        "contenedorPeriodoPagoPlanilla"
+      );
+
+    var periodo =
+      document.getElementById(
+        "periodoPagoPlanilla"
       );
 
     var resultado =
@@ -9479,55 +9502,182 @@ if (
         "resultadoPagoPlanilla"
       );
 
-    if (!contenedor || !selector) {
+    if (!contenedor || !operacion) {
       return;
     }
 
     contenedor.hidden = false;
-    selector.value = "";
+    operacion.value = "";
+
+    if (periodo) {
+      periodo.innerHTML =
+        '<option value="">Seleccionar</option>';
+    }
+
+    if (contenedorPeriodo) {
+      contenedorPeriodo.hidden = true;
+    }
 
     if (resultado) {
       resultado.hidden = true;
       resultado.innerHTML = "";
     }
 
-    selector.focus();
+    operacion.focus();
 
     mensajeProcesarPlanilla(
-      "Seleccione la operación de pago para " +
-        codigo +
-        ".",
+      "Seleccione la operación de pago.",
       "info"
     );
   }
 
   async function seleccionarOperacionPagoPlanilla() {
-    var selector =
+    var selectorOperacion =
       document.getElementById(
         "opcionPagoPlanilla"
       );
 
-    var codigo =
-      obtenerCodigoPeriodoSeleccionado();
+    var contenedorPeriodo =
+      document.getElementById(
+        "contenedorPeriodoPagoPlanilla"
+      );
 
-    if (!selector || !selector.value) {
+    var selectorPeriodo =
+      document.getElementById(
+        "periodoPagoPlanilla"
+      );
+
+    var resultado =
+      document.getElementById(
+        "resultadoPagoPlanilla"
+      );
+
+    if (
+      !selectorOperacion ||
+      !selectorPeriodo ||
+      !contenedorPeriodo
+    ) {
       return;
     }
 
-    if (!codigo) {
+    selectorPeriodo.innerHTML =
+      '<option value="">Seleccionar</option>';
+
+    contenedorPeriodo.hidden = true;
+
+    if (resultado) {
+      resultado.hidden = true;
+      resultado.innerHTML = "";
+    }
+
+    if (!selectorOperacion.value) {
+      return;
+    }
+
+    selectorOperacion.disabled = true;
+
+    mensajeProcesarPlanilla(
+      "Cargando períodos de pago vigentes...",
+      "info"
+    );
+
+    try {
+      var respuesta = await jsonp(
+        "listarPeriodosPago",
+        {}
+      );
+
+      if (!respuesta || !respuesta.ok) {
+        throw new Error(
+          respuesta && respuesta.mensaje
+            ? respuesta.mensaje
+            : "No fue posible cargar los períodos."
+        );
+      }
+
+      (respuesta.periodos || []).forEach(
+        function(periodo) {
+          var opcion =
+            document.createElement("option");
+
+          opcion.value = periodo.codigo;
+          opcion.textContent = periodo.etiqueta;
+
+          selectorPeriodo.appendChild(opcion);
+        }
+      );
+
+      contenedorPeriodo.hidden = false;
+
+      if (!respuesta.periodos.length) {
+        mensajeProcesarPlanilla(
+          "No hay períodos vigentes disponibles para pago.",
+          "info"
+        );
+        return;
+      }
+
       mensajeProcesarPlanilla(
-        "Seleccione el período que desea pagar.",
+        "Seleccione el período y presione Generar.",
+        "ok"
+      );
+
+      selectorPeriodo.focus();
+    } catch (error) {
+      mensajeProcesarPlanilla(
+        error.message ||
+          "No fue posible cargar los períodos.",
+        "error"
+      );
+    } finally {
+      selectorOperacion.disabled = false;
+    }
+  }
+
+  async function generarOperacionPagoPlanilla() {
+    var selectorOperacion =
+      document.getElementById(
+        "opcionPagoPlanilla"
+      );
+
+    var selectorPeriodo =
+      document.getElementById(
+        "periodoPagoPlanilla"
+      );
+
+    var boton =
+      document.getElementById(
+        "botonGenerarPagoPlanilla"
+      );
+
+    if (
+      !selectorOperacion ||
+      !selectorOperacion.value
+    ) {
+      mensajeProcesarPlanilla(
+        "Seleccione la operación de pago.",
         "error"
       );
       return;
     }
 
-    var operacion = selector.value;
+    if (
+      !selectorPeriodo ||
+      !selectorPeriodo.value
+    ) {
+      mensajeProcesarPlanilla(
+        "Seleccione el período de pago.",
+        "error"
+      );
+      return;
+    }
 
-    selector.disabled = true;
+    boton.disabled = true;
 
     mensajeProcesarPlanilla(
-      "Generando información de pago...",
+      selectorOperacion.value === "recibos"
+        ? "Generando recibos de pago..."
+        : "Generando depósito bancario...",
       "info"
     );
 
@@ -9535,8 +9685,8 @@ if (
       var respuesta = await jsonp(
         "generarPagoPlanilla",
         {
-          codigo: codigo,
-          operacion: operacion
+          codigo: selectorPeriodo.value,
+          operacion: selectorOperacion.value
         }
       );
 
@@ -9557,11 +9707,11 @@ if (
     } catch (error) {
       mensajeProcesarPlanilla(
         error.message ||
-          "No fue posible generar el pago.",
+          "No fue posible generar la operación de pago.",
         "error"
       );
     } finally {
-      selector.disabled = false;
+      boton.disabled = false;
     }
   }
 
@@ -9816,32 +9966,8 @@ if (
       .replace(/'/g, "&#039;");
   }
   
-  function seleccionarOperacionPagoPlanilla() {
-    var selector =
-      document.getElementById(
-        "opcionPagoPlanilla"
-      );
 
-    var codigo =
-      obtenerCodigoPeriodoSeleccionado();
-
-    if (!selector || !selector.value) {
-      return;
-    }
-
-    var mensaje =
-      selector.value === "recibos"
-        ? "Emitir recibos de pago"
-        : "Generar depósito banco";
-
-    mensajeProcesarPlanilla(
-      mensaje +
-        " para la planilla " +
-        codigo +
-        ".",
-      "info"
-    );
-  }  
+  
   function mostrarResultadoPlanilla(
     respuesta
   ) {
