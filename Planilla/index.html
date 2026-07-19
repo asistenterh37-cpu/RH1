@@ -2056,7 +2056,7 @@
      */
 
     const API_URL =
-      "https://script.google.com/macros/s/AKfycbxHaJwUQAlh-QqO8LkfH9520N353vuxf7xCk7XdP5WkK_GzQ-xIQ1wvGeDH2XIb1Zle/exec";
+      "";
 
     const camposEmpleado = [
 
@@ -8720,11 +8720,44 @@ if (
     font-weight: bold;
   }
 
+    .acciones-procesar-planilla {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    margin-top: 12px;
+  }
+
+  .acciones-procesar-planilla button {
+    min-width: 155px;
+    max-width: 210px;
+    min-height: 46px;
+    margin: 0;
+    padding: 10px 16px;
+  }
+
+  .acciones-procesar-planilla button:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+  }
+
   @media (max-width: 760px) {
     .procesar-controles {
       grid-template-columns: 1fr;
     }
+
+    .acciones-procesar-planilla {
+      display: grid;
+      grid-template-columns: 1fr;
+    }
+
+    .acciones-procesar-planilla button {
+      width: 100%;
+      max-width: none;
+    }
   }
+</style>
 </style>
 
 <script>
@@ -8808,7 +8841,7 @@ if (
           </select>
         </div>
 
-        <div>
+               <div class="acciones-procesar-planilla">
           <button
             id="botonProcesarPlanilla"
             type="button"
@@ -8817,10 +8850,47 @@ if (
           >
             Procesar planilla
           </button>
+
+          <button
+            id="botonRevisarPlanilla"
+            type="button"
+            class="boton-secundario"
+            onclick="procesarPeriodoSeleccionado()"
+          >
+            Revisar planilla
+          </button>
+
+          <button
+            id="botonAplicarPlanilla"
+            type="button"
+            class="guardar"
+            onclick="aplicarPeriodoSeleccionado()"
+          >
+            Aplicar planilla
+          </button>
+
+          <button
+            id="botonGenerarPlanilla"
+            type="button"
+            class="boton-secundario"
+            disabled
+            title="Disponible después de definir el formato final de la planilla"
+          >
+            Generar planilla
+          </button>
+
+          <button
+            id="botonPagarPlanilla"
+            type="button"
+            class="boton-secundario"
+            disabled
+            title="Disponible después de generar la planilla"
+          >
+            Pagar planilla
+          </button>
         </div>
 
       </div>
-
       <div
         id="mensajeProcesarPlanilla"
         class="mensaje"
@@ -9114,6 +9184,78 @@ if (
     }
   }
 
+  async function aplicarPeriodoSeleccionado() {
+    var selector =
+      document.getElementById(
+        "periodoProcesarPlanilla"
+      );
+
+    var codigo =
+      selector
+        ? String(selector.value || "").trim()
+        : "";
+
+    if (!codigo) {
+      mensajeProcesarPlanilla(
+        "Seleccione el período que desea aplicar.",
+        "error"
+      );
+      return;
+    }
+
+    var boton =
+      document.getElementById(
+        "botonAplicarPlanilla"
+      );
+
+    if (boton) {
+      boton.disabled = true;
+      boton.textContent = "Aplicando...";
+    }
+
+    mensajeProcesarPlanilla(
+      "Guardando el detalle en PlanillaF...",
+      "info"
+    );
+
+    try {
+      var respuesta = await jsonp(
+        "aplicarPlanilla",
+        {
+          codigo: codigo
+        }
+      );
+
+      if (!respuesta || !respuesta.ok) {
+        throw new Error(
+          respuesta && respuesta.mensaje
+            ? respuesta.mensaje
+            : "No fue posible aplicar la planilla."
+        );
+      }
+
+      mensajeProcesarPlanilla(
+        respuesta.mensaje,
+        "success"
+      );
+
+      await cargarPeriodosProcesarPlanilla();
+
+    } catch (error) {
+      mensajeProcesarPlanilla(
+        error.message ||
+          "Ocurrió un error al aplicar la planilla.",
+        "error"
+      );
+
+    } finally {
+      if (boton) {
+        boton.disabled = false;
+        boton.textContent = "Aplicar planilla";
+      }
+    }
+  }
+  
   function mostrarResultadoPlanilla(
     respuesta
   ) {
