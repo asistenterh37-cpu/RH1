@@ -2056,7 +2056,7 @@
      */
 
     const API_URL =
-      "https://script.google.com/macros/s/AKfycbyWsgYym1F8KrSky23jHXVkoyF218yXlrK_-HOFzNfcpBbPmT30xetfDIjxBCLURB_1/exec";
+      "https://script.google.com/macros/s/AKfycbz9kquRvXSP7a2nbKj-B_JqI23H_BczsaHu0ryXBy4gKkFSMH5bhVbG9l8KHE3EPLop/exec";
 
     const camposEmpleado = [
 
@@ -8612,11 +8612,22 @@ if (
 <style>
   .procesar-controles {
     display: grid;
-    grid-template-columns: minmax(230px, 420px) auto;
+    grid-template-columns:
+      minmax(180px, 1fr)
+      minmax(180px, 1fr)
+      auto;
     gap: 14px;
     align-items: end;
     margin-bottom: 20px;
   }
+
+  @media (max-width: 750px) {
+    .procesar-controles {
+      grid-template-columns:
+        1fr;
+    }
+  }
+  
 
   .procesar-tabla-contenedor {
     width: 100%;
@@ -9435,37 +9446,77 @@ if (
      * Botones adicionales ubicados después
      * del botón Procesar planilla.
      */
-    const modulosAdicionales = [
-      {
-        id: "decimoTercerMes",
-        boton: "Planilla Décimo tercer mes",
-        titulo: "Planilla Décimo tercer mes",
-        descripcion:
-          "Cálculo y procesamiento del décimo tercer mes de salario."
-      },
-      {
-        id: "decimoCuartoMes",
-        boton: "Planilla Décimo cuarto mes",
-        titulo: "Planilla Décimo cuarto mes",
-        descripcion:
-          "Cálculo y procesamiento del décimo cuarto mes de salario."
-      },
-      {
-        id: "isrImpuestoVecinal",
-        boton: "ISR / Impuesto vecinal",
-        titulo: "ISR / Impuesto vecinal",
-        descripcion:
-          "Cálculo del Impuesto Sobre la Renta y del impuesto vecinal."
-      },
-      {
-        id: "analisisPlanilla",
-        boton: "Análisis",
-        titulo: "Análisis de planilla",
-        descripcion:
-          "Consultas, comparaciones y análisis de las planillas procesadas."
-      }
-    ];
+  crearModuloDecimoMes(
+    menu,
+    principal,
+    {
+      id:
+        "decimoTercerMes",
 
+      boton:
+        "Planilla Décimo tercer mes",
+
+      titulo:
+        "Planilla Décimo tercer mes",
+
+      accion:
+        "procesarDecimoTercerMes",
+
+      textoCalculo:
+        "Cálculo Décimo tercer mes"
+    }
+  );
+
+  crearModuloDecimoMes(
+    menu,
+    principal,
+    {
+      id:
+        "decimoCuartoMes",
+
+      boton:
+        "Planilla Décimo cuarto mes",
+
+      titulo:
+        "Planilla Décimo cuarto mes",
+
+      accion:
+        "procesarDecimoCuartoMes",
+
+      textoCalculo:
+        "Cálculo Décimo cuarto mes"
+    }
+  );
+
+  const modulosAdicionales = [
+    {
+      id:
+        "isrImpuestoVecinal",
+
+      boton:
+        "ISR / Impuesto vecinal",
+
+      titulo:
+        "ISR / Impuesto vecinal",
+
+      descripcion:
+        "Cálculo del Impuesto Sobre la Renta y del impuesto vecinal."
+    },
+    {
+      id:
+        "analisisPlanilla",
+
+      boton:
+        "Análisis",
+
+      titulo:
+        "Análisis de planilla",
+
+      descripcion:
+        "Consultas, comparaciones y análisis de las planillas procesadas."
+    }
+  ];
+    
     modulosAdicionales.forEach(
       function (modulo) {
         if (
@@ -9529,6 +9580,397 @@ if (
     );
   }
 
+    function crearModuloDecimoMes(
+    menu,
+    principal,
+    configuracion
+  ) {
+    if (
+      document.getElementById(
+        configuracion.id
+      )
+    ) {
+      return;
+    }
+
+    const botonModulo =
+      document.createElement(
+        "button"
+      );
+
+    botonModulo.type =
+      "button";
+
+    botonModulo.textContent =
+      configuracion.boton;
+
+    botonModulo.addEventListener(
+      "click",
+      function () {
+        abrirPanel(
+          configuracion.id,
+          botonModulo
+        );
+      }
+    );
+
+    menu.appendChild(
+      botonModulo
+    );
+
+    const panel =
+      document.createElement(
+        "section"
+      );
+
+    panel.id =
+      configuracion.id;
+
+    panel.className =
+      "panel";
+
+    panel.innerHTML = `
+      <h2>
+        ${configuracion.titulo}
+      </h2>
+
+      <p>
+        Suma los ingresos aplicados en PlanillaF,
+        según los conceptos marcados en Catalogos,
+        y calcula: Total ingresos ÷ 365 × 30.
+      </p>
+
+      <div class="procesar-controles">
+        <div>
+          <label
+            for="${configuracion.id}Desde"
+          >
+            Desde
+          </label>
+
+          <input
+            id="${configuracion.id}Desde"
+            type="date"
+          >
+        </div>
+
+        <div>
+          <label
+            for="${configuracion.id}Hasta"
+          >
+            Hasta
+          </label>
+
+          <input
+            id="${configuracion.id}Hasta"
+            type="date"
+          >
+        </div>
+
+        <button
+          id="${configuracion.id}Procesar"
+          type="button"
+          class="primario"
+        >
+          Procesar planilla
+        </button>
+      </div>
+
+      <div
+        id="${configuracion.id}Mensaje"
+        class="mensaje"
+      ></div>
+
+      <div
+        id="${configuracion.id}Resultado"
+        class="procesar-tabla-contenedor"
+        hidden
+      >
+        <table
+          id="${configuracion.id}Tabla"
+          class="procesar-tabla"
+        >
+          <thead></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
+      <div
+        id="${configuracion.id}Resumen"
+        class="procesar-resumen"
+      ></div>
+    `;
+
+    principal.appendChild(
+      panel
+    );
+
+    document
+      .getElementById(
+        configuracion.id +
+        "Procesar"
+      )
+      .addEventListener(
+        "click",
+        function () {
+          procesarDecimoMes(
+            configuracion
+          );
+        }
+      );
+  }
+
+  function mensajeDecimoMes(
+    id,
+    texto,
+    tipo
+  ) {
+    const mensaje =
+      document.getElementById(
+        id + "Mensaje"
+      );
+
+    if (!mensaje) {
+      return;
+    }
+
+    mensaje.className =
+      "mensaje" +
+      (
+        tipo
+          ? " " + tipo
+          : ""
+      );
+
+    mensaje.textContent =
+      texto || "";
+  }
+
+  async function procesarDecimoMes(
+    configuracion
+  ) {
+    const desde =
+      document.getElementById(
+        configuracion.id +
+        "Desde"
+      ).value;
+
+    const hasta =
+      document.getElementById(
+        configuracion.id +
+        "Hasta"
+      ).value;
+
+    const boton =
+      document.getElementById(
+        configuracion.id +
+        "Procesar"
+      );
+
+    if (
+      !desde ||
+      !hasta
+    ) {
+      mensajeDecimoMes(
+        configuracion.id,
+        "Seleccione Desde y Hasta.",
+        "error"
+      );
+
+      return;
+    }
+
+    boton.disabled = true;
+
+    mensajeDecimoMes(
+      configuracion.id,
+      "Procesando planilla...",
+      "info"
+    );
+
+    try {
+      const respuesta =
+        await jsonp(
+          configuracion.accion,
+          {
+            desde: desde,
+            hasta: hasta
+          }
+        );
+
+      if (
+        !respuesta ||
+        !respuesta.ok
+      ) {
+        throw new Error(
+          respuesta &&
+          respuesta.mensaje
+            ? respuesta.mensaje
+            : "No fue posible procesar la planilla."
+        );
+      }
+
+      mostrarResultadoDecimoMes(
+        configuracion.id,
+        respuesta
+      );
+
+      mensajeDecimoMes(
+        configuracion.id,
+        respuesta.mensaje,
+        "ok"
+      );
+
+    } catch (error) {
+      mensajeDecimoMes(
+        configuracion.id,
+        error.message ||
+        "No fue posible procesar la planilla.",
+        "error"
+      );
+
+    } finally {
+      boton.disabled = false;
+    }
+  }
+
+  function mostrarResultadoDecimoMes(
+    id,
+    respuesta
+  ) {
+    const contenedor =
+      document.getElementById(
+        id + "Resultado"
+      );
+
+    const tabla =
+      document.getElementById(
+        id + "Tabla"
+      );
+
+    const encabezado =
+      tabla.querySelector(
+        "thead"
+      );
+
+    const cuerpo =
+      tabla.querySelector(
+        "tbody"
+      );
+
+    encabezado.innerHTML = "";
+    cuerpo.innerHTML = "";
+
+    const filaEncabezado =
+      document.createElement(
+        "tr"
+      );
+
+    (
+      respuesta.columnas || []
+    ).forEach(function (
+      columna
+    ) {
+      const th =
+        document.createElement(
+          "th"
+        );
+
+      th.textContent =
+        columna;
+
+      filaEncabezado.appendChild(
+        th
+      );
+    });
+
+    encabezado.appendChild(
+      filaEncabezado
+    );
+
+    (
+      respuesta.filas || []
+    ).forEach(function (
+      fila
+    ) {
+      const tr =
+        document.createElement(
+          "tr"
+        );
+
+      fila.forEach(function (
+        valor,
+        indice
+      ) {
+        const td =
+          document.createElement(
+            "td"
+          );
+
+        if (
+          indice >= 6 &&
+          typeof valor ===
+            "number"
+        ) {
+          td.textContent =
+            new Intl.NumberFormat(
+              "es-HN",
+              {
+                style:
+                  "currency",
+
+                currency:
+                  "HNL",
+
+                minimumFractionDigits:
+                  2,
+
+                maximumFractionDigits:
+                  2
+              }
+            ).format(
+              valor
+            );
+        } else {
+          td.textContent =
+            valor === null ||
+            valor === undefined
+              ? ""
+              : valor;
+        }
+
+        td.title =
+          td.textContent;
+
+        tr.appendChild(
+          td
+        );
+      });
+
+      cuerpo.appendChild(
+        tr
+      );
+    });
+
+    contenedor.hidden =
+      false;
+
+    document.getElementById(
+      id + "Resumen"
+    ).textContent =
+      (
+        respuesta.filas || []
+      ).length +
+      (
+        (
+          respuesta.filas || []
+        ).length === 1
+          ? " empleado procesado."
+          : " empleados procesados."
+      );
+  }
+
+  
   function mensajeProcesarPlanilla(
     texto,
     tipo
@@ -9554,6 +9996,8 @@ if (
       texto || "";
   }
 
+
+  
   async function cargarPeriodosPendientes() {
     const selector =
       document.getElementById(
