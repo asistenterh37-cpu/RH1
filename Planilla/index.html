@@ -10786,11 +10786,40 @@ if (
     columna,
     concepto
   ) {
+    let textoColumna =
+      String(
+        columna || ""
+      ).trim();
+
+    /*
+     * Quitar los prefijos usados únicamente
+     * para mostrar la planilla.
+     */
+    textoColumna =
+      textoColumna
+        .replace(
+          /^I:\s*/i,
+          ""
+        )
+        .replace(
+          /^D:\s*/i,
+          ""
+        )
+        .replace(
+          /^Desc\.\s*/i,
+          ""
+        )
+        .replace(
+          /\.\.\.$/,
+          ""
+        );
+
     const normalizar =
       function (valor) {
         return String(
           valor || ""
         )
+          .trim()
           .toLowerCase()
           .normalize("NFD")
           .replace(
@@ -10804,22 +10833,31 @@ if (
       };
 
     const columnaNormalizada =
-      normalizar(columna);
+      normalizar(
+        textoColumna
+      );
 
     const conceptoNormalizado =
-      normalizar(concepto);
+      normalizar(
+        concepto
+      );
+
+    if (
+      !columnaNormalizada ||
+      !conceptoNormalizado
+    ) {
+      return false;
+    }
 
     return (
       columnaNormalizada ===
         conceptoNormalizado ||
-      columnaNormalizada.indexOf(
-        conceptoNormalizado
-      ) !== -1 ||
       conceptoNormalizado.indexOf(
         columnaNormalizada
-      ) !== -1
+      ) === 0
     );
   }
+  
 
   function buscarMovimientoRevision(
     idMovimiento
@@ -10863,7 +10901,8 @@ if (
         )
       ).find(function (boton) {
         return (
-          boton.textContent.trim() ===
+          boton.textContent
+            .trim() ===
           "Movimientos"
         );
       });
@@ -10874,11 +10913,24 @@ if (
     );
 
     /*
-     * Precargar empleado y período.
+     * Limpiar el formulario para crear
+     * un registro nuevo.
+     */
+    const formulario =
+      document.getElementById(
+        "formOtrosIngresos"
+      );
+
+    if (formulario) {
+      formulario.reset();
+    }
+
+    /*
+     * No. de personal.
      */
     const numeroPersonal =
       document.getElementById(
-        "otroIngresoNumeroPersonal"
+        "ingresoNumeroPersonal"
       );
 
     if (numeroPersonal) {
@@ -10887,7 +10939,7 @@ if (
 
       numeroPersonal.dispatchEvent(
         new Event(
-          "change",
+          "blur",
           {
             bubbles: true
           }
@@ -10895,31 +10947,87 @@ if (
       );
     }
 
+    /*
+     * Tipo.
+     */
+    const tipo =
+      document.getElementById(
+        "movimientoTipo"
+      );
+
+    if (tipo) {
+      tipo.value =
+        movimiento.tipo;
+
+      cambiarTipoMovimiento();
+    }
+
+    /*
+     * Esperar a que se carguen Concepto
+     * y los selectores Desde/Hasta.
+     */
     setTimeout(function () {
-      const desde =
+      const concepto =
         document.getElementById(
-          "otroIngresoDesde"
+          "ingresoConcepto"
         );
 
-      const hasta =
-        document.getElementById(
-          "otroIngresoHasta"
-        );
+      if (concepto) {
+        concepto.value =
+          movimiento.concepto;
 
-      if (desde) {
-        desde.value =
+        concepto.dispatchEvent(
+          new Event(
+            "change",
+            {
+              bubbles: true
+            }
+          )
+        );
+      }
+
+      setTimeout(function () {
+        const desde =
+          document.getElementById(
+            "ingresoDesde"
+          );
+
+        const hasta =
+          document.getElementById(
+            "ingresoHasta"
+          );
+
+        const valor =
+          document.getElementById(
+            "ingresoValor"
+          );
+
+        const periodo =
           movimiento.planilla ||
           movimiento.desde;
-      }
 
-      if (hasta) {
-        hasta.value =
-          movimiento.planilla ||
-          movimiento.hasta;
-      }
-    }, 500);
+        if (desde) {
+          desde.value =
+            periodo;
+        }
+
+        if (hasta) {
+          hasta.value =
+            periodo;
+        }
+
+        /*
+         * Se deja vacío porque Agregar
+         * debe crear un registro nuevo.
+         */
+        if (valor) {
+          valor.value = "";
+          valor.focus();
+        }
+      }, 200);
+    }, 200);
   }
-
+  
   function abrirModificarMovimiento(
     idMovimiento
   ) {
