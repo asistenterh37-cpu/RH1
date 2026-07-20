@@ -2056,7 +2056,7 @@
      */
 
     const API_URL =
-      "https://script.google.com/macros/s/AKfycbxBEDDgi99WEw-1RlCPXWmuy8RBXvNRP3qWFcOweiuU1NJzAaUsNKCC7ZpLfnRIJ_ci/exec";
+      "https://script.google.com/macros/s/AKfycbzl0SOC7iGgsHU0ZXUIkop5s9iB8eQ1-SDUKEylgQk1HxenppI9KD6W6abHAlo-IlAA/exec";
 
     const camposEmpleado = [
 
@@ -8895,6 +8895,165 @@ if (
       max-width: none;
     }
   }
+
+    .revision-planilla {
+    margin-top: 22px;
+    padding: 18px;
+    border: 1px solid #cbd5e1;
+    border-radius: 12px;
+    background: #f8fafc;
+  }
+
+  .revision-selector-fila {
+    display: grid;
+    grid-template-columns:
+      minmax(260px, 1fr)
+      auto;
+    gap: 14px;
+    align-items: end;
+  }
+
+  .celda-movimiento {
+    position: relative;
+    cursor: pointer;
+    background: #fff7d6;
+    border-bottom: 2px dotted #d97706 !important;
+  }
+
+  .celda-movimiento:hover {
+    background: #fef3c7;
+  }
+
+  .etiqueta-acciones-movimiento {
+    position: absolute;
+    z-index: 30;
+    left: 50%;
+    bottom: calc(100% + 6px);
+    display: none;
+    min-width: 240px;
+    padding: 7px;
+    border: 1px solid #cbd5e1;
+    border-radius: 9px;
+    background: #ffffff;
+    box-shadow:
+      0 8px 24px
+      rgba(15, 23, 42, 0.20);
+    transform: translateX(-50%);
+    white-space: nowrap;
+  }
+
+  .celda-movimiento:hover
+  .etiqueta-acciones-movimiento {
+    display: flex;
+    gap: 6px;
+  }
+
+  .etiqueta-acciones-movimiento button {
+    padding: 7px 10px;
+    border-radius: 7px;
+    font-size: 12px;
+  }
+
+  .accion-agregar {
+    color: #ffffff;
+    background: #15803d;
+  }
+
+  .accion-modificar {
+    color: #ffffff;
+    background: #1d4ed8;
+  }
+
+  .accion-eliminar {
+    color: #ffffff;
+    background: #b91c1c;
+  }
+
+  .modal-movimiento {
+    position: fixed;
+    z-index: 9999;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 18px;
+    background:
+      rgba(15, 23, 42, 0.55);
+  }
+
+  .modal-movimiento[hidden] {
+    display: none;
+  }
+
+  .modal-movimiento-contenido {
+    position: relative;
+    width: 100%;
+    max-width: 620px;
+    max-height: 90vh;
+    overflow-y: auto;
+    padding: 24px;
+    border-radius: 14px;
+    background: #ffffff;
+    box-shadow:
+      0 20px 50px
+      rgba(15, 23, 42, 0.30);
+  }
+
+  .modal-cerrar {
+    position: absolute;
+    top: 10px;
+    right: 12px;
+    padding: 5px 10px;
+    color: #475569;
+    background: transparent;
+    font-size: 25px;
+  }
+
+  .datos-movimiento-seleccionado {
+    display: grid;
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    margin: 18px 0;
+    padding: 14px;
+    border-radius: 10px;
+    background: #f8fafc;
+  }
+
+  .dato-movimiento {
+    padding: 8px;
+    border-bottom:
+      1px solid #e2e8f0;
+  }
+
+  .campos-modificar-movimiento {
+    display: grid;
+    grid-template-columns:
+      repeat(3, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .modal-movimiento-acciones {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    margin-top: 20px;
+  }
+
+  @media (max-width: 700px) {
+    .revision-selector-fila,
+    .datos-movimiento-seleccionado,
+    .campos-modificar-movimiento {
+      grid-template-columns: 1fr;
+    }
+
+    .etiqueta-acciones-movimiento {
+      left: 0;
+      min-width: 210px;
+      transform: none;
+    }
+  }
+  
 </style>
 </style>
 
@@ -8990,13 +9149,13 @@ if (
           </button>
 
           <button
-            id="botonRevisarPlanilla"
-            type="button"
-            class="boton-secundario"
-            onclick="procesarPeriodoSeleccionado()"
-          >
-            Revisar planilla
-          </button>
+  id="botonRevisarPlanilla"
+  type="button"
+  class="boton-secundario"
+  onclick="abrirRevisionPlanilla()"
+>
+  Revisar planilla
+</button>
 
           <button
             id="botonAplicarPlanilla"
@@ -9084,6 +9243,130 @@ if (
         id="mensajeProcesarPlanilla"
         class="mensaje"
       ></div>
+
+      <div
+  id="contenedorRevisionPlanilla"
+  class="revision-planilla"
+  hidden
+>
+  <h3>Revisar planilla</h3>
+
+  <div class="revision-selector-fila">
+    <div>
+      <label for="periodoRevisionPlanilla">
+        Período de planilla
+      </label>
+
+      <select
+        id="periodoRevisionPlanilla"
+        onchange="cargarPlanillaRevision()"
+      >
+        <option value="">
+          Seleccionar
+        </option>
+      </select>
+    </div>
+
+    <button
+      type="button"
+      class="boton-secundario"
+      onclick="cerrarRevisionPlanilla()"
+    >
+      Cerrar revisión
+    </button>
+  </div>
+
+  <div
+    id="mensajeRevisionPlanilla"
+    class="mensaje"
+  ></div>
+</div
+
+<div
+  id="modalMovimientoPlanilla"
+  class="modal-movimiento"
+  hidden
+>
+  <div class="modal-movimiento-contenido">
+    <button
+      type="button"
+      class="modal-cerrar"
+      onclick="cerrarModalMovimiento()"
+      aria-label="Cerrar"
+    >
+      ×
+    </button>
+
+    <h3 id="tituloModalMovimiento">
+      Movimiento
+    </h3>
+
+    <div
+      id="datosMovimientoSeleccionado"
+      class="datos-movimiento-seleccionado"
+    ></div>
+
+    <div
+      id="camposModificarMovimiento"
+      class="campos-modificar-movimiento"
+      hidden
+    >
+      <div>
+        <label for="revisionMovimientoDesde">
+          Desde
+        </label>
+
+        <input
+          id="revisionMovimientoDesde"
+          type="text"
+        >
+      </div>
+
+      <div>
+        <label for="revisionMovimientoHasta">
+          Hasta
+        </label>
+
+        <input
+          id="revisionMovimientoHasta"
+          type="text"
+        >
+      </div>
+
+      <div>
+        <label for="revisionMovimientoValor">
+          Valor
+        </label>
+
+        <input
+          id="revisionMovimientoValor"
+          type="number"
+          min="0"
+          step="0.01"
+        >
+      </div>
+    </div>
+
+    <div class="modal-movimiento-acciones">
+      <button
+        id="botonConfirmarMovimiento"
+        type="button"
+        class="guardar"
+      >
+        Guardar
+      </button>
+
+      <button
+        type="button"
+        class="boton-secundario"
+        onclick="cerrarModalMovimiento()"
+      >
+        Cancelar
+      </button>
+    </div>
+  </div>
+</div>
+
 
       <div
         id="contenedorResultadoPlanilla"
@@ -10148,6 +10431,866 @@ if (
           ? " empleado procesado."
           : " empleados procesados."
       );
+  }
+
+    let movimientosRevisionPlanilla = [];
+
+  let movimientoRevisionActual =
+    null;
+
+  function mensajeRevisionPlanilla(
+    texto,
+    tipo
+  ) {
+    const elemento =
+      document.getElementById(
+        "mensajeRevisionPlanilla"
+      );
+
+    if (!elemento) {
+      return;
+    }
+
+    elemento.className =
+      "mensaje" +
+      (
+        tipo
+          ? " " + tipo
+          : ""
+      );
+
+    elemento.textContent =
+      texto || "";
+  }
+
+  async function abrirRevisionPlanilla() {
+    const contenedor =
+      document.getElementById(
+        "contenedorRevisionPlanilla"
+      );
+
+    const selector =
+      document.getElementById(
+        "periodoRevisionPlanilla"
+      );
+
+    if (
+      !contenedor ||
+      !selector
+    ) {
+      return;
+    }
+
+    contenedor.hidden = false;
+
+    selector.innerHTML =
+      '<option value="">Seleccionar</option>';
+
+    movimientosRevisionPlanilla = [];
+
+    mensajeRevisionPlanilla(
+      "Cargando períodos...",
+      "info"
+    );
+
+    try {
+      const respuesta =
+        await jsonp(
+          "listarPeriodosRevision",
+          {}
+        );
+
+      if (
+        !respuesta ||
+        !respuesta.ok
+      ) {
+        throw new Error(
+          respuesta &&
+          respuesta.mensaje
+            ? respuesta.mensaje
+            : "No se pudieron cargar los períodos."
+        );
+      }
+
+      (
+        respuesta.periodos || []
+      ).forEach(function (periodo) {
+        const opcion =
+          document.createElement(
+            "option"
+          );
+
+        opcion.value =
+          periodo.codigo;
+
+        opcion.textContent =
+          periodo.texto;
+
+        selector.appendChild(
+          opcion
+        );
+      });
+
+      mensajeRevisionPlanilla(
+        respuesta.periodos.length
+          ? "Seleccione un período."
+          : "No existen períodos disponibles.",
+        respuesta.periodos.length
+          ? "info"
+          : "error"
+      );
+
+      selector.focus();
+
+    } catch (error) {
+      mensajeRevisionPlanilla(
+        error.message ||
+        "No fue posible cargar los períodos.",
+        "error"
+      );
+    }
+  }
+
+  function cerrarRevisionPlanilla() {
+    const contenedor =
+      document.getElementById(
+        "contenedorRevisionPlanilla"
+      );
+
+    if (contenedor) {
+      contenedor.hidden = true;
+    }
+
+    cerrarModalMovimiento();
+  }
+
+  async function cargarPlanillaRevision() {
+    const selector =
+      document.getElementById(
+        "periodoRevisionPlanilla"
+      );
+
+    const codigo =
+      selector
+        ? String(
+            selector.value || ""
+          ).trim()
+        : "";
+
+    if (!codigo) {
+      movimientosRevisionPlanilla = [];
+
+      mensajeRevisionPlanilla(
+        "Seleccione un período de planilla.",
+        "info"
+      );
+
+      return;
+    }
+
+    selector.disabled = true;
+
+    mensajeRevisionPlanilla(
+      "Cargando planilla y movimientos...",
+      "info"
+    );
+
+    try {
+      const respuesta =
+        await jsonp(
+          "revisarPlanilla",
+          {
+            codigo: codigo
+          }
+        );
+
+      if (
+        !respuesta ||
+        !respuesta.ok
+      ) {
+        throw new Error(
+          respuesta &&
+          respuesta.mensaje
+            ? respuesta.mensaje
+            : "No fue posible cargar la planilla."
+        );
+      }
+
+      movimientosRevisionPlanilla =
+        respuesta.movimientos || [];
+
+      mostrarResultadoPlanilla(
+        respuesta
+      );
+
+      marcarCeldasDeMovimientos(
+        respuesta
+      );
+
+      mensajeRevisionPlanilla(
+        respuesta.mensaje,
+        "ok"
+      );
+
+    } catch (error) {
+      mensajeRevisionPlanilla(
+        error.message ||
+        "No fue posible cargar la revisión.",
+        "error"
+      );
+
+    } finally {
+      selector.disabled = false;
+    }
+  }
+
+  function marcarCeldasDeMovimientos(
+    respuesta
+  ) {
+    const tabla =
+      document.getElementById(
+        "tablaResultadoPlanilla"
+      );
+
+    if (!tabla) {
+      return;
+    }
+
+    const columnas =
+      respuesta.columnas || [];
+
+    const filas =
+      respuesta.filas || [];
+
+    const filasHtml =
+      tabla.querySelectorAll(
+        "tbody tr"
+      );
+
+    filasHtml.forEach(function (
+      filaHtml,
+      indiceFila
+    ) {
+      const filaDatos =
+        filas[indiceFila] || [];
+
+      /*
+       * La columna No. está en el índice 3
+       * de la tabla procesada.
+       */
+      const numeroPersonal =
+        String(
+          filaDatos[3] || ""
+        ).trim();
+
+      const celdas =
+        filaHtml.querySelectorAll(
+          "td"
+        );
+
+      celdas.forEach(function (
+        celda,
+        indiceColumna
+      ) {
+        const conceptoColumna =
+          String(
+            columnas[indiceColumna] || ""
+          ).trim();
+
+        const movimientos =
+          movimientosRevisionPlanilla
+            .filter(function (
+              movimiento
+            ) {
+              return (
+                String(
+                  movimiento.numeroPersonal ||
+                  ""
+                ).trim() ===
+                  numeroPersonal &&
+                conceptosCoincidenRevision(
+                  conceptoColumna,
+                  movimiento.concepto
+                )
+              );
+            });
+
+        if (!movimientos.length) {
+          return;
+        }
+
+        celda.classList.add(
+          "celda-movimiento"
+        );
+
+        celda.title =
+          "Movimiento de planilla. " +
+          "Coloque el cursor para ver acciones.";
+
+        const menu =
+          document.createElement(
+            "div"
+          );
+
+        menu.className =
+          "etiqueta-acciones-movimiento";
+
+        movimientos.forEach(function (
+          movimiento
+        ) {
+          const grupo =
+            document.createElement(
+              "span"
+            );
+
+          grupo.innerHTML = `
+            <button
+              type="button"
+              class="accion-agregar"
+              onclick="event.stopPropagation(); agregarMovimientoDesdeRevision('${escaparAtributoRevision(movimiento.idMovimiento)}')"
+            >
+              Agregar
+            </button>
+
+            <button
+              type="button"
+              class="accion-modificar"
+              onclick="event.stopPropagation(); abrirModificarMovimiento('${escaparAtributoRevision(movimiento.idMovimiento)}')"
+            >
+              Modificar
+            </button>
+
+            <button
+              type="button"
+              class="accion-eliminar"
+              onclick="event.stopPropagation(); abrirEliminarMovimiento('${escaparAtributoRevision(movimiento.idMovimiento)}')"
+            >
+              Eliminar
+            </button>
+          `;
+
+          menu.appendChild(
+            grupo
+          );
+        });
+
+        celda.appendChild(
+          menu
+        );
+      });
+    });
+  }
+
+  function conceptosCoincidenRevision(
+    columna,
+    concepto
+  ) {
+    const normalizar =
+      function (valor) {
+        return String(
+          valor || ""
+        )
+          .toLowerCase()
+          .normalize("NFD")
+          .replace(
+            /[\u0300-\u036f]/g,
+            ""
+          )
+          .replace(
+            /[^a-z0-9]/g,
+            ""
+          );
+      };
+
+    const columnaNormalizada =
+      normalizar(columna);
+
+    const conceptoNormalizado =
+      normalizar(concepto);
+
+    return (
+      columnaNormalizada ===
+        conceptoNormalizado ||
+      columnaNormalizada.indexOf(
+        conceptoNormalizado
+      ) !== -1 ||
+      conceptoNormalizado.indexOf(
+        columnaNormalizada
+      ) !== -1
+    );
+  }
+
+  function buscarMovimientoRevision(
+    idMovimiento
+  ) {
+    return (
+      movimientosRevisionPlanilla
+        .find(function (movimiento) {
+          return (
+            movimiento.idMovimiento ===
+            idMovimiento
+          );
+        }) ||
+      null
+    );
+  }
+
+  function agregarMovimientoDesdeRevision(
+    idMovimiento
+  ) {
+    const movimiento =
+      buscarMovimientoRevision(
+        idMovimiento
+      );
+
+    if (!movimiento) {
+      mensajeRevisionPlanilla(
+        "No se encontró el movimiento.",
+        "error"
+      );
+
+      return;
+    }
+
+    /*
+     * Abrir el panel Movimientos.
+     */
+    const botonMovimientos =
+      Array.from(
+        document.querySelectorAll(
+          ".menu button"
+        )
+      ).find(function (boton) {
+        return (
+          boton.textContent.trim() ===
+          "Movimientos"
+        );
+      });
+
+    abrirPanel(
+      "movimientos",
+      botonMovimientos
+    );
+
+    /*
+     * Precargar empleado y período.
+     */
+    const numeroPersonal =
+      document.getElementById(
+        "otroIngresoNumeroPersonal"
+      );
+
+    if (numeroPersonal) {
+      numeroPersonal.value =
+        movimiento.numeroPersonal;
+
+      numeroPersonal.dispatchEvent(
+        new Event(
+          "change",
+          {
+            bubbles: true
+          }
+        )
+      );
+    }
+
+    setTimeout(function () {
+      const desde =
+        document.getElementById(
+          "otroIngresoDesde"
+        );
+
+      const hasta =
+        document.getElementById(
+          "otroIngresoHasta"
+        );
+
+      if (desde) {
+        desde.value =
+          movimiento.planilla ||
+          movimiento.desde;
+      }
+
+      if (hasta) {
+        hasta.value =
+          movimiento.planilla ||
+          movimiento.hasta;
+      }
+    }, 500);
+  }
+
+  function abrirModificarMovimiento(
+    idMovimiento
+  ) {
+    const movimiento =
+      buscarMovimientoRevision(
+        idMovimiento
+      );
+
+    if (!movimiento) {
+      return;
+    }
+
+    movimientoRevisionActual =
+      movimiento;
+
+    document.getElementById(
+      "tituloModalMovimiento"
+    ).textContent =
+      "Modificar movimiento";
+
+    mostrarDatosMovimientoModal(
+      movimiento
+    );
+
+    const campos =
+      document.getElementById(
+        "camposModificarMovimiento"
+      );
+
+    campos.hidden = false;
+
+    document.getElementById(
+      "revisionMovimientoDesde"
+    ).value =
+      movimiento.desde || "";
+
+    document.getElementById(
+      "revisionMovimientoHasta"
+    ).value =
+      movimiento.hasta || "";
+
+    document.getElementById(
+      "revisionMovimientoValor"
+    ).value =
+      movimiento.valor || "";
+
+    const boton =
+      document.getElementById(
+        "botonConfirmarMovimiento"
+      );
+
+    boton.textContent =
+      "Guardar modificación";
+
+    boton.onclick =
+      guardarModificacionMovimiento;
+
+    document.getElementById(
+      "modalMovimientoPlanilla"
+    ).hidden = false;
+  }
+
+  function abrirEliminarMovimiento(
+    idMovimiento
+  ) {
+    const movimiento =
+      buscarMovimientoRevision(
+        idMovimiento
+      );
+
+    if (!movimiento) {
+      return;
+    }
+
+    movimientoRevisionActual =
+      movimiento;
+
+    document.getElementById(
+      "tituloModalMovimiento"
+    ).textContent =
+      "Eliminar movimiento";
+
+    mostrarDatosMovimientoModal(
+      movimiento
+    );
+
+    document.getElementById(
+      "camposModificarMovimiento"
+    ).hidden = true;
+
+    const boton =
+      document.getElementById(
+        "botonConfirmarMovimiento"
+      );
+
+    boton.textContent =
+      "Guardar como Nulo";
+
+    boton.onclick =
+      guardarMovimientoComoNulo;
+
+    document.getElementById(
+      "modalMovimientoPlanilla"
+    ).hidden = false;
+  }
+
+  function mostrarDatosMovimientoModal(
+    movimiento
+  ) {
+    const contenedor =
+      document.getElementById(
+        "datosMovimientoSeleccionado"
+      );
+
+    contenedor.innerHTML = `
+      <div class="dato-movimiento">
+        <strong>No. personal:</strong><br>
+        ${escaparHtmlRevision(movimiento.numeroPersonal)}
+      </div>
+
+      <div class="dato-movimiento">
+        <strong>Nombre:</strong><br>
+        ${escaparHtmlRevision(movimiento.nombre)}
+      </div>
+
+      <div class="dato-movimiento">
+        <strong>Tipo:</strong><br>
+        ${escaparHtmlRevision(movimiento.tipo)}
+      </div>
+
+      <div class="dato-movimiento">
+        <strong>Concepto:</strong><br>
+        ${escaparHtmlRevision(movimiento.concepto)}
+      </div>
+
+      <div class="dato-movimiento">
+        <strong>Desde:</strong><br>
+        ${escaparHtmlRevision(movimiento.desde)}
+      </div>
+
+      <div class="dato-movimiento">
+        <strong>Hasta:</strong><br>
+        ${escaparHtmlRevision(movimiento.hasta)}
+      </div>
+
+      <div class="dato-movimiento">
+        <strong>Valor:</strong><br>
+        ${formatearMonedaRevision(movimiento.valor)}
+      </div>
+
+      <div class="dato-movimiento">
+        <strong>Estado:</strong><br>
+        ${escaparHtmlRevision(movimiento.estado)}
+      </div>
+    `;
+  }
+
+  async function guardarModificacionMovimiento() {
+    if (!movimientoRevisionActual) {
+      return;
+    }
+
+    const desde =
+      document.getElementById(
+        "revisionMovimientoDesde"
+      ).value;
+
+    const hasta =
+      document.getElementById(
+        "revisionMovimientoHasta"
+      ).value;
+
+    const valor =
+      document.getElementById(
+        "revisionMovimientoValor"
+      ).value;
+
+    const usuario =
+      obtenerUsuarioRevision();
+
+    try {
+      const respuesta =
+        await jsonp(
+          "modificarMovimientoPlanilla",
+          {
+            idMovimiento:
+              movimientoRevisionActual
+                .idMovimiento,
+
+            desde: desde,
+            hasta: hasta,
+            valor: valor,
+            usuario: usuario
+          }
+        );
+
+      if (
+        !respuesta ||
+        !respuesta.ok
+      ) {
+        throw new Error(
+          respuesta &&
+          respuesta.mensaje
+            ? respuesta.mensaje
+            : "No fue posible modificar el movimiento."
+        );
+      }
+
+      cerrarModalMovimiento();
+
+      mensajeRevisionPlanilla(
+        respuesta.mensaje,
+        "ok"
+      );
+
+      await cargarPlanillaRevision();
+
+    } catch (error) {
+      mensajeRevisionPlanilla(
+        error.message,
+        "error"
+      );
+    }
+  }
+
+  async function guardarMovimientoComoNulo() {
+    if (!movimientoRevisionActual) {
+      return;
+    }
+
+    const confirmar =
+      window.confirm(
+        "El movimiento se guardará como Nulo " +
+        "y no volverá a considerarse en la planilla. " +
+        "¿Desea continuar?"
+      );
+
+    if (!confirmar) {
+      return;
+    }
+
+    const usuario =
+      obtenerUsuarioRevision();
+
+    try {
+      const respuesta =
+        await jsonp(
+          "anularMovimientoPlanilla",
+          {
+            idMovimiento:
+              movimientoRevisionActual
+                .idMovimiento,
+
+            usuario: usuario
+          }
+        );
+
+      if (
+        !respuesta ||
+        !respuesta.ok
+      ) {
+        throw new Error(
+          respuesta &&
+          respuesta.mensaje
+            ? respuesta.mensaje
+            : "No fue posible anular el movimiento."
+        );
+      }
+
+      cerrarModalMovimiento();
+
+      mensajeRevisionPlanilla(
+        respuesta.mensaje,
+        "ok"
+      );
+
+      await cargarPlanillaRevision();
+
+    } catch (error) {
+      mensajeRevisionPlanilla(
+        error.message,
+        "error"
+      );
+    }
+  }
+
+  function cerrarModalMovimiento() {
+    const modal =
+      document.getElementById(
+        "modalMovimientoPlanilla"
+      );
+
+    if (modal) {
+      modal.hidden = true;
+    }
+
+    movimientoRevisionActual =
+      null;
+  }
+
+  function obtenerUsuarioRevision() {
+    const camposPosibles = [
+      "otroIngresoUsuario",
+      "movimientoUsuario",
+      "usuarioMovimiento"
+    ];
+
+    for (
+      let i = 0;
+      i < camposPosibles.length;
+      i++
+    ) {
+      const campo =
+        document.getElementById(
+          camposPosibles[i]
+        );
+
+      if (
+        campo &&
+        String(
+          campo.value || ""
+        ).trim()
+      ) {
+        return String(
+          campo.value
+        ).trim();
+      }
+    }
+
+    return "";
+  }
+
+  function escaparHtmlRevision(
+    valor
+  ) {
+    return String(
+      valor === null ||
+      valor === undefined
+        ? ""
+        : valor
+    )
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
+  function escaparAtributoRevision(
+    valor
+  ) {
+    return String(
+      valor || ""
+    )
+      .replace(/\\/g, "\\\\")
+      .replace(/'/g, "\\'");
+  }
+
+  function formatearMonedaRevision(
+    valor
+  ) {
+    return new Intl.NumberFormat(
+      "es-HN",
+      {
+        style: "currency",
+        currency: "HNL",
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      }
+    ).format(
+      Number(valor) || 0
+    );
   }
 </script>
   
