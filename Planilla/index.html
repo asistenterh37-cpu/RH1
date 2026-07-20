@@ -2056,7 +2056,7 @@
      */
 
     const API_URL =
-      "https://script.google.com/macros/s/AKfycby64Co2SpJ2gqDDFZQHXk8yREdSpzuIAarZTBrCTvXu6cthYhU_bRj2LrvZWWuxVcQY/exec";
+      "https://script.google.com/macros/s/AKfycbyLknrc-1oHEDvYWLJhRQ_XlGsTRrjr0TZGjY3rnRiEe_q67rlhL7nr_b3vw--9S2I8/exec";
 
     const camposEmpleado = [
 
@@ -9459,11 +9459,14 @@ if (
       titulo:
         "Planilla Décimo tercer mes",
 
-      accion:
+      accionProcesar:
         "procesarDecimoTercerMes",
 
-      textoCalculo:
-        "Cálculo Décimo tercer mes"
+      accionRevisar:
+        "revisarDecimoTercerMes",
+
+      accionAplicar:
+        "aplicarDecimoTercerMes"
     }
   );
 
@@ -9480,14 +9483,17 @@ if (
       titulo:
         "Planilla Décimo cuarto mes",
 
-      accion:
+      accionProcesar:
         "procesarDecimoCuartoMes",
 
-      textoCalculo:
-        "Cálculo Décimo cuarto mes"
+      accionRevisar:
+        "revisarDecimoCuartoMes",
+
+      accionAplicar:
+        "aplicarDecimoCuartoMes"
     }
   );
-
+    
   const modulosAdicionales = [
     {
       id:
@@ -9604,15 +9610,17 @@ if (
     botonModulo.textContent =
       configuracion.boton;
 
-    botonModulo.addEventListener(
-      "click",
+    botonModulo.onclick =
       function () {
         abrirPanel(
           configuracion.id,
           botonModulo
         );
-      }
-    );
+
+        cargarPeriodosDecimoMes(
+          configuracion
+        );
+      };
 
     menu.appendChild(
       botonModulo
@@ -9630,41 +9638,23 @@ if (
       "panel";
 
     panel.innerHTML = `
-      <h2>
-        ${configuracion.titulo}
-      </h2>
-
-      <p>
-        Suma los ingresos aplicados en PlanillaF,
-        según los conceptos marcados en Catalogos,
-        y calcula: Total ingresos ÷ 365 × 30.
-      </p>
+      <h2>${configuracion.titulo}</h2>
 
       <div class="procesar-controles">
         <div>
           <label
-            for="${configuracion.id}Desde"
+            for="${configuracion.id}Periodo"
           >
-            Desde
+            Períodos de planilla
           </label>
 
-          <input
-            id="${configuracion.id}Desde"
-            type="date"
+          <select
+            id="${configuracion.id}Periodo"
           >
-        </div>
-
-        <div>
-          <label
-            for="${configuracion.id}Hasta"
-          >
-            Hasta
-          </label>
-
-          <input
-            id="${configuracion.id}Hasta"
-            type="date"
-          >
+            <option value="">
+              Seleccionar
+            </option>
+          </select>
         </div>
 
         <button
@@ -9674,6 +9664,76 @@ if (
         >
           Procesar planilla
         </button>
+
+        <button
+          id="${configuracion.id}Revisar"
+          type="button"
+          class="boton-secundario"
+        >
+          Revisar planilla
+        </button>
+
+        <button
+          id="${configuracion.id}Aplicar"
+          type="button"
+          class="guardar"
+        >
+          Aplicar planilla
+        </button>
+
+        <button
+          id="${configuracion.id}Generar"
+          type="button"
+          class="boton-secundario"
+        >
+          Generar planilla
+        </button>
+
+        <button
+          id="${configuracion.id}Pagar"
+          type="button"
+          class="boton-secundario"
+        >
+          Pagar planilla
+        </button>
+      </div>
+
+      <div
+        id="${configuracion.id}Pago"
+        class="revision-planilla"
+        hidden
+      >
+        <label
+          for="${configuracion.id}OperacionPago"
+        >
+          Operación de pago
+        </label>
+
+        <div class="revision-selector-fila">
+          <select
+            id="${configuracion.id}OperacionPago"
+          >
+            <option value="">
+              Seleccionar
+            </option>
+
+            <option value="recibos">
+              Emitir recibos de pago
+            </option>
+
+            <option value="deposito">
+              Generar depósito banco
+            </option>
+          </select>
+
+          <button
+            id="${configuracion.id}EjecutarPago"
+            type="button"
+            class="guardar"
+          >
+            Generar
+          </button>
+        </div>
       </div>
 
       <div
@@ -9699,25 +9759,79 @@ if (
         id="${configuracion.id}Resumen"
         class="procesar-resumen"
       ></div>
+
+      <div
+        id="${configuracion.id}ResultadoPago"
+        hidden
+      ></div>
     `;
 
     principal.appendChild(
       panel
     );
 
-    document
-      .getElementById(
-        configuracion.id +
-        "Procesar"
-      )
-      .addEventListener(
-        "click",
-        function () {
-          procesarDecimoMes(
-            configuracion
-          );
-        }
-      );
+    document.getElementById(
+      configuracion.id +
+      "Procesar"
+    ).onclick =
+      function () {
+        ejecutarDecimoMes(
+          configuracion,
+          false
+        );
+      };
+
+    document.getElementById(
+      configuracion.id +
+      "Revisar"
+    ).onclick =
+      function () {
+        ejecutarDecimoMes(
+          configuracion,
+          true
+        );
+      };
+
+    document.getElementById(
+      configuracion.id +
+      "Generar"
+    ).onclick =
+      function () {
+        ejecutarDecimoMes(
+          configuracion,
+          true
+        );
+      };
+
+    document.getElementById(
+      configuracion.id +
+      "Aplicar"
+    ).onclick =
+      function () {
+        aplicarDecimoMes(
+          configuracion
+        );
+      };
+
+    document.getElementById(
+      configuracion.id +
+      "Pagar"
+    ).onclick =
+      function () {
+        mostrarPagoDecimoMes(
+          configuracion
+        );
+      };
+
+    document.getElementById(
+      configuracion.id +
+      "EjecutarPago"
+    ).onclick =
+      function () {
+        pagarDecimoMes(
+          configuracion
+        );
+      };
   }
 
   function mensajeDecimoMes(
@@ -9746,55 +9860,102 @@ if (
       texto || "";
   }
 
-  async function procesarDecimoMes(
+  async function cargarPeriodosDecimoMes(
     configuracion
   ) {
-    const desde =
+    const selector =
       document.getElementById(
         configuracion.id +
-        "Desde"
-      ).value;
-
-    const hasta =
-      document.getElementById(
-        configuracion.id +
-        "Hasta"
-      ).value;
-
-    const boton =
-      document.getElementById(
-        configuracion.id +
-        "Procesar"
+        "Periodo"
       );
 
-    if (
-      !desde ||
-      !hasta
-    ) {
+    selector.innerHTML =
+      '<option value="">Cargando...</option>';
+
+    try {
+      const respuesta =
+        await jsonp(
+          "listarPeriodosProcesar",
+          {}
+        );
+
+      if (
+        !respuesta ||
+        !respuesta.ok
+      ) {
+        throw new Error(
+          respuesta &&
+          respuesta.mensaje
+            ? respuesta.mensaje
+            : "No fue posible cargar los períodos."
+        );
+      }
+
+      selector.innerHTML =
+        '<option value="">Seleccionar</option>';
+
+      (
+        respuesta.periodos || []
+      ).forEach(function (
+        periodo
+      ) {
+        const opcion =
+          document.createElement(
+            "option"
+          );
+
+        opcion.value =
+          periodo.codigo;
+
+        opcion.textContent =
+          periodo.texto;
+
+        selector.appendChild(
+          opcion
+        );
+      });
+
+    } catch (error) {
+      selector.innerHTML =
+        '<option value="">Seleccionar</option>';
+
       mensajeDecimoMes(
         configuracion.id,
-        "Seleccione Desde y Hasta.",
+        error.message,
+        "error"
+      );
+    }
+  }
+
+  async function ejecutarDecimoMes(
+    configuracion,
+    revisar
+  ) {
+    const codigo =
+      document.getElementById(
+        configuracion.id +
+        "Periodo"
+      ).value;
+
+    if (!codigo) {
+      mensajeDecimoMes(
+        configuracion.id,
+        "Seleccione un período de planilla.",
         "error"
       );
 
       return;
     }
 
-    boton.disabled = true;
-
-    mensajeDecimoMes(
-      configuracion.id,
-      "Procesando planilla...",
-      "info"
-    );
-
     try {
       const respuesta =
         await jsonp(
-          configuracion.accion,
+          revisar
+            ? configuracion.accionRevisar
+            : configuracion.accionProcesar,
           {
-            desde: desde,
-            hasta: hasta
+            codigo:
+              codigo
           }
         );
 
@@ -9824,13 +9985,180 @@ if (
     } catch (error) {
       mensajeDecimoMes(
         configuracion.id,
-        error.message ||
-        "No fue posible procesar la planilla.",
+        error.message,
+        "error"
+      );
+    }
+  }
+
+  async function aplicarDecimoMes(
+    configuracion
+  ) {
+    const codigo =
+      document.getElementById(
+        configuracion.id +
+        "Periodo"
+      ).value;
+
+    if (!codigo) {
+      mensajeDecimoMes(
+        configuracion.id,
+        "Seleccione un período de planilla.",
         "error"
       );
 
-    } finally {
-      boton.disabled = false;
+      return;
+    }
+
+    try {
+      const respuesta =
+        await jsonp(
+          configuracion.accionAplicar,
+          {
+            codigo:
+              codigo
+          }
+        );
+
+      if (
+        !respuesta ||
+        !respuesta.ok
+      ) {
+        throw new Error(
+          respuesta &&
+          respuesta.mensaje
+            ? respuesta.mensaje
+            : "No fue posible aplicar la planilla."
+        );
+      }
+
+      mensajeDecimoMes(
+        configuracion.id,
+        respuesta.mensaje,
+        "ok"
+      );
+
+    } catch (error) {
+      mensajeDecimoMes(
+        configuracion.id,
+        error.message,
+        "error"
+      );
+    }
+  }
+
+  function mostrarPagoDecimoMes(
+    configuracion
+  ) {
+    const codigo =
+      document.getElementById(
+        configuracion.id +
+        "Periodo"
+      ).value;
+
+    if (!codigo) {
+      mensajeDecimoMes(
+        configuracion.id,
+        "Seleccione un período de planilla.",
+        "error"
+      );
+
+      return;
+    }
+
+    document.getElementById(
+      configuracion.id +
+      "Pago"
+    ).hidden = false;
+  }
+
+  async function pagarDecimoMes(
+    configuracion
+  ) {
+    const codigo =
+      document.getElementById(
+        configuracion.id +
+        "Periodo"
+      ).value;
+
+    const operacion =
+      document.getElementById(
+        configuracion.id +
+        "OperacionPago"
+      ).value;
+
+    if (!operacion) {
+      mensajeDecimoMes(
+        configuracion.id,
+        "Seleccione la operación de pago.",
+        "error"
+      );
+
+      return;
+    }
+
+    try {
+      const respuesta =
+        await jsonp(
+          "generarPagoPlanilla",
+          {
+            codigo:
+              codigo,
+
+            operacion:
+              operacion
+          }
+        );
+
+      if (
+        !respuesta ||
+        !respuesta.ok
+      ) {
+        throw new Error(
+          respuesta &&
+          respuesta.mensaje
+            ? respuesta.mensaje
+            : "No fue posible generar el pago."
+        );
+      }
+
+      const contenedor =
+        document.getElementById(
+          configuracion.id +
+          "ResultadoPago"
+        );
+
+      contenedor.hidden = false;
+
+      if (
+        respuesta.tipo ===
+        "recibos"
+      ) {
+        mostrarRecibosPago(
+          contenedor,
+          respuesta.recibos || []
+        );
+      } else {
+        mostrarListadoDeposito(
+          contenedor,
+          respuesta.depositos || [],
+          respuesta.totalDeposito || 0,
+          respuesta.omitidos || []
+        );
+      }
+
+      mensajeDecimoMes(
+        configuracion.id,
+        respuesta.mensaje,
+        "ok"
+      );
+
+    } catch (error) {
+      mensajeDecimoMes(
+        configuracion.id,
+        error.message,
+        "error"
+      );
     }
   }
 
@@ -9923,9 +10251,6 @@ if (
                   "HNL",
 
                 minimumFractionDigits:
-                  2,
-
-                maximumFractionDigits:
                   2
               }
             ).format(
@@ -9938,9 +10263,6 @@ if (
               ? ""
               : valor;
         }
-
-        td.title =
-          td.textContent;
 
         tr.appendChild(
           td
@@ -9961,15 +10283,8 @@ if (
       (
         respuesta.filas || []
       ).length +
-      (
-        (
-          respuesta.filas || []
-        ).length === 1
-          ? " empleado procesado."
-          : " empleados procesados."
-      );
+      " empleado(s) procesado(s).";
   }
-
   
   function mensajeProcesarPlanilla(
     texto,
