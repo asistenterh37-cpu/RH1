@@ -2056,7 +2056,7 @@
      */
 
     const API_URL =
-      "https://script.google.com/macros/s/AKfycbxd91ZIGLoVPkMeP-BFcsYz3FjMDsaSg-lN9c7qkaSpH6YnwMQoM3wM9ulotF8qJX_w/exec";
+      "https://script.google.com/macros/s/AKfycbyWsgYym1F8KrSky23jHXVkoyF218yXlrK_-HOFzNfcpBbPmT30xetfDIjxBCLURB_1/exec";
 
     const camposEmpleado = [
 
@@ -9319,64 +9319,92 @@ if (
       class="datos-movimiento-seleccionado"
     ></div>
 
-    <div
-      id="camposModificarMovimiento"
-      class="campos-modificar-movimiento"
+  <div
+    id="camposModificarMovimiento"
+    class="campos-modificar-movimiento"
+    hidden
+  >
+    <div>
+      <label for="revisionMovimientoConcepto">
+        Concepto
+      </label>
+
+      <select
+        id="revisionMovimientoConcepto"
+        required
+      >
+        <option value="">
+          Seleccionar
+        </option>
+      </select>
+    </div>
+
+    <div>
+      <label for="revisionMovimientoDesde">
+        Desde
+      </label>
+
+      <input
+        id="revisionMovimientoDesde"
+        type="text"
+        required
+      >
+    </div>
+
+    <div>
+      <label for="revisionMovimientoHasta">
+        Hasta
+      </label>
+
+      <input
+        id="revisionMovimientoHasta"
+        type="text"
+        required
+      >
+    </div>
+
+    <div>
+      <label for="revisionMovimientoValor">
+        Valor
+      </label>
+
+      <input
+        id="revisionMovimientoValor"
+        type="number"
+        min="0.01"
+        step="0.01"
+        required
+      >
+    </div>
+  </div>
+    
+   <div class="modal-movimiento-acciones">
+    <button
+      id="botonConfirmarMovimiento"
+      type="button"
+      class="guardar"
+    >
+      Guardar
+    </button>
+
+    <button
+      id="botonNuloDesdeModificar"
+      type="button"
+      class="accion-eliminar"
+      onclick="guardarMovimientoComoNulo()"
       hidden
     >
-      <div>
-        <label for="revisionMovimientoDesde">
-          Desde
-        </label>
+      Guardar como Nulo
+    </button>
 
-        <input
-          id="revisionMovimientoDesde"
-          type="text"
-        >
-      </div>
-
-      <div>
-        <label for="revisionMovimientoHasta">
-          Hasta
-        </label>
-
-        <input
-          id="revisionMovimientoHasta"
-          type="text"
-        >
-      </div>
-
-      <div>
-        <label for="revisionMovimientoValor">
-          Valor
-        </label>
-
-        <input
-          id="revisionMovimientoValor"
-          type="number"
-          min="0"
-          step="0.01"
-        >
-      </div>
-    </div>
-
-    <div class="modal-movimiento-acciones">
-      <button
-        id="botonConfirmarMovimiento"
-        type="button"
-        class="guardar"
-      >
-        Guardar
-      </button>
-
-      <button
-        type="button"
-        class="boton-secundario"
-        onclick="cerrarModalMovimiento()"
-      >
-        Cancelar
-      </button>
-    </div>
+    <button
+      type="button"
+      class="boton-secundario"
+      onclick="cerrarModalMovimiento()"
+    >
+      Cancelar
+    </button>
+  </div>   
   </div>
 </div>
 
@@ -11071,6 +11099,71 @@ if (
 
     campos.hidden = false;
 
+    /*
+     * Cargar los conceptos correspondientes
+     * al Tipo del movimiento.
+     */
+    const selectorConcepto =
+      document.getElementById(
+        "revisionMovimientoConcepto"
+      );
+
+    selectorConcepto.innerHTML =
+      '<option value="">Seleccionar</option>';
+
+    const conceptos =
+      conceptosMovimientos[
+        movimiento.tipo
+      ] || [];
+
+    conceptos.forEach(function (
+      concepto
+    ) {
+      const opcion =
+        document.createElement(
+          "option"
+        );
+
+      opcion.value =
+        concepto;
+
+      opcion.textContent =
+        concepto;
+
+      selectorConcepto.appendChild(
+        opcion
+      );
+    });
+
+    /*
+     * Conservar el concepto actual aunque
+     * ya no aparezca en Catalogos.
+     */
+    if (
+      movimiento.concepto &&
+      conceptos.indexOf(
+        movimiento.concepto
+      ) === -1
+    ) {
+      const opcionActual =
+        document.createElement(
+          "option"
+        );
+
+      opcionActual.value =
+        movimiento.concepto;
+
+      opcionActual.textContent =
+        movimiento.concepto;
+
+      selectorConcepto.appendChild(
+        opcionActual
+      );
+    }
+
+    selectorConcepto.value =
+      movimiento.concepto || "";
+
     document.getElementById(
       "revisionMovimientoDesde"
     ).value =
@@ -11086,22 +11179,30 @@ if (
     ).value =
       movimiento.valor || "";
 
-    const boton =
+    const botonGuardar =
       document.getElementById(
         "botonConfirmarMovimiento"
       );
 
-    boton.textContent =
+    botonGuardar.textContent =
       "Guardar modificación";
 
-    boton.onclick =
+    botonGuardar.onclick =
       guardarModificacionMovimiento;
+
+    /*
+     * Permitir convertir el mismo registro
+     * en Nulo desde esta pantalla.
+     */
+    document.getElementById(
+      "botonNuloDesdeModificar"
+    ).hidden = false;
 
     document.getElementById(
       "modalMovimientoPlanilla"
     ).hidden = false;
   }
-
+  
   function abrirEliminarMovimiento(
     idMovimiento
   ) {
@@ -11130,6 +11231,14 @@ if (
       "camposModificarMovimiento"
     ).hidden = true;
 
+    /*
+     * En esta pantalla el botón principal
+     * realiza la anulación.
+     */
+    document.getElementById(
+      "botonNuloDesdeModificar"
+    ).hidden = true;
+
     const boton =
       document.getElementById(
         "botonConfirmarMovimiento"
@@ -11145,7 +11254,7 @@ if (
       "modalMovimientoPlanilla"
     ).hidden = false;
   }
-
+  
   function mostrarDatosMovimientoModal(
     movimiento
   ) {
@@ -11202,6 +11311,11 @@ if (
       return;
     }
 
+    const concepto =
+      document.getElementById(
+        "revisionMovimientoConcepto"
+      ).value;
+
     const desde =
       document.getElementById(
         "revisionMovimientoDesde"
@@ -11220,6 +11334,15 @@ if (
     const usuario =
       obtenerUsuarioRevision();
 
+    if (!concepto) {
+      mensajeRevisionPlanilla(
+        "Seleccione un Concepto.",
+        "error"
+      );
+
+      return;
+    }
+
     try {
       const respuesta =
         await jsonp(
@@ -11229,6 +11352,7 @@ if (
               movimientoRevisionActual
                 .idMovimiento,
 
+            concepto: concepto,
             desde: desde,
             hasta: hasta,
             valor: valor,
@@ -11264,7 +11388,7 @@ if (
       );
     }
   }
-
+  
   async function guardarMovimientoComoNulo() {
     if (!movimientoRevisionActual) {
       return;
@@ -11326,7 +11450,8 @@ if (
     }
   }
 
-  function cerrarModalMovimiento() {
+
+    function cerrarModalMovimiento() {
     const modal =
       document.getElementById(
         "modalMovimientoPlanilla"
@@ -11334,6 +11459,15 @@ if (
 
     if (modal) {
       modal.hidden = true;
+    }
+
+    const botonNulo =
+      document.getElementById(
+        "botonNuloDesdeModificar"
+      );
+
+    if (botonNulo) {
+      botonNulo.hidden = true;
     }
 
     movimientoRevisionActual =
