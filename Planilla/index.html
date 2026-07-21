@@ -2056,7 +2056,7 @@
      */
 
     const API_URL =
-      "https://script.google.com/macros/s/AKfycbzK0ZnE2lDDPGMzeJUUnjqZnn93hXe_0WNXUYZLO2CeSCy8lOlVzmGgnNmwiUnpR8XS/exec";
+      "https://script.google.com/macros/s/AKfycbyhwnqt3bUbuLM9K4qCGPLfUj2G4GViWRaeIBFFSTGQoXjyM69D09P8pMPNypjbn2ye/exec";
 
     const camposEmpleado = [
 
@@ -10036,17 +10036,29 @@ if (
         );
       }
 
-      mostrarResultadoDecimoMes(
-        configuracion.id,
-        respuesta
-      );
+  if (revisar) {
+    movimientosRevisionPlanilla =
+      respuesta.movimientos || [];
+  }
 
-      mensajeDecimoMes(
-        configuracion.id,
-        respuesta.mensaje,
-        "ok"
-      );
+  mostrarResultadoDecimoMes(
+    configuracion.id,
+    respuesta
+  );
 
+  if (revisar) {
+    marcarCeldasDecimoMes(
+      configuracion.id,
+      respuesta
+    );
+  }
+
+  mensajeDecimoMes(
+    configuracion.id,
+    respuesta.mensaje,
+    "ok"
+  );
+      
     } catch (error) {
       mensajeDecimoMes(
         configuracion.id,
@@ -10227,6 +10239,179 @@ if (
     }
   }
 
+  function marcarCeldasDecimoMes(
+    id,
+    respuesta
+  ) {
+    const tabla =
+      document.getElementById(
+        id + "Tabla"
+      );
+
+    if (!tabla) {
+      return;
+    }
+
+    const columnas =
+      respuesta.columnas || [];
+
+    const filas =
+      respuesta.filas || [];
+
+    const filasHtml =
+      tabla.querySelectorAll(
+        "tbody tr"
+      );
+
+    filasHtml.forEach(function (
+      filaHtml,
+      indiceFila
+    ) {
+      const filaDatos =
+        filas[indiceFila] || [];
+
+      /*
+       * No. está en el índice 3.
+       */
+      const numeroPersonal =
+        String(
+          filaDatos[3] || ""
+        ).trim();
+
+      const celdas =
+        filaHtml.querySelectorAll(
+          "td"
+        );
+
+      celdas.forEach(function (
+        celda,
+        indiceColumna
+      ) {
+        const conceptoColumna =
+          String(
+            columnas[
+              indiceColumna
+            ] || ""
+          ).trim();
+
+        /*
+         * Solamente las columnas D:
+         * corresponden a deducciones
+         * modificables.
+         */
+        if (
+          !/^D:\s*/i.test(
+            conceptoColumna
+          )
+        ) {
+          return;
+        }
+
+        const movimientos =
+          movimientosRevisionPlanilla
+            .filter(function (
+              movimiento
+            ) {
+              return (
+                String(
+                  movimiento.numeroPersonal ||
+                  ""
+                ).trim() ===
+                  numeroPersonal &&
+                normalizarTextoRevisionDecimo(
+                  conceptoColumna
+                ) ===
+                  normalizarTextoRevisionDecimo(
+                    movimiento.concepto
+                  )
+              );
+            });
+
+        if (!movimientos.length) {
+          return;
+        }
+
+        celda.classList.add(
+          "celda-movimiento"
+        );
+
+        celda.title =
+          "Deducción de planilla. " +
+          "Coloque el cursor para modificar.";
+
+        const menu =
+          document.createElement(
+            "div"
+          );
+
+        menu.className =
+          "etiqueta-acciones-movimiento";
+
+        movimientos.forEach(function (
+          movimiento
+        ) {
+          const grupo =
+            document.createElement(
+              "span"
+            );
+
+          grupo.innerHTML = `
+            <button
+              type="button"
+              class="accion-modificar"
+              onclick="event.stopPropagation(); abrirModificarMovimiento('${escaparAtributoRevision(
+                movimiento.idMovimiento
+              )}')"
+            >
+              Modificar
+            </button>
+
+            <button
+              type="button"
+              class="accion-eliminar"
+              onclick="event.stopPropagation(); abrirEliminarMovimiento('${escaparAtributoRevision(
+                movimiento.idMovimiento
+              )}')"
+            >
+              Eliminar
+            </button>
+          `;
+
+          menu.appendChild(
+            grupo
+          );
+        });
+
+        celda.appendChild(
+          menu
+        );
+      });
+    });
+  }
+
+  function normalizarTextoRevisionDecimo(
+    valor
+  ) {
+    return String(
+      valor || ""
+    )
+      .replace(
+        /^D:\s*/i,
+        ""
+      )
+      .trim()
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(
+        /[\u0300-\u036f]/g,
+        ""
+      )
+      .replace(
+        /[^a-z0-9]/g,
+        ""
+      );
+  }
+  
   function mostrarResultadoDecimoMes(
     id,
     respuesta
