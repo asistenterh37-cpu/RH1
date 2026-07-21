@@ -2056,7 +2056,7 @@
      */
 
     const API_URL =
-      "https://script.google.com/macros/s/AKfycbyhwnqt3bUbuLM9K4qCGPLfUj2G4GViWRaeIBFFSTGQoXjyM69D09P8pMPNypjbn2ye/exec";
+      "https://script.google.com/macros/s/AKfycbwmhZBNEZO4kDatLAW8YYbedQ1EXZgmxDAZkPdJJ8BUHlVON2dZFOCQzgbd4g_KfmuH/exec";
 
     const camposEmpleado = [
 
@@ -8606,12 +8606,63 @@ if (
       grid-template-columns: 1fr !important;
     }
   }
+
 </style>
-  
 </body>
+
 <style>
+.acciones-impuestos {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.acciones-impuestos button {
+  min-width: 180px;
+  margin: 0;
+}
+
+.submodulo-impuesto {
+  margin-top: 16px;
+  padding: 18px;
+  border: 1px solid var(--borde);
+  border-radius: 12px;
+  background: #f8fafc;
+}
+
+.fila-generar-impuesto {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  max-width: 430px;
+  margin-bottom: 16px;
+}
+
+.fila-generar-impuesto > div {
+  flex: 1;
+}
+
+.fila-generar-impuesto button {
+  min-width: 130px;
+  height: 42px;
+  margin: 0;
+}
+
+@media (max-width: 600px) {
+  .acciones-impuestos,
+  .fila-generar-impuesto {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .acciones-impuestos button,
+  .fila-generar-impuesto button {
+    width: 100%;
+  }
+}
+
+ .procesar-controles {
   
-   .procesar-controles {
  display: flex;
  flex-direction: row;
  flex-wrap: nowrap;
@@ -9559,98 +9610,435 @@ if (
     }
   );
     
-  const modulosAdicionales = [
-    {
-      id:
-        "isrImpuestoVecinal",
+  /*
+   * Módulo ISR / Impuesto vecinal.
+   */
+  if (
+    !document.getElementById(
+      "isrImpuestoVecinal"
+    )
+  ) {
+    const botonImpuestos =
+      document.createElement(
+        "button"
+      );
 
-      boton:
-        "ISR / Impuesto vecinal",
+    botonImpuestos.type =
+      "button";
 
-      titulo:
-        "ISR / Impuesto vecinal",
+    botonImpuestos.textContent =
+      "ISR / Impuesto vecinal";
 
-      descripcion:
-        "Cálculo del Impuesto Sobre la Renta y del impuesto vecinal."
-    },
-    {
-      id:
-        "analisisPlanilla",
-
-      boton:
-        "Análisis",
-
-      titulo:
-        "Análisis de planilla",
-
-      descripcion:
-        "Consultas, comparaciones y análisis de las planillas procesadas."
-    }
-  ];
-    
-    modulosAdicionales.forEach(
-      function (modulo) {
-        if (
-          document.getElementById(
-            modulo.id
-          )
-        ) {
-          return;
-        }
-
-        const botonModulo =
-          document.createElement(
-            "button"
-          );
-
-        botonModulo.type = "button";
-        botonModulo.textContent =
-          modulo.boton;
-
-        botonModulo.addEventListener(
-          "click",
-          function () {
-            abrirPanel(
-              modulo.id,
-              botonModulo
-            );
-          }
+    botonImpuestos.onclick =
+      function () {
+        abrirPanel(
+          "isrImpuestoVecinal",
+          botonImpuestos
         );
+      };
 
-        menu.appendChild(
-          botonModulo
-        );
+    menu.appendChild(
+      botonImpuestos
+    );
 
-        const panelModulo =
-          document.createElement(
-            "section"
-          );
+    const panelImpuestos =
+      document.createElement(
+        "section"
+      );
 
-        panelModulo.id =
-          modulo.id;
+    panelImpuestos.id =
+      "isrImpuestoVecinal";
 
-        panelModulo.className =
-          "panel";
+    panelImpuestos.className =
+      "panel";
 
-        panelModulo.innerHTML = `
-          <h2>${modulo.titulo}</h2>
+    panelImpuestos.innerHTML = `
+      <h2>ISR / Impuesto vecinal</h2>
 
-          <p>
-            ${modulo.descripcion}
-          </p>
+      <div class="acciones-impuestos">
+        <button
+          id="botonModuloISR"
+          type="button"
+          class="boton-secundario"
+        >
+          ISR
+        </button>
 
-          <div class="mensaje info">
-            Módulo disponible para configurar.
+        <button
+          id="botonModuloVecinal"
+          type="button"
+          class="boton-secundario"
+        >
+          Impuesto vecinal
+        </button>
+      </div>
+
+      <div
+        id="contenidoISR"
+        class="submodulo-impuesto"
+        hidden
+      >
+        <h3>Impuesto Sobre la Renta</h3>
+
+        <div class="mensaje info">
+          Módulo ISR disponible para configurar.
+        </div>
+      </div>
+
+      <div
+        id="contenidoImpuestoVecinal"
+        class="submodulo-impuesto"
+        hidden
+      >
+        <h3>Impuesto vecinal</h3>
+
+        <div class="fila-generar-impuesto">
+          <div>
+            <label for="anioImpuestoVecinal">
+              Año
+            </label>
+
+            <input
+              id="anioImpuestoVecinal"
+              type="number"
+              min="2000"
+              max="2100"
+              step="1"
+            >
           </div>
-        `;
 
-        principal.appendChild(
-          panelModulo
+          <button
+            id="botonGenerarImpuestoVecinal"
+            type="button"
+            class="primario"
+          >
+            Generar
+          </button>
+        </div>
+
+        <div
+          id="mensajeImpuestoVecinal"
+          class="mensaje"
+        ></div>
+
+        <div
+          id="resultadoImpuestoVecinal"
+          class="procesar-tabla-contenedor"
+          hidden
+        >
+          <table
+            id="tablaImpuestoVecinal"
+            class="procesar-tabla"
+          >
+            <thead></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    `;
+
+    principal.appendChild(
+      panelImpuestos
+    );
+
+    document.getElementById(
+      "anioImpuestoVecinal"
+    ).value =
+      new Date().getFullYear();
+
+    document.getElementById(
+      "botonModuloISR"
+    ).onclick =
+      function () {
+        document.getElementById(
+          "contenidoISR"
+        ).hidden = false;
+
+        document.getElementById(
+          "contenidoImpuestoVecinal"
+        ).hidden = true;
+      };
+
+    document.getElementById(
+      "botonModuloVecinal"
+    ).onclick =
+      function () {
+        document.getElementById(
+          "contenidoISR"
+        ).hidden = true;
+
+        document.getElementById(
+          "contenidoImpuestoVecinal"
+        ).hidden = false;
+      };
+
+    document.getElementById(
+      "botonGenerarImpuestoVecinal"
+    ).onclick =
+      generarImpuestoVecinal;
+  }
+
+  /*
+   * Mantener el módulo Análisis.
+   */
+  if (
+    !document.getElementById(
+      "analisisPlanilla"
+    )
+  ) {
+    const botonAnalisis =
+      document.createElement(
+        "button"
+      );
+
+    botonAnalisis.type =
+      "button";
+
+    botonAnalisis.textContent =
+      "Análisis";
+
+    botonAnalisis.onclick =
+      function () {
+        abrirPanel(
+          "analisisPlanilla",
+          botonAnalisis
         );
-      }
+      };
+
+    menu.appendChild(
+      botonAnalisis
+    );
+
+    const panelAnalisis =
+      document.createElement(
+        "section"
+      );
+
+    panelAnalisis.id =
+      "analisisPlanilla";
+
+    panelAnalisis.className =
+      "panel";
+
+    panelAnalisis.innerHTML = `
+      <h2>Análisis de planilla</h2>
+
+      <p>
+        Consultas, comparaciones y análisis
+        de las planillas procesadas.
+      </p>
+
+      <div class="mensaje info">
+        Módulo disponible para configurar.
+      </div>
+    `;
+
+    principal.appendChild(
+      panelAnalisis
     );
   }
 
+  async function generarImpuestoVecinal() {
+    const anio =
+      Number(
+        document.getElementById(
+          "anioImpuestoVecinal"
+        ).value
+      );
+
+    if (
+      !anio ||
+      anio < 2000 ||
+      anio > 2100
+    ) {
+      mensajeImpuestoVecinal(
+        "Ingrese un año válido.",
+        "error"
+      );
+
+      return;
+    }
+
+    mensajeImpuestoVecinal(
+      "Generando información...",
+      "info"
+    );
+
+    try {
+      const respuesta =
+        await jsonp(
+          "generarImpuestoVecinal",
+          {
+            anio:
+              anio
+          }
+        );
+
+      if (
+        !respuesta ||
+        !respuesta.ok
+      ) {
+        throw new Error(
+          respuesta &&
+          respuesta.mensaje
+            ? respuesta.mensaje
+            : "No fue posible generar el impuesto vecinal."
+        );
+      }
+
+      mostrarResultadoImpuestoVecinal(
+        respuesta
+      );
+
+      mensajeImpuestoVecinal(
+        respuesta.mensaje,
+        "ok"
+      );
+
+    } catch (error) {
+      mensajeImpuestoVecinal(
+        error.message,
+        "error"
+      );
+    }
+  }
+
+  function mensajeImpuestoVecinal(
+    texto,
+    tipo
+  ) {
+    const mensaje =
+      document.getElementById(
+        "mensajeImpuestoVecinal"
+      );
+
+    if (!mensaje) {
+      return;
+    }
+
+    mensaje.className =
+      "mensaje " +
+      (
+        tipo || ""
+      );
+
+    mensaje.textContent =
+      texto || "";
+  }
+
+  function mostrarResultadoImpuestoVecinal(
+    respuesta
+  ) {
+    const contenedor =
+      document.getElementById(
+        "resultadoImpuestoVecinal"
+      );
+
+    const tabla =
+      document.getElementById(
+        "tablaImpuestoVecinal"
+      );
+
+    const encabezado =
+      tabla.querySelector(
+        "thead"
+      );
+
+    const cuerpo =
+      tabla.querySelector(
+        "tbody"
+      );
+
+    encabezado.innerHTML = "";
+    cuerpo.innerHTML = "";
+
+    const filaEncabezado =
+      document.createElement(
+        "tr"
+      );
+
+    (
+      respuesta.columnas || []
+    ).forEach(function (
+      columna
+    ) {
+      const th =
+        document.createElement(
+          "th"
+        );
+
+      th.textContent =
+        columna;
+
+      filaEncabezado.appendChild(
+        th
+      );
+    });
+
+    encabezado.appendChild(
+      filaEncabezado
+    );
+
+    (
+      respuesta.filas || []
+    ).forEach(function (
+      fila
+    ) {
+      const tr =
+        document.createElement(
+          "tr"
+        );
+
+      fila.forEach(function (
+        valor,
+        indice
+      ) {
+        const td =
+          document.createElement(
+            "td"
+          );
+
+        if (
+          indice === 2
+        ) {
+          td.textContent =
+            new Intl.NumberFormat(
+              "es-HN",
+              {
+                style:
+                  "currency",
+
+                currency:
+                  "HNL",
+
+                minimumFractionDigits:
+                  2
+              }
+            ).format(
+              Number(valor) || 0
+            );
+        } else {
+          td.textContent =
+            valor === null ||
+            valor === undefined
+              ? ""
+              : valor;
+        }
+
+        tr.appendChild(
+          td
+        );
+      });
+
+      cuerpo.appendChild(
+        tr
+      );
+    });
+
+    contenedor.hidden =
+      false;
+  }
+    
     function crearModuloDecimoMes(
     menu,
     principal,
