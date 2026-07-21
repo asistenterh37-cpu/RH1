@@ -10863,7 +10863,9 @@ if (
     }
   }
 
-  function mostrarResultadoPagoPlanilla(respuesta) {
+  function mostrarResultadoPagoPlanilla(
+    respuesta
+  ) {
     var contenedor =
       document.getElementById(
         "resultadoPagoPlanilla"
@@ -10873,13 +10875,49 @@ if (
       return;
     }
 
-    contenedor.hidden = false;
+    var resultadoPlanilla =
+      document.getElementById(
+        "contenedorResultadoPlanilla"
+      );
 
-    if (respuesta.tipo === "recibos") {
+    var revisionPlanilla =
+      document.getElementById(
+        "contenedorRevisionPlanilla"
+      );
+
+    var resumenPlanilla =
+      document.getElementById(
+        "resumenProcesarPlanilla"
+      );
+
+    /*
+     * Al mostrar el pago, ocultar el formato
+     * procesado o revisado de la planilla.
+     */
+    if (resultadoPlanilla) {
+      resultadoPlanilla.hidden = true;
+    }
+
+    if (revisionPlanilla) {
+      revisionPlanilla.hidden = true;
+    }
+
+    if (resumenPlanilla) {
+      resumenPlanilla.textContent = "";
+    }
+
+    contenedor.hidden = false;
+    contenedor.innerHTML = "";
+
+    if (
+      respuesta.tipo ===
+      "recibos"
+    ) {
       mostrarRecibosPago(
         contenedor,
         respuesta.recibos || []
       );
+
       return;
     }
 
@@ -10891,6 +10929,143 @@ if (
     );
   }
 
+  function imprimirResultadoPago() {
+    var contenedor =
+      document.getElementById(
+        "resultadoPagoPlanilla"
+      );
+
+    if (
+      !contenedor ||
+      contenedor.hidden
+    ) {
+      return;
+    }
+
+    var ventana =
+      window.open(
+        "",
+        "_blank",
+        "width=1000,height=750"
+      );
+
+    if (!ventana) {
+      mensajeProcesarPlanilla(
+        "El navegador bloqueó la ventana de impresión.",
+        "error"
+      );
+
+      return;
+    }
+
+    ventana.document.write(`
+      <!DOCTYPE html>
+      <html lang="es">
+      <head>
+        <meta charset="UTF-8">
+
+        <title>Pago de planilla</title>
+
+        <style>
+          body {
+            margin: 0;
+            padding: 24px;
+            color: #172033;
+            background: #ffffff;
+            font-family: Arial, sans-serif;
+            font-size: 13px;
+          }
+
+          .acciones-listado-pago {
+            display: none !important;
+          }
+
+          .lista-recibos-pago {
+            display: block;
+          }
+
+          .recibo-pago {
+            margin: 0 0 24px;
+            padding: 20px;
+            border: 1px solid #94a3b8;
+            border-radius: 8px;
+            page-break-inside: avoid;
+            break-inside: avoid;
+          }
+
+          .recibo-empresa,
+          .recibo-periodo {
+            text-align: center;
+          }
+
+          .recibo-datos {
+            display: grid;
+            grid-template-columns:
+              repeat(2, minmax(0, 1fr));
+            gap: 8px 20px;
+            margin: 16px 0;
+          }
+
+          .tabla-pago {
+            width: 100%;
+            margin-bottom: 12px;
+            border-collapse: collapse;
+          }
+
+          .tabla-pago th,
+          .tabla-pago td {
+            padding: 8px;
+            border: 1px solid #94a3b8;
+            text-align: left;
+          }
+
+          .tabla-pago th:last-child,
+          .tabla-pago td:last-child {
+            text-align: right;
+          }
+
+          .total-recibo {
+            display: flex;
+            justify-content: space-between;
+            gap: 20px;
+            padding: 8px;
+            font-weight: bold;
+          }
+
+          .neto-recibo {
+            margin-top: 8px;
+            border-top: 2px solid #172033;
+            font-size: 15px;
+          }
+
+          .resumen-deposito {
+            width: 100%;
+          }
+
+          @media print {
+            body {
+              padding: 0;
+            }
+          }
+        </style>
+      </head>
+
+      <body>
+        ${contenedor.innerHTML}
+      </body>
+      </html>
+    `);
+
+    ventana.document.close();
+
+    ventana.onload =
+      function () {
+        ventana.focus();
+        ventana.print();
+        ventana.close();
+      };
+  }
+  
     function mostrarRecibosPago(
     contenedor,
     recibos
@@ -10903,11 +11078,12 @@ if (
 
     var html =
       '<div class="acciones-listado-pago">' +
-        '<button type="button" ' +
-          'class="boton-secundario" ' +
-          'onclick="window.print()">' +
-          "Imprimir recibos" +
-        "</button>" +
+
+   '<button type="button" ' +
+  'class="boton-secundario" ' +
+  'onclick="imprimirResultadoPago()">' +
+  "Imprimir recibos" +
+  "</button>" +     
 
         '<button type="button" ' +
           'class="boton-guardar" ' +
@@ -11109,10 +11285,11 @@ if (
     var html =
       '<div class="acciones-listado-pago">' +
         '<button type="button" ' +
-          'class="boton-secundario" ' +
-          'onclick="window.print()">' +
-          "Imprimir listado" +
-        "</button>" +
+  'class="boton-secundario" ' +
+  'onclick="imprimirResultadoPago()">' +
+  "Imprimir listado" +
+  "</button>" +
+      
       "</div>" +
       '<div class="resumen-deposito">' +
         '<table class="tabla-pago">' +
