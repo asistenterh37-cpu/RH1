@@ -1125,7 +1125,117 @@ select:disabled {
   min-width: 1050px;
 } 
 }
-    
+
+  /*
+ * =====================================================
+ * ANÁLISIS IA
+ * =====================================================
+ */
+
+.analisis-ia-contenedor {
+  width: 100%;
+  margin-top: 20px;
+  padding: 22px;
+
+  border: 1px solid var(--borde);
+  border-radius: 12px;
+
+  background: #f8fafc;
+
+  box-sizing: border-box;
+}
+
+.analisis-ia-titulo {
+  display: block;
+
+  margin: 0 0 10px;
+
+  color: #173d7a;
+
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.analisis-ia-campo {
+  display: block;
+
+  width: 100%;
+  min-height: 150px;
+
+  padding: 14px;
+
+  border: 1px solid var(--borde);
+  border-radius: 10px;
+
+  background: #ffffff;
+  color: var(--texto);
+
+  font-family: Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+.analisis-ia-campo:focus {
+  border-color: #2563eb;
+
+  outline: 3px solid
+    rgba(37, 99, 235, 0.15);
+}
+
+.analisis-ia-inferior {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 14px;
+
+  margin-top: 12px;
+}
+
+.analisis-ia-contador {
+  color: #64748b;
+
+  font-size: 13px;
+}
+
+#botonConsultarAnalisisIA {
+  min-width: 145px;
+}
+
+.respuesta-analisis-ia {
+  margin-top: 18px;
+  padding: 18px;
+
+  border: 1px solid #bfdbfe;
+  border-radius: 10px;
+
+  background: #eff6ff;
+
+  white-space: pre-wrap;
+  line-height: 1.6;
+}
+
+.respuesta-analisis-ia[hidden] {
+  display: none !important;
+}
+
+@media (max-width: 600px) {
+  .analisis-ia-contenedor {
+    padding: 16px;
+  }
+
+  .analisis-ia-inferior {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  #botonConsultarAnalisisIA {
+    width: 100%;
+  }
+}  
   </style>
 
 </head>
@@ -12263,71 +12373,221 @@ if (
       generarImpuestoVecinal;
   }
 
-  /*
-   * Mantener el módulo Análisis.
-   */
-  if (
-    !document.getElementById(
-      "analisisPlanilla"
-    )
-  ) {
-    const botonAnalisis =
-      document.createElement(
-        "button"
+ /*
+ * MÓDULO ANÁLISIS IA.
+ */
+if (
+  !document.getElementById(
+    "analisisPlanilla"
+  )
+) {
+  const botonAnalisis =
+    document.createElement(
+      "button"
+    );
+
+  botonAnalisis.type =
+    "button";
+
+  botonAnalisis.textContent =
+    "Análisis IA";
+
+  botonAnalisis.onclick =
+    function () {
+      abrirPanel(
+        "analisisPlanilla",
+        botonAnalisis
       );
 
-    botonAnalisis.type =
-      "button";
-
-    botonAnalisis.textContent =
-      "Análisis";
-
-    botonAnalisis.onclick =
-      function () {
-        abrirPanel(
-          "analisisPlanilla",
-          botonAnalisis
+      const campoConsulta =
+        document.getElementById(
+          "consultaAnalisisIA"
         );
-      };
 
-    menu.appendChild(
-      botonAnalisis
+      if (campoConsulta) {
+        setTimeout(
+          function () {
+            campoConsulta.focus();
+          },
+          100
+        );
+      }
+    };
+
+  menu.appendChild(
+    botonAnalisis
+  );
+
+  const panelAnalisis =
+    document.createElement(
+      "section"
     );
 
-    const panelAnalisis =
-      document.createElement(
-        "section"
-      );
+  panelAnalisis.id =
+    "analisisPlanilla";
 
-    panelAnalisis.id =
-      "analisisPlanilla";
+  panelAnalisis.className =
+    "panel";
 
-    panelAnalisis.className =
-      "panel";
+  panelAnalisis.innerHTML = `
+    <h2>Análisis IA</h2>
 
-    panelAnalisis.innerHTML = `
-      <h2>Análisis de planilla</h2>
+    <p>
+      Realice consultas sobre la información
+      disponible en el sistema de planillas.
+    </p>
 
-      <p>
-        Consultas, comparaciones y análisis
-        de las planillas procesadas.
-      </p>
+    <div class="analisis-ia-contenedor">
 
-      <div class="mensaje info">
-        Módulo disponible para configurar.
+      <label
+        for="consultaAnalisisIA"
+        class="analisis-ia-titulo"
+      >
+        Escribe tus consultas aquí:
+      </label>
+
+      <textarea
+        id="consultaAnalisisIA"
+        class="analisis-ia-campo"
+        rows="6"
+        maxlength="600"
+        placeholder="Ejemplo: ¿Qué empleados tuvieron más horas extra durante este período?"
+        oninput="actualizarContadorAnalisisIA()"
+      ></textarea>
+
+      <div class="analisis-ia-inferior">
+
+        <span
+          id="contadorAnalisisIA"
+          class="analisis-ia-contador"
+        >
+          0 / 600
+        </span>
+
+        <button
+          id="botonConsultarAnalisisIA"
+          type="button"
+          class="primario"
+          onclick="consultarAnalisisIA()"
+        >
+          Consultar
+        </button>
+
       </div>
-    `;
 
-        principal.appendChild(
-      panelAnalisis
-    );
-  }
+      <div
+        id="mensajeAnalisisIA"
+        class="mensaje"
+        aria-live="polite"
+      ></div>
+
+      <div
+        id="respuestaAnalisisIA"
+        class="respuesta-analisis-ia"
+        hidden
+      ></div>
+
+    </div>
+  `;
+
+  principal.appendChild(
+    panelAnalisis
+  );
+}
 
   /*
    * Cerrar crearModuloProcesarPlanilla.
    */
 }
 
+/*
+ * =====================================================
+ * ANÁLISIS IA
+ * =====================================================
+ */
+
+function actualizarContadorAnalisisIA() {
+  const campo =
+    document.getElementById(
+      "consultaAnalisisIA"
+    );
+
+  const contador =
+    document.getElementById(
+      "contadorAnalisisIA"
+    );
+
+  if (!campo || !contador) {
+    return;
+  }
+
+  contador.textContent =
+    campo.value.length +
+    " / 600";
+}
+
+function consultarAnalisisIA() {
+  const campo =
+    document.getElementById(
+      "consultaAnalisisIA"
+    );
+
+  const mensaje =
+    document.getElementById(
+      "mensajeAnalisisIA"
+    );
+
+  const respuesta =
+    document.getElementById(
+      "respuestaAnalisisIA"
+    );
+
+  if (
+    !campo ||
+    !mensaje ||
+    !respuesta
+  ) {
+    return;
+  }
+
+  const consulta =
+    String(
+      campo.value || ""
+    ).trim();
+
+  mensaje.className =
+    "mensaje";
+
+  mensaje.textContent =
+    "";
+
+  respuesta.hidden =
+    true;
+
+  respuesta.textContent =
+    "";
+
+  if (!consulta) {
+    mensaje.className =
+      "mensaje error";
+
+    mensaje.textContent =
+      "Escriba una consulta antes de pulsar Consultar.";
+
+    campo.focus();
+
+    return;
+  }
+
+  mensaje.className =
+    "mensaje info";
+
+  mensaje.textContent =
+    "El campo de Análisis IA está listo. " +
+    "Falta conectar el botón Consultar con OpenAI " +
+    "desde Google Apps Script.";
+}
+  
 async function generarImpuestoVecinal() {
   const campoAnio =
     document.getElementById(
