@@ -2056,7 +2056,7 @@
      */
 
     const API_URL =
-      "https://script.google.com/macros/s/AKfycbyZQjNKeKkSmZtKSdl7aPJkq7DYezBwX0yJNEmX6U-2j9tgl_eSC5GLtfaEQ6NO4taM/exec";
+      "https://script.google.com/macros/s/AKfycbwwZ1vOwA6GZatAy8ZGvedrkn_CvTdkJxDyJ1U9yMCihf5eWugYjTWS302MGQThBC1F/exec";
 
     const camposEmpleado = [
 
@@ -10081,20 +10081,22 @@ function mostrarResultadoImpuestoVecinal(
       : [];
 
   /*
-   * Limpiar por completo el resultado anterior.
-   * Se reconstruye la tabla para evitar que estilos
-   * anteriores la dejen invisible.
+   * Limpiar el resultado anterior.
    */
   contenedor.innerHTML = "";
 
   if (filas.length === 0) {
     contenedor.hidden = true;
-    contenedor.style.display = "none";
+    contenedor.style.display =
+      "none";
+
     return;
   }
 
   const tabla =
-    document.createElement("table");
+    document.createElement(
+      "table"
+    );
 
   tabla.id =
     "tablaImpuestoVecinal";
@@ -10103,7 +10105,7 @@ function mostrarResultadoImpuestoVecinal(
     "100%";
 
   tabla.style.minWidth =
-    "0";
+    "850px";
 
   tabla.style.borderCollapse =
     "collapse";
@@ -10115,35 +10117,49 @@ function mostrarResultadoImpuestoVecinal(
     "#ffffff";
 
   /*
-   * Crear encabezado.
+   * Encabezados.
    */
   const encabezado =
-    document.createElement("thead");
+    document.createElement(
+      "thead"
+    );
 
   const filaEncabezado =
-    document.createElement("tr");
+    document.createElement(
+      "tr"
+    );
 
   const columnas = [
     {
       titulo: "No.",
-      ancho: "20%",
+      ancho: "14%",
       alineacion: "left"
     },
     {
       titulo: "Nombre",
-      ancho: "50%",
+      ancho: "36%",
       alineacion: "left"
     },
     {
       titulo: "Total de ingresos",
-      ancho: "30%",
+      ancho: "25%",
+      alineacion: "right"
+    },
+    {
+      titulo:
+        "Impuesto Municipal a pagar",
+      ancho: "25%",
       alineacion: "right"
     }
   ];
 
-  columnas.forEach(function (columna) {
+  columnas.forEach(function (
+    columna
+  ) {
     const th =
-      document.createElement("th");
+      document.createElement(
+        "th"
+      );
 
     th.textContent =
       columna.titulo;
@@ -10169,7 +10185,12 @@ function mostrarResultadoImpuestoVecinal(
     th.style.textAlign =
       columna.alineacion;
 
-    filaEncabezado.appendChild(th);
+    th.style.whiteSpace =
+      "normal";
+
+    filaEncabezado.appendChild(
+      th
+    );
   });
 
   encabezado.appendChild(
@@ -10181,11 +10202,12 @@ function mostrarResultadoImpuestoVecinal(
   );
 
   /*
-   * Crear una fila independiente
-   * para cada empleado.
+   * Una fila por empleado.
    */
   const cuerpo =
-    document.createElement("tbody");
+    document.createElement(
+      "tbody"
+    );
 
   filas.forEach(function (fila) {
     const numero =
@@ -10203,92 +10225,98 @@ function mostrarResultadoImpuestoVecinal(
         ? Number(fila[2]) || 0
         : 0;
 
+    const impuestoMunicipal =
+      fila && fila.length > 3
+        ? Number(fila[3]) || 0
+        : 0;
+
     const tr =
-      document.createElement("tr");
-
-    const tdNumero =
-      document.createElement("td");
-
-    tdNumero.textContent =
-      numero === null ||
-      numero === undefined
-        ? ""
-        : String(numero);
-
-    tdNumero.style.padding =
-      "10px 12px";
-
-    tdNumero.style.border =
-      "1px solid #d7dfeb";
-
-    tdNumero.style.textAlign =
-      "left";
-
-    const tdNombre =
-      document.createElement("td");
-
-    tdNombre.textContent =
-      nombre === null ||
-      nombre === undefined
-        ? ""
-        : String(nombre);
-
-    tdNombre.style.padding =
-      "10px 12px";
-
-    tdNombre.style.border =
-      "1px solid #d7dfeb";
-
-    tdNombre.style.textAlign =
-      "left";
-
-    const tdTotal =
-      document.createElement("td");
-
-    tdTotal.textContent =
-      formatearMonedaHNL(
-        totalIngresos
+      document.createElement(
+        "tr"
       );
 
-    tdTotal.style.padding =
-      "10px 12px";
+    const celdas = [
+      {
+        valor: numero,
+        alineacion: "left",
+        moneda: false
+      },
+      {
+        valor: nombre,
+        alineacion: "left",
+        moneda: false
+      },
+      {
+        valor: totalIngresos,
+        alineacion: "right",
+        moneda: true
+      },
+      {
+        valor: impuestoMunicipal,
+        alineacion: "right",
+        moneda: true
+      }
+    ];
 
-    tdTotal.style.border =
-      "1px solid #d7dfeb";
+    celdas.forEach(function (
+      celda,
+      indice
+    ) {
+      const td =
+        document.createElement(
+          "td"
+        );
 
-    tdTotal.style.textAlign =
-      "right";
+      if (celda.moneda) {
+        td.textContent =
+          formatearMonedaHNL(
+            celda.valor
+          );
+      } else {
+        td.textContent =
+          celda.valor === null ||
+          celda.valor === undefined
+            ? ""
+            : String(
+                celda.valor
+              );
+      }
 
-    tdTotal.style.fontWeight =
-      "600";
+      td.style.padding =
+        "10px 12px";
 
-    tr.appendChild(
-      tdNumero
-    );
+      td.style.border =
+        "1px solid #d7dfeb";
 
-    tr.appendChild(
-      tdNombre
-    );
+      td.style.textAlign =
+        celda.alineacion;
 
-    tr.appendChild(
-      tdTotal
-    );
+      if (indice >= 2) {
+        td.style.fontWeight =
+          "600";
+      }
 
-    cuerpo.appendChild(
-      tr
-    );
+      /*
+       * Resaltar el impuesto a pagar.
+       */
+      if (indice === 3) {
+        td.style.color =
+          impuestoMunicipal > 0
+            ? "#991b1b"
+            : "#166534";
+      }
+
+      tr.appendChild(td);
+    });
+
+    cuerpo.appendChild(tr);
   });
 
-  tabla.appendChild(
-    cuerpo
-  );
-
-  contenedor.appendChild(
-    tabla
-  );
+  tabla.appendChild(cuerpo);
+  contenedor.appendChild(tabla);
 
   /*
-   * Mostrar el resultado.
+   * Mostrar la tabla.
    */
   contenedor.hidden = false;
 
@@ -10308,6 +10336,7 @@ function mostrarResultadoImpuestoVecinal(
   contenedor.style.overflowX =
     "auto";
 }
+
   
 function formatearMonedaHNL(valor) {
   const numero =
