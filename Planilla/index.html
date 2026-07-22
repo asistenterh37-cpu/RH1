@@ -880,10 +880,96 @@ body.sistema-bloqueado > .pantalla-asistencia {
   cursor: not-allowed;
 }
 
+/*
+ * MODOS: NUEVO, VER Y MODIFICAR.
+ */
+.expediente-modos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+
+  margin: 18px 0;
+}
+
+.expediente-boton-modo {
+  min-width: 150px;
+
+  color: #17417f;
+  background: #e8eef6;
+
+  border: 1px solid #cbd5e1;
+}
+
+.expediente-boton-modo.activo {
+  color: #ffffff;
+  background: var(--azul);
+
+  border-color: var(--azul);
+}
+
+.expediente-busqueda {
+  display: grid;
+
+  grid-template-columns:
+    minmax(220px, 430px)
+    auto;
+
+  gap: 12px;
+  align-items: end;
+
+  max-width: 650px;
+  margin: 0 0 20px;
+  padding: 16px;
+
+  border: 1px solid var(--borde);
+  border-radius: 10px;
+
+  background: #f8fafc;
+}
+
+.expediente-busqueda[hidden] {
+  display: none !important;
+}
+
+.expediente-campo-busqueda {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.expediente-campo-busqueda label,
+.expediente-campo-busqueda input {
+  margin: 0;
+}
+
+.formato-fecha {
+  display: inline-block;
+
+  margin-left: 5px;
+
+  color: #64748b;
+
+  font-size: 11px;
+  font-weight: 400;
+}
+
+.expediente-ayuda {
+  margin: -7px 0 15px;
+
+  color: #64748b;
+
+  font-size: 13px;
+}
+
+/*
+ * REGISTROS ACADÉMICOS.
+ */
 .expediente-educacion-scroll {
   width: 100%;
+
   overflow-x: auto;
-  padding-bottom: 5px;
+
+  padding-bottom: 6px;
 }
 
 .expediente-fila-educacion {
@@ -895,12 +981,77 @@ body.sistema-bloqueado > .pantalla-asistencia {
     minmax(250px, 1.50fr)
     minmax(175px, 1fr)
     minmax(170px, 1fr)
-    minmax(185px, 1.05fr);
+    minmax(185px, 1.05fr)
+    94px;
 
   gap: 12px;
   align-items: end;
+
   width: 100%;
-  min-width: 1210px;
+  min-width: 1320px;
+
+  margin-bottom: 14px;
+  padding: 14px;
+
+  border: 1px solid #d7dfeb;
+  border-radius: 10px;
+
+  background: #ffffff;
+}
+
+.expediente-acciones-educacion {
+  display: flex;
+  gap: 7px;
+  align-items: center;
+
+  height: 46px;
+}
+
+.boton-agregar-educacion,
+.boton-eliminar-educacion {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 42px;
+  min-width: 42px;
+  height: 42px;
+
+  padding: 0;
+
+  color: #ffffff;
+
+  border-radius: 50%;
+
+  font-size: 24px;
+  line-height: 1;
+}
+
+.boton-agregar-educacion {
+  background: #15803d;
+}
+
+.boton-agregar-educacion:hover {
+  background: #166534;
+}
+
+.boton-eliminar-educacion {
+  background: #b91c1c;
+}
+
+.boton-eliminar-educacion:hover {
+  background: #991b1b;
+}
+
+#formExpedientePersonal.solo-lectura
+input:disabled,
+#formExpedientePersonal.solo-lectura
+select:disabled {
+  color: #334155;
+  background: #eef2f7;
+
+  opacity: 1;
+  cursor: default;
 }
 
 @media (max-width: 650px) {
@@ -912,12 +1063,16 @@ body.sistema-bloqueado > .pantalla-asistencia {
     padding: 14px;
   }
 
+  .expediente-busqueda {
+    grid-template-columns: 1fr;
+  }
+
   .expediente-fila {
     min-width: 1000px;
   }
 
   .expediente-fila-educacion {
-    min-width: 1160px;
+    min-width: 1280px;
   }
 }
     
@@ -1067,17 +1222,87 @@ body.sistema-bloqueado > .pantalla-asistencia {
   id="expedientePersonal"
   class="panel"
 >
+
   <h2>Expediente de personal</h2>
 
-  <p>
-    Registre la información personal, de contacto,
-    emergencia y formación académica del empleado.
-  </p>
+<p>
+  Registre, consulte o modifique la información
+  personal y académica del empleado.
+</p>
 
-  <form
-    id="formExpedientePersonal"
-    onsubmit="guardarExpedientePersonal(event)"
+<div class="expediente-modos">
+
+  <button
+    type="button"
+    class="expediente-boton-modo"
+    data-modo-expediente="nuevo"
+    onclick="cambiarModoExpediente('nuevo', this)"
   >
+    Nuevo
+  </button>
+
+  <button
+    type="button"
+    class="expediente-boton-modo"
+    data-modo-expediente="ver"
+    onclick="cambiarModoExpediente('ver', this)"
+  >
+    Ver
+  </button>
+
+  <button
+    type="button"
+    class="expediente-boton-modo"
+    data-modo-expediente="modificar"
+    onclick="cambiarModoExpediente('modificar', this)"
+  >
+    Modificar
+  </button>
+
+</div>
+
+<div
+  id="busquedaExpedientePersonal"
+  class="expediente-busqueda"
+  hidden
+>
+  <div class="expediente-campo-busqueda">
+
+    <label for="noPersonalBuscarExpediente">
+      No. de personal
+    </label>
+
+    <input
+      id="noPersonalBuscarExpediente"
+      type="text"
+      autocomplete="off"
+      placeholder="Ingrese el No. de personal"
+      onkeydown="
+        if (event.key === 'Enter') {
+          event.preventDefault();
+          buscarExpedientePersonal();
+        }
+      "
+    >
+
+  </div>
+
+  <button
+    id="botonBuscarExpediente"
+    type="button"
+    class="primario"
+    onclick="buscarExpedientePersonal()"
+  >
+    Ver
+  </button>
+
+</div>
+
+<form
+  id="formExpedientePersonal"
+  onsubmit="guardarExpedientePersonal(event)"
+  hidden
+>
 
     <!-- DATOS PERSONALES -->
     <div class="expediente-seccion">
@@ -1154,19 +1379,24 @@ body.sistema-bloqueado > .pantalla-asistencia {
         </div>
 
         <div class="expediente-campo">
-          <label for="fechaNacimientoExpediente">
-            Fecha de nacimiento
-          </label>
 
-          <input
-            id="fechaNacimientoExpediente"
-            name="fechaNacimiento"
-            type="date"
-            onchange="calcularEdadExpediente()"
-            required
-          >
-        </div>
+  <label for="fechaNacimientoExpediente">
+    Fecha de nacimiento
+    <span class="formato-fecha">
+      DD/MM/AA
+    </span>
+  </label>
 
+  <input
+    id="fechaNacimientoExpediente"
+    name="fechaNacimiento"
+    type="date"
+    lang="es-HN"
+    onchange="calcularEdadExpediente()"
+    required
+  >
+
+</div>
       </div>
 
       <!-- SEGUNDA FILA: 5 CAMPOS -->
@@ -1424,92 +1654,21 @@ body.sistema-bloqueado > .pantalla-asistencia {
     </div>
 
     <!-- FORMACIÓN ACADÉMICA -->
-    <div class="expediente-seccion">
+<div class="expediente-seccion">
 
-      <h3>Formación académica</h3>
+  <h3>Formación académica</h3>
 
-      <div class="expediente-educacion-scroll">
+  <p class="expediente-ayuda">
+    Pulse <strong>+</strong> para agregar otro
+    registro académico.
+  </p>
 
-        <!-- LOS 6 CAMPOS EN UNA SOLA FILA -->
-        <div class="expediente-fila-educacion">
+  <div
+    id="contenedorEducacionExpediente"
+    class="expediente-educacion-scroll"
+  ></div>
 
-          <div class="expediente-campo">
-            <label for="nivelEducativoExpediente">
-              Nivel educativo
-            </label>
-
-            <input
-              id="nivelEducativoExpediente"
-              name="nivelEducativo"
-              type="text"
-            >
-          </div>
-
-          <div class="expediente-campo">
-            <label for="tituloObtenidoExpediente">
-              Título obtenido
-            </label>
-
-            <input
-              id="tituloObtenidoExpediente"
-              name="tituloObtenido"
-              type="text"
-            >
-          </div>
-
-          <div class="expediente-campo">
-            <label for="institucionEducativaExpediente">
-              Institución educativa
-            </label>
-
-            <input
-              id="institucionEducativaExpediente"
-              name="institucionEducativa"
-              type="text"
-            >
-          </div>
-
-          <div class="expediente-campo">
-            <label for="paisEstudioExpediente">
-              País de estudio
-            </label>
-
-            <input
-              id="paisEstudioExpediente"
-              name="paisEstudio"
-              type="text"
-            >
-          </div>
-
-          <div class="expediente-campo">
-            <label for="fechaInicioEstudioExpediente">
-              Fecha de inicio
-            </label>
-
-            <input
-              id="fechaInicioEstudioExpediente"
-              name="fechaInicioEstudio"
-              type="date"
-            >
-          </div>
-
-          <div class="expediente-campo">
-            <label for="fechaFinalizacionEstudioExpediente">
-              Fecha de finalización
-            </label>
-
-            <input
-              id="fechaFinalizacionEstudioExpediente"
-              name="fechaFinalizacionEstudio"
-              type="date"
-            >
-          </div>
-
-        </div>
-
-      </div>
-
-    </div>
+</div>
 
     <button
       id="botonGuardarExpediente"
@@ -3029,7 +3188,7 @@ body.sistema-bloqueado > .pantalla-asistencia {
      */
 
     const API_URL =
-      "https://script.google.com/macros/s/AKfycbxLbKzorULPw5TRwq1zp50LHzQvPWLVMUH7fsNdJTyvB1KJsZ8YBgtnTchEUXD6fTFf/exec";
+      "https://script.google.com/macros/s/AKfycbyjlL3iB8LET9IbcJ3Hpg5pYwtWRNUozL4_hk0Gf2ZaqhVvATDdB0Huxcznmq0zwDqe/exec";
 
     const camposEmpleado = [
 
@@ -3479,9 +3638,363 @@ document.addEventListener(
   }
 );
 
-/*
- * EXPEDIENTE DE PERSONAL.
+
+    /*
+ * =====================================================
+ * EXPEDIENTE DE PERSONAL
+ * =====================================================
  */
+
+let modoExpediente = "";
+let expedienteSoloLectura = false;
+let contadorEducacionExpediente = 0;
+
+const mapaCamposExpediente = {
+  noPersonal:
+    "noPersonalExpediente",
+
+  nombres:
+    "nombresExpediente",
+
+  apellidos:
+    "apellidosExpediente",
+
+  genero:
+    "generoExpediente",
+
+  fechaNacimiento:
+    "fechaNacimientoExpediente",
+
+  paisNacimiento:
+    "paisNacimientoExpediente",
+
+  departamento:
+    "departamentoExpediente",
+
+  municipio:
+    "municipioExpediente",
+
+  edad:
+    "edadExpediente",
+
+  estadoCivil:
+    "estadoCivilExpediente",
+
+  direccionCompleta:
+    "direccionExpediente",
+
+  telefonoPersonal:
+    "telefonoPersonalExpediente",
+
+  correoPersonal:
+    "correoPersonalExpediente",
+
+  identidad:
+    "identidadExpediente",
+
+  rtn:
+    "rtnExpediente",
+
+  ihss:
+    "ihssExpediente",
+
+  tipoSangre:
+    "tipoSangreExpediente",
+
+  contactoEmergencia:
+    "contactoEmergenciaExpediente",
+
+  telefonoEmergencia:
+    "telefonoEmergenciaExpediente",
+
+  parentesco:
+    "parentescoExpediente"
+};
+
+function cambiarModoExpediente(
+  nuevoModo,
+  boton
+) {
+  modoExpediente =
+    nuevoModo || "";
+
+  document
+    .querySelectorAll(
+      "[data-modo-expediente]"
+    )
+    .forEach(function (control) {
+      control.classList.remove(
+        "activo"
+      );
+    });
+
+  if (boton) {
+    boton.classList.add(
+      "activo"
+    );
+  }
+
+  const busqueda =
+    document.getElementById(
+      "busquedaExpedientePersonal"
+    );
+
+  const formulario =
+    document.getElementById(
+      "formExpedientePersonal"
+    );
+
+  const campoBusqueda =
+    document.getElementById(
+      "noPersonalBuscarExpediente"
+    );
+
+  const botonBusqueda =
+    document.getElementById(
+      "botonBuscarExpediente"
+    );
+
+  formulario.hidden = true;
+
+  campoBusqueda.value = "";
+
+  mensajeExpedientePersonal(
+    "",
+    ""
+  );
+
+  if (nuevoModo === "nuevo") {
+    busqueda.hidden = true;
+
+    prepararNuevoExpediente();
+
+    return;
+  }
+
+  busqueda.hidden = false;
+
+  botonBusqueda.textContent =
+    nuevoModo === "ver"
+      ? "Ver"
+      : "Cargar para modificar";
+
+  campoBusqueda.focus();
+}
+
+function prepararNuevoExpediente() {
+  const formulario =
+    document.getElementById(
+      "formExpedientePersonal"
+    );
+
+  limpiarFormularioExpediente();
+
+  establecerSoloLecturaExpediente(
+    false
+  );
+
+  document.getElementById(
+    "noPersonalExpediente"
+  ).disabled = false;
+
+  document.getElementById(
+    "botonGuardarExpediente"
+  ).hidden = false;
+
+  formulario.hidden = false;
+
+  document.getElementById(
+    "noPersonalExpediente"
+  ).focus();
+}
+
+async function buscarExpedientePersonal() {
+  if (
+    modoExpediente !== "ver" &&
+    modoExpediente !== "modificar"
+  ) {
+    mensajeExpedientePersonal(
+      "Seleccione Ver o Modificar.",
+      "error"
+    );
+
+    return;
+  }
+
+  const campoBusqueda =
+    document.getElementById(
+      "noPersonalBuscarExpediente"
+    );
+
+  const noPersonal =
+    String(
+      campoBusqueda.value || ""
+    ).trim();
+
+  if (!noPersonal) {
+    mensajeExpedientePersonal(
+      "Ingrese el No. de personal.",
+      "error"
+    );
+
+    campoBusqueda.focus();
+
+    return;
+  }
+
+  const boton =
+    document.getElementById(
+      "botonBuscarExpediente"
+    );
+
+  boton.disabled = true;
+
+  mensajeExpedientePersonal(
+    "Buscando expediente...",
+    "info"
+  );
+
+  try {
+    const respuesta =
+      await jsonp(
+        "buscarExpedientePersonal",
+        {
+          noPersonal: noPersonal
+        }
+      );
+
+    if (
+      !respuesta ||
+      !respuesta.ok
+    ) {
+      throw new Error(
+        respuesta &&
+        respuesta.mensaje
+          ? respuesta.mensaje
+          : "No se encontró el expediente."
+      );
+    }
+
+    cargarDatosExpediente(
+      respuesta.expediente || {},
+      respuesta.educacion || []
+    );
+
+    const soloLectura =
+      modoExpediente === "ver";
+
+    establecerSoloLecturaExpediente(
+      soloLectura
+    );
+
+    /*
+     * El No. personal no se modifica.
+     */
+    document.getElementById(
+      "noPersonalExpediente"
+    ).disabled = true;
+
+    document.getElementById(
+      "formExpedientePersonal"
+    ).hidden = false;
+
+    mensajeExpedientePersonal(
+      soloLectura
+        ? "Expediente cargado en modo consulta."
+        : "Expediente cargado para modificar.",
+      "ok"
+    );
+  } catch (error) {
+    document.getElementById(
+      "formExpedientePersonal"
+    ).hidden = true;
+
+    mensajeExpedientePersonal(
+      error && error.message
+        ? error.message
+        : "No fue posible buscar el expediente.",
+      "error"
+    );
+  } finally {
+    boton.disabled = false;
+  }
+}
+
+function cargarDatosExpediente(
+  expediente,
+  registrosEducacion
+) {
+  limpiarFormularioExpediente();
+
+  Object.keys(
+    mapaCamposExpediente
+  ).forEach(function (propiedad) {
+    const control =
+      document.getElementById(
+        mapaCamposExpediente[
+          propiedad
+        ]
+      );
+
+    if (!control) {
+      return;
+    }
+
+    const valor =
+      expediente[propiedad];
+
+    control.value =
+      valor === null ||
+      valor === undefined
+        ? ""
+        : String(valor);
+  });
+
+  reiniciarRegistrosEducacion(
+    registrosEducacion
+  );
+}
+
+function establecerSoloLecturaExpediente(
+  soloLectura
+) {
+  expedienteSoloLectura =
+    Boolean(soloLectura);
+
+  const formulario =
+    document.getElementById(
+      "formExpedientePersonal"
+    );
+
+  formulario.classList.toggle(
+    "solo-lectura",
+    expedienteSoloLectura
+  );
+
+  formulario
+    .querySelectorAll(
+      "input, select"
+    )
+    .forEach(function (control) {
+      control.disabled =
+        expedienteSoloLectura;
+    });
+
+  const campoEdad =
+    document.getElementById(
+      "edadExpediente"
+    );
+
+  campoEdad.readOnly = true;
+
+  document.getElementById(
+    "botonGuardarExpediente"
+  ).hidden =
+    expedienteSoloLectura;
+
+  actualizarBotonesEducacion();
+}
+
 function calcularEdadExpediente() {
   const campoFecha =
     document.getElementById(
@@ -3555,10 +4068,412 @@ function calcularEdadExpediente() {
       : "";
 }
 
+function crearFilaEducacionExpediente(
+  registro
+) {
+  registro =
+    registro || {};
+
+  contadorEducacionExpediente++;
+
+  const identificador =
+    contadorEducacionExpediente;
+
+  const contenedor =
+    document.getElementById(
+      "contenedorEducacionExpediente"
+    );
+
+  const fila =
+    document.createElement(
+      "div"
+    );
+
+  fila.className =
+    "expediente-fila-educacion";
+
+  fila.dataset.registroEducacion =
+    String(identificador);
+
+  fila.innerHTML = `
+    <div class="expediente-campo">
+      <label for="nivelEducativo${identificador}">
+        Nivel educativo
+      </label>
+
+      <input
+        id="nivelEducativo${identificador}"
+        class="educacion-nivel"
+        type="text"
+      >
+    </div>
+
+    <div class="expediente-campo">
+      <label for="tituloObtenido${identificador}">
+        Título obtenido
+      </label>
+
+      <input
+        id="tituloObtenido${identificador}"
+        class="educacion-titulo"
+        type="text"
+      >
+    </div>
+
+    <div class="expediente-campo">
+      <label for="institucionEducativa${identificador}">
+        Institución educativa
+      </label>
+
+      <input
+        id="institucionEducativa${identificador}"
+        class="educacion-institucion"
+        type="text"
+      >
+    </div>
+
+    <div class="expediente-campo">
+      <label for="paisEstudio${identificador}">
+        País de estudio
+      </label>
+
+      <input
+        id="paisEstudio${identificador}"
+        class="educacion-pais"
+        type="text"
+      >
+    </div>
+
+    <div class="expediente-campo">
+      <label for="fechaInicioEstudio${identificador}">
+        Fecha de inicio
+        <span class="formato-fecha">
+          DD/MM/AA
+        </span>
+      </label>
+
+      <input
+        id="fechaInicioEstudio${identificador}"
+        class="educacion-fecha-inicio"
+        type="date"
+        lang="es-HN"
+      >
+    </div>
+
+    <div class="expediente-campo">
+      <label for="fechaFinalizacionEstudio${identificador}">
+        Fecha de finalización
+        <span class="formato-fecha">
+          DD/MM/AA
+        </span>
+      </label>
+
+      <input
+        id="fechaFinalizacionEstudio${identificador}"
+        class="educacion-fecha-finalizacion"
+        type="date"
+        lang="es-HN"
+      >
+    </div>
+
+    <div class="expediente-acciones-educacion">
+
+      <button
+        type="button"
+        class="boton-agregar-educacion"
+        title="Agregar otro registro académico"
+        aria-label="Agregar otro registro académico"
+        onclick="agregarRegistroEducacionExpediente()"
+      >
+        +
+      </button>
+
+      <button
+        type="button"
+        class="boton-eliminar-educacion"
+        title="Eliminar este registro académico"
+        aria-label="Eliminar este registro académico"
+        onclick="eliminarRegistroEducacionExpediente(this)"
+      >
+        −
+      </button>
+
+    </div>
+  `;
+
+  contenedor.appendChild(
+    fila
+  );
+
+  fila.querySelector(
+    ".educacion-nivel"
+  ).value =
+    registro.nivelEducativo || "";
+
+  fila.querySelector(
+    ".educacion-titulo"
+  ).value =
+    registro.tituloObtenido || "";
+
+  fila.querySelector(
+    ".educacion-institucion"
+  ).value =
+    registro.institucionEducativa || "";
+
+  fila.querySelector(
+    ".educacion-pais"
+  ).value =
+    registro.paisEstudio || "";
+
+  fila.querySelector(
+    ".educacion-fecha-inicio"
+  ).value =
+    registro.fechaInicioEstudio || "";
+
+  fila.querySelector(
+    ".educacion-fecha-finalizacion"
+  ).value =
+    registro.fechaFinalizacionEstudio || "";
+
+  actualizarBotonesEducacion();
+
+  return fila;
+}
+
+function agregarRegistroEducacionExpediente() {
+  if (expedienteSoloLectura) {
+    return;
+  }
+
+  const fila =
+    crearFilaEducacionExpediente(
+      {}
+    );
+
+  const primerCampo =
+    fila.querySelector(
+      ".educacion-nivel"
+    );
+
+  if (primerCampo) {
+    primerCampo.focus();
+  }
+}
+
+function eliminarRegistroEducacionExpediente(
+  boton
+) {
+  if (expedienteSoloLectura) {
+    return;
+  }
+
+  const filas =
+    document.querySelectorAll(
+      "#contenedorEducacionExpediente " +
+      ".expediente-fila-educacion"
+    );
+
+  if (filas.length <= 1) {
+    return;
+  }
+
+  const fila =
+    boton.closest(
+      ".expediente-fila-educacion"
+    );
+
+  if (fila) {
+    fila.remove();
+  }
+
+  actualizarBotonesEducacion();
+}
+
+function actualizarBotonesEducacion() {
+  const filas =
+    Array.from(
+      document.querySelectorAll(
+        "#contenedorEducacionExpediente " +
+        ".expediente-fila-educacion"
+      )
+    );
+
+  filas.forEach(function (
+    fila,
+    indice
+  ) {
+    const botonAgregar =
+      fila.querySelector(
+        ".boton-agregar-educacion"
+      );
+
+    const botonEliminar =
+      fila.querySelector(
+        ".boton-eliminar-educacion"
+      );
+
+    /*
+     * El + solo aparece en el último
+     * registro académico.
+     */
+    botonAgregar.hidden =
+      expedienteSoloLectura ||
+      indice !== filas.length - 1;
+
+    botonEliminar.hidden =
+      expedienteSoloLectura ||
+      filas.length <= 1;
+  });
+}
+
+function reiniciarRegistrosEducacion(
+  registros
+) {
+  const contenedor =
+    document.getElementById(
+      "contenedorEducacionExpediente"
+    );
+
+  contenedor.innerHTML = "";
+
+  contadorEducacionExpediente = 0;
+
+  const lista =
+    Array.isArray(registros) &&
+    registros.length > 0
+      ? registros
+      : [{}];
+
+  lista.forEach(function (registro) {
+    crearFilaEducacionExpediente(
+      registro
+    );
+  });
+}
+
+function obtenerRegistrosEducacion() {
+  const filas =
+    Array.from(
+      document.querySelectorAll(
+        "#contenedorEducacionExpediente " +
+        ".expediente-fila-educacion"
+      )
+    );
+
+  const registros =
+    filas.map(function (fila) {
+      const registro = {
+        nivelEducativo:
+          fila.querySelector(
+            ".educacion-nivel"
+          ).value.trim(),
+
+        tituloObtenido:
+          fila.querySelector(
+            ".educacion-titulo"
+          ).value.trim(),
+
+        institucionEducativa:
+          fila.querySelector(
+            ".educacion-institucion"
+          ).value.trim(),
+
+        paisEstudio:
+          fila.querySelector(
+            ".educacion-pais"
+          ).value.trim(),
+
+        fechaInicioEstudio:
+          fila.querySelector(
+            ".educacion-fecha-inicio"
+          ).value,
+
+        fechaFinalizacionEstudio:
+          fila.querySelector(
+            ".educacion-fecha-finalizacion"
+          ).value
+      };
+
+      if (
+        registro.fechaInicioEstudio &&
+        registro.fechaFinalizacionEstudio &&
+        registro.fechaFinalizacionEstudio <
+        registro.fechaInicioEstudio
+      ) {
+        throw new Error(
+          "En formación académica, la fecha de " +
+          "finalización no puede ser anterior a la " +
+          "fecha de inicio."
+        );
+      }
+
+      return registro;
+    });
+
+  return registros.filter(
+    function (registro) {
+      return (
+        registro.nivelEducativo ||
+        registro.tituloObtenido ||
+        registro.institucionEducativa ||
+        registro.paisEstudio ||
+        registro.fechaInicioEstudio ||
+        registro.fechaFinalizacionEstudio
+      );
+    }
+  );
+}
+
+function obtenerDatosExpediente() {
+  const datos = {};
+
+  Object.keys(
+    mapaCamposExpediente
+  ).forEach(function (propiedad) {
+    const control =
+      document.getElementById(
+        mapaCamposExpediente[
+          propiedad
+        ]
+      );
+
+    datos[propiedad] =
+      control
+        ? String(
+            control.value || ""
+          ).trim()
+        : "";
+  });
+
+  datos.edad =
+    Number(
+      document.getElementById(
+        "edadExpediente"
+      ).value
+    ) || 0;
+
+  datos.educacion =
+    obtenerRegistrosEducacion();
+
+  return datos;
+}
+
 async function guardarExpedientePersonal(
   event
 ) {
   event.preventDefault();
+
+  if (
+    modoExpediente !== "nuevo" &&
+    modoExpediente !== "modificar"
+  ) {
+    mensajeExpedientePersonal(
+      "Seleccione Nuevo o Modificar.",
+      "error"
+    );
+
+    return;
+  }
 
   const formulario =
     document.getElementById(
@@ -3570,52 +4485,50 @@ async function guardarExpedientePersonal(
       "botonGuardarExpediente"
     );
 
-  if (!formulario) {
-    return;
-  }
-
   calcularEdadExpediente();
 
   if (!formulario.reportValidity()) {
     return;
   }
 
-  const datos = {};
+  let datos;
 
-  new FormData(
-    formulario
-  ).forEach(function (
-    valor,
-    nombre
-  ) {
-    datos[nombre] =
-      typeof valor === "string"
-        ? valor.trim()
-        : valor;
-  });
+  try {
+    datos =
+      obtenerDatosExpediente();
+  } catch (error) {
+    mensajeExpedientePersonal(
+      error.message,
+      "error"
+    );
 
-  datos.edad =
-    Number(
-      document.getElementById(
-        "edadExpediente"
-      ).value
-    ) || 0;
-
-  if (boton) {
-    boton.disabled = true;
-    boton.textContent =
-      "Guardando...";
+    return;
   }
 
+  const accion =
+    modoExpediente === "modificar"
+      ? "actualizarExpedientePersonal"
+      : "guardarExpedientePersonal";
+
+  const modoGuardado =
+    modoExpediente;
+
+  boton.disabled = true;
+
+  boton.textContent =
+    "Guardando...";
+
   mensajeExpedientePersonal(
-    "Guardando expediente de personal...",
+    modoGuardado === "modificar"
+      ? "Actualizando expediente..."
+      : "Guardando expediente...",
     "info"
   );
 
   try {
     const respuesta =
       await jsonp(
-        "guardarExpedientePersonal",
+        accion,
         datos
       );
 
@@ -3631,6 +4544,37 @@ async function guardarExpedientePersonal(
       );
     }
 
+    /*
+     * Limpiar siempre después de guardar.
+     */
+    limpiarFormularioExpediente();
+
+    if (modoGuardado === "nuevo") {
+      establecerSoloLecturaExpediente(
+        false
+      );
+
+      formulario.hidden = false;
+
+      document.getElementById(
+        "noPersonalExpediente"
+      ).disabled = false;
+
+      document.getElementById(
+        "noPersonalExpediente"
+      ).focus();
+    } else {
+      formulario.hidden = true;
+
+      document.getElementById(
+        "noPersonalBuscarExpediente"
+      ).value = "";
+
+      document.getElementById(
+        "noPersonalBuscarExpediente"
+      ).focus();
+    }
+
     mensajeExpedientePersonal(
       respuesta.mensaje,
       "ok"
@@ -3643,12 +4587,46 @@ async function guardarExpedientePersonal(
       "error"
     );
   } finally {
-    if (boton) {
-      boton.disabled = false;
-      boton.textContent =
-        "Guardar expediente";
-    }
+    boton.disabled = false;
+
+    boton.textContent =
+      "Guardar expediente";
   }
+}
+
+function limpiarFormularioExpediente() {
+  const formulario =
+    document.getElementById(
+      "formExpedientePersonal"
+    );
+
+  formulario
+    .querySelectorAll(
+      "input, select"
+    )
+    .forEach(function (control) {
+      control.disabled = false;
+    });
+
+  formulario.reset();
+
+  document.getElementById(
+    "edadExpediente"
+  ).value = "";
+
+  document.getElementById(
+    "noPersonalExpediente"
+  ).disabled = false;
+
+  expedienteSoloLectura = false;
+
+  formulario.classList.remove(
+    "solo-lectura"
+  );
+
+  reiniciarRegistrosEducacion(
+    []
+  );
 }
 
 function mensajeExpedientePersonal(
