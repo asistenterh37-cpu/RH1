@@ -8630,6 +8630,58 @@ if (
   background: #f8fafc;
 }
 
+/*
+ * Tabla específica de Impuesto Municipal.
+ */
+#resultadoImpuestoVecinal {
+  width: 100%;
+  margin-top: 16px;
+  overflow-x: auto;
+}
+
+#resultadoImpuestoVecinal[hidden] {
+  display: none !important;
+}
+
+#tablaImpuestoVecinal {
+  display: table;
+  width: 100%;
+  min-width: 0;
+  border-collapse: collapse;
+  table-layout: fixed;
+  background: #ffffff;
+}
+
+#tablaImpuestoVecinal th,
+#tablaImpuestoVecinal td {
+  padding: 10px 12px;
+  border: 1px solid var(--borde);
+}
+
+#tablaImpuestoVecinal th {
+  color: #ffffff;
+  background: #1d4ed8;
+  text-align: center;
+  font-weight: 700;
+}
+
+#tablaImpuestoVecinal th:nth-child(1),
+#tablaImpuestoVecinal td:nth-child(1) {
+  width: 20%;
+}
+
+#tablaImpuestoVecinal th:nth-child(2),
+#tablaImpuestoVecinal td:nth-child(2) {
+  width: 50%;
+  text-align: left;
+}
+
+#tablaImpuestoVecinal th:nth-child(3),
+#tablaImpuestoVecinal td:nth-child(3) {
+  width: 30%;
+  text-align: right;
+}
+  
 .fila-generar-impuesto {
   display: flex;
   align-items: flex-end;
@@ -10042,12 +10094,9 @@ function mostrarResultadoImpuestoVecinal(
       "tablaImpuestoVecinal"
     );
 
-  if (
-    !contenedor ||
-    !tabla
-  ) {
+  if (!contenedor || !tabla) {
     throw new Error(
-      "No se encontró la tabla del impuesto municipal en el HTML."
+      "No se encontró la tabla del impuesto municipal."
     );
   }
 
@@ -10057,26 +10106,11 @@ function mostrarResultadoImpuestoVecinal(
   const cuerpo =
     tabla.querySelector("tbody");
 
-  if (
-    !encabezado ||
-    !cuerpo
-  ) {
+  if (!encabezado || !cuerpo) {
     throw new Error(
       "La tabla del impuesto municipal no contiene thead o tbody."
     );
   }
-
-  encabezado.innerHTML = "";
-  cuerpo.innerHTML = "";
-
-  const columnas =
-    Array.isArray(respuesta.columnas)
-      ? respuesta.columnas
-      : [
-          "No.",
-          "Nombre",
-          "Total de ingresos"
-        ];
 
   const filas =
     Array.isArray(respuesta.filas)
@@ -10084,17 +10118,37 @@ function mostrarResultadoImpuestoVecinal(
       : [];
 
   /*
-   * Crear encabezados.
+   * Limpiar resultados anteriores.
+   */
+  encabezado.innerHTML = "";
+  cuerpo.innerHTML = "";
+
+  if (filas.length === 0) {
+    contenedor.hidden = true;
+    contenedor.setAttribute(
+      "hidden",
+      ""
+    );
+    contenedor.style.display = "none";
+    return;
+  }
+
+  /*
+   * Encabezados fijos:
+   * No. | Nombre | Total de ingresos
    */
   const filaEncabezado =
     document.createElement("tr");
 
-  columnas.forEach(function (columna) {
+  [
+    "No.",
+    "Nombre",
+    "Total de ingresos"
+  ].forEach(function (titulo) {
     const th =
       document.createElement("th");
 
-    th.textContent =
-      columna || "";
+    th.textContent = titulo;
 
     filaEncabezado.appendChild(th);
   });
@@ -10104,7 +10158,7 @@ function mostrarResultadoImpuestoVecinal(
   );
 
   /*
-   * Crear detalle por empleado.
+   * Una fila por empleado.
    */
   filas.forEach(function (fila) {
     const tr =
@@ -10134,6 +10188,9 @@ function mostrarResultadoImpuestoVecinal(
         ? ""
         : String(numero);
 
+    tdNumero.style.textAlign =
+      "left";
+
     const tdNombre =
       document.createElement("td");
 
@@ -10142,6 +10199,9 @@ function mostrarResultadoImpuestoVecinal(
       nombre === undefined
         ? ""
         : String(nombre);
+
+    tdNombre.style.textAlign =
+      "left";
 
     const tdTotal =
       document.createElement("td");
@@ -10162,62 +10222,72 @@ function mostrarResultadoImpuestoVecinal(
   });
 
   /*
-   * Agregar fila de total general.
+   * Fila final con el total general.
    */
-  if (filas.length > 0) {
-    const filaTotal =
-      document.createElement("tr");
+  const filaTotal =
+    document.createElement("tr");
 
-    const celdaEtiqueta =
-      document.createElement("td");
+  const tdEtiquetaTotal =
+    document.createElement("td");
 
-    celdaEtiqueta.colSpan = 2;
-    celdaEtiqueta.textContent =
-      "Total general";
+  tdEtiquetaTotal.colSpan = 2;
+  tdEtiquetaTotal.textContent =
+    "Total general";
 
-    celdaEtiqueta.style.fontWeight =
-      "bold";
+  tdEtiquetaTotal.style.fontWeight =
+    "bold";
 
-    celdaEtiqueta.style.textAlign =
-      "right";
+  tdEtiquetaTotal.style.textAlign =
+    "right";
 
-    const celdaTotal =
-      document.createElement("td");
+  const tdTotalGeneral =
+    document.createElement("td");
 
-    celdaTotal.textContent =
-      formatearMonedaHNL(
-        Number(
-          respuesta.totalGeneral
-        ) || 0
-      );
-
-    celdaTotal.style.fontWeight =
-      "bold";
-
-    celdaTotal.style.textAlign =
-      "right";
-
-    filaTotal.appendChild(
-      celdaEtiqueta
+  tdTotalGeneral.textContent =
+    formatearMonedaHNL(
+      Number(
+        respuesta.totalGeneral
+      ) || 0
     );
 
-    filaTotal.appendChild(
-      celdaTotal
-    );
+  tdTotalGeneral.style.fontWeight =
+    "bold";
 
-    cuerpo.appendChild(
-      filaTotal
-    );
-  }
+  tdTotalGeneral.style.textAlign =
+    "right";
+
+  filaTotal.appendChild(
+    tdEtiquetaTotal
+  );
+
+  filaTotal.appendChild(
+    tdTotalGeneral
+  );
+
+  cuerpo.appendChild(
+    filaTotal
+  );
 
   /*
-   * Mostrar la tabla solamente si
-   * existen empleados con ingresos.
+   * Forzar la visualización.
+   * No depender únicamente de .hidden = false.
    */
-  contenedor.hidden =
-    filas.length === 0;
-}
+  contenedor.hidden = false;
 
+  contenedor.removeAttribute(
+    "hidden"
+  );
+
+  contenedor.style.display =
+    "block";
+
+  contenedor.style.marginTop =
+    "16px";
+
+  tabla.style.display =
+    "table";
+}
+  
 function formatearMonedaHNL(valor) {
   const numero =
     Number(valor) || 0;
