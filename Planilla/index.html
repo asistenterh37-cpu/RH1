@@ -975,20 +975,29 @@ body.sistema-bloqueado > .pantalla-asistencia {
 .expediente-fila-educacion {
   display: grid;
 
+  /*
+   * U = Nivel educativo
+   * V = Título obtenido
+   * W = Institución educativa
+   * X = País de estudio
+   * Y = Año de inicio
+   * Z = Año finalización
+   * Última columna = botones + y −
+   */
   grid-template-columns:
-    minmax(170px, 1fr)
-    minmax(220px, 1.30fr)
-    minmax(250px, 1.50fr)
-    minmax(175px, 1fr)
-    minmax(170px, 1fr)
-    minmax(185px, 1.05fr)
+    minmax(155px, 1fr)
+    minmax(185px, 1.20fr)
+    minmax(215px, 1.40fr)
+    minmax(145px, 0.90fr)
+    minmax(110px, 0.60fr)
+    minmax(125px, 0.70fr)
     94px;
 
   gap: 12px;
   align-items: end;
 
   width: 100%;
-  min-width: 1320px;
+  min-width: 1120px;
 
   margin-bottom: 14px;
   padding: 14px;
@@ -998,7 +1007,7 @@ body.sistema-bloqueado > .pantalla-asistencia {
 
   background: #ffffff;
 }
-
+    
 .expediente-acciones-educacion {
   display: flex;
   gap: 7px;
@@ -1071,9 +1080,9 @@ select:disabled {
     min-width: 1000px;
   }
 
-  .expediente-fila-educacion {
-    min-width: 1280px;
-  }
+.expediente-fila-educacion {
+  min-width: 1120px;
+}  
 }
     
   </style>
@@ -3188,7 +3197,7 @@ select:disabled {
      */
 
     const API_URL =
-      "https://script.google.com/macros/s/AKfycbyjlL3iB8LET9IbcJ3Hpg5pYwtWRNUozL4_hk0Gf2ZaqhVvATDdB0Huxcznmq0zwDqe/exec";
+      "https://script.google.com/macros/s/AKfycbzV1CiJ90VaH0Zp6Y-0UkKRaWRUkjJGPHYWwE9e2-IIVLzpfEAAs7A9lYWKrUVlrZws/exec";
 
     const camposEmpleado = [
 
@@ -4158,24 +4167,41 @@ function crearFilaEducacionExpediente(
         type="date"
         lang="es-HN"
       >
-    </div>
-
     <div class="expediente-campo">
-      <label for="fechaFinalizacionEstudio${identificador}">
-        Fecha de finalización
-        <span class="formato-fecha">
-          DD/MM/AA
-        </span>
-      </label>
+  <label for="anioInicioEstudio${identificador}">
+    Año de inicio
+  </label>
 
-      <input
-        id="fechaFinalizacionEstudio${identificador}"
-        class="educacion-fecha-finalizacion"
-        type="date"
-        lang="es-HN"
-      >
-    </div>
+  <input
+    id="anioInicioEstudio${identificador}"
+    class="educacion-anio-inicio"
+    type="number"
+    inputmode="numeric"
+    min="1900"
+    max="2100"
+    step="1"
+    maxlength="4"
+    placeholder="Ej. 2020"
+  >
+</div>
 
+<div class="expediente-campo">
+  <label for="anioFinalizacionEstudio${identificador}">
+    Año finalización
+  </label>
+
+  <input
+    id="anioFinalizacionEstudio${identificador}"
+    class="educacion-anio-finalizacion"
+    type="number"
+    inputmode="numeric"
+    min="1900"
+    max="2100"
+    step="1"
+    maxlength="4"
+    placeholder="Ej. 2024"
+  >
+</div>
     <div class="expediente-acciones-educacion">
 
       <button
@@ -4220,23 +4246,22 @@ function crearFilaEducacionExpediente(
   ).value =
     registro.institucionEducativa || "";
 
-  fila.querySelector(
-    ".educacion-pais"
-  ).value =
-    registro.paisEstudio || "";
+ fila.querySelector(
+  ".educacion-pais"
+).value =
+  registro.paisEstudio || "";
 
-  fila.querySelector(
-    ".educacion-fecha-inicio"
-  ).value =
-    registro.fechaInicioEstudio || "";
+fila.querySelector(
+  ".educacion-anio-inicio"
+).value =
+  registro.anioInicioEstudio || "";
 
-  fila.querySelector(
-    ".educacion-fecha-finalizacion"
-  ).value =
-    registro.fechaFinalizacionEstudio || "";
+fila.querySelector(
+  ".educacion-anio-finalizacion"
+).value =
+  registro.anioFinalizacionEstudio || "";
 
-  actualizarBotonesEducacion();
-
+actualizarBotonesEducacion();
   return fila;
 }
 
@@ -4383,27 +4408,59 @@ function obtenerRegistrosEducacion() {
             ".educacion-pais"
           ).value.trim(),
 
-        fechaInicioEstudio:
+        anioInicioEstudio:
           fila.querySelector(
-            ".educacion-fecha-inicio"
-          ).value,
+            ".educacion-anio-inicio"
+          ).value.trim(),
 
-        fechaFinalizacionEstudio:
+        anioFinalizacionEstudio:
           fila.querySelector(
-            ".educacion-fecha-finalizacion"
-          ).value
+            ".educacion-anio-finalizacion"
+          ).value.trim()
       };
 
+      const anioInicio =
+        Number(
+          registro.anioInicioEstudio || 0
+        );
+
+      const anioFinalizacion =
+        Number(
+          registro.anioFinalizacionEstudio || 0
+        );
+
       if (
-        registro.fechaInicioEstudio &&
-        registro.fechaFinalizacionEstudio &&
-        registro.fechaFinalizacionEstudio <
-        registro.fechaInicioEstudio
+        anioInicio &&
+        (
+          anioInicio < 1900 ||
+          anioInicio > 2100
+        )
       ) {
         throw new Error(
-          "En formación académica, la fecha de " +
-          "finalización no puede ser anterior a la " +
-          "fecha de inicio."
+          "El Año de inicio debe estar entre 1900 y 2100."
+        );
+      }
+
+      if (
+        anioFinalizacion &&
+        (
+          anioFinalizacion < 1900 ||
+          anioFinalizacion > 2100
+        )
+      ) {
+        throw new Error(
+          "El Año finalización debe estar entre 1900 y 2100."
+        );
+      }
+
+      if (
+        anioInicio &&
+        anioFinalizacion &&
+        anioFinalizacion < anioInicio
+      ) {
+        throw new Error(
+          "El Año finalización no puede ser menor " +
+          "que el Año de inicio."
         );
       }
 
@@ -4417,13 +4474,13 @@ function obtenerRegistrosEducacion() {
         registro.tituloObtenido ||
         registro.institucionEducativa ||
         registro.paisEstudio ||
-        registro.fechaInicioEstudio ||
-        registro.fechaFinalizacionEstudio
+        registro.anioInicioEstudio ||
+        registro.anioFinalizacionEstudio
       );
     }
   );
 }
-
+    
 function obtenerDatosExpediente() {
   const datos = {};
 
