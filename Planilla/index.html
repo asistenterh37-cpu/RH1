@@ -18583,71 +18583,201 @@ if (
     }
   }
 
-  function renderizarFuentesReportesDinamicosNexoRH() {
-    const contenedor = document.getElementById(
-      "fuentesReportesDinamicosNexoRH"
-    );
+function renderizarFuentesReportesDinamicosNexoRH() {
+  const contenedor = document.getElementById(
+    "fuentesReportesDinamicosNexoRH"
+  );
 
-    const configuracion =
-      estadoReportesDinamicosNexoRH.configuracion;
+  const configuracion =
+    estadoReportesDinamicosNexoRH.configuracion;
 
-    if (!contenedor || !configuracion) {
-      return;
-    }
+  if (
+    !contenedor ||
+    !configuracion ||
+    !Array.isArray(configuracion.fuentes)
+  ) {
+    return;
+  }
 
-    contenedor.innerHTML = configuracion.fuentes
+  contenedor.innerHTML =
+    configuracion.fuentes
       .map(function (fuente) {
+        const claveFuente =
+          String(fuente.clave || "").trim();
+
         const seleccionada =
-          estadoReportesDinamicosNexoRH.fuentes.indexOf(
-            fuente.clave
-          ) !== -1;
+          estadoReportesDinamicosNexoRH
+            .fuentes
+            .indexOf(claveFuente) !== -1;
 
         return `
-          <label
-            class="rd-fuente-card ${seleccionada ? "seleccionada" : ""}"
-            onclick="alternarFuenteReporteDinamicoNexoRH('${escaparAtributoRDFront_(fuente.clave)}')"
+          <div
+            class="rd-fuente-card ${
+              seleccionada
+                ? "seleccionada"
+                : ""
+            }"
+            data-fuente="${
+              escaparHtmlRDFront_(
+                claveFuente
+              )
+            }"
+            role="button"
+            tabindex="0"
+            aria-pressed="${
+              seleccionada
+                ? "true"
+                : "false"
+            }"
           >
-            <input
-              type="checkbox"
-              ${seleccionada ? "checked" : ""}
+            <span
+              class="rd-fuente-check"
+              aria-hidden="true"
             >
-            <span class="rd-fuente-check">✓</span>
-            <span class="rd-fuente-icono">${escaparHtmlRDFront_(fuente.icono)}</span>
-            <strong>${escaparHtmlRDFront_(fuente.etiqueta)}</strong>
-            <small>${escaparHtmlRDFront_(fuente.descripcion)}</small>
-          </label>
+              ✓
+            </span>
+
+            <span class="rd-fuente-icono">
+              ${
+                escaparHtmlRDFront_(
+                  fuente.icono
+                )
+              }
+            </span>
+
+            <strong>
+              ${
+                escaparHtmlRDFront_(
+                  fuente.etiqueta
+                )
+              }
+            </strong>
+
+            <small>
+              ${
+                escaparHtmlRDFront_(
+                  fuente.descripcion
+                )
+              }
+            </small>
+          </div>
         `;
       })
       .join("");
-  }
 
-  function alternarFuenteReporteDinamicoNexoRH(fuente) {
-    const fuentes = estadoReportesDinamicosNexoRH.fuentes;
-    const indice = fuentes.indexOf(fuente);
+  const tarjetas =
+    contenedor.querySelectorAll(
+      ".rd-fuente-card[data-fuente]"
+    );
 
-    if (indice === -1) {
-      fuentes.push(fuente);
-    } else if (fuentes.length > 1) {
-      fuentes.splice(indice, 1);
-    } else {
-      mostrarMensajeReporteDinamicoNexoRH(
-        "Debe conservar al menos una fuente seleccionada.",
-        "info"
+  tarjetas.forEach(function (tarjeta) {
+    function activarTarjeta(evento) {
+      evento.preventDefault();
+      evento.stopPropagation();
+
+      const fuente =
+        String(
+          tarjeta.dataset.fuente || ""
+        ).trim();
+
+      if (!fuente) {
+        return;
+      }
+
+      alternarFuenteReporteDinamicoNexoRH(
+        fuente
       );
-      return;
     }
 
-    estadoReportesDinamicosNexoRH.filas = [];
-    estadoReportesDinamicosNexoRH.columnas = [];
-    estadoReportesDinamicosNexoRH.valores = [];
-    estadoReportesDinamicosNexoRH.filtros = [];
-    estadoReportesDinamicosNexoRH.resultado = null;
+    tarjeta.addEventListener(
+      "click",
+      activarTarjeta
+    );
 
-    renderizarFuentesReportesDinamicosNexoRH();
-    actualizarModoReportesDinamicosNexoRH();
-    aplicarPlantillaInteligenteReporteNexoRH();
+    tarjeta.addEventListener(
+      "keydown",
+      function (evento) {
+        if (
+          evento.key === "Enter" ||
+          evento.key === " "
+        ) {
+          activarTarjeta(evento);
+        }
+      }
+    );
+  });
+}
+
+function alternarFuenteReporteDinamicoNexoRH(
+  fuente
+) {
+  fuente =
+    String(fuente || "").trim();
+
+  if (!fuente) {
+    return;
   }
 
+  const fuentes =
+    estadoReportesDinamicosNexoRH.fuentes;
+
+  const indice =
+    fuentes.indexOf(fuente);
+
+  /*
+   * Si la fuente no está seleccionada,
+   * se agrega al cubo.
+   */
+  if (indice === -1) {
+    fuentes.push(fuente);
+
+  /*
+   * Una fuente seleccionada puede quitarse
+   * solamente cuando existe otra seleccionada.
+   */
+  } else if (fuentes.length > 1) {
+    fuentes.splice(
+      indice,
+      1
+    );
+
+  } else {
+    mostrarMensajeReporteDinamicoNexoRH(
+      "Debe conservar al menos una fuente seleccionada.",
+      "info"
+    );
+
+    return;
+  }
+
+  /*
+   * Limpiar el diseño anterior para evitar
+   * campos pertenecientes a otra fuente.
+   */
+  estadoReportesDinamicosNexoRH.campos = [];
+  estadoReportesDinamicosNexoRH.filas = [];
+  estadoReportesDinamicosNexoRH.columnas = [];
+  estadoReportesDinamicosNexoRH.valores = [];
+  estadoReportesDinamicosNexoRH.filtros = [];
+  estadoReportesDinamicosNexoRH.resultado = null;
+
+  /*
+   * Reconstruir el cubo con las nuevas fuentes.
+   */
+  renderizarFuentesReportesDinamicosNexoRH();
+  actualizarModoReportesDinamicosNexoRH();
+  aplicarPlantillaInteligenteReporteNexoRH();
+
+  mostrarMensajeReporteDinamicoNexoRH(
+    fuentes.length > 1
+      ? "Cubo cruzado actualizado con " +
+        fuentes.length +
+        " fuentes."
+      : "Fuente del reporte actualizada.",
+    "ok"
+  );
+}
+  
   function actualizarModoReportesDinamicosNexoRH() {
     const fuentes = estadoReportesDinamicosNexoRH.fuentes;
     const badge = document.getElementById(
