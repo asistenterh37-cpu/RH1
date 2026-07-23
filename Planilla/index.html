@@ -3548,7 +3548,7 @@ select:disabled {
      */
 
     const API_URL =
-      "https://script.google.com/macros/s/AKfycbzXABjbguSyiFcUMpjUFKxi8YGDElAn1yeHP8zWtG8mpMSCUYa_dmbcQIEym3M2V_x7/exec";
+      "https://script.google.com/macros/s/AKfycbyk388509xiRB6IHG_Us7j_FIWpPpZJZQGVqRnRKV7a7XiT8DtrvoAZtY929WzvdzFc/exec";
 
     const camposEmpleado = [
 
@@ -3737,19 +3737,22 @@ select:disabled {
               "script"
             );
 
-          const tiempoEspera =
-            setTimeout(
-              function () {
+        const tiempoLimite =
+  accion === "consultarAnalisisIA"
+    ? 90000
+    : 20000;
 
-                terminar(
-                  new Error(
-                    "Se agotó el tiempo de conexión con Apps Script."
-                  )
-                );
-
-              },
-              20000
-            );
+const tiempoEspera =
+  setTimeout(
+    function () {
+      terminar(
+        new Error(
+          "Se agotó el tiempo de conexión con Apps Script."
+        )
+      );
+    },
+    tiempoLimite
+  );
 
           function terminar(
             error,
@@ -12966,11 +12969,12 @@ async function cargarPeriodosAnalisisIA() {
      * Esta acción ya existe en el GS
      * utilizado para revisar planillas.
      */
+
     const respuesta =
-      await jsonp(
-        "listarPeriodosRevision",
-        {}
-      );
+  await jsonp(
+    "listarPeriodosAnalisisIA",
+    {}
+  );
 
     if (
       !respuesta ||
@@ -13393,103 +13397,162 @@ async function consultarAnalisisIA() {
     return;
   }
 
-  /*
-   * Evitar consultas duplicadas.
-   */
   boton.disabled = true;
   boton.textContent =
     "Analizando...";
 
   mostrarMensajeAnalisisIA(
-    "Preparando la información seleccionada...",
+    "Analizando la información seleccionada...",
     "info"
   );
 
   try {
-    /*
-     * Pausa temporal para mostrar correctamente
-     * el estado Analizando...
-     *
-     * Cuando se conecte OpenAI, aquí se sustituye
-     * esta pausa por la llamada JSONP al GS.
-     */
-    await new Promise(
-      function (resolver) {
-        setTimeout(
-          resolver,
-          800
-        );
-      }
-    );
+    const resultado =
+      await jsonp(
+        "consultarAnalisisIA",
+        {
+          fuente:
+            fuente,
 
-    const etiquetasFuente = {
-      planilla:
-        "Planilla y asistencia",
+          periodoDesde:
+            utilizaPeriodos
+              ? periodoDesde
+              : "",
 
-      expedientes:
-        "Expedientes de personal",
+          periodoHasta:
+            utilizaPeriodos
+              ? periodoHasta
+              : "",
 
-      ambas:
-        "Planilla, asistencia y expedientes"
-    };
+          consulta:
+            consulta
+        }
+      );
+
+    if (
+      !resultado ||
+      !resultado.ok
+    ) {
+      throw new Error(
+        resultado &&
+        resultado.mensaje
+          ? resultado.mensaje
+          : "No fue posible completar el análisis."
+      );
+    }
+
+    const partesRespuesta = [];
+
+    const respuestaDirecta =
+      String(
+        resultado.respuesta || ""
+      ).trim();
+
+    if (respuestaDirecta) {
+      partesRespuesta.push(
+        respuestaDirecta
+      );
+    }
+
+    const periodoAnalizado =
+      String(
+        resultado.periodoAnalizado || ""
+      ).trim();
+
+    if (periodoAnalizado) {
+      partesRespuesta.push(
+        "Período analizado: " +
+        periodoAnalizado
+      );
+    }
+
+    const hojasUtilizadas =
+      Array.isArray(
+        resultado.hojasUtilizadas
+      )
+        ? resultado.hojasUtilizadas
+        : [];
+
+    if (hojasUtilizadas.length) {
+      partesRespuesta.push(
+        "Hojas utilizadas: " +
+        hojasUtilizadas.join(", ")
+      );
+    }
 
     textoRespuesta.textContent =
-      "La consulta fue recibida correctamente. " +
-      "El formulario ya está preparado para enviar " +
-      "la fuente seleccionada y sus filtros a OpenAI " +
-      "desde Google Apps Script.";
+      partesRespuesta.length
+        ? partesRespuesta.join("\n\n")
+        : "No se recibió una respuesta.";
 
     hallazgos.innerHTML = "";
     recomendaciones.innerHTML = "";
 
-    agregarElementoListaAnalisisIA(
-      hallazgos,
-      "Fuente seleccionada: " +
-      etiquetasFuente[fuente] +
-      "."
+    const listaHallazgos =
+      Array.isArray(
+        resultado.hallazgos
+      )
+        ? resultado.hallazgos.slice()
+        : [];
+
+    const advertencias =
+      Array.isArray(
+        resultado.advertencias
+      )
+        ? resultado.advertencias
+        : [];
+
+    advertencias.forEach(
+      function (advertencia) {
+        listaHallazgos.push(
+          "Advertencia: " +
+          String(advertencia || "")
+        );
+      }
     );
 
-    if (utilizaPeriodos) {
-      agregarElementoListaAnalisisIA(
-        hallazgos,
-        "Período Desde: " +
-        periodoDesde +
-        "."
-      );
-
-      agregarElementoListaAnalisisIA(
-        hallazgos,
-        "Período Hasta: " +
-        periodoHasta +
-        "."
+    if (!listaHallazgos.length) {
+      listaHallazgos.push(
+        "No se identificaron hallazgos adicionales."
       );
     }
 
-    agregarElementoListaAnalisisIA(
-      hallazgos,
-      "Consulta registrada: " +
-      consulta
+    listaHallazgos.forEach(
+      function (hallazgo) {
+        agregarElementoListaAnalisisIA(
+          hallazgos,
+          String(hallazgo || "")
+        );
+      }
     );
 
-    agregarElementoListaAnalisisIA(
-      recomendaciones,
-      "Conectar esta función con OpenAI desde Google Apps Script."
-    );
+    const listaRecomendaciones =
+      Array.isArray(
+        resultado.recomendaciones
+      )
+        ? resultado.recomendaciones
+        : [];
 
-    agregarElementoListaAnalisisIA(
-      recomendaciones,
-      "Enviar solamente los registros relacionados con la consulta."
-    );
-
-    agregarElementoListaAnalisisIA(
-      recomendaciones,
-      "Mantener el módulo en modo de consulta, sin modificar las hojas."
-    );
+    if (!listaRecomendaciones.length) {
+      agregarElementoListaAnalisisIA(
+        recomendaciones,
+        "No se generaron recomendaciones adicionales."
+      );
+    } else {
+      listaRecomendaciones.forEach(
+        function (recomendacion) {
+          agregarElementoListaAnalisisIA(
+            recomendaciones,
+            String(recomendacion || "")
+          );
+        }
+      );
+    }
 
     respuesta.hidden = false;
 
     mostrarMensajeAnalisisIA(
-      "Consulta preparada correctamente.",
+      "Análisis completado correctamente.",
       "ok"
     );
   } catch (error) {
