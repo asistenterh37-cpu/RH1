@@ -3601,7 +3601,7 @@ select:disabled {
      */
 
     const API_URL =
-      "https://script.google.com/macros/s/AKfycbyouRXQkI-vN_Ks9asREC8gWq9VRoUOd1hw68e9XhJ8JnwrbdVnLrKB3DiYjMcVoPs/exec";
+      "https://script.google.com/macros/s/AKfycbxVVUUArE_d-5Up42z2ZATKxbQZJnvNlVTlENzwL0oKL95TZBZT_EQV6qFr5wsxuczR/exec";
 
     const camposEmpleado = [
 
@@ -11507,7 +11507,59 @@ if (
   margin: 0;
 }
 
+/*
+ * Controles del cálculo de ISR:
+ * Año, Desde, Hasta y Generar.
+ */
+.fila-generar-isr {
+  display: grid;
+  grid-template-columns:
+    140px
+    minmax(220px, 1fr)
+    minmax(220px, 1fr)
+    140px;
+  gap: 10px;
+  align-items: end;
+  width: 100%;
+  margin-bottom: 16px;
+}
+
+.fila-generar-isr > div {
+  min-width: 0;
+}
+
+.fila-generar-isr button {
+  min-width: 130px;
+  height: 42px;
+  margin: 0;
+}
+
+#resultadoISR {
+  width: 100%;
+  margin-top: 16px;
+  overflow-x: auto;
+}
+
+#resultadoISR[hidden] {
+  display: none !important;
+}
+
+@media (max-width: 900px) {
+  .fila-generar-isr {
+    grid-template-columns:
+      repeat(2, minmax(220px, 1fr));
+  }
+}
+
 @media (max-width: 600px) {
+  .fila-generar-isr {
+    grid-template-columns: 1fr;
+  }
+
+  .fila-generar-isr button {
+    width: 100%;
+  }
+  
   .acciones-impuestos,
   .fila-generar-impuesto {
     flex-direction: column;
@@ -12531,17 +12583,73 @@ if (
 
       </div>
 
-      <div
+          <div
         id="contenidoISR"
         class="submodulo-impuesto"
         hidden
       >
         <h3>Impuesto Sobre la Renta</h3>
 
-        <div class="mensaje info">
-          Módulo ISR disponible para configurar.
+        <div class="fila-generar-isr">
+          <div>
+            <label for="anioISR">Año</label>
+
+            <input
+              id="anioISR"
+              type="number"
+              min="2000"
+              max="2100"
+              step="1"
+            >
+          </div>
+
+          <div>
+            <label for="periodoDesdeISR">Desde</label>
+
+            <select
+              id="periodoDesdeISR"
+              disabled
+            >
+              <option value="">
+                Seleccionar
+              </option>
+            </select>
+          </div>
+
+          <div>
+            <label for="periodoHastaISR">Hasta</label>
+
+            <select
+              id="periodoHastaISR"
+              disabled
+            >
+              <option value="">
+                Seleccionar
+              </option>
+            </select>
+          </div>
+
+          <button
+            id="botonGenerarISR"
+            type="button"
+            class="primario"
+            disabled
+          >
+            Generar
+          </button>
         </div>
-      </div>
+
+        <div
+          id="mensajeISR"
+          class="mensaje"
+        ></div>
+
+        <div
+          id="resultadoISR"
+          class="procesar-tabla-contenedor"
+          hidden
+        ></div>
+      </div>  
 
       <div
         id="contenidoImpuestoVecinal"
@@ -12588,16 +12696,21 @@ if (
       </div>
     `;
 
-    principal.appendChild(
+        principal.appendChild(
       panelImpuestos
     );
+
+    document.getElementById(
+      "anioISR"
+    ).value =
+      new Date().getFullYear();
 
     document.getElementById(
       "anioImpuestoVecinal"
     ).value =
       new Date().getFullYear();
 
-    document.getElementById(
+        document.getElementById(
       "botonModuloISR"
     ).onclick =
       function () {
@@ -12608,7 +12721,21 @@ if (
         document.getElementById(
           "contenidoImpuestoVecinal"
         ).hidden = true;
+
+        prepararModuloISR();
       };
+
+    document.getElementById(
+      "anioISR"
+    ).addEventListener(
+      "change",
+      cargarPeriodosISR
+    );
+
+    document.getElementById(
+      "botonGenerarISR"
+    ).onclick =
+      generarISR;
 
     document.getElementById(
       "botonModuloVecinal"
@@ -13620,6 +13747,629 @@ async function consultarAnalisisIA() {
     boton.textContent =
       "Consultar";
   }
+}
+
+async function prepararModuloISR() {
+  const campoAnio =
+    document.getElementById(
+      "anioISR"
+    );
+
+  if (
+    campoAnio &&
+    !campoAnio.value
+  ) {
+    campoAnio.value =
+      new Date().getFullYear();
+  }
+
+  await cargarPeriodosISR();
+}
+
+/*
+ * Carga únicamente los períodos que ya
+ * tienen registros en la hoja PlanillaF.
+ */
+async function cargarPeriodosISR() {
+  const campoAnio =
+    document.getElementById(
+      "anioISR"
+    );
+
+  const selectorDesde =
+    document.getElementById(
+      "periodoDesdeISR"
+    );
+
+  const selectorHasta =
+    document.getElementById(
+      "periodoHastaISR"
+    );
+
+  const botonGenerar =
+    document.getElementById(
+      "botonGenerarISR"
+    );
+
+  const anio = Number(
+    campoAnio
+      ? campoAnio.value
+      : 0
+  );
+
+  limpiarResultadoISR();
+
+  llenarSelectorPeriodosISR(
+    selectorDesde,
+    []
+  );
+
+  llenarSelectorPeriodosISR(
+    selectorHasta,
+    []
+  );
+
+  if (
+    !anio ||
+    anio < 2000 ||
+    anio > 2100
+  ) {
+    mensajeISR(
+      "Ingrese un año válido.",
+      "error"
+    );
+
+    return;
+  }
+
+  selectorDesde.disabled = true;
+  selectorHasta.disabled = true;
+  botonGenerar.disabled = true;
+
+  mensajeISR(
+    "Cargando períodos incluidos en PlanillaF...",
+    "info"
+  );
+
+  try {
+    const respuesta = await jsonp(
+      "listarPeriodosISR",
+      {
+        anio: anio
+      }
+    );
+
+    if (
+      !respuesta ||
+      !respuesta.ok
+    ) {
+      throw new Error(
+        respuesta &&
+        respuesta.mensaje
+          ? respuesta.mensaje
+          : "No fue posible cargar los períodos."
+      );
+    }
+
+    const periodos =
+      Array.isArray(
+        respuesta.periodos
+      )
+        ? respuesta.periodos
+        : [];
+
+    llenarSelectorPeriodosISR(
+      selectorDesde,
+      periodos
+    );
+
+    llenarSelectorPeriodosISR(
+      selectorHasta,
+      periodos
+    );
+
+    if (periodos.length === 0) {
+      mensajeISR(
+        "No existen períodos de " +
+          anio +
+          " incluidos en PlanillaF.",
+        "info"
+      );
+
+      return;
+    }
+
+    selectorDesde.disabled = false;
+    selectorHasta.disabled = false;
+    botonGenerar.disabled = false;
+
+    mensajeISR(
+      periodos.length +
+        (
+          periodos.length === 1
+            ? " período disponible."
+            : " períodos disponibles."
+        ),
+      "ok"
+    );
+  } catch (error) {
+    mensajeISR(
+      error && error.message
+        ? error.message
+        : "Ocurrió un error al cargar los períodos.",
+      "error"
+    );
+  }
+}
+
+function llenarSelectorPeriodosISR(
+  selector,
+  periodos
+) {
+  if (!selector) {
+    return;
+  }
+
+  selector.innerHTML = "";
+
+  const opcionInicial =
+    document.createElement(
+      "option"
+    );
+
+  opcionInicial.value = "";
+
+  opcionInicial.textContent =
+    "Seleccionar";
+
+  selector.appendChild(
+    opcionInicial
+  );
+
+  (
+    Array.isArray(periodos)
+      ? periodos
+      : []
+  ).forEach(function (periodo) {
+    const opcion =
+      document.createElement(
+        "option"
+      );
+
+    opcion.value =
+      periodo.codigo || "";
+
+    opcion.textContent =
+      periodo.etiqueta ||
+      periodo.codigo ||
+      "";
+
+    selector.appendChild(
+      opcion
+    );
+  });
+}
+
+/*
+ * Solicita a Apps Script el cálculo del ISR.
+ */
+async function generarISR() {
+  const campoAnio =
+    document.getElementById(
+      "anioISR"
+    );
+
+  const selectorDesde =
+    document.getElementById(
+      "periodoDesdeISR"
+    );
+
+  const selectorHasta =
+    document.getElementById(
+      "periodoHastaISR"
+    );
+
+  const boton =
+    document.getElementById(
+      "botonGenerarISR"
+    );
+
+  const anio = Number(
+    campoAnio
+      ? campoAnio.value
+      : 0
+  );
+
+  const desde =
+    selectorDesde
+      ? selectorDesde.value
+      : "";
+
+  const hasta =
+    selectorHasta
+      ? selectorHasta.value
+      : "";
+
+  limpiarResultadoISR();
+
+  if (
+    !anio ||
+    anio < 2000 ||
+    anio > 2100
+  ) {
+    mensajeISR(
+      "Ingrese un año válido.",
+      "error"
+    );
+
+    return;
+  }
+
+  if (!desde) {
+    mensajeISR(
+      "Seleccione el período Desde.",
+      "error"
+    );
+
+    return;
+  }
+
+  if (!hasta) {
+    mensajeISR(
+      "Seleccione el período Hasta.",
+      "error"
+    );
+
+    return;
+  }
+
+  if (
+    selectorHasta.selectedIndex <
+    selectorDesde.selectedIndex
+  ) {
+    mensajeISR(
+      "El período Hasta no puede ser anterior al período Desde.",
+      "error"
+    );
+
+    return;
+  }
+
+  boton.disabled = true;
+
+  mensajeISR(
+    "Calculando ISR por estratos...",
+    "info"
+  );
+
+  try {
+    const respuesta = await jsonp(
+      "generarISR",
+      {
+        anio: anio,
+        desde: desde,
+        hasta: hasta
+      }
+    );
+
+    if (
+      !respuesta ||
+      !respuesta.ok
+    ) {
+      throw new Error(
+        respuesta &&
+        respuesta.mensaje
+          ? respuesta.mensaje
+          : "No fue posible generar el ISR."
+      );
+    }
+
+    mostrarResultadoISR(
+      respuesta
+    );
+
+    const cantidad =
+      Array.isArray(
+        respuesta.filas
+      )
+        ? respuesta.filas.length
+        : 0;
+
+    mensajeISR(
+      cantidad === 0
+        ? "No se encontraron ingresos sujetos a ISR en el rango seleccionado."
+        : cantidad +
+          (
+            cantidad === 1
+              ? " empleado encontrado."
+              : " empleados encontrados."
+          ),
+      cantidad === 0
+        ? "info"
+        : "ok"
+    );
+  } catch (error) {
+    limpiarResultadoISR();
+
+    mensajeISR(
+      error && error.message
+        ? error.message
+        : "Ocurrió un error al generar el ISR.",
+      "error"
+    );
+  } finally {
+    boton.disabled = false;
+  }
+}
+
+function mensajeISR(
+  texto,
+  tipo
+) {
+  const mensaje =
+    document.getElementById(
+      "mensajeISR"
+    );
+
+  if (!mensaje) {
+    return;
+  }
+
+  mensaje.className =
+    "mensaje " +
+    (
+      tipo || ""
+    );
+
+  mensaje.textContent =
+    texto || "";
+}
+
+function limpiarResultadoISR() {
+  const contenedor =
+    document.getElementById(
+      "resultadoISR"
+    );
+
+  if (!contenedor) {
+    return;
+  }
+
+  contenedor.innerHTML = "";
+  contenedor.hidden = true;
+
+  contenedor.style.display =
+    "none";
+}
+
+/*
+ * Muestra:
+ *
+ * No. | Nombre | Total ingresos | ISR a pagar
+ */
+function mostrarResultadoISR(
+  respuesta
+) {
+  const contenedor =
+    document.getElementById(
+      "resultadoISR"
+    );
+
+  if (!contenedor) {
+    throw new Error(
+      "No se encontró el contenedor del ISR."
+    );
+  }
+
+  const filas =
+    Array.isArray(
+      respuesta.filas
+    )
+      ? respuesta.filas
+      : [];
+
+  contenedor.innerHTML = "";
+
+  if (filas.length === 0) {
+    contenedor.hidden = true;
+
+    contenedor.style.display =
+      "none";
+
+    return;
+  }
+
+  const columnas = [
+    {
+      titulo: "No.",
+      ancho: "14%",
+      alineacion: "left"
+    },
+    {
+      titulo: "Nombre",
+      ancho: "36%",
+      alineacion: "left"
+    },
+    {
+      titulo: "Total ingresos",
+      ancho: "25%",
+      alineacion: "right"
+    },
+    {
+      titulo: "ISR a pagar",
+      ancho: "25%",
+      alineacion: "right"
+    }
+  ];
+
+  const tabla =
+    document.createElement(
+      "table"
+    );
+
+  tabla.id =
+    "tablaResultadoISR";
+
+  tabla.style.width =
+    "100%";
+
+  tabla.style.minWidth =
+    "850px";
+
+  tabla.style.borderCollapse =
+    "collapse";
+
+  tabla.style.tableLayout =
+    "fixed";
+
+  tabla.style.background =
+    "#ffffff";
+
+  const encabezado =
+    document.createElement(
+      "thead"
+    );
+
+  const filaEncabezado =
+    document.createElement(
+      "tr"
+    );
+
+  columnas.forEach(function (
+    columna
+  ) {
+    const th =
+      document.createElement(
+        "th"
+      );
+
+    th.textContent =
+      columna.titulo;
+
+    th.style.width =
+      columna.ancho;
+
+    th.style.padding =
+      "11px 12px";
+
+    th.style.border =
+      "1px solid #d7dfeb";
+
+    th.style.color =
+      "#ffffff";
+
+    th.style.background =
+      "#1d4ed8";
+
+    th.style.fontWeight =
+      "700";
+
+    th.style.textAlign =
+      columna.alineacion;
+
+    th.style.whiteSpace =
+      "normal";
+
+    filaEncabezado.appendChild(
+      th
+    );
+  });
+
+  encabezado.appendChild(
+    filaEncabezado
+  );
+
+  tabla.appendChild(
+    encabezado
+  );
+
+  const cuerpo =
+    document.createElement(
+      "tbody"
+    );
+
+  filas.forEach(function (fila) {
+    const totalIngresos =
+      Number(
+        fila[2]
+      ) || 0;
+
+    const isr =
+      Number(
+        fila[3]
+      ) || 0;
+
+    const valores = [
+      fila[0] || "",
+      fila[1] || "",
+      totalIngresos,
+      isr
+    ];
+
+    const tr =
+      document.createElement(
+        "tr"
+      );
+
+    valores.forEach(function (
+      valor,
+      indice
+    ) {
+      const td =
+        document.createElement(
+          "td"
+        );
+
+      td.textContent =
+        indice >= 2
+          ? formatearMonedaHNL(
+              valor
+            )
+          : String(valor);
+
+      td.style.padding =
+        "10px 12px";
+
+      td.style.border =
+        "1px solid #d7dfeb";
+
+      td.style.textAlign =
+        indice >= 2
+          ? "right"
+          : "left";
+
+      if (indice >= 2) {
+        td.style.fontWeight =
+          "600";
+      }
+
+      if (indice === 3) {
+        td.style.color =
+          isr > 0
+            ? "#991b1b"
+            : "#166534";
+      }
+
+      tr.appendChild(td);
+    });
+
+    cuerpo.appendChild(tr);
+  });
+
+  tabla.appendChild(cuerpo);
+
+  contenedor.appendChild(
+    tabla
+  );
+
+  contenedor.hidden = false;
+
+  contenedor.removeAttribute(
+    "hidden"
+  );
+
+  contenedor.style.display =
+    "block";
 }
   
 async function generarImpuestoVecinal() {
