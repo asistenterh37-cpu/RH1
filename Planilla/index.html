@@ -3601,7 +3601,7 @@ select:disabled {
      */
 
     const API_URL =
-      "https://script.google.com/macros/s/AKfycbxVVUUArE_d-5Up42z2ZATKxbQZJnvNlVTlENzwL0oKL95TZBZT_EQV6qFr5wsxuczR/exec";
+      "https://script.google.com/macros/s/AKfycbxoP6kG4836XavT-3JnZq1p46CZTttg5LdktgdEd1XBQ4yGncxAzLYjlP53tI5XCs-C/exec";
 
     const camposEmpleado = [
 
@@ -11572,6 +11572,170 @@ if (
   }
 }
 
+/*
+ * CÁLCULO LIQUIDACIÓN LABORAL.
+ */
+.liquidacion-selector-principal {
+  max-width: 430px;
+  margin-bottom: 18px;
+}
+
+.liquidacion-bloque {
+  margin-top: 16px;
+  padding: 18px;
+  border: 1px solid var(--borde);
+  border-radius: 12px;
+  background: #f8fafc;
+}
+
+.liquidacion-bloque h3 {
+  margin-top: 0;
+  color: #173d7a;
+}
+
+.liquidacion-controles-individual,
+.liquidacion-controles-grupo {
+  display: grid;
+  gap: 12px;
+  align-items: end;
+  width: 100%;
+  margin-bottom: 18px;
+}
+
+.liquidacion-controles-individual {
+  grid-template-columns:
+    minmax(180px, 1fr)
+    minmax(190px, 1fr)
+    190px;
+}
+
+.liquidacion-controles-grupo {
+  grid-template-columns:
+    minmax(180px, 1fr)
+    minmax(220px, 1fr)
+    minmax(190px, 1fr)
+    200px;
+}
+
+.liquidacion-controles-individual > div,
+.liquidacion-controles-grupo > div {
+  min-width: 0;
+}
+
+.liquidacion-controles-individual button,
+.liquidacion-controles-grupo button {
+  min-height: 42px;
+  margin: 0;
+}
+
+.liquidacion-resultado-individual,
+.liquidacion-resultado-grupo {
+  width: 100%;
+  margin-top: 16px;
+  overflow-x: auto;
+  border: 1px solid var(--borde);
+  border-radius: 10px;
+  background: #ffffff;
+}
+
+.liquidacion-resultado-individual[hidden],
+.liquidacion-resultado-grupo[hidden] {
+  display: none !important;
+}
+
+#tablaLiquidacionIndividual {
+  width: 100%;
+  max-width: 760px;
+  border-collapse: collapse;
+  background: #ffffff;
+}
+
+#tablaLiquidacionIndividual th,
+#tablaLiquidacionIndividual td {
+  padding: 10px 12px;
+  border: 1px solid var(--borde);
+}
+
+#tablaLiquidacionIndividual th {
+  width: 42%;
+  color: #172033;
+  background: #e8eef6;
+  text-align: left;
+}
+
+#tablaLiquidacionIndividual td {
+  text-align: right;
+}
+
+#tablaLiquidacionIndividual tr:nth-child(-n+7) td {
+  text-align: left;
+}
+
+#tablaLiquidacionIndividual
+.liquidacion-fila-total th,
+#tablaLiquidacionIndividual
+.liquidacion-fila-total td {
+  color: #ffffff;
+  background: #15803d;
+  font-weight: 700;
+}
+
+#tablaLiquidacionGrupo {
+  width: 100%;
+  min-width: 2700px;
+  border-collapse: collapse;
+  background: #ffffff;
+}
+
+#tablaLiquidacionGrupo th,
+#tablaLiquidacionGrupo td {
+  padding: 8px 9px;
+  border: 1px solid var(--borde);
+  white-space: nowrap;
+}
+
+#tablaLiquidacionGrupo th {
+  color: #ffffff;
+  background: #1d4ed8;
+  text-align: center;
+  white-space: normal;
+  line-height: 1.15;
+}
+
+#tablaLiquidacionGrupo td {
+  text-align: left;
+}
+
+#tablaLiquidacionGrupo td.liquidacion-moneda {
+  text-align: right;
+}
+
+#tablaLiquidacionGrupo td.liquidacion-total {
+  color: #166534;
+  background: #dcfce7;
+  font-weight: 700;
+}
+
+@media (max-width: 950px) {
+  .liquidacion-controles-individual,
+  .liquidacion-controles-grupo {
+    grid-template-columns:
+      repeat(2, minmax(220px, 1fr));
+  }
+}
+
+@media (max-width: 600px) {
+  .liquidacion-controles-individual,
+  .liquidacion-controles-grupo {
+    grid-template-columns: 1fr;
+  }
+
+  .liquidacion-controles-individual button,
+  .liquidacion-controles-grupo button {
+    width: 100%;
+  }
+}
+  
  .procesar-controles {
   
  display: flex;
@@ -12756,9 +12920,234 @@ if (
       generarImpuestoVecinal;
   }
 
+  /*
+   * MÓDULO CÁLCULO LIQUIDACIÓN LABORAL.
+   */
+  if (
+    !document.getElementById(
+      "calculoLiquidacionLaboral"
+    )
+  ) {
+    const botonLiquidacion =
+      document.createElement(
+        "button"
+      );
+
+    botonLiquidacion.type =
+      "button";
+
+    botonLiquidacion.textContent =
+      "Cálculo liquidación laboral";
+
+    botonLiquidacion.onclick =
+      function () {
+        abrirPanel(
+          "calculoLiquidacionLaboral",
+          botonLiquidacion
+        );
+
+        prepararModuloLiquidacionLaboral();
+      };
+
+    menu.appendChild(
+      botonLiquidacion
+    );
+
+    const panelLiquidacion =
+      document.createElement(
+        "section"
+      );
+
+    panelLiquidacion.id =
+      "calculoLiquidacionLaboral";
+
+    panelLiquidacion.className =
+      "panel";
+
+    panelLiquidacion.innerHTML = `
+      <h2>Cálculo liquidación laboral</h2>
+
+      <div class="liquidacion-selector-principal">
+        <label for="tipoLiquidacionLaboral">
+          Tipo de liquidación
+        </label>
+
+        <select id="tipoLiquidacionLaboral">
+          <option value="">
+            Seleccionar
+          </option>
+
+          <option value="individual">
+            Liquidación individual
+          </option>
+
+          <option value="grupo">
+            Liquidación grupo
+          </option>
+        </select>
+      </div>
+
+      <div
+        id="bloqueLiquidacionIndividual"
+        class="liquidacion-bloque"
+        hidden
+      >
+        <h3>Liquidación individual</h3>
+
+        <div class="liquidacion-controles-individual">
+          <div>
+            <label for="numeroLiquidacionIndividual">
+              No.
+            </label>
+
+            <input
+              id="numeroLiquidacionIndividual"
+              type="text"
+              autocomplete="off"
+              placeholder="No. de personal"
+            >
+          </div>
+
+          <div>
+            <label for="fechaLiquidacionIndividual">
+              Fecha de liquidación
+            </label>
+
+            <input
+              id="fechaLiquidacionIndividual"
+              type="date"
+            >
+          </div>
+
+          <button
+            id="botonCalcularLiquidacionIndividual"
+            type="button"
+            class="primario"
+          >
+            Calcular liquidación
+          </button>
+        </div>
+
+        <div
+          id="resultadoLiquidacionIndividual"
+          class="liquidacion-resultado-individual"
+          hidden
+        ></div>
+      </div>
+
+      <div
+        id="bloqueLiquidacionGrupo"
+        class="liquidacion-bloque"
+        hidden
+      >
+        <h3>Liquidación grupo</h3>
+
+        <div class="liquidacion-controles-grupo">
+          <div>
+            <label for="alcanceLiquidacionGrupo">
+              Grupo
+            </label>
+
+            <select id="alcanceLiquidacionGrupo">
+              <option value="">
+                Seleccionar
+              </option>
+
+              <option value="departamento">
+                Departamentos
+              </option>
+
+              <option value="todos">
+                Todos
+              </option>
+            </select>
+          </div>
+
+          <div
+            id="campoDepartamentoLiquidacion"
+            hidden
+          >
+            <label for="departamentoLiquidacionGrupo">
+              Departamento
+            </label>
+
+            <select
+              id="departamentoLiquidacionGrupo"
+              disabled
+            >
+              <option value="">
+                Seleccionar
+              </option>
+            </select>
+          </div>
+
+          <div>
+            <label for="fechaLiquidacionGrupo">
+              Fecha de liquidación
+            </label>
+
+            <input
+              id="fechaLiquidacionGrupo"
+              type="date"
+            >
+          </div>
+
+          <button
+            id="botonCalcularLiquidacionesGrupo"
+            type="button"
+            class="primario"
+          >
+            Calcular liquidaciones
+          </button>
+        </div>
+
+        <div
+          id="resultadoLiquidacionGrupo"
+          class="liquidacion-resultado-grupo"
+          hidden
+        ></div>
+      </div>
+
+      <div
+        id="mensajeLiquidacionLaboral"
+        class="mensaje"
+        aria-live="polite"
+      ></div>
+    `;
+
+    principal.appendChild(
+      panelLiquidacion
+    );
+
+    document.getElementById(
+      "tipoLiquidacionLaboral"
+    ).addEventListener(
+      "change",
+      cambiarTipoLiquidacionLaboral
+    );
+
+    document.getElementById(
+      "alcanceLiquidacionGrupo"
+    ).addEventListener(
+      "change",
+      cambiarAlcanceLiquidacionGrupo
+    );
+
+    document.getElementById(
+      "botonCalcularLiquidacionIndividual"
+    ).onclick =
+      calcularLiquidacionIndividual;
+
+    document.getElementById(
+      "botonCalcularLiquidacionesGrupo"
+    ).onclick =
+      calcularLiquidacionesGrupo;
+  }
+
  /*
  * MÓDULO ANÁLISIS IA.
  */
+    
 if (
   !document.getElementById(
     "analisisPlanilla"
@@ -14371,6 +14760,887 @@ function mostrarResultadoISR(
   contenedor.style.display =
     "block";
 }
+
+let departamentosLiquidacionLaboral = [];
+let cargandoDepartamentosLiquidacion = false;
+
+function obtenerFechaHoyLocalLiquidacion() {
+  const hoy = new Date();
+
+  const anio =
+    hoy.getFullYear();
+
+  const mes =
+    String(
+      hoy.getMonth() + 1
+    ).padStart(
+      2,
+      "0"
+    );
+
+  const dia =
+    String(
+      hoy.getDate()
+    ).padStart(
+      2,
+      "0"
+    );
+
+  return (
+    anio +
+    "-" +
+    mes +
+    "-" +
+    dia
+  );
+}
+
+function prepararModuloLiquidacionLaboral() {
+  const fechaIndividual =
+    document.getElementById(
+      "fechaLiquidacionIndividual"
+    );
+
+  const fechaGrupo =
+    document.getElementById(
+      "fechaLiquidacionGrupo"
+    );
+
+  const hoy =
+    obtenerFechaHoyLocalLiquidacion();
+
+  if (
+    fechaIndividual &&
+    !fechaIndividual.value
+  ) {
+    fechaIndividual.value =
+      hoy;
+  }
+
+  if (
+    fechaGrupo &&
+    !fechaGrupo.value
+  ) {
+    fechaGrupo.value =
+      hoy;
+  }
+
+  cargarDepartamentosLiquidacion();
+}
+
+function cambiarTipoLiquidacionLaboral() {
+  const selector =
+    document.getElementById(
+      "tipoLiquidacionLaboral"
+    );
+
+  const bloqueIndividual =
+    document.getElementById(
+      "bloqueLiquidacionIndividual"
+    );
+
+  const bloqueGrupo =
+    document.getElementById(
+      "bloqueLiquidacionGrupo"
+    );
+
+  const tipo =
+    selector
+      ? selector.value
+      : "";
+
+  if (bloqueIndividual) {
+    bloqueIndividual.hidden =
+      tipo !== "individual";
+  }
+
+  if (bloqueGrupo) {
+    bloqueGrupo.hidden =
+      tipo !== "grupo";
+  }
+
+  limpiarResultadosLiquidacion();
+
+  mensajeLiquidacionLaboral(
+    "",
+    ""
+  );
+
+  if (tipo === "grupo") {
+    cargarDepartamentosLiquidacion();
+  }
+}
+
+function cambiarAlcanceLiquidacionGrupo() {
+  const selector =
+    document.getElementById(
+      "alcanceLiquidacionGrupo"
+    );
+
+  const campoDepartamento =
+    document.getElementById(
+      "campoDepartamentoLiquidacion"
+    );
+
+  const selectorDepartamento =
+    document.getElementById(
+      "departamentoLiquidacionGrupo"
+    );
+
+  const mostrarDepartamento =
+    selector &&
+    selector.value ===
+      "departamento";
+
+  if (campoDepartamento) {
+    campoDepartamento.hidden =
+      !mostrarDepartamento;
+  }
+
+  if (
+    selectorDepartamento &&
+    !mostrarDepartamento
+  ) {
+    selectorDepartamento.value =
+      "";
+  }
+
+  limpiarResultadoLiquidacionGrupo();
+
+  if (mostrarDepartamento) {
+    cargarDepartamentosLiquidacion();
+  }
+}
+
+async function cargarDepartamentosLiquidacion() {
+  const selector =
+    document.getElementById(
+      "departamentoLiquidacionGrupo"
+    );
+
+  if (
+    !selector ||
+    cargandoDepartamentosLiquidacion
+  ) {
+    return;
+  }
+
+  if (
+    departamentosLiquidacionLaboral.length
+  ) {
+    llenarDepartamentosLiquidacion(
+      selector,
+      departamentosLiquidacionLaboral
+    );
+
+    return;
+  }
+
+  cargandoDepartamentosLiquidacion =
+    true;
+
+  selector.disabled = true;
+
+  selector.innerHTML =
+    '<option value="">Cargando...</option>';
+
+  try {
+    const respuesta =
+      await jsonp(
+        "listarDepartamentosLiquidacion",
+        {}
+      );
+
+    if (
+      !respuesta ||
+      !respuesta.ok
+    ) {
+      throw new Error(
+        respuesta &&
+        respuesta.mensaje
+          ? respuesta.mensaje
+          : "No fue posible cargar los departamentos."
+      );
+    }
+
+    departamentosLiquidacionLaboral =
+      Array.isArray(
+        respuesta.departamentos
+      )
+        ? respuesta.departamentos
+        : [];
+
+    llenarDepartamentosLiquidacion(
+      selector,
+      departamentosLiquidacionLaboral
+    );
+  } catch (error) {
+    selector.innerHTML =
+      '<option value="">Seleccionar</option>';
+
+    mensajeLiquidacionLaboral(
+      error &&
+      error.message
+        ? error.message
+        : "No fue posible cargar los departamentos.",
+      "error"
+    );
+  } finally {
+    selector.disabled = false;
+
+    cargandoDepartamentosLiquidacion =
+      false;
+  }
+}
+
+function llenarDepartamentosLiquidacion(
+  selector,
+  departamentos
+) {
+  if (!selector) {
+    return;
+  }
+
+  selector.innerHTML =
+    '<option value="">Seleccionar</option>';
+
+  (
+    Array.isArray(departamentos)
+      ? departamentos
+      : []
+  ).forEach(function (
+    departamento
+  ) {
+    const opcion =
+      document.createElement(
+        "option"
+      );
+
+    opcion.value =
+      departamento;
+
+    opcion.textContent =
+      departamento;
+
+    selector.appendChild(
+      opcion
+    );
+  });
+}
+
+async function calcularLiquidacionIndividual() {
+  const campoNumero =
+    document.getElementById(
+      "numeroLiquidacionIndividual"
+    );
+
+  const campoFecha =
+    document.getElementById(
+      "fechaLiquidacionIndividual"
+    );
+
+  const boton =
+    document.getElementById(
+      "botonCalcularLiquidacionIndividual"
+    );
+
+  const numero =
+    campoNumero
+      ? campoNumero.value.trim()
+      : "";
+
+  const fechaLiquidacion =
+    campoFecha
+      ? campoFecha.value
+      : "";
+
+  limpiarResultadoLiquidacionIndividual();
+
+  if (!numero) {
+    mensajeLiquidacionLaboral(
+      "Ingrese el No. de personal.",
+      "error"
+    );
+
+    return;
+  }
+
+  if (!fechaLiquidacion) {
+    mensajeLiquidacionLaboral(
+      "Seleccione la fecha de liquidación.",
+      "error"
+    );
+
+    return;
+  }
+
+  boton.disabled = true;
+
+  mensajeLiquidacionLaboral(
+    "Calculando liquidación...",
+    "info"
+  );
+
+  try {
+    const respuesta =
+      await jsonp(
+        "calcularLiquidacionIndividual",
+        {
+          numero:
+            numero,
+
+          fechaLiquidacion:
+            fechaLiquidacion
+        }
+      );
+
+    if (
+      !respuesta ||
+      !respuesta.ok
+    ) {
+      throw new Error(
+        respuesta &&
+        respuesta.mensaje
+          ? respuesta.mensaje
+          : "No fue posible calcular la liquidación."
+      );
+    }
+
+    mostrarResultadoLiquidacionIndividual(
+      respuesta.liquidacion
+    );
+
+    mensajeLiquidacionLaboral(
+      "Liquidación calculada correctamente.",
+      "ok"
+    );
+  } catch (error) {
+    limpiarResultadoLiquidacionIndividual();
+
+    mensajeLiquidacionLaboral(
+      error &&
+      error.message
+        ? error.message
+        : "Ocurrió un error al calcular la liquidación.",
+      "error"
+    );
+  } finally {
+    boton.disabled = false;
+  }
+}
+
+async function calcularLiquidacionesGrupo() {
+  const campoAlcance =
+    document.getElementById(
+      "alcanceLiquidacionGrupo"
+    );
+
+  const campoDepartamento =
+    document.getElementById(
+      "departamentoLiquidacionGrupo"
+    );
+
+  const campoFecha =
+    document.getElementById(
+      "fechaLiquidacionGrupo"
+    );
+
+  const boton =
+    document.getElementById(
+      "botonCalcularLiquidacionesGrupo"
+    );
+
+  const alcance =
+    campoAlcance
+      ? campoAlcance.value
+      : "";
+
+  const departamento =
+    campoDepartamento
+      ? campoDepartamento.value
+      : "";
+
+  const fechaLiquidacion =
+    campoFecha
+      ? campoFecha.value
+      : "";
+
+  limpiarResultadoLiquidacionGrupo();
+
+  if (!alcance) {
+    mensajeLiquidacionLaboral(
+      "Seleccione Departamentos o Todos.",
+      "error"
+    );
+
+    return;
+  }
+
+  if (
+    alcance === "departamento" &&
+    !departamento
+  ) {
+    mensajeLiquidacionLaboral(
+      "Seleccione el departamento.",
+      "error"
+    );
+
+    return;
+  }
+
+  if (!fechaLiquidacion) {
+    mensajeLiquidacionLaboral(
+      "Seleccione la fecha de liquidación.",
+      "error"
+    );
+
+    return;
+  }
+
+  boton.disabled = true;
+
+  mensajeLiquidacionLaboral(
+    "Calculando liquidaciones...",
+    "info"
+  );
+
+  try {
+    const respuesta =
+      await jsonp(
+        "calcularLiquidacionesGrupo",
+        {
+          alcance:
+            alcance,
+
+          departamento:
+            departamento,
+
+          fechaLiquidacion:
+            fechaLiquidacion
+        }
+      );
+
+    if (
+      !respuesta ||
+      !respuesta.ok
+    ) {
+      throw new Error(
+        respuesta &&
+        respuesta.mensaje
+          ? respuesta.mensaje
+          : "No fue posible calcular las liquidaciones."
+      );
+    }
+
+    mostrarResultadoLiquidacionGrupo(
+      respuesta.filas
+    );
+
+    const cantidad =
+      Array.isArray(
+        respuesta.filas
+      )
+        ? respuesta.filas.length
+        : 0;
+
+    mensajeLiquidacionLaboral(
+      cantidad +
+      (
+        cantidad === 1
+          ? " empleado calculado."
+          : " empleados calculados."
+      ),
+      cantidad
+        ? "ok"
+        : "info"
+    );
+  } catch (error) {
+    limpiarResultadoLiquidacionGrupo();
+
+    mensajeLiquidacionLaboral(
+      error &&
+      error.message
+        ? error.message
+        : "Ocurrió un error al calcular las liquidaciones.",
+      "error"
+    );
+  } finally {
+    boton.disabled = false;
+  }
+}
+
+function camposResultadoLiquidacion() {
+  return [
+    {
+      clave: "numero",
+      titulo: "No.",
+      moneda: false
+    },
+    {
+      clave: "nombre",
+      titulo: "Nombre",
+      moneda: false
+    },
+    {
+      clave: "departamento",
+      titulo: "Departamento",
+      moneda: false
+    },
+    {
+      clave: "posicion",
+      titulo: "Posición",
+      moneda: false
+    },
+    {
+      clave: "fechaIngreso",
+      titulo: "Fecha de ingreso",
+      moneda: false
+    },
+    {
+      clave: "fechaLiquidacion",
+      titulo: "Fecha de liquidación",
+      moneda: false
+    },
+    {
+      clave: "antiguedad",
+      titulo: "Antigüedad",
+      moneda: false
+    },
+    {
+      clave: "sueldoBase",
+      titulo: "Sueldo base",
+      moneda: true
+    },
+    {
+      clave: "sueldoPromedio",
+      titulo: "Sueldo promedio",
+      moneda: true
+    },
+    {
+      clave: "sueldoBaseDiario",
+      titulo: "Sueldo base diario",
+      moneda: true
+    },
+    {
+      clave: "sueldoPromedioDiario",
+      titulo: "Sueldo promedio diario",
+      moneda: true
+    },
+    {
+      clave: "preaviso",
+      titulo: "Preaviso",
+      moneda: true
+    },
+    {
+      clave: "cesantia",
+      titulo: "Cesantía",
+      moneda: true
+    },
+    {
+      clave: "cesantiaProporcional",
+      titulo: "Cesantía proporcional",
+      moneda: true
+    },
+    {
+      clave: "decimoTercerMes",
+      titulo: "Décimo tercer mes",
+      moneda: true
+    },
+    {
+      clave: "decimoCuartoMes",
+      titulo: "Décimo cuarto mes",
+      moneda: true
+    },
+    {
+      clave: "vacaciones",
+      titulo: "Vacaciones",
+      moneda: true
+    },
+    {
+      clave: "total",
+      titulo: "Total",
+      moneda: true
+    }
+  ];
+}
+
+function mostrarResultadoLiquidacionIndividual(
+  liquidacion
+) {
+  const contenedor =
+    document.getElementById(
+      "resultadoLiquidacionIndividual"
+    );
+
+  if (
+    !contenedor ||
+    !liquidacion
+  ) {
+    return;
+  }
+
+  contenedor.innerHTML = "";
+
+  const tabla =
+    document.createElement(
+      "table"
+    );
+
+  tabla.id =
+    "tablaLiquidacionIndividual";
+
+  const cuerpo =
+    document.createElement(
+      "tbody"
+    );
+
+  camposResultadoLiquidacion()
+    .forEach(function (
+      campo
+    ) {
+      const tr =
+        document.createElement(
+          "tr"
+        );
+
+      const th =
+        document.createElement(
+          "th"
+        );
+
+      const td =
+        document.createElement(
+          "td"
+        );
+
+      th.textContent =
+        campo.titulo;
+
+      const valor =
+        liquidacion[
+          campo.clave
+        ];
+
+      td.textContent =
+        campo.moneda
+          ? formatearMonedaHNL(
+              valor
+            )
+          : String(
+              valor === null ||
+              valor === undefined
+                ? ""
+                : valor
+            );
+
+      if (
+        campo.clave === "total"
+      ) {
+        tr.className =
+          "liquidacion-fila-total";
+      }
+
+      tr.appendChild(th);
+      tr.appendChild(td);
+      cuerpo.appendChild(tr);
+    });
+
+  tabla.appendChild(cuerpo);
+  contenedor.appendChild(tabla);
+
+  contenedor.hidden = false;
+}
+
+function mostrarResultadoLiquidacionGrupo(
+  filas
+) {
+  const contenedor =
+    document.getElementById(
+      "resultadoLiquidacionGrupo"
+    );
+
+  if (!contenedor) {
+    return;
+  }
+
+  contenedor.innerHTML = "";
+
+  const registros =
+    Array.isArray(filas)
+      ? filas
+      : [];
+
+  if (!registros.length) {
+    contenedor.hidden = true;
+    return;
+  }
+
+  const campos =
+    camposResultadoLiquidacion();
+
+  const tabla =
+    document.createElement(
+      "table"
+    );
+
+  tabla.id =
+    "tablaLiquidacionGrupo";
+
+  const encabezado =
+    document.createElement(
+      "thead"
+    );
+
+  const filaEncabezado =
+    document.createElement(
+      "tr"
+    );
+
+  campos.forEach(function (
+    campo
+  ) {
+    const th =
+      document.createElement(
+        "th"
+      );
+
+    th.textContent =
+      campo.titulo;
+
+    filaEncabezado.appendChild(
+      th
+    );
+  });
+
+  encabezado.appendChild(
+    filaEncabezado
+  );
+
+  tabla.appendChild(
+    encabezado
+  );
+
+  const cuerpo =
+    document.createElement(
+      "tbody"
+    );
+
+  registros.forEach(function (
+    registro
+  ) {
+    const tr =
+      document.createElement(
+        "tr"
+      );
+
+    campos.forEach(function (
+      campo
+    ) {
+      const td =
+        document.createElement(
+          "td"
+        );
+
+      const valor =
+        registro[
+          campo.clave
+        ];
+
+      td.textContent =
+        campo.moneda
+          ? formatearMonedaHNL(
+              valor
+            )
+          : String(
+              valor === null ||
+              valor === undefined
+                ? ""
+                : valor
+            );
+
+      if (campo.moneda) {
+        td.classList.add(
+          "liquidacion-moneda"
+        );
+      }
+
+      if (
+        campo.clave === "total"
+      ) {
+        td.classList.add(
+          "liquidacion-total"
+        );
+      }
+
+      tr.appendChild(td);
+    });
+
+    cuerpo.appendChild(tr);
+  });
+
+  tabla.appendChild(cuerpo);
+  contenedor.appendChild(tabla);
+
+  contenedor.hidden = false;
+}
+
+function mensajeLiquidacionLaboral(
+  texto,
+  tipo
+) {
+  const mensaje =
+    document.getElementById(
+      "mensajeLiquidacionLaboral"
+    );
+
+  if (!mensaje) {
+    return;
+  }
+
+  mensaje.className =
+    "mensaje" +
+    (
+      tipo
+        ? " " + tipo
+        : ""
+    );
+
+  mensaje.textContent =
+    texto || "";
+}
+
+function limpiarResultadoLiquidacionIndividual() {
+  const contenedor =
+    document.getElementById(
+      "resultadoLiquidacionIndividual"
+    );
+
+  if (!contenedor) {
+    return;
+  }
+
+  contenedor.innerHTML = "";
+  contenedor.hidden = true;
+}
+
+function limpiarResultadoLiquidacionGrupo() {
+  const contenedor =
+    document.getElementById(
+      "resultadoLiquidacionGrupo"
+    );
+
+  if (!contenedor) {
+    return;
+  }
+
+  contenedor.innerHTML = "";
+  contenedor.hidden = true;
+}
+
+function limpiarResultadosLiquidacion() {
+  limpiarResultadoLiquidacionIndividual();
+  limpiarResultadoLiquidacionGrupo();
+}  
   
 async function generarImpuestoVecinal() {
   const campoAnio =
