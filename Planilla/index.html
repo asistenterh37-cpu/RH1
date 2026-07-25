@@ -2367,8 +2367,12 @@ select:disabled {
      TABLAS ADICIONALES DE PARÁMETROS DE PLANILLA
 ======================================================= -->
 <style>
-  .tablas-parametros-adicionales {
+
+    .tablas-parametros-adicionales {
+    width: 100%;
     margin-top: 26px;
+    padding-bottom: 10px;
+    overflow-x: auto;
   }
 
   .tablas-parametros-adicionales > h3 {
@@ -2376,13 +2380,34 @@ select:disabled {
     color: #123b75;
   }
 
+  /*
+   * Primera fila horizontal:
+   *
+   * 1. Tabla de vacaciones
+   * 2. Incapacidades IHSS
+   * 3. RAP e INFOP
+   * 4. Impuesto sobre la renta
+   *
+   * La tabla de impuesto vecinal ocupará
+   * la segunda fila completa.
+   */
   .parametros-tablas-grid {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+
+    grid-template-columns:
+      minmax(520px, 1fr)
+      minmax(850px, 1.60fr)
+      minmax(360px, 0.70fr)
+      minmax(520px, 1fr);
+
     gap: 20px;
+    align-items: start;
+    width: 100%;
+    min-width: 2350px;
   }
 
   .parametros-tabla-panel {
+    min-width: 0;
     padding: 18px;
     border: 1px solid #d6e0ee;
     border-radius: 14px;
@@ -2390,6 +2415,10 @@ select:disabled {
     overflow-x: auto;
   }
 
+  /*
+   * Impuesto vecinal en la siguiente fila,
+   * ocupando el ancho de las cuatro columnas.
+   */
   .parametros-tabla-panel.ancho-completo {
     grid-column: 1 / -1;
   }
@@ -2499,15 +2528,29 @@ select:disabled {
     box-sizing: border-box;
   }
 
-  @media (max-width: 950px) {
+   @media (max-width: 950px) {
+    /*
+     * Las tablas continúan en una fila.
+     * El usuario puede desplazarse horizontalmente.
+     */
+    .tablas-parametros-adicionales {
+      overflow-x: auto;
+    }
+
     .parametros-tablas-grid {
-      grid-template-columns: 1fr;
+      grid-template-columns:
+        minmax(520px, 1fr)
+        minmax(850px, 1.60fr)
+        minmax(360px, 0.70fr)
+        minmax(520px, 1fr);
+
+      min-width: 2350px;
     }
 
     .parametros-tabla-panel.ancho-completo {
-      grid-column: auto;
+      grid-column: 1 / -1;
     }
-  }
+  } 
 
   @media (max-width: 650px) {
     .referencias-ihss {
@@ -3601,7 +3644,7 @@ select:disabled {
      */
 
     const API_URL =
-      "https://script.google.com/macros/s/AKfycbwff2paw0gn-821fJ9El-eBvRGizvzNuLqb3ZHpnXJ70o2tR_8u3EYDBgBXM2AK5tle/exec";
+      "https://script.google.com/macros/s/AKfycbzu-g1GxHMifIe8JRCHuPSRnnY3wZOhMZRZgLwOJMyDCLszjZhzqOCIildkDBp94l8/exec";
 
     const camposEmpleado = [
 
@@ -7853,113 +7896,348 @@ async function buscarEmpleadoIngreso() {
     return planillas;
   }
 
-  async function cargarParametrosAnuales() {
+async function cargarParametrosAnuales(
+  opciones
+) {
+  const silencioso =
+    Boolean(
+      opciones &&
+      opciones.silencioso
+    );
 
+  if (!silencioso) {
     mostrarMensajeParametros(
       "Cargando parámetros...",
       "info"
     );
+  }
 
-    try {
+  /*
+   * Coloca un valor en un campo
+   * solamente cuando el campo existe.
+   */
+  function asignarValor(
+    id,
+    valor
+  ) {
+    const campo =
+      document.getElementById(id);
 
-      const respuesta =
-        await jsonp(
-          "obtenerParametros",
-          {}
-        );
+    if (
+      !campo ||
+      valor === null ||
+      typeof valor === "undefined"
+    ) {
+      return;
+    }
 
-      if (!respuesta.ok) {
+    campo.value =
+      valor;
+  }
 
-        throw new Error(
-          respuesta.mensaje
-        );
+  /*
+   * Llena las filas de una tabla.
+   */
+  function asignarFilas(
+    registros,
+    cantidad,
+    campos
+  ) {
+    if (!Array.isArray(registros)) {
+      return;
+    }
+
+    for (
+      let indice = 0;
+      indice < cantidad;
+      indice++
+    ) {
+      const registro =
+        registros[indice];
+
+      if (!registro) {
+        continue;
       }
 
-      const parametros =
-        respuesta.parametros || {};
-
-      const campoAnio =
-        document.getElementById(
-          "anioPlanilla"
-        );
-
-      campoAnio.value =
-        parametros.anio ||
-        new Date().getFullYear();
-
-      document
-        .getElementById(
-          "estatusHoraEnt"
-        )
-        .value =
-          parametros.estatusHoraEnt || "";
-
-      document
-        .getElementById(
-          "recargoDiurno"
-        )
-        .value =
-          parametros.recargoDiurno ?? "";
-
-      document
-        .getElementById(
-          "recargoNocturno"
-        )
-        .value =
-          parametros.recargoNocturno ?? "";
-
-      document
-        .getElementById(
-          "recargoDescanso"
-        )
-        .value =
-          parametros.recargoDescanso ?? "";
-
-      document
-        .getElementById(
-          "recargoFeriado"
-        )
-        .value =
-          parametros.recargoFeriado ?? "";
-
-      const feriados =
-        parametros.feriados || [];
-
-      for (
-        let numero = 1;
-        numero <= 12;
-        numero++
+      campos.forEach(function (
+        campo
       ) {
+        asignarValor(
+          campo.prefijo +
+          (indice + 1),
+          registro[
+            campo.clave
+          ]
+        );
+      });
+    }
+  }
 
-        const campo =
-          document.getElementById(
-            "feriado" + numero
-          );
+  try {
+    const respuesta =
+      await jsonp(
+        "obtenerParametros",
+        {}
+      );
 
-        if (campo) {
+    if (
+      !respuesta ||
+      !respuesta.ok
+    ) {
+      throw new Error(
+        respuesta &&
+        respuesta.mensaje
+          ? respuesta.mensaje
+          : "No fue posible cargar los parámetros."
+      );
+    }
 
-          campo.value =
-            feriados[
-              numero - 1
-            ] || "";
+    const parametros =
+      respuesta.parametros || {};
+
+    asignarValor(
+      "anioPlanilla",
+      parametros.anio ||
+      new Date().getFullYear()
+    );
+
+    /*
+     * Campos individuales.
+     */
+    [
+      [
+        "estatusHoraEnt",
+        "estatusHoraEnt"
+      ],
+      [
+        "recargoDiurno",
+        "recargoDiurno"
+      ],
+      [
+        "recargoNocturno",
+        "recargoNocturno"
+      ],
+      [
+        "recargoDescanso",
+        "recargoDescanso"
+      ],
+      [
+        "recargoFeriado",
+        "recargoFeriado"
+      ],
+      [
+        "salarioMinimo",
+        "salarioMinimo"
+      ],
+      [
+        "salarioMinimoDesde",
+        "salarioMinimoDesde"
+      ],
+      [
+        "reservaCesantia",
+        "reservaCesantia"
+      ],
+      [
+        "ihssPorcentajePatrono",
+        "ihssPorcentajePatrono"
+      ],
+      [
+        "ihssPorcentajeEmpleado",
+        "ihssPorcentajeEmpleado"
+      ],
+      [
+        "ihssTechoCotizacion",
+        "ihssTechoCotizacion"
+      ],
+      [
+        "porcentajeRap",
+        "porcentajeRap"
+      ],
+      [
+        "porcentajeInfop",
+        "porcentajeInfop"
+      ]
+    ].forEach(function (
+      configuracion
+    ) {
+      asignarValor(
+        configuracion[0],
+        parametros[
+          configuracion[1]
+        ]
+      );
+    });
+
+    /*
+     * Feriados.
+     */
+    const feriados =
+      Array.isArray(
+        parametros.feriados
+      )
+        ? parametros.feriados
+        : [];
+
+    for (
+      let numero = 1;
+      numero <= 12;
+      numero++
+    ) {
+      asignarValor(
+        "feriado" + numero,
+        feriados[
+          numero - 1
+        ]
+      );
+    }
+
+    /*
+     * Tabla de vacaciones.
+     */
+    asignarFilas(
+      parametros.vacaciones,
+      4,
+      [
+        {
+          prefijo:
+            "vacacionesDesde",
+          clave:
+            "desde"
+        },
+        {
+          prefijo:
+            "vacacionesHasta",
+          clave:
+            "hasta"
+        },
+        {
+          prefijo:
+            "vacacionesDias",
+          clave:
+            "dias"
         }
-      }
+      ]
+    );
 
-      generarPlanillasDelAnio();
+    /*
+     * Incapacidades IHSS.
+     */
+    asignarFilas(
+      parametros.incapacidadesIHSS,
+      5,
+      [
+        {
+          prefijo:
+            "ihssConcepto",
+          clave:
+            "concepto"
+        },
+        {
+          prefijo:
+            "ihssDesde",
+          clave:
+            "desde"
+        },
+        {
+          prefijo:
+            "ihssHasta",
+          clave:
+            "hasta"
+        },
+        {
+          prefijo:
+            "ihssEmpresa",
+          clave:
+            "empresa"
+        },
+        {
+          prefijo:
+            "ihssPorcentaje",
+          clave:
+            "ihss"
+        }
+      ]
+    );
 
+    /*
+     * Tabla de ISR.
+     */
+    asignarFilas(
+      parametros.impuestoRenta,
+      4,
+      [
+        {
+          prefijo:
+            "rentaDesde",
+          clave:
+            "desde"
+        },
+        {
+          prefijo:
+            "rentaHasta",
+          clave:
+            "hasta"
+        },
+        {
+          prefijo:
+            "rentaPorcentaje",
+          clave:
+            "porcentaje"
+        }
+      ]
+    );
+
+    /*
+     * Tabla de impuesto vecinal.
+     */
+    asignarFilas(
+      parametros.impuestoVecinal,
+      9,
+      [
+        {
+          prefijo:
+            "vecinalDesde",
+          clave:
+            "desde"
+        },
+        {
+          prefijo:
+            "vecinalHasta",
+          clave:
+            "hasta"
+        },
+        {
+          prefijo:
+            "vecinalTasa",
+          clave:
+            "impuesto"
+        }
+      ]
+    );
+
+    generarPlanillasDelAnio();
+
+    if (!silencioso) {
       mostrarMensajeParametros(
         "",
         ""
       );
-
-    } catch (error) {
-
-      mostrarMensajeParametros(
-        error.message,
-        "error"
-      );
     }
+
+    return true;
+
+  } catch (error) {
+    mostrarMensajeParametros(
+      error &&
+      error.message
+        ? error.message
+        : "No fue posible cargar los parámetros.",
+      "error"
+    );
+
+    return false;
   }
+}
 
   async function guardarParametrosAnuales(
     evento
@@ -11122,18 +11400,7 @@ if (
       return;
     }
 
-    if (
-      datos.salarioMinimo === "" ||
-      datos.salarioMinimoDesde === ""
-    ) {
-      mostrarMensajeParametros(
-        "Ingrese el salario mínimo y su vigencia.",
-        "error"
-      );
-      return;
-    }
-
-    if (boton) {
+       if (boton) {
       boton.disabled = true;
     }
 
@@ -17287,19 +17554,41 @@ function formatearMonedaHNL(valor) {
         }
       );
 
-      if (!respuesta || !respuesta.ok) {
+           if (
+        !respuesta ||
+        !respuesta.ok
+      ) {
         throw new Error(
-          respuesta && respuesta.mensaje
+          respuesta &&
+          respuesta.mensaje
             ? respuesta.mensaje
-            : "No fue posible aplicar la planilla."
+            : "No fue posible guardar los parámetros."
         );
       }
 
-      mensajeProcesarPlanilla(
+      /*
+       * Volver a leer Catalogos después de guardar.
+       * Los registros quedan visibles y se muestran
+       * exactamente como fueron almacenados.
+       */
+      const parametrosRecargados =
+        typeof cargarParametrosAnuales ===
+          "function"
+          ? await cargarParametrosAnuales({
+              silencioso: true
+            })
+          : true;
+
+      if (
+        parametrosRecargados === false
+      ) {
+        return;
+      }
+
+      mostrarMensajeParametros(
         respuesta.mensaje,
         "ok"
       );
-
       await cargarPeriodosPendientes();
 
     } catch (error) {
