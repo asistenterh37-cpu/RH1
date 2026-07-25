@@ -3894,7 +3894,7 @@ function mostrarTablaOrdTe(
      */
 
     const API_URL =
-      "https://script.google.com/macros/s/AKfycbwHUnjgZky0R8Y2QUhlDIkNmMtTFeIAuMwWth5PcQLaRuUh1L5IiaX4gik3DSGbA2yX/exec";
+      "https://script.google.com/macros/s/AKfycbzgI1AsLKugsWLe_4dFOGEqYi4tvTYLz55h3Hu3KduUZ8bJ1YvBVyVeTL8PwpXdUNtT/exec";
 
     const camposEmpleado = [
 
@@ -7315,14 +7315,19 @@ document.addEventListener(
               No. de personal
             </label>
 
-            <input
+                       <input
               id="ingresoNumeroPersonal"
               type="text"
+              list="listaEmpleadosMovimientos"
               autocomplete="off"
-              placeholder="Ingrese el número"
+              placeholder="Seleccione o escriba el número"
               onblur="buscarEmpleadoIngreso()"
               required
             >
+
+            <datalist
+              id="listaEmpleadosMovimientos"
+            ></datalist>
 
           </div>
 
@@ -11639,44 +11644,74 @@ function cambiarTipoVigenciaIngreso() {
       );
   }
 
-  function obtenerCodigoPlanilla(
-    texto
-  ) {
+function obtenerCodigoPlanilla(
+  texto
+) {
+  const valor = String(
+    texto || ""
+  )
+    .trim()
+    .toUpperCase();
 
-    /*
-     * Admite:
-     *
-     * 2026-10
-     * Planilla 2026-10
-     * Planilla 2026-10 | Período...
-     */
+  /*
+   * Períodos especiales:
+   * Q-2026-D14 = número 25
+   * Q-2026-D13 = número 26
+   * También admite H- y S-.
+   */
+  const especial = valor.match(
+    /(?:PLANILLA\s+)?([QHS])-(\d{4})-(D13|D14)/i
+  );
 
-    const coincidencia =
-      String(texto || "")
-        .match(
-          /(?:Planilla\s+)?(\d{4})-(\d{1,2})/i
-        );
-
-    if (!coincidencia) {
-
-      return null;
-    }
+  if (especial) {
+    const clase =
+      especial[3].toUpperCase();
 
     return {
-
       anio:
-        Number(coincidencia[1]),
+        Number(especial[2]),
 
       numero:
-        Number(coincidencia[2]),
+        clase === "D14"
+          ? 25
+          : 26,
 
       codigo:
-        coincidencia[1] +
+        especial[1].toUpperCase() +
         "-" +
-        Number(coincidencia[2])
+        especial[2] +
+        "-" +
+        clase
     };
   }
 
+  /*
+   * Períodos ordinarios:
+   * Q-2026-01, H-2026-01,
+   * S-2026-01 o 2026-1.
+   */
+  const ordinario = valor.match(
+    /(?:PLANILLA\s+)?(?:[QHS]-)?(\d{4})-0*(\d{1,2})/i
+  );
+
+  if (!ordinario) {
+    return null;
+  }
+
+  return {
+    anio:
+      Number(ordinario[1]),
+
+    numero:
+      Number(ordinario[2]),
+
+    codigo:
+      ordinario[1] +
+      "-" +
+      Number(ordinario[2])
+  };
+}
+  
   function calcularPlanillasAplicables() {
 
     const resultado =
@@ -11882,6 +11917,41 @@ function llenarConceptosMovimiento(opciones) {
   selector.disabled = false;
 }
 
+function llenarEmpleadosActivosMovimientos(
+  empleados
+) {
+  const lista = document.getElementById(
+    "listaEmpleadosMovimientos"
+  );
+
+  if (!lista) {
+    return;
+  }
+
+  lista.innerHTML = "";
+
+  (empleados || []).forEach(function (
+    empleado
+  ) {
+    const opcion =
+      document.createElement("option");
+
+    opcion.value =
+      empleado.numeroPersonal || "";
+
+    opcion.label =
+      (
+        empleado.numeroPersonal || ""
+      ) +
+      " - " +
+      (
+        empleado.nombre || ""
+      );
+
+    lista.appendChild(opcion);
+  });
+}
+  
 function cambiarTipoMovimiento() {
   const tipo = document
     .getElementById("movimientoTipo")
@@ -11942,8 +12012,12 @@ async function cargarConfiguracionIngresos() {
     conceptosMovimientos.Ingresos =
       respuesta.ingresos || [];
 
-    conceptosMovimientos.Deducciones =
+     conceptosMovimientos.Deducciones =
       respuesta.deducciones || [];
+
+    llenarEmpleadosActivosMovimientos(
+      respuesta.empleados || []
+    );
 
     planillasOtrosIngresos =
       respuesta.planillas || [];
@@ -13620,10 +13694,12 @@ if (
       "click",
       function () {
         abrirPanel(
+                abrirPanel(
           "procesarPlanilla",
           boton
         );
 
+        restablecerVistaProcesarPlanilla();
         cargarPeriodosPendientes();
       }
     );
@@ -18339,34 +18415,18 @@ function formatearMonedaHNL(valor) {
           );
 
         if (
-          indice >= 6 &&
           typeof valor ===
             "number"
         ) {
           td.textContent =
-            new Intl.NumberFormat(
-              "es-HN",
-              {
-                style:
-                  "currency",
-
-                currency:
-                  "HNL",
-
-                minimumFractionDigits:
-                  2
-              }
-            ).format(
-              valor
-            );
+            String(valor);
         } else {
           td.textContent =
             valor === null ||
             valor === undefined
               ? ""
-              : valor;
+              : String(valor);
         }
-
         tr.appendChild(
           td
         );
@@ -18684,7 +18744,153 @@ function formatearMonedaHNL(valor) {
     );
   }
 
-    function mostrarOpcionesPagoPlanilla() {
+  function restablecerVistaProcesarPlanilla() {
+  var selectorPrincipal =
+    document.getElementById(
+      "periodoProcesar"
+    );
+
+  var acciones =
+    document.querySelector(
+      "#procesarPlanilla " +
+      ".acciones-procesar-planilla"
+    );
+
+  var selectorOperacion =
+    document.getElementById(
+      "opcionPagoPlanilla"
+    );
+
+  var etiquetaOperacion =
+    document.querySelector(
+      'label[for="opcionPagoPlanilla"]'
+    );
+
+  var contenedorPeriodo =
+    document.getElementById(
+      "contenedorPeriodoPagoPlanilla"
+    );
+
+  var resultadoPago =
+    document.getElementById(
+      "resultadoPagoPlanilla"
+    );
+
+  var revisionPlanilla =
+    document.getElementById(
+      "contenedorRevisionPlanilla"
+    );
+
+  var resultadoPlanilla =
+    document.getElementById(
+      "contenedorResultadoPlanilla"
+    );
+
+  var resumenPlanilla =
+    document.getElementById(
+      "resumenProcesarPlanilla"
+    );
+
+  if (revisionPlanilla) {
+    revisionPlanilla.hidden = true;
+  }
+
+  if (resultadoPlanilla) {
+    resultadoPlanilla.hidden = true;
+  }
+
+  if (resumenPlanilla) {
+    resumenPlanilla.textContent = "";
+  }
+
+  cerrarModalMovimiento();    
+
+  if (
+    selectorPrincipal &&
+    selectorPrincipal.parentElement
+  ) {
+    selectorPrincipal
+      .parentElement
+      .hidden = false;
+  }
+
+  if (acciones) {
+    acciones.hidden = false;
+  }
+
+  if (selectorOperacion) {
+    selectorOperacion.hidden = false;
+  }
+
+  if (etiquetaOperacion) {
+    etiquetaOperacion.hidden = false;
+  }
+
+  if (contenedorPeriodo) {
+    contenedorPeriodo.hidden = true;
+  }
+
+  if (resultadoPago) {
+    resultadoPago.hidden = true;
+    resultadoPago.innerHTML = "";
+  }
+}
+
+function ocultarControlesParaRecibosPago() {
+  var selectorPrincipal =
+    document.getElementById(
+      "periodoProcesar"
+    );
+
+  var acciones =
+    document.querySelector(
+      "#procesarPlanilla " +
+      ".acciones-procesar-planilla"
+    );
+
+  var selectorOperacion =
+    document.getElementById(
+      "opcionPagoPlanilla"
+    );
+
+  var etiquetaOperacion =
+    document.querySelector(
+      'label[for="opcionPagoPlanilla"]'
+    );
+
+  var contenedorPeriodo =
+    document.getElementById(
+      "contenedorPeriodoPagoPlanilla"
+    );
+
+  if (
+    selectorPrincipal &&
+    selectorPrincipal.parentElement
+  ) {
+    selectorPrincipal
+      .parentElement
+      .hidden = true;
+  }
+
+  if (acciones) {
+    acciones.hidden = true;
+  }
+
+  if (selectorOperacion) {
+    selectorOperacion.hidden = true;
+  }
+
+  if (etiquetaOperacion) {
+    etiquetaOperacion.hidden = true;
+  }
+
+  if (contenedorPeriodo) {
+    contenedorPeriodo.hidden = true;
+  }
+}
+  
+    function mostrarOpcionesPagoPlanilla() 
+    restablecerVistaProcesarPlanilla();
     var contenedor =
       document.getElementById(
         "contenedorPagoPlanilla"
@@ -18968,11 +19174,12 @@ function formatearMonedaHNL(valor) {
 
     contenedor.hidden = false;
     contenedor.innerHTML = "";
-
-    if (
+        if (
       respuesta.tipo ===
       "recibos"
     ) {
+      ocultarControlesParaRecibosPago();
+
       mostrarRecibosPago(
         contenedor,
         respuesta.recibos || []
@@ -18980,7 +19187,7 @@ function formatearMonedaHNL(valor) {
 
       return;
     }
-
+    
     mostrarListadoDeposito(
       contenedor,
       respuesta.depositos || [],
@@ -19640,21 +19847,9 @@ function formatearMonedaHNL(valor) {
         function (valor, indice) {
           const td =
             document.createElement("td");
-
-if (
-  indice >= 6 &&
-  typeof valor === "number"
-) {
+if (typeof valor === "number") {
   td.textContent =
-    new Intl.NumberFormat(
-      "es-HN",
-      {
-        style: "currency",
-        currency: "HNL",
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2
-      }
-    ).format(valor);
+    String(valor);
 
   td.title =
     td.textContent;
@@ -19663,7 +19858,7 @@ if (
     valor === null ||
     valor === undefined
       ? ""
-      : valor;
+      : String(valor);
 
   td.title =
     td.textContent;
