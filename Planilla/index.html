@@ -5693,105 +5693,307 @@ function mensajeExpedientePersonal(
       return contenido;
     }
 
-    function dibujarFormulario(
-      datos
-    ) {
+/*
+ * Normaliza textos para comparar valores
+ * sin importar mayúsculas, minúsculas
+ * ni acentos.
+ */
+function normalizarReglaEmpleado_(
+  valor
+) {
+  return String(
+    valor || ""
+  )
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(
+      /[\u0300-\u036f]/g,
+      ""
+    )
+    .replace(
+      /\s+/g,
+      " "
+    );
+}
 
-      datos = datos || {};
+/*
+ * Reglas de bloqueo:
+ *
+ * 1. Estatus Activo:
+ *    Motivo de retiro bloqueado.
+ *
+ * 2. Contrato Permanente:
+ *    Fecha fin bloqueada.
+ *
+ * 3. Contrato Permanente +
+ *    Estatus Retirado:
+ *    Fecha fin desbloqueada.
+ */
+function aplicarReglasCamposEmpleado() {
+  const campoTipoContrato =
+    document.getElementById(
+      "tipoContrato"
+    );
 
-      let contenido = "";
+  const campoFechaFin =
+    document.getElementById(
+      "fechaFin"
+    );
 
-      camposEmpleado.forEach(
-        function (campo) {
+  const campoEstatus =
+    document.getElementById(
+      "estatus"
+    );
 
-          const id =
-            campo[0];
+  const campoMotivoRetiro =
+    document.getElementById(
+      "motivoRetiro"
+    );
 
-          const etiqueta =
-            campo[1];
+  /*
+   * El formulario se crea dinámicamente.
+   * Si todavía no existe, no hacer nada.
+   */
+  if (
+    !campoTipoContrato ||
+    !campoFechaFin ||
+    !campoEstatus ||
+    !campoMotivoRetiro
+  ) {
+    return;
+  }
 
-          const tipo =
-            campo[2];
+  /*
+   * En modo Ver todos los controles
+   * deben permanecer bloqueados.
+   *
+   * No se limpian sus valores para que
+   * puedan consultarse.
+   */
+  if (modo === "ver") {
+    campoFechaFin.disabled =
+      true;
 
-          contenido += "<div>";
+    campoMotivoRetiro.disabled =
+      true;
 
-          contenido +=
-            '<label for="' +
-            id +
-            '">' +
-            etiqueta +
-            "</label>";
+    return;
+  }
 
-          if (tipo === "select") {
+  const tipoContrato =
+    normalizarReglaEmpleado_(
+      campoTipoContrato.value
+    );
 
-            contenido +=
-              '<select ' +
-              'id="' +
-              id +
-              '" ' +
-              'name="' +
-              id +
-              '">' +
-              obtenerOpciones(id) +
-              "</select>";
+  const estatus =
+    normalizarReglaEmpleado_(
+      campoEstatus.value
+    );
 
-          } else {
+  const esPermanente =
+    tipoContrato ===
+    "permanente";
 
-            let atributos = "";
+  const esActivo =
+    estatus ===
+    "activo";
 
-            if (id === "sueldo") {
+  const esRetirado =
+    estatus ===
+    "retirado";
 
-              atributos =
-                ' min="0"' +
-                ' step="0.01"';
-            }
+  /*
+   * MOTIVO DE RETIRO
+   *
+   * Activo:
+   * bloqueado y sin valor.
+   *
+   * Retirado u otro estatus:
+   * desbloqueado.
+   */
+  campoMotivoRetiro.disabled =
+    esActivo;
 
-            contenido +=
-              '<input ' +
-              'id="' +
-              id +
-              '" ' +
-              'name="' +
-              id +
-              '" ' +
-              'type="' +
-              tipo +
-              '"' +
-              atributos +
-              ">";
-          }
+  if (esActivo) {
+    campoMotivoRetiro.value =
+      "";
+  }
 
-          contenido += "</div>";
-        }
+  /*
+   * FECHA FIN
+   *
+   * Permanente:
+   * bloqueada.
+   *
+   * Permanente + Retirado:
+   * desbloqueada.
+   *
+   * Contrato diferente a Permanente:
+   * desbloqueada.
+   */
+  const bloquearFechaFin =
+    esPermanente &&
+    !esRetirado;
+
+  campoFechaFin.disabled =
+    bloquearFechaFin;
+
+  if (bloquearFechaFin) {
+    campoFechaFin.value =
+      "";
+  }
+}
+
+/*
+ * Conecta las reglas a los dos campos
+ * que determinan los bloqueos.
+ */
+function conectarReglasCamposEmpleado() {
+  const campoTipoContrato =
+    document.getElementById(
+      "tipoContrato"
+    );
+
+  const campoEstatus =
+    document.getElementById(
+      "estatus"
+    );
+
+  if (campoTipoContrato) {
+    campoTipoContrato
+      .addEventListener(
+        "change",
+        aplicarReglasCamposEmpleado
       );
+  }
 
-      document
-        .getElementById("campos")
-        .innerHTML =
-          contenido;
+  if (campoEstatus) {
+    campoEstatus
+      .addEventListener(
+        "change",
+        aplicarReglasCamposEmpleado
+      );
+  }
+}
 
-      Object.keys(datos)
-        .forEach(function (clave) {
+function dibujarFormulario(
+  datos
+) {
+  datos =
+    datos || {};
 
-          const control =
-            document.getElementById(
-              clave
-            );
+  let contenido = "";
 
-          if (control) {
+  camposEmpleado.forEach(
+    function (
+      campo
+    ) {
+      const id =
+        campo[0];
 
-            control.value =
-              datos[clave] ?? "";
-          }
-        });
+      const etiqueta =
+        campo[1];
 
-      document
-        .getElementById(
-          "formEmpleado"
-        )
-        .hidden = false;
+      const tipo =
+        campo[2];
+
+      contenido +=
+        "<div>";
+
+      contenido +=
+        '<label for="' +
+        id +
+        '">' +
+        etiqueta +
+        "</label>";
+
+      if (tipo === "select") {
+        contenido +=
+          '<select ' +
+          'id="' +
+          id +
+          '" ' +
+          'name="' +
+          id +
+          '">' +
+          obtenerOpciones(id) +
+          "</select>";
+
+      } else {
+        let atributos = "";
+
+        if (id === "sueldo") {
+          atributos =
+            ' min="0"' +
+            ' step="0.01"';
+        }
+
+        contenido +=
+          '<input ' +
+          'id="' +
+          id +
+          '" ' +
+          'name="' +
+          id +
+          '" ' +
+          'type="' +
+          tipo +
+          '"' +
+          atributos +
+          ">";
+      }
+
+      contenido +=
+        "</div>";
     }
+  );
 
+  document
+    .getElementById(
+      "campos"
+    )
+    .innerHTML =
+      contenido;
+
+  /*
+   * Colocar los datos del empleado
+   * cuando se utiliza Ver o Modificar.
+   */
+  Object.keys(
+    datos
+  ).forEach(
+    function (
+      clave
+    ) {
+      const control =
+        document.getElementById(
+          clave
+        );
+
+      if (control) {
+        control.value =
+          datos[clave] ??
+          "";
+      }
+    }
+  );
+
+  /*
+   * Conectar y aplicar las reglas
+   * después de construir los campos.
+   */
+  conectarReglasCamposEmpleado();
+
+  aplicarReglasCamposEmpleado();
+
+  document
+    .getElementById(
+      "formEmpleado"
+    )
+    .hidden =
+      false;
+}
     async function cambiarAccion() {
 
       modo =
@@ -5863,20 +6065,31 @@ function mensajeExpedientePersonal(
             }
           );
 
-        document
-          .getElementById("pin")
-          .disabled = false;
+       document
+  .getElementById(
+    "pin"
+  )
+  .disabled =
+    false;
 
-        document
-          .getElementById(
-            "btnGuardar"
-          )
-          .hidden = false;
+/*
+ * Volver a aplicar las reglas porque
+ * el bloque anterior habilita todos
+ * los controles del formulario.
+ */
+aplicarReglasCamposEmpleado();
 
-        mostrarMensajeEmpleado(
-          "",
-          ""
-        );
+document
+  .getElementById(
+    "btnGuardar"
+  )
+  .hidden =
+    false;
+
+mostrarMensajeEmpleado(
+  "",
+  ""
+);
 
       } catch (error) {
 
@@ -5959,20 +6172,35 @@ function mensajeExpedientePersonal(
             }
           );
 
-        document
-          .getElementById("pin")
-          .disabled = true;
+     document
+  .getElementById(
+    "pin"
+  )
+  .disabled =
+    true;
 
-        document
-          .getElementById(
-            "btnGuardar"
-          )
-          .hidden = soloLectura;
+document
+  .getElementById(
+    "btnGuardar"
+  )
+  .hidden =
+    soloLectura;
 
-        mostrarMensajeEmpleado(
-          "Empleado encontrado.",
-          "ok"
-        );
+/*
+ * En modo Modificar vuelve a bloquear:
+ *
+ * - Motivo de retiro si está Activo.
+ * - Fecha fin si es Permanente y
+ *   todavía no está Retirado.
+ *
+ * En modo Ver mantiene ambos bloqueados.
+ */
+aplicarReglasCamposEmpleado();
+
+mostrarMensajeEmpleado(
+  "Empleado encontrado.",
+  "ok"
+);
 
       } catch (error) {
 
@@ -6063,12 +6291,19 @@ function mensajeExpedientePersonal(
 
         if (modo === "ingresar") {
 
-          document
-            .getElementById(
-              "formEmpleado"
-            )
-            .reset();
-        }
+        if (modo === "ingresar") {
+  document
+    .getElementById(
+      "formEmpleado"
+    )
+    .reset();
+
+  /*
+   * Restablecer el estado de los campos
+   * después de limpiar el formulario.
+   */
+  aplicarReglasCamposEmpleado();
+}
 
       } catch (error) {
 
