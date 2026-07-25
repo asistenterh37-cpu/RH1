@@ -3427,8 +3427,9 @@ select:disabled {
 <h2>Ord y TE</h2>
 
 <p>
-  Consulte las horas ordinarias y el tiempo extra
-  correspondientes a un período pendiente.
+  Consulte el sueldo de los empleados quincenales
+  y los valores de horas ordinarias, séptimo día
+  y tiempo extra de los empleados por Hora.
 </p>
 
 <div class="ordte-controles">
@@ -3483,63 +3484,125 @@ select:disabled {
     mensaje.textContent = texto || "";
   }
 
-  async function cargarPeriodosOrdTe() {
-    const selector =
-      document.getElementById("periodoOrdTe");
+async function cargarPeriodosOrdTe() {
+  const selector =
+    document.getElementById(
+      "periodoOrdTe"
+    );
 
-    if (!selector) {
-      return;
-    }
+  if (!selector) {
+    return;
+  }
 
-    selector.innerHTML =
-      '<option value="">Cargando...</option>';
+  selector.innerHTML =
+    '<option value="">Cargando...</option>';
 
-    try {
-      const respuesta = await jsonp(
+  try {
+    const respuesta =
+      await jsonp(
         "listarPeriodosProcesar",
         {}
       );
 
-      if (!respuesta || !respuesta.ok) {
-        throw new Error(
-          respuesta && respuesta.mensaje
-            ? respuesta.mensaje
-            : "No se pudieron cargar los períodos."
-        );
-      }
-
-      selector.innerHTML =
-        '<option value="">Seleccionar</option>';
-
-      (respuesta.periodos || []).forEach(
-        function (periodo) {
-          const opcion =
-            document.createElement("option");
-
-          opcion.value = periodo.codigo;
-          opcion.textContent = periodo.texto;
-
-          selector.appendChild(opcion);
-        }
-      );
-
-      if (!respuesta.periodos.length) {
-        mostrarMensajeOrdTe(
-          "No existen períodos pendientes.",
-          "info"
-        );
-      }
-    } catch (error) {
-      selector.innerHTML =
-        '<option value="">Seleccionar</option>';
-
-      mostrarMensajeOrdTe(
-        error.message,
-        "error"
+    if (
+      !respuesta ||
+      !respuesta.ok
+    ) {
+      throw new Error(
+        respuesta &&
+        respuesta.mensaje
+          ? respuesta.mensaje
+          : "No se pudieron cargar los períodos."
       );
     }
-  }
 
+    /*
+     * Ord y TE solamente trabaja con
+     * períodos Quincenal y Hora.
+     *
+     * Los períodos Anual correspondientes
+     * a décimos no se muestran aquí.
+     */
+    const periodos =
+      (
+        Array.isArray(
+          respuesta.periodos
+        )
+          ? respuesta.periodos
+          : []
+      ).filter(function (
+        periodo
+      ) {
+        const tipo =
+          String(
+            periodo &&
+            periodo.tipo
+              ? periodo.tipo
+              : ""
+          )
+            .trim()
+            .toLowerCase()
+            .normalize("NFD")
+            .replace(
+              /[\u0300-\u036f]/g,
+              ""
+            );
+
+        return (
+          tipo === "quincenal" ||
+          tipo === "hora"
+        );
+      });
+
+    selector.innerHTML =
+      '<option value="">Seleccionar</option>';
+
+    periodos.forEach(function (
+      periodo
+    ) {
+      const opcion =
+        document.createElement(
+          "option"
+        );
+
+      opcion.value =
+        periodo.codigo;
+
+      opcion.textContent =
+        periodo.texto;
+
+      selector.appendChild(
+        opcion
+      );
+    });
+
+    if (!periodos.length) {
+      mostrarMensajeOrdTe(
+        "No existen períodos Quincenal o Hora pendientes.",
+        "info"
+      );
+
+    } else {
+      mostrarMensajeOrdTe(
+        "",
+        ""
+      );
+    }
+
+  } catch (error) {
+    selector.innerHTML =
+      '<option value="">Seleccionar</option>';
+
+    mostrarMensajeOrdTe(
+      error &&
+      error.message
+        ? error.message
+        : "No se pudieron cargar los períodos.",
+      "error"
+    );
+  }
+}
+  
   async function consultarPeriodoOrdTe() {
     const selector =
       document.getElementById("periodoOrdTe");
@@ -3596,82 +3659,111 @@ select:disabled {
       );
     }
   }
-
-  function mostrarTablaOrdTe(respuesta) {
-    const contenedor =
-      document.getElementById("contenedorOrdTe");
-
-    const tabla =
-      document.getElementById("tablaOrdTe");
-
-    const encabezado =
-      tabla.querySelector("thead");
-
-    const cuerpo =
-      tabla.querySelector("tbody");
-
-    encabezado.innerHTML = "";
-    cuerpo.innerHTML = "";
-
-    const filaEncabezado =
-      document.createElement("tr");
-
-    (respuesta.columnas || []).forEach(
-      function (columna) {
-        const celda =
-          document.createElement("th");
-
-        celda.textContent = columna;
-        filaEncabezado.appendChild(celda);
-      }
-    );
-
-    encabezado.appendChild(filaEncabezado);
-
-    (respuesta.filas || []).forEach(
-      function (fila) {
-        const filaTabla =
-          document.createElement("tr");
-
-        fila.forEach(function (valor, indice) {
-          const celda =
-            document.createElement("td");
-
-          if (
-            respuesta.tipo === "Quincenal" &&
-            indice === 6
-          ) {
-            celda.textContent =
-              new Intl.NumberFormat(
-                "es-HN",
-                {
-                  style: "currency",
-                  currency: "HNL"
-                }
-              ).format(Number(valor || 0));
-          } else {
-            celda.textContent =
-              valor === null ||
-              valor === undefined
-                ? ""
-                : String(valor);
-          }
-
-          filaTabla.appendChild(celda);
-        });
-
-        cuerpo.appendChild(filaTabla);
-      }
-    );
-
-    contenedor.hidden = false;
-
+function mostrarTablaOrdTe(
+  respuesta
+) {
+  const contenedor =
     document.getElementById(
-      "resumenOrdTe"
-    ).textContent =
-      (respuesta.filas || []).length +
-      " empleados activos.";
-  }
+      "contenedorOrdTe"
+    );
+
+  const tabla =
+    document.getElementById(
+      "tablaOrdTe"
+    );
+
+  const encabezado =
+    tabla.querySelector(
+      "thead"
+    );
+
+  const cuerpo =
+    tabla.querySelector(
+      "tbody"
+    );
+
+  encabezado.innerHTML = "";
+  cuerpo.innerHTML = "";
+
+  const filaEncabezado =
+    document.createElement(
+      "tr"
+    );
+
+  (
+    respuesta.columnas || []
+  ).forEach(function (
+    columna
+  ) {
+    const celda =
+      document.createElement(
+        "th"
+      );
+
+    celda.textContent =
+      columna;
+
+    filaEncabezado.appendChild(
+      celda
+    );
+  });
+
+  encabezado.appendChild(
+    filaEncabezado
+  );
+
+  (
+    respuesta.filas || []
+  ).forEach(function (
+    fila
+  ) {
+    const filaTabla =
+      document.createElement(
+        "tr"
+      );
+
+    fila.forEach(function (
+      valor
+    ) {
+      const celda =
+        document.createElement(
+          "td"
+        );
+
+      /*
+       * Mostrar los valores como números:
+       *
+       * Sin símbolo L.
+       * Sin separadores de miles.
+       * Sin formato de moneda.
+       */
+      celda.textContent =
+        valor === null ||
+        valor === undefined
+          ? ""
+          : String(valor);
+
+      filaTabla.appendChild(
+        celda
+      );
+    });
+
+    cuerpo.appendChild(
+      filaTabla
+    );
+  });
+
+  contenedor.hidden =
+    false;
+
+  document.getElementById(
+    "resumenOrdTe"
+  ).textContent =
+    (
+      respuesta.filas || []
+    ).length +
+    " empleados activos.";
+}
 
   document.addEventListener(
     "DOMContentLoaded",
@@ -3802,7 +3894,7 @@ select:disabled {
      */
 
     const API_URL =
-      "https://script.google.com/macros/s/AKfycbwEt3mG1EXZTsZK0xuiEnWS5FwZvAWyDUJozLtZxxGP3WHJMLRkLBwkRYnvf8vbEGw/exec";
+      "https://script.google.com/macros/s/AKfycbw9oct_EmreNtI3lsNMWrGH7ligEMWq6Iqn1_AvmQLLzQNCYFWgULxqwKPUKspkfk4B/exec";
 
     const camposEmpleado = [
 
