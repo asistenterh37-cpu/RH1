@@ -13139,9 +13139,87 @@ if (
       calcularLiquidacionIndividual;
 
     document.getElementById(
-      "botonCalcularLiquidacionesGrupo"
-    ).onclick =
-      calcularLiquidacionesGrupo;
+    "botonCalcularLiquidacionesGrupo"
+  ).onclick =
+    calcularLiquidacionesGrupo;
+  }
+
+  /*
+   * MÓDULO CONSTANCIAS.
+   */
+  if (
+    !document.getElementById(
+      "constanciasLaborales"
+    )
+  ) {
+    const botonConstancias =
+      document.createElement(
+        "button"
+      );
+
+    botonConstancias.id =
+      "botonConstanciasLaborales";
+
+    botonConstancias.type =
+      "button";
+
+    botonConstancias.textContent =
+      "Constancias";
+
+    botonConstancias.onclick =
+      function () {
+        abrirPanel(
+          "constanciasLaborales",
+          botonConstancias
+        );
+      };
+
+    /*
+     * Se agrega después del botón
+     * Cálculo liquidación laboral.
+     */
+    menu.appendChild(
+      botonConstancias
+    );
+
+    const panelConstancias =
+      document.createElement(
+        "section"
+      );
+
+    panelConstancias.id =
+      "constanciasLaborales";
+
+    panelConstancias.className =
+      "panel";
+
+    panelConstancias.innerHTML = `
+      <h2>Constancias</h2>
+
+      <div class="acciones">
+        <label for="tipoConstanciaLaboral">
+          Tipo de constancia
+        </label>
+
+        <select id="tipoConstanciaLaboral">
+          <option value="">
+            Seleccionar
+          </option>
+
+          <option value="sinSueldo">
+            Constancia sin sueldo
+          </option>
+
+          <option value="conSueldo">
+            Constancia con sueldo
+          </option>
+        </select>
+      </div>
+    `;
+
+    principal.appendChild(
+      panelConstancias
+    );
   }
 
  /*
@@ -20227,22 +20305,73 @@ if (
       inicializarReportesDinamicosNexoRH();
     });
 
-    const botonISR = Array.from(
-      menu.querySelectorAll("button")
-    ).find(function (control) {
+      /*
+   * El orden solicitado es:
+   *
+   * ISR / Impuesto vecinal
+   * Cálculo liquidación laboral
+   * Constancias
+   * Reportes dinámicos
+   */
+
+  const botonConstancias =
+    document.getElementById(
+      "botonConstanciasLaborales"
+    );
+
+  const botonLiquidacion =
+    Array.from(
+      menu.querySelectorAll(
+        "button"
+      )
+    ).find(function (
+      control
+    ) {
       return normalizarTextoRDFront_(
         control.textContent
-      ).indexOf("isr / impuesto vecinal") !== -1;
+      ).indexOf(
+        "calculo liquidacion laboral"
+      ) !== -1;
     });
 
-    if (botonISR) {
-      botonISR.insertAdjacentElement(
+  const botonISR =
+    Array.from(
+      menu.querySelectorAll(
+        "button"
+      )
+    ).find(function (
+      control
+    ) {
+      return normalizarTextoRDFront_(
+        control.textContent
+      ).indexOf(
+        "isr / impuesto vecinal"
+      ) !== -1;
+    });
+
+  /*
+   * Primero intenta colocarse después
+   * de Constancias.
+   *
+   * Si Constancias todavía no existe,
+   * utiliza Liquidación o ISR como respaldo.
+   */
+  const botonReferencia =
+    botonConstancias ||
+    botonLiquidacion ||
+    botonISR;
+
+  if (botonReferencia) {
+    botonReferencia
+      .insertAdjacentElement(
         "afterend",
         boton
       );
-    } else {
-      menu.appendChild(boton);
-    }
+  } else {
+    menu.appendChild(
+      boton
+    );
+  }
 
     const panel = document.createElement("section");
     panel.id = "reportesDinamicosNexoRH";
