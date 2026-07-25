@@ -1512,24 +1512,27 @@ select:disabled {
   Ingrese la contraseña autorizada para continuar.
 </p>
 
-    <form
-      id="formAccesoSistema"
-      class="acceso-formulario"
-      onsubmit="validarAccesoSistema(event)"
-    >
+  <form
+  id="formAccesoSistema"
+  class="acceso-formulario"
+  onsubmit="
+    event.preventDefault();
+    validarAccesoSistema(event);
+    return false;
+  "
+>
       <label for="claveAccesoSistema">
         Contraseña
       </label>
 
       <input
-        id="claveAccesoSistema"
-        name="claveAccesoSistema"
-        type="password"
-        autocomplete="current-password"
-        placeholder="Ingrese su contraseña"
-        maxlength="100"
-        required
-      >
+  id="claveAccesoSistema"
+  type="password"
+  autocomplete="current-password"
+  placeholder="Ingrese su contraseña"
+  maxlength="100"
+  required
+>
 
       <button
         id="botonIngresarSistema"
@@ -4236,6 +4239,48 @@ function mostrarMensajeAccesoSistema(
 document.addEventListener(
   "DOMContentLoaded",
   function () {
+    /*
+     * Eliminar de la dirección cualquier
+     * contraseña enviada anteriormente.
+     */
+    const urlActual =
+      new URL(
+        window.location.href
+      );
+
+    if (
+      urlActual.searchParams.has(
+        "claveAccesoSistema"
+      )
+    ) {
+      urlActual.searchParams.delete(
+        "claveAccesoSistema"
+      );
+
+      const direccionLimpia =
+        urlActual.pathname +
+        (
+          urlActual.search
+            ? urlActual.search
+            : ""
+        ) +
+        (
+          urlActual.hash
+            ? urlActual.hash
+            : ""
+        );
+
+      window.history.replaceState(
+        {},
+        document.title,
+        direccionLimpia
+      );
+    }
+
+    /*
+     * Colocar el cursor en el campo
+     * de contraseña.
+     */
     const campoClave =
       document.getElementById(
         "claveAccesoSistema"
@@ -6284,14 +6329,12 @@ mostrarMensajeEmpleado(
           );
         }
 
-        mostrarMensajeEmpleado(
-          respuesta.mensaje,
-          "ok"
-        );
+mostrarMensajeEmpleado(
+  respuesta.mensaje,
+  "ok"
+);
 
-        if (modo === "ingresar") {
-
-        if (modo === "ingresar") {
+if (modo === "ingresar") {
   document
     .getElementById(
       "formEmpleado"
@@ -6305,8 +6348,8 @@ mostrarMensajeEmpleado(
   aplicarReglasCamposEmpleado();
 }
 
-      } catch (error) {
-
+} catch (error) {
+        
         mostrarMensajeEmpleado(
           error.message,
           "error"
