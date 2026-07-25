@@ -3799,7 +3799,7 @@ select:disabled {
      */
 
     const API_URL =
-      "https://script.google.com/macros/s/AKfycbzu-g1GxHMifIe8JRCHuPSRnnY3wZOhMZRZgLwOJMyDCLszjZhzqOCIildkDBp94l8/exec";
+      "https://script.google.com/macros/s/AKfycbz07Ywm-z2UlxqvZyfQ6G2_T0Nf_rN34HKW9u7yBgQmIedkhNURc--J4W3ryZGsWadd/exec";
 
     const camposEmpleado = [
 
@@ -8905,10 +8905,13 @@ impuestoVecinal:
       <h3>Generación de períodos de planilla</h3>
 
       <p>
-        Genere períodos semanales y quincenales para el año seleccionado.
-        Los períodos se guardarán en la hoja
-        <strong>ControlPlanillas</strong>.
-      </p>
+  Genere períodos quincenales y por Hora para el año seleccionado.
+  También se incluirán los períodos de décimo tercer
+  y décimo cuarto mes.
+
+  Los períodos se guardarán en la hoja
+  <strong>ControlPlanillas</strong>.
+</p>
 
       <div class="generacion-periodos-grid">
         <div class="campo-periodo">
@@ -8937,20 +8940,19 @@ impuestoVecinal:
               Quincenal
             </label>
 
-            <label>
-              <input
-                id="tipoSemanal"
-                type="checkbox"
-              >
-              Semanal
-            </label>
+          <label>
+  <input
+    id="tipoHora"
+    type="checkbox"
+  >
+  Por Hora
+</label>
           </div>
         </div>
 
-        <div class="campo-periodo">
-          <label for="inicioSemanas">
-            Fecha de inicio de las semanas
-          </label>
+       <label for="inicioSemanas">
+  Fecha de inicio de los períodos por Hora
+</label>
 
           <input
             id="inicioSemanas"
@@ -9028,45 +9030,86 @@ impuestoVecinal:
     const anioControl =
       document.getElementById("anioControlPlanillas");
 
-    const tipoSemanal =
-      document.getElementById("tipoSemanal");
+    const tipoHora =
+  document.getElementById(
+    "tipoHora"
+  );
 
-    const inicioSemanas =
-      document.getElementById("inicioSemanas");
+const inicioSemanas =
+  document.getElementById(
+    "inicioSemanas"
+  );
 
+anioControl.value =
+  Number(
+    campoAnio.value
+  ) ||
+  new Date().getFullYear();
+
+campoAnio.addEventListener(
+  "change",
+  function () {
     anioControl.value =
-      Number(campoAnio.value) || new Date().getFullYear();
+      campoAnio.value;
 
-    campoAnio.addEventListener("change", function () {
-      anioControl.value = campoAnio.value;
-      limpiarVistaPeriodos();
-    });
+    limpiarVistaPeriodos();
+  }
+);
 
-    anioControl.addEventListener("change", function () {
-      campoAnio.value = anioControl.value;
-      limpiarVistaPeriodos();
-    });
+anioControl.addEventListener(
+  "change",
+  function () {
+    campoAnio.value =
+      anioControl.value;
 
- tipoSemanal.addEventListener("change", function () {
-  inicioSemanas.disabled = !tipoSemanal.checked;
+    limpiarVistaPeriodos();
+  }
+);
 
-  if (tipoSemanal.checked) {
-    if (!inicioSemanas.value) {
-      const anio = Number(anioControl.value);
-      const primerLunes = new Date(anio, 0, 1, 12, 0, 0);
+tipoHora.addEventListener(
+  "change",
+  function () {
+    inicioSemanas.disabled =
+      !tipoHora.checked;
 
-      while (primerLunes.getDay() !== 1) {
-        primerLunes.setDate(primerLunes.getDate() + 1);
+    if (tipoHora.checked) {
+      if (!inicioSemanas.value) {
+        const anio =
+          Number(
+            anioControl.value
+          );
+
+        const primerLunes =
+          new Date(
+            anio,
+            0,
+            1,
+            12,
+            0,
+            0
+          );
+
+        while (
+          primerLunes.getDay() !== 1
+        ) {
+          primerLunes.setDate(
+            primerLunes.getDate() + 1
+          );
+        }
+
+        inicioSemanas.value =
+          fechaISOControl(
+            primerLunes
+          );
       }
 
-      inicioSemanas.value = fechaISOControl(primerLunes);
+    } else {
+      inicioSemanas.value = "";
     }
-  } else {
-    inicioSemanas.value = "";
-  }
 
-  limpiarVistaPeriodos();
-});   
+    limpiarVistaPeriodos();
+  }
+);  
   }
 
   function limpiarVistaPeriodos() {
@@ -9124,143 +9167,585 @@ impuestoVecinal:
       fecha.getFullYear();
   }
 
-  function generarVistaPeriodos() {
-    const anio = Number(
-      document.getElementById("anioControlPlanillas").value
+function generarVistaPeriodos() {
+  const anio = Number(
+    document
+      .getElementById(
+        "anioControlPlanillas"
+      )
+      .value
+  );
+
+  const generarQuincenal =
+    document
+      .getElementById(
+        "tipoQuincenal"
+      )
+      .checked;
+
+  const generarHora =
+    document
+      .getElementById(
+        "tipoHora"
+      )
+      .checked;
+
+  const inicioHora =
+    document
+      .getElementById(
+        "inicioSemanas"
+      )
+      .value;
+
+  const estado =
+    document
+      .getElementById(
+        "estadoInicialPlanilla"
+      )
+      .value;
+
+  if (
+    !anio ||
+    anio < 2000 ||
+    anio > 2100
+  ) {
+    throw new Error(
+      "Ingrese un año válido."
     );
-
-    const generarQuincenal =
-      document.getElementById("tipoQuincenal").checked;
-
-    const generarSemanal =
-      document.getElementById("tipoSemanal").checked;
-
-    const inicioSemanas =
-      document.getElementById("inicioSemanas").value;
-
-    const estado =
-      document.getElementById("estadoInicialPlanilla").value;
-
-    if (!anio || anio < 2000 || anio > 2100) {
-      throw new Error("Ingrese un año válido.");
-    }
-
-    if (!generarQuincenal && !generarSemanal) {
-      throw new Error(
-        "Seleccione al menos un tipo de planilla."
-      );
-    }
-
-    const periodos = [];
-
-    if (generarQuincenal) {
-      let numero = 1;
-
-      for (let mes = 0; mes < 12; mes++) {
-        const primeraDesde =
-          new Date(anio, mes, 1, 12, 0, 0);
-
-        const primeraHasta =
-          new Date(anio, mes, 15, 12, 0, 0);
-
-        periodos.push({
-          codigo:
-            "Q-" + anio + "-" +
-            String(numero).padStart(2, "0"),
-          anio: anio,
-          numero: numero,
-          desde: fechaISOControl(primeraDesde),
-          hasta: fechaISOControl(primeraHasta),
-          tipo: "Quincenal",
-          estado: estado
-        });
-
-        numero++;
-
-        const segundaDesde =
-          new Date(anio, mes, 16, 12, 0, 0);
-
-        const segundaHasta =
-          new Date(anio, mes + 1, 0, 12, 0, 0);
-
-        periodos.push({
-          codigo:
-            "Q-" + anio + "-" +
-            String(numero).padStart(2, "0"),
-          anio: anio,
-          numero: numero,
-          desde: fechaISOControl(segundaDesde),
-          hasta: fechaISOControl(segundaHasta),
-          tipo: "Quincenal",
-          estado: estado
-        });
-
-        numero++;
-      }
-    }
-
-    if (generarSemanal) {
-      if (!inicioSemanas) {
-        throw new Error(
-          "Seleccione la fecha de inicio de las semanas."
-        );
-      }
-
-      let fechaInicio = fechaLocalDesdeTexto(inicioSemanas);
-
-      if (
-        !fechaInicio ||
-        fechaInicio.getFullYear() !== anio
-      ) {
-        throw new Error(
-          "La fecha inicial debe pertenecer al año seleccionado."
-        );
-      }
-
-      const finAnio =
-        new Date(anio, 11, 31, 12, 0, 0);
-
-      let numeroSemanal = 1;
-
-      while (fechaInicio <= finAnio) {
-        let fechaFinal = new Date(fechaInicio);
-        fechaFinal.setDate(fechaFinal.getDate() + 6);
-
-        if (fechaFinal > finAnio) {
-          fechaFinal = new Date(finAnio);
-        }
-
-        periodos.push({
-          codigo:
-            "S-" + anio + "-" +
-            String(numeroSemanal).padStart(2, "0"),
-          anio: anio,
-          numero: numeroSemanal,
-          desde: fechaISOControl(fechaInicio),
-          hasta: fechaISOControl(fechaFinal),
-          tipo: "Semanal",
-          estado: estado
-        });
-
-        fechaInicio = new Date(fechaInicio);
-        fechaInicio.setDate(fechaInicio.getDate() + 7);
-
-        numeroSemanal++;
-      }
-    }
-
-    periodos.sort(function (a, b) {
-      return (
-        a.anio - b.anio ||
-        a.desde.localeCompare(b.desde) ||
-        a.tipo.localeCompare(b.tipo) ||
-        a.numero - b.numero
-      );
-    });
-
-    return periodos;
   }
 
+  if (
+    !generarQuincenal &&
+    !generarHora
+  ) {
+    throw new Error(
+      "Seleccione al menos un tipo de planilla."
+    );
+  }
+
+  const periodos = [];
+
+  function crearPeriodo(
+    codigo,
+    numero,
+    desde,
+    hasta,
+    tipo,
+    orden
+  ) {
+    return {
+      codigo:
+        codigo,
+
+      anio:
+        anio,
+
+      numero:
+        numero,
+
+      desde:
+        fechaISOControl(
+          desde
+        ),
+
+      hasta:
+        fechaISOControl(
+          hasta
+        ),
+
+      tipo:
+        tipo,
+
+      estado:
+        estado,
+
+      /*
+       * Orden interno utilizado para
+       * ubicar los períodos especiales.
+       */
+      orden:
+        orden
+    };
+  }
+
+  function crearPeriodoEspecial(
+    prefijo,
+    clase,
+    numero,
+    desde,
+    hasta,
+    orden
+  ) {
+    return crearPeriodo(
+      prefijo +
+        "-" +
+        anio +
+        "-" +
+        clase,
+
+      numero,
+      desde,
+      hasta,
+      "Anual",
+      orden
+    );
+  }
+
+  /*
+   * ==========================================
+   * PLANILLA QUINCENAL
+   * ==========================================
+   */
+  if (generarQuincenal) {
+    let numeroQuincenal = 1;
+
+    for (
+      let mes = 0;
+      mes < 12;
+      mes++
+    ) {
+      const primeraDesde =
+        new Date(
+          anio,
+          mes,
+          1,
+          12,
+          0,
+          0
+        );
+
+      const primeraHasta =
+        new Date(
+          anio,
+          mes,
+          15,
+          12,
+          0,
+          0
+        );
+
+      periodos.push(
+        crearPeriodo(
+          "Q-" +
+            anio +
+            "-" +
+            String(
+              numeroQuincenal
+            ).padStart(
+              2,
+              "0"
+            ),
+
+          numeroQuincenal,
+          primeraDesde,
+          primeraHasta,
+          "Quincenal",
+          primeraDesde.getTime()
+        )
+      );
+
+      numeroQuincenal++;
+
+      /*
+       * DÉCIMO CUARTO QUINCENAL.
+       *
+       * Se ubica después del período
+       * 01/06 al 15/06.
+       *
+       * Su rango real es:
+       * 01/07 del año anterior
+       * al 30/06 del año generado.
+       */
+      if (mes === 5) {
+        periodos.push(
+          crearPeriodoEspecial(
+            "Q",
+            "D14",
+            25,
+
+            new Date(
+              anio - 1,
+              6,
+              1,
+              12,
+              0,
+              0
+            ),
+
+            new Date(
+              anio,
+              5,
+              30,
+              12,
+              0,
+              0
+            ),
+
+            new Date(
+              anio,
+              5,
+              15,
+              23,
+              59,
+              59
+            ).getTime()
+          )
+        );
+      }
+
+      /*
+       * DÉCIMO TERCERO QUINCENAL.
+       *
+       * Se ubica después del período
+       * 01/12 al 15/12.
+       *
+       * Su rango real es:
+       * 01/01 al 31/12 del año generado.
+       */
+      if (mes === 11) {
+        periodos.push(
+          crearPeriodoEspecial(
+            "Q",
+            "D13",
+            26,
+
+            new Date(
+              anio,
+              0,
+              1,
+              12,
+              0,
+              0
+            ),
+
+            new Date(
+              anio,
+              11,
+              31,
+              12,
+              0,
+              0
+            ),
+
+            new Date(
+              anio,
+              11,
+              15,
+              23,
+              59,
+              59
+            ).getTime()
+          )
+        );
+      }
+
+      const segundaDesde =
+        new Date(
+          anio,
+          mes,
+          16,
+          12,
+          0,
+          0
+        );
+
+      const segundaHasta =
+        new Date(
+          anio,
+          mes + 1,
+          0,
+          12,
+          0,
+          0
+        );
+
+      periodos.push(
+        crearPeriodo(
+          "Q-" +
+            anio +
+            "-" +
+            String(
+              numeroQuincenal
+            ).padStart(
+              2,
+              "0"
+            ),
+
+          numeroQuincenal,
+          segundaDesde,
+          segundaHasta,
+          "Quincenal",
+          segundaDesde.getTime()
+        )
+      );
+
+      numeroQuincenal++;
+    }
+  }
+
+  /*
+   * ==========================================
+   * PLANILLA POR HORA
+   * ==========================================
+   *
+   * Cada período continúa teniendo siete días.
+   */
+  if (generarHora) {
+    if (!inicioHora) {
+      throw new Error(
+        "Seleccione la fecha de inicio de los períodos por Hora."
+      );
+    }
+
+    let fechaInicio =
+      fechaLocalDesdeTexto(
+        inicioHora
+      );
+
+    if (
+      !fechaInicio ||
+      fechaInicio.getFullYear() !==
+        anio
+    ) {
+      throw new Error(
+        "La fecha inicial debe pertenecer al año seleccionado."
+      );
+    }
+
+    const finAnio =
+      new Date(
+        anio,
+        11,
+        31,
+        12,
+        0,
+        0
+      );
+
+    const periodosHora = [];
+
+    let numeroHora = 1;
+
+    while (
+      fechaInicio <= finAnio
+    ) {
+      let fechaFinal =
+        new Date(
+          fechaInicio
+        );
+
+      fechaFinal.setDate(
+        fechaFinal.getDate() + 6
+      );
+
+      if (
+        fechaFinal > finAnio
+      ) {
+        fechaFinal =
+          new Date(
+            finAnio
+          );
+      }
+
+      periodosHora.push(
+        crearPeriodo(
+          "H-" +
+            anio +
+            "-" +
+            String(
+              numeroHora
+            ).padStart(
+              2,
+              "0"
+            ),
+
+          numeroHora,
+          fechaInicio,
+          fechaFinal,
+          "Hora",
+          fechaInicio.getTime()
+        )
+      );
+
+      fechaInicio =
+        new Date(
+          fechaInicio
+        );
+
+      fechaInicio.setDate(
+        fechaInicio.getDate() + 7
+      );
+
+      numeroHora++;
+    }
+
+    periodos.push.apply(
+      periodos,
+      periodosHora
+    );
+
+    /*
+     * Encuentra los períodos por Hora
+     * que cruzan el mes indicado.
+     *
+     * Devuelve una posición inmediatamente
+     * posterior al segundo período.
+     */
+    function obtenerOrdenDespuesSegundaSemana(
+      mes
+    ) {
+      const inicioMes =
+        new Date(
+          anio,
+          mes,
+          1,
+          12,
+          0,
+          0
+        );
+
+      const finMes =
+        new Date(
+          anio,
+          mes + 1,
+          0,
+          12,
+          0,
+          0
+        );
+
+      const semanasMes =
+        periodosHora.filter(
+          function (
+            periodo
+          ) {
+            const desde =
+              fechaLocalDesdeTexto(
+                periodo.desde
+              );
+
+            const hasta =
+              fechaLocalDesdeTexto(
+                periodo.hasta
+              );
+
+            return (
+              desde &&
+              hasta &&
+              hasta >= inicioMes &&
+              desde <= finMes
+            );
+          }
+        );
+
+      const referencia =
+        semanasMes[1] ||
+        semanasMes[0];
+
+      return referencia
+        ? referencia.orden + 1
+        : new Date(
+            anio,
+            mes,
+            15,
+            23,
+            59,
+            59
+          ).getTime();
+    }
+
+    /*
+     * DÉCIMO CUARTO POR HORA.
+     *
+     * No. 54 para evitar duplicarlo
+     * con la numeración normal de semanas.
+     */
+    periodos.push(
+      crearPeriodoEspecial(
+        "H",
+        "D14",
+        54,
+
+        new Date(
+          anio - 1,
+          6,
+          1,
+          12,
+          0,
+          0
+        ),
+
+        new Date(
+          anio,
+          5,
+          30,
+          12,
+          0,
+          0
+        ),
+
+        obtenerOrdenDespuesSegundaSemana(
+          5
+        )
+      )
+    );
+
+    /*
+     * DÉCIMO TERCERO POR HORA.
+     */
+    periodos.push(
+      crearPeriodoEspecial(
+        "H",
+        "D13",
+        55,
+
+        new Date(
+          anio,
+          0,
+          1,
+          12,
+          0,
+          0
+        ),
+
+        new Date(
+          anio,
+          11,
+          31,
+          12,
+          0,
+          0
+        ),
+
+        obtenerOrdenDespuesSegundaSemana(
+          11
+        )
+      )
+    );
+  }
+
+  /*
+   * Ordenar por la posición en la que
+   * debe mostrarse cada período, no por
+   * la fecha Desde del período anual.
+   */
+  periodos.sort(
+    function (
+      a,
+      b
+    ) {
+      return (
+        a.orden -
+          b.orden ||
+        a.codigo.localeCompare(
+          b.codigo
+        )
+      );
+    }
+  );
+
+  return periodos;
+}
   function mostrarVistaPreviaPeriodos() {
     try {
       periodosControlVista = generarVistaPeriodos();
@@ -9296,6 +9781,41 @@ impuestoVecinal:
     }).join("");
   }
 
+function nombreTipoPeriodoControl(
+  periodo
+) {
+  const codigo =
+    String(
+      periodo &&
+      periodo.codigo
+        ? periodo.codigo
+        : ""
+    )
+      .trim()
+      .toUpperCase();
+
+  if (
+    codigo.endsWith(
+      "-D13"
+    )
+  ) {
+    return "Décimo tercer mes";
+  }
+
+  if (
+    codigo.endsWith(
+      "-D14"
+    )
+  ) {
+    return "Décimo cuarto mes";
+  }
+
+  return periodo &&
+    periodo.tipo
+      ? periodo.tipo
+      : "";
+}
+  
   function dibujarTablaPeriodos(periodos, guardados) {
     const cuerpo =
       document.getElementById("cuerpoTablaPeriodos");
@@ -9314,7 +9834,9 @@ impuestoVecinal:
         <td>${periodo.numero}</td>
         <td>${fechaVisibleControl(periodo.desde)}</td>
         <td>${fechaVisibleControl(periodo.hasta)}</td>
-        <td>${periodo.tipo}</td>
+        <td>
+  ${nombreTipoPeriodoControl(periodo)}
+</td>
         <td>
           <select id="estado_${periodo.codigo}">
             ${opcionesEstadoControl(periodo.estado)}
