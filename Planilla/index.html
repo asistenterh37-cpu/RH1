@@ -13346,17 +13346,58 @@ if (
     min-height: 46px;
   }
 
-  .resultado-pago-planilla {
-    width: 100%;
-    margin-top: 18px;
-  }
+ .resultado-pago-planilla {
+  width: 100%;
+  margin-top: 18px;
+}
 
-  .lista-recibos-pago {
-    display: grid;
-    grid-template-columns:
-      repeat(auto-fit, minmax(340px, 1fr));
-    gap: 18px;
-  }
+/*
+ * Después de generar recibos o depósito,
+ * el contenedor utiliza todo el ancho
+ * disponible del panel.
+ */
+.contenedor-pago-planilla.vista-pago-generada {
+  width: 100%;
+  max-width: none;
+  margin-top: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+/*
+ * Recibos en cuadrícula.
+ *
+ * El orden visual será de izquierda
+ * a derecha y de arriba hacia abajo.
+ */
+.lista-recibos-pago {
+  display: grid;
+  grid-template-columns:
+    repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  align-items: start;
+  width: 100%;
+}
+
+.recibo-pago {
+  min-width: 0;
+  height: 100%;
+}
+
+/*
+ * El depósito utiliza todo el ancho,
+ * pero su tabla permanece legible.
+ */
+.vista-deposito-pago {
+  width: 100%;
+}
+
+.acciones-listado-pago.solo-excel {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 14px;
+}
 
   .recibo-pago {
     padding: 22px;
@@ -17707,13 +17748,13 @@ function formatearMonedaHNL(valor) {
               Seleccionar
             </option>
 
-            <option value="recibos">
-              Emitir recibos de pago
-            </option>
+           <option value="recibos">
+  Enviar recibos
+</option>
 
-            <option value="deposito">
-              Generar depósito banco
-            </option>
+<option value="deposito">
+  Generar depósito banco
+</option>
           </select>
 
           <button
@@ -18832,7 +18873,7 @@ function formatearMonedaHNL(valor) {
   }
 }
 
-function ocultarControlesParaRecibosPago() {
+function ocultarControlesParaResultadoPago() {
   var selectorPrincipal =
     document.getElementById(
       "periodoProcesar"
@@ -18859,6 +18900,15 @@ function ocultarControlesParaRecibosPago() {
       "contenedorPeriodoPagoPlanilla"
     );
 
+  var contenedorPago =
+    document.getElementById(
+      "contenedorPagoPlanilla"
+    );
+
+  /*
+   * Ocultar el selector principal
+   * de procesamiento.
+   */
   if (
     selectorPrincipal &&
     selectorPrincipal.parentElement
@@ -18868,10 +18918,23 @@ function ocultarControlesParaRecibosPago() {
       .hidden = true;
   }
 
+  /*
+   * Ocultar los botones:
+   *
+   * Procesar
+   * Revisar
+   * Aplicar
+   * Generar
+   * Pagar
+   */
   if (acciones) {
     acciones.hidden = true;
   }
 
+  /*
+   * Ocultar la operación y el período
+   * utilizados para generar el pago.
+   */
   if (selectorOperacion) {
     selectorOperacion.hidden = true;
   }
@@ -18882,6 +18945,16 @@ function ocultarControlesParaRecibosPago() {
 
   if (contenedorPeriodo) {
     contenedorPeriodo.hidden = true;
+  }
+
+  /*
+   * Permitir que el resultado ocupe
+   * todo el ancho del panel.
+   */
+  if (contenedorPago) {
+    contenedorPago.classList.add(
+      "vista-pago-generada"
+    );
   }
 }
   
@@ -18912,13 +18985,23 @@ function mostrarOpcionesPagoPlanilla() {
         "resultadoPagoPlanilla"
       );
 
-    if (!contenedor || !operacion) {
-      return;
-    }
+    if (
+  !contenedor ||
+  !operacion
+) {
+  return;
+}
 
-    contenedor.hidden = false;
-    operacion.value = "";
+/*
+ * Restablecer el formato inicial cuando
+ * se vuelve a abrir Pagar planilla.
+ */
+contenedor.classList.remove(
+  "vista-pago-generada"
+);
 
+contenedor.hidden = false;
+operacion.value = "";
     if (periodo) {
       periodo.innerHTML =
         '<option value="">Seleccionar</option>';
@@ -19045,152 +19128,263 @@ function mostrarOpcionesPagoPlanilla() {
   }
 
   async function generarOperacionPagoPlanilla() {
-    var selectorOperacion =
-      document.getElementById(
-        "opcionPagoPlanilla"
-      );
-
-    var selectorPeriodo =
-      document.getElementById(
-        "periodoPagoPlanilla"
-      );
-
-    var boton =
-      document.getElementById(
-        "botonGenerarPagoPlanilla"
-      );
-
-    if (
-      !selectorOperacion ||
-      !selectorOperacion.value
-    ) {
-      mensajeProcesarPlanilla(
-        "Seleccione la operación de pago.",
-        "error"
-      );
-      return;
-    }
-
-    if (
-      !selectorPeriodo ||
-      !selectorPeriodo.value
-    ) {
-      mensajeProcesarPlanilla(
-        "Seleccione el período de pago.",
-        "error"
-      );
-      return;
-    }
-
-    boton.disabled = true;
-
-    mensajeProcesarPlanilla(
-      selectorOperacion.value === "recibos"
-        ? "Generando recibos de pago..."
-        : "Generando depósito bancario...",
-      "info"
+  var selectorOperacion =
+    document.getElementById(
+      "opcionPagoPlanilla"
     );
 
-    try {
-      var respuesta = await jsonp(
+  var selectorPeriodo =
+    document.getElementById(
+      "periodoPagoPlanilla"
+    );
+
+  var boton =
+    document.getElementById(
+      "botonGenerarPagoPlanilla"
+    );
+
+  if (
+    !selectorOperacion ||
+    !selectorOperacion.value
+  ) {
+    mensajeProcesarPlanilla(
+      "Seleccione la operación de pago.",
+      "error"
+    );
+
+    return;
+  }
+
+  if (
+    !selectorPeriodo ||
+    !selectorPeriodo.value
+  ) {
+    mensajeProcesarPlanilla(
+      "Seleccione el período de pago.",
+      "error"
+    );
+
+    return;
+  }
+
+  var esEnvioRecibos =
+    selectorOperacion.value ===
+    "recibos";
+
+  /*
+   * Confirmar antes de enviar correos.
+   */
+  if (esEnvioRecibos) {
+    var confirmar =
+      window.confirm(
+        "Se generarán los recibos y se enviará " +
+        "cada uno al correo registrado en Maestro " +
+        "para el No. de personal correspondiente. " +
+        "¿Desea continuar?"
+      );
+
+    if (!confirmar) {
+      return;
+    }
+  }
+
+  boton.disabled = true;
+
+  mensajeProcesarPlanilla(
+    esEnvioRecibos
+      ? "Generando recibos de pago..."
+      : "Generando depósito bancario...",
+    "info"
+  );
+
+  try {
+    /*
+     * Primero generar la información
+     * que se mostrará en pantalla.
+     */
+    var respuesta =
+      await jsonp(
         "generarPagoPlanilla",
         {
-          codigo: selectorPeriodo.value,
-          operacion: selectorOperacion.value
+          codigo:
+            selectorPeriodo.value,
+
+          operacion:
+            selectorOperacion.value
         }
       );
 
-      if (!respuesta || !respuesta.ok) {
+    if (
+      !respuesta ||
+      !respuesta.ok
+    ) {
+      throw new Error(
+        respuesta &&
+        respuesta.mensaje
+          ? respuesta.mensaje
+          : "No fue posible generar la información."
+      );
+    }
+
+    mostrarResultadoPagoPlanilla(
+      respuesta
+    );
+
+    /*
+     * Cuando la operación sea recibos,
+     * enviarlos automáticamente.
+     *
+     * El GS cruza:
+     *
+     * Recibo.No. de personal
+     * con Maestro!A
+     *
+     * y toma el correo de Maestro!O.
+     */
+    if (esEnvioRecibos) {
+      mensajeProcesarPlanilla(
+        "Recibos generados. Enviando correos...",
+        "info"
+      );
+
+      var envio =
+        await jsonp(
+          "enviarRecibosPagoCorreo",
+          {
+            codigo:
+              selectorPeriodo.value
+          }
+        );
+
+      if (
+        !envio ||
+        !envio.ok
+      ) {
         throw new Error(
-          respuesta && respuesta.mensaje
-            ? respuesta.mensaje
-            : "No fue posible generar la información."
+          envio &&
+          envio.mensaje
+            ? "Los recibos se mostraron, pero " +
+              envio.mensaje
+            : "Los recibos se mostraron, pero no fue posible enviarlos."
         );
       }
 
-      mostrarResultadoPagoPlanilla(respuesta);
-
       mensajeProcesarPlanilla(
-        respuesta.mensaje,
+        envio.mensaje,
         "ok"
       );
-    } catch (error) {
-      mensajeProcesarPlanilla(
-        error.message ||
-          "No fue posible generar la operación de pago.",
-        "error"
-      );
-    } finally {
-      boton.disabled = false;
-    }
-  }
-
-  function mostrarResultadoPagoPlanilla(
-    respuesta
-  ) {
-    var contenedor =
-      document.getElementById(
-        "resultadoPagoPlanilla"
-      );
-
-    if (!contenedor) {
-      return;
-    }
-
-    var resultadoPlanilla =
-      document.getElementById(
-        "contenedorResultadoPlanilla"
-      );
-
-    var revisionPlanilla =
-      document.getElementById(
-        "contenedorRevisionPlanilla"
-      );
-
-    var resumenPlanilla =
-      document.getElementById(
-        "resumenProcesarPlanilla"
-      );
-
-    /*
-     * Al mostrar el pago, ocultar el formato
-     * procesado o revisado de la planilla.
-     */
-    if (resultadoPlanilla) {
-      resultadoPlanilla.hidden = true;
-    }
-
-    if (revisionPlanilla) {
-      revisionPlanilla.hidden = true;
-    }
-
-    if (resumenPlanilla) {
-      resumenPlanilla.textContent = "";
-    }
-
-    contenedor.hidden = false;
-    contenedor.innerHTML = "";
-        if (
-      respuesta.tipo ===
-      "recibos"
-    ) {
-      ocultarControlesParaRecibosPago();
-
-      mostrarRecibosPago(
-        contenedor,
-        respuesta.recibos || []
-      );
 
       return;
     }
-    
-    mostrarListadoDeposito(
-      contenedor,
-      respuesta.depositos || [],
-      respuesta.totalDeposito || 0,
-      respuesta.omitidos || []
+
+    mensajeProcesarPlanilla(
+      respuesta.mensaje,
+      "ok"
     );
+
+  } catch (error) {
+    mensajeProcesarPlanilla(
+      error &&
+      error.message
+        ? error.message
+        : "No fue posible generar la operación de pago.",
+      "error"
+    );
+
+  } finally {
+    boton.disabled = false;
   }
+}
+
+  
+  function mostrarResultadoPagoPlanilla(
+  respuesta
+) {
+  var contenedor =
+    document.getElementById(
+      "resultadoPagoPlanilla"
+    );
+
+  if (!contenedor) {
+    return;
+  }
+
+  var resultadoPlanilla =
+    document.getElementById(
+      "contenedorResultadoPlanilla"
+    );
+
+  var revisionPlanilla =
+    document.getElementById(
+      "contenedorRevisionPlanilla"
+    );
+
+  var resumenPlanilla =
+    document.getElementById(
+      "resumenProcesarPlanilla"
+    );
+
+  /*
+   * Ocultar resultados anteriores.
+   */
+  if (resultadoPlanilla) {
+    resultadoPlanilla.hidden = true;
+  }
+
+  if (revisionPlanilla) {
+    revisionPlanilla.hidden = true;
+  }
+
+  if (resumenPlanilla) {
+    resumenPlanilla.textContent = "";
+  }
+
+  /*
+   * Ocultar todos los controles del módulo
+   * y ampliar la vista del resultado.
+   */
+  ocultarControlesParaResultadoPago();
+
+  contenedor.hidden = false;
+  contenedor.innerHTML = "";
+
+  /*
+   * RECIBOS:
+   *
+   * Solo mostrar recibos.
+   * No mostrar botones.
+   */
+  if (
+    respuesta.tipo ===
+    "recibos"
+  ) {
+    mostrarRecibosPago(
+      contenedor,
+      respuesta.recibos || [],
+      {
+        mostrarAcciones: false
+      }
+    );
+
+    return;
+  }
+
+  /*
+   * DEPÓSITO:
+   *
+   * Mostrar únicamente la vista
+   * y el botón Enviar a Excel.
+   */
+  mostrarListadoDeposito(
+    contenedor,
+    respuesta.depositos || [],
+    respuesta.totalDeposito || 0,
+    respuesta.omitidos || [],
+    {
+      soloExcel: true
+    }
+  );
+}
 
   function imprimirResultadoPago() {
     var contenedor =
@@ -19482,107 +19676,182 @@ function mostrarOpcionesPagoPlanilla() {
         ventana.close();
       };
   }
-  
-    function mostrarRecibosPago(
-    contenedor,
-    recibos
-  ) {
-    if (!recibos.length) {
-      contenedor.innerHTML =
-        "<p>No existen recibos para mostrar.</p>";
-      return;
-    }
+  function mostrarRecibosPago(
+  contenedor,
+  recibos,
+  opciones
+) {
+  opciones =
+    opciones || {};
 
-    var html =
+  var lista =
+    Array.isArray(
+      recibos
+    )
+      ? recibos.slice()
+      : [];
+
+  /*
+   * Orden alfabético por Nombre.
+   */
+  lista.sort(function (
+    a,
+    b
+  ) {
+    return String(
+      a && a.nombre
+        ? a.nombre
+        : ""
+    ).localeCompare(
+      String(
+        b && b.nombre
+          ? b.nombre
+          : ""
+      ),
+      "es",
+      {
+        sensitivity:
+          "base"
+      }
+    );
+  });
+
+  if (!lista.length) {
+    contenedor.innerHTML =
+      "<p>No existen recibos para mostrar.</p>";
+
+    return;
+  }
+
+  var html = "";
+
+  /*
+   * Se conserva esta opción para otros
+   * módulos que todavía utilicen botones.
+   *
+   * En Procesar planilla se envía:
+   *
+   * mostrarAcciones: false
+   */
+  if (
+    opciones.mostrarAcciones !==
+    false
+  ) {
+    html +=
       '<div class="acciones-listado-pago">' +
 
-   '<button type="button" ' +
-  'class="boton-secundario" ' +
-  'onclick="imprimirResultadoPago()">' +
-  "Imprimir recibos" +
-  "</button>" +     
+        '<button type="button" ' +
+          'class="boton-secundario" ' +
+          'onclick="imprimirResultadoPago()">' +
+          "Imprimir recibos" +
+        "</button>" +
 
         '<button type="button" ' +
           'class="boton-guardar" ' +
           'onclick="enviarRecibosPagoPorCorreo(this)">' +
           "Enviar recibos" +
         "</button>" +
-      "</div>" +
-      '<div class="lista-recibos-pago">';
 
-    recibos.forEach(function (recibo) {
-      html +=
-        '<article class="recibo-pago">' +
-          '<h3 class="recibo-empresa">Empresa</h3>' +
-
-          '<p class="recibo-periodo">' +
-            "<strong>Recibo de pago:</strong> " +
-            escaparPagoPlanilla(recibo.periodo) +
-          "</p>" +
-
-          '<div class="recibo-datos">' +
-            "<div><strong>Nombre:</strong> " +
-              escaparPagoPlanilla(recibo.nombre) +
-            "</div>" +
-
-            "<div><strong>No. de personal:</strong> " +
-              escaparPagoPlanilla(recibo.numero) +
-            "</div>" +
-
-            "<div><strong>Departamento:</strong> " +
-              escaparPagoPlanilla(
-                recibo.departamento
-              ) +
-            "</div>" +
-
-            "<div><strong>Planilla:</strong> " +
-              escaparPagoPlanilla(recibo.planilla) +
-            "</div>" +
-          "</div>" +
-
-          generarTablaConceptosPago(
-            "Ingresos",
-            recibo.ingresos || []
-          ) +
-
-          '<div class="total-recibo">' +
-            "<span>Total ingresos</span>" +
-            "<span>" +
-              formatearMonedaPago(
-                recibo.totalIngresos
-              ) +
-            "</span>" +
-          "</div>" +
-
-          generarTablaConceptosPago(
-            "Deducciones",
-            recibo.deducciones || []
-          ) +
-
-          '<div class="total-recibo">' +
-            "<span>Total deducciones</span>" +
-            "<span>" +
-              formatearMonedaPago(
-                recibo.totalDeducciones
-              ) +
-            "</span>" +
-          "</div>" +
-
-          '<div class="total-recibo neto-recibo">' +
-            "<span>Neto a pagar</span>" +
-            "<span>" +
-              formatearMonedaPago(
-                recibo.netoPagar
-              ) +
-            "</span>" +
-          "</div>" +
-        "</article>";
-    });
-
-    html += "</div>";
-
-    contenedor.innerHTML = html;
+      "</div>";
   }
+
+  html +=
+    '<div class="lista-recibos-pago">';
+
+  lista.forEach(function (
+    recibo
+  ) {
+    html +=
+      '<article class="recibo-pago">' +
+
+        '<h3 class="recibo-empresa">' +
+          "Empresa" +
+        "</h3>" +
+
+        '<p class="recibo-periodo">' +
+          "<strong>Recibo de pago:</strong> " +
+          escaparPagoPlanilla(
+            recibo.periodo
+          ) +
+        "</p>" +
+
+        '<div class="recibo-datos">' +
+
+          "<div><strong>Nombre:</strong> " +
+            escaparPagoPlanilla(
+              recibo.nombre
+            ) +
+          "</div>" +
+
+          "<div><strong>No. de personal:</strong> " +
+            escaparPagoPlanilla(
+              recibo.numero
+            ) +
+          "</div>" +
+
+          "<div><strong>Departamento:</strong> " +
+            escaparPagoPlanilla(
+              recibo.departamento
+            ) +
+          "</div>" +
+
+          "<div><strong>Planilla:</strong> " +
+            escaparPagoPlanilla(
+              recibo.planilla
+            ) +
+          "</div>" +
+
+        "</div>" +
+
+        generarTablaConceptosPago(
+          "Ingresos",
+          recibo.ingresos || []
+        ) +
+
+        '<div class="total-recibo">' +
+          "<span>Total ingresos</span>" +
+
+          "<span>" +
+            formatearMonedaPago(
+              recibo.totalIngresos
+            ) +
+          "</span>" +
+        "</div>" +
+
+        generarTablaConceptosPago(
+          "Deducciones",
+          recibo.deducciones || []
+        ) +
+
+        '<div class="total-recibo">' +
+          "<span>Total deducciones</span>" +
+
+          "<span>" +
+            formatearMonedaPago(
+              recibo.totalDeducciones
+            ) +
+          "</span>" +
+        "</div>" +
+
+        '<div class="total-recibo neto-recibo">' +
+          "<span>Neto a pagar</span>" +
+
+          "<span>" +
+            formatearMonedaPago(
+              recibo.netoPagar
+            ) +
+          "</span>" +
+        "</div>" +
+
+      "</article>";
+  });
+
+  html +=
+    "</div>";
+
+  contenedor.innerHTML =
+    html;
+}
 
   async function enviarRecibosPagoPorCorreo(
     boton
@@ -19693,77 +19962,375 @@ function mostrarOpcionesPagoPlanilla() {
     return html + "</tbody></table>";
   }
 
-  function mostrarListadoDeposito(
-    contenedor,
-    depositos,
-    total,
-    omitidos
-  ) {
-    var html =
-      '<div class="acciones-listado-pago">' +
-        '<button type="button" ' +
-  'class="boton-secundario" ' +
-  'onclick="imprimirResultadoPago()">' +
-  "Imprimir listado" +
-  "</button>" +
-      
-      "</div>" +
-      '<div class="resumen-deposito">' +
-        '<table class="tabla-pago">' +
-          "<thead>" +
-            "<tr>" +
-              "<th>No. de cuenta</th>" +
-              "<th>Valor</th>" +
-            "</tr>" +
-          "</thead>" +
-          "<tbody>";
+function mostrarListadoDeposito(
+  contenedor,
+  depositos,
+  total,
+  omitidos,
+  opciones
+) {
+  opciones =
+    opciones || {};
 
-    if (!depositos.length) {
-      html +=
-        '<tr><td colspan="2">' +
-          "No existen depósitos para mostrar." +
-        "</td></tr>";
-    } else {
-      depositos.forEach(function (deposito) {
-        html +=
-          "<tr>" +
-            "<td>" +
-              escaparPagoPlanilla(
-                deposito.numeroCuenta
-              ) +
-            "</td>" +
-            "<td>" +
-              formatearMonedaPago(
-                deposito.valor
-              ) +
-            "</td>" +
-          "</tr>";
-      });
-    }
+  var lista =
+    Array.isArray(
+      depositos
+    )
+      ? depositos
+      : [];
 
+  var omitidosLista =
+    Array.isArray(
+      omitidos
+    )
+      ? omitidos
+      : [];
+
+  var html =
+    '<div class="vista-deposito-pago">';
+
+  /*
+   * En Procesar planilla solamente
+   * mostrar Enviar a Excel.
+   */
+  if (opciones.soloExcel) {
     html +=
-          "</tbody>" +
-        "</table>" +
-        '<div class="total-recibo neto-recibo">' +
-          "<span>Total depósito</span>" +
-          "<span>" +
-            formatearMonedaPago(total) +
-          "</span>" +
-        "</div>";
+      '<div class="acciones-listado-pago solo-excel">' +
 
-    if (omitidos.length) {
-      html +=
-        "<p><strong>Advertencia:</strong> " +
-        omitidos.length +
-        " empleado(s) fueron omitidos por no tener " +
-        "número de cuenta o valor neto positivo.</p>";
-    }
+        '<button ' +
+          'type="button" ' +
+          'class="guardar" ' +
+          'onclick="enviarDepositoAExcel(this)">' +
 
-    html += "</div>";
+          "Enviar a Excel" +
 
-    contenedor.innerHTML = html;
+        "</button>" +
+
+      "</div>";
+
+  } else {
+    /*
+     * Compatibilidad con los módulos
+     * anteriores de décimos.
+     */
+    html +=
+      '<div class="acciones-listado-pago">' +
+
+        '<button ' +
+          'type="button" ' +
+          'class="boton-secundario" ' +
+          'onclick="imprimirResultadoPago()">' +
+
+          "Imprimir listado" +
+
+        "</button>" +
+
+      "</div>";
   }
 
+  html +=
+    '<div class="resumen-deposito">' +
+
+      '<table class="tabla-pago tabla-deposito-excel">' +
+
+        "<thead>" +
+          "<tr>" +
+            "<th>No. de cuenta</th>" +
+            "<th>Valor</th>" +
+          "</tr>" +
+        "</thead>" +
+
+        "<tbody>";
+
+  if (!lista.length) {
+    html +=
+      '<tr class="fila-sin-depositos">' +
+
+        '<td colspan="2">' +
+          "No existen depósitos para mostrar." +
+        "</td>" +
+
+      "</tr>";
+
+  } else {
+    lista.forEach(function (
+      deposito
+    ) {
+      var valorNumerico =
+        Number(
+          deposito.valor || 0
+        );
+
+      html +=
+        "<tr>" +
+
+          "<td>" +
+            escaparPagoPlanilla(
+              deposito.numeroCuenta
+            ) +
+          "</td>" +
+
+          '<td data-excel-valor="' +
+            escaparPagoPlanilla(
+              String(
+                valorNumerico
+              )
+            ) +
+          '">' +
+
+            formatearMonedaPago(
+              valorNumerico
+            ) +
+
+          "</td>" +
+
+        "</tr>";
+    });
+  }
+
+  html +=
+        "</tbody>" +
+
+      "</table>" +
+
+      '<div class="total-recibo neto-recibo">' +
+
+        "<span>Total depósito</span>" +
+
+        '<span data-total-deposito="' +
+          escaparPagoPlanilla(
+            String(
+              Number(total || 0)
+            )
+          ) +
+        '">' +
+
+          formatearMonedaPago(
+            total
+          ) +
+
+        "</span>" +
+
+      "</div>";
+
+  if (omitidosLista.length) {
+    html +=
+      "<p><strong>Advertencia:</strong> " +
+
+      omitidosLista.length +
+
+      " empleado(s) fueron omitidos por no tener " +
+      "número de cuenta o valor neto positivo.</p>";
+  }
+
+  html +=
+      "</div>" +
+    "</div>";
+
+  contenedor.innerHTML =
+    html;
+}
+
+/*
+ * Exporta el depósito a un archivo CSV
+ * compatible con Microsoft Excel.
+ */
+function enviarDepositoAExcel(
+  boton
+) {
+  var vista =
+    boton
+      ? boton.closest(
+          ".vista-deposito-pago"
+        )
+      : null;
+
+  var tabla =
+    vista
+      ? vista.querySelector(
+          ".tabla-deposito-excel"
+        )
+      : null;
+
+  if (!tabla) {
+    mensajeProcesarPlanilla(
+      "No existe un depósito para enviar a Excel.",
+      "error"
+    );
+
+    return;
+  }
+
+  var filas = [
+    [
+      "No. de cuenta",
+      "Valor"
+    ]
+  ];
+
+  tabla
+    .querySelectorAll(
+      "tbody tr"
+    )
+    .forEach(function (
+      fila
+    ) {
+      if (
+        fila.classList.contains(
+          "fila-sin-depositos"
+        )
+      ) {
+        return;
+      }
+
+      var celdas =
+        fila.querySelectorAll(
+          "td"
+        );
+
+      if (celdas.length < 2) {
+        return;
+      }
+
+      filas.push([
+        celdas[0]
+          .textContent
+          .trim(),
+
+        celdas[1]
+          .getAttribute(
+            "data-excel-valor"
+          ) || "0"
+      ]);
+    });
+
+  if (filas.length === 1) {
+    mensajeProcesarPlanilla(
+      "No existen depósitos para enviar a Excel.",
+      "error"
+    );
+
+    return;
+  }
+
+  var totalElemento =
+    vista.querySelector(
+      "[data-total-deposito]"
+    );
+
+  filas.push([
+    "Total depósito",
+
+    totalElemento
+      ? totalElemento.getAttribute(
+          "data-total-deposito"
+        ) || "0"
+      : "0"
+  ]);
+
+  /*
+   * Proteger textos que contienen
+   * comillas o caracteres especiales.
+   */
+  function escaparCeldaExcel(
+    valor
+  ) {
+    var texto =
+      String(
+        valor === null ||
+        valor === undefined
+          ? ""
+          : valor
+      );
+
+    return (
+      '"' +
+      texto.replace(
+        /"/g,
+        '""'
+      ) +
+      '"'
+    );
+  }
+
+  /*
+   * Se utiliza punto y coma como separador
+   * para compatibilidad con Excel en español.
+   */
+  var contenido =
+    "\uFEFF" +
+    filas
+      .map(function (
+        fila
+      ) {
+        return fila
+          .map(
+            escaparCeldaExcel
+          )
+          .join(";");
+      })
+      .join("\r\n");
+
+  var archivo =
+    new Blob(
+      [
+        contenido
+      ],
+      {
+        type:
+          "text/csv;charset=utf-8;"
+      }
+    );
+
+  var selectorPeriodo =
+    document.getElementById(
+      "periodoPagoPlanilla"
+    );
+
+  var codigo =
+    selectorPeriodo
+      ? String(
+          selectorPeriodo.value ||
+          "planilla"
+        ).trim()
+      : "planilla";
+
+  codigo =
+    codigo.replace(
+      /[^a-zA-Z0-9_-]/g,
+      "_"
+    );
+
+  var enlace =
+    document.createElement(
+      "a"
+    );
+
+  var url =
+    URL.createObjectURL(
+      archivo
+    );
+
+  enlace.href =
+    url;
+
+  enlace.download =
+    "deposito_" +
+    codigo +
+    ".csv";
+
+  document.body.appendChild(
+    enlace
+  );
+
+  enlace.click();
+  enlace.remove();
+
+  URL.revokeObjectURL(
+    url
+  );
+}
+  
   function formatearMonedaPago(valor) {
     return new Intl.NumberFormat(
       "es-HN",
