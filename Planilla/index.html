@@ -3894,7 +3894,7 @@ function mostrarTablaOrdTe(
      */
 
     const API_URL =
-      "https://script.google.com/macros/s/AKfycbx013txTsxFTja_ULZJ9gR9jrUarGeVX0F_RmMZwp94ZuB6Fdq2OAWTE_hfLT6xfhXZ/exec";
+      "https://script.google.com/macros/s/AKfycbzG1f_8M4iK6ped07zrU8bY7OsFG9dJg8aDdyjStDTIyRYsgjOtomBtjOPwqVlE-nT_/exec";
 
     const camposEmpleado = [
 
@@ -8077,6 +8077,140 @@ async function buscarEmpleadoIngreso() {
     }
   }
 
+/*
+ * =====================================================
+ * CONSTANCIAS LABORALES
+ * =====================================================
+ */
+
+.constancia-controles {
+  display: grid;
+  grid-template-columns:
+    minmax(220px, 320px)
+    minmax(260px, 480px)
+    auto;
+  gap: 16px;
+  align-items: end;
+  margin-top: 20px;
+}
+
+.constancia-campo-empleado[hidden] {
+  display: none !important;
+}
+
+.constancia-campo-empleado {
+  display: contents;
+}
+
+.constancia-campo-empleado > div {
+  min-width: 0;
+}
+
+.constancia-boton-emitir {
+  min-width: 150px;
+  margin: 0;
+  color: #ffffff;
+  background: #15803d;
+}
+
+.resultado-constancia {
+  width: 100%;
+  margin-top: 24px;
+}
+
+.constancia-documento {
+  width: 100%;
+  max-width: 850px;
+  min-height: 900px;
+  margin: 0 auto;
+  padding: 65px 75px;
+  border: 1px solid #d7dfeb;
+  background: #ffffff;
+  color: #111827;
+  font-family:
+    Arial,
+    sans-serif;
+  font-size: 18px;
+  line-height: 1.65;
+  box-shadow:
+    0 8px 25px
+    rgba(15, 23, 42, 0.10);
+}
+
+.constancia-documento p {
+  margin: 0 0 18px;
+  text-align: justify;
+}
+
+.constancia-documento
+.constancia-encabezado {
+  margin-bottom: 42px;
+  text-align: left;
+  font-weight: 700;
+}
+
+.constancia-atentamente {
+  margin-top: 40px !important;
+  text-align: left !important;
+}
+
+.constancia-firma {
+  width: 330px;
+  margin-top: 75px;
+  text-align: center;
+}
+
+.constancia-firma-linea {
+  border-top: 1px solid #111827;
+  padding-top: 8px;
+}
+
+@media (max-width: 800px) {
+  .constancia-controles {
+    grid-template-columns: 1fr;
+  }
+
+  .constancia-campo-empleado {
+    display: contents;
+  }
+
+  .constancia-documento {
+    min-height: auto;
+    padding: 32px 24px;
+    font-size: 16px;
+  }
+
+  .constancia-firma {
+    width: 100%;
+  }
+}
+
+/*
+ * Al imprimir, mostrar solamente
+ * la constancia emitida.
+ */
+@media print {
+  #resultadoConstanciaLaboral,
+  #resultadoConstanciaLaboral * {
+    visibility: visible;
+  }
+
+  #resultadoConstanciaLaboral {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    margin: 0;
+  }
+
+  .constancia-documento {
+    max-width: none;
+    min-height: auto;
+    padding: 40px 60px;
+    border: 0;
+    box-shadow: none;
+  }
+}
+  
 </style>
 
 <script>
@@ -14707,59 +14841,68 @@ crearModuloDecimoMes(
     calcularLiquidacionesGrupo;
   }
 
-  /*
-   * MÓDULO CONSTANCIAS.
-   */
-  if (
-    !document.getElementById(
-      "constanciasLaborales"
-    )
-  ) {
-    const botonConstancias =
-      document.createElement(
-        "button"
-      );
-
-    botonConstancias.id =
-      "botonConstanciasLaborales";
-
-    botonConstancias.type =
-      "button";
-
-    botonConstancias.textContent =
-      "Constancias";
-
-    botonConstancias.onclick =
-      function () {
-        abrirPanel(
-          "constanciasLaborales",
-          botonConstancias
-        );
-      };
-
-    /*
-     * Se agrega después del botón
-     * Cálculo liquidación laboral.
-     */
-    menu.appendChild(
-      botonConstancias
+/*
+ * MÓDULO CONSTANCIAS.
+ */
+if (
+  !document.getElementById(
+    "constanciasLaborales"
+  )
+) {
+  const botonConstancias =
+    document.createElement(
+      "button"
     );
 
-    const panelConstancias =
-      document.createElement(
-        "section"
+  botonConstancias.id =
+    "botonConstanciasLaborales";
+
+  botonConstancias.type =
+    "button";
+
+  botonConstancias.textContent =
+    "Constancias";
+
+  botonConstancias.onclick =
+    function () {
+      abrirPanel(
+        "constanciasLaborales",
+        botonConstancias
       );
 
-    panelConstancias.id =
-      "constanciasLaborales";
+      prepararModuloConstanciasLaborales();
+    };
 
-    panelConstancias.className =
-      "panel";
+  /*
+   * Se agrega después del botón
+   * Cálculo liquidación laboral.
+   */
+  menu.appendChild(
+    botonConstancias
+  );
 
-    panelConstancias.innerHTML = `
-      <h2>Constancias</h2>
+  const panelConstancias =
+    document.createElement(
+      "section"
+    );
 
-      <div class="acciones">
+  panelConstancias.id =
+    "constanciasLaborales";
+
+  panelConstancias.className =
+    "panel";
+
+  panelConstancias.innerHTML = `
+    <h2>Constancias</h2>
+
+    <p>
+      Seleccione el tipo de constancia
+      y el nombre del empleado.
+    </p>
+
+    <div class="constancia-controles">
+
+      <div>
         <label for="tipoConstanciaLaboral">
           Tipo de constancia
         </label>
@@ -14778,13 +14921,69 @@ crearModuloDecimoMes(
           </option>
         </select>
       </div>
-    `;
 
-    principal.appendChild(
-      panelConstancias
-    );
-  }
+      <div
+        id="campoEmpleadoConstanciaLaboral"
+        class="constancia-campo-empleado"
+        hidden
+      >
 
+        <div>
+          <label for="empleadoConstanciaLaboral">
+            Nombre
+          </label>
+
+          <select id="empleadoConstanciaLaboral">
+            <option value="">
+              Seleccionar
+            </option>
+          </select>
+        </div>
+
+        <button
+          id="botonEmitirConstanciaLaboral"
+          type="button"
+          class="constancia-boton-emitir"
+        >
+          Emitir
+        </button>
+
+      </div>
+
+    </div>
+
+    <div
+      id="mensajeConstanciaLaboral"
+      class="mensaje"
+      aria-live="polite"
+    ></div>
+
+    <div
+      id="resultadoConstanciaLaboral"
+      class="resultado-constancia"
+      hidden
+    ></div>
+  `;
+
+  principal.appendChild(
+    panelConstancias
+  );
+
+  document.getElementById(
+    "tipoConstanciaLaboral"
+  ).addEventListener(
+    "change",
+    cambiarTipoConstanciaLaboral
+  );
+
+  document.getElementById(
+    "botonEmitirConstanciaLaboral"
+  ).addEventListener(
+    "click",
+    emitirConstanciaLaboral
+  );
+}
+  
  /*
  * MÓDULO ANÁLISIS IA.
  */
@@ -25954,7 +26153,788 @@ function alternarFuenteReporteDinamicoNexoRH(
       .replace(/^_+|_+$/g, "") ||
       "reporte_dinamico_nexorh";
   }
+/*
+ * =====================================================
+ * CONSTANCIAS LABORALES
+ * =====================================================
+ */
 
+var configuracionConstanciaLaboral = {
+  empresa:
+    "",
+
+  ciudad:
+    ""
+};
+
+/*
+ * Limpia y prepara la pantalla
+ * cuando se abre Constancias.
+ */
+async function prepararModuloConstanciasLaborales() {
+  var tipo =
+    document.getElementById(
+      "tipoConstanciaLaboral"
+    );
+
+  var bloqueEmpleado =
+    document.getElementById(
+      "campoEmpleadoConstanciaLaboral"
+    );
+
+  var resultado =
+    document.getElementById(
+      "resultadoConstanciaLaboral"
+    );
+
+  if (tipo) {
+    tipo.value =
+      "";
+  }
+
+  if (bloqueEmpleado) {
+    bloqueEmpleado.hidden =
+      true;
+  }
+
+  if (resultado) {
+    resultado.hidden =
+      true;
+
+    resultado.innerHTML =
+      "";
+  }
+
+  mostrarMensajeConstanciaLaboral(
+    "Cargando empleados desde Maestro...",
+    "info"
+  );
+
+  await cargarEmpleadosConstanciaLaboral();
+}
+
+/*
+ * Muestra el selector Nombre solamente
+ * después de seleccionar el tipo.
+ */
+function cambiarTipoConstanciaLaboral() {
+  var tipo =
+    document.getElementById(
+      "tipoConstanciaLaboral"
+    );
+
+  var bloqueEmpleado =
+    document.getElementById(
+      "campoEmpleadoConstanciaLaboral"
+    );
+
+  var empleado =
+    document.getElementById(
+      "empleadoConstanciaLaboral"
+    );
+
+  var resultado =
+    document.getElementById(
+      "resultadoConstanciaLaboral"
+    );
+
+  if (!tipo || !bloqueEmpleado) {
+    return;
+  }
+
+  bloqueEmpleado.hidden =
+    !tipo.value;
+
+  if (resultado) {
+    resultado.hidden =
+      true;
+
+    resultado.innerHTML =
+      "";
+  }
+
+  if (tipo.value && empleado) {
+    empleado.focus();
+
+    mostrarMensajeConstanciaLaboral(
+      "Seleccione el nombre del empleado.",
+      "info"
+    );
+
+  } else {
+    mostrarMensajeConstanciaLaboral(
+      "",
+      ""
+    );
+  }
+}
+
+/*
+ * Carga Maestro:
+ *
+ * A = Pin.
+ * B = Nombre.
+ */
+async function cargarEmpleadosConstanciaLaboral() {
+  var selector =
+    document.getElementById(
+      "empleadoConstanciaLaboral"
+    );
+
+  if (!selector) {
+    return;
+  }
+
+  selector.disabled =
+    true;
+
+  selector.innerHTML =
+    '<option value="">Cargando...</option>';
+
+  try {
+    var respuesta =
+      await jsonp(
+        "listarEmpleadosConstancia",
+        {}
+      );
+
+    if (
+      !respuesta ||
+      !respuesta.ok
+    ) {
+      throw new Error(
+        respuesta &&
+        respuesta.mensaje
+          ? respuesta.mensaje
+          : "No fue posible cargar los empleados."
+      );
+    }
+
+    configuracionConstanciaLaboral.empresa =
+      String(
+        respuesta.empresa || ""
+      ).trim();
+
+    configuracionConstanciaLaboral.ciudad =
+      String(
+        respuesta.ciudad || ""
+      ).trim();
+
+    selector.innerHTML =
+      '<option value="">Seleccionar</option>';
+
+    (
+      respuesta.empleados || []
+    ).forEach(function (
+      empleado
+    ) {
+      var opcion =
+        document.createElement(
+          "option"
+        );
+
+      /*
+       * El valor interno es el Pin,
+       * pero en pantalla se muestra Nombre.
+       */
+      opcion.value =
+        empleado.pin;
+
+      opcion.textContent =
+        empleado.nombre;
+
+      selector.appendChild(
+        opcion
+      );
+    });
+
+    mostrarMensajeConstanciaLaboral(
+      respuesta.empleados &&
+      respuesta.empleados.length
+        ? "Seleccione el tipo de constancia."
+        : "No existen empleados registrados en Maestro.",
+
+      respuesta.empleados &&
+      respuesta.empleados.length
+        ? "ok"
+        : "info"
+    );
+
+  } catch (error) {
+    selector.innerHTML =
+      '<option value="">Seleccionar</option>';
+
+    mostrarMensajeConstanciaLaboral(
+      error.message ||
+      "No fue posible cargar los empleados.",
+
+      "error"
+    );
+
+  } finally {
+    selector.disabled =
+      false;
+  }
+}
+
+/*
+ * Consulta el empleado seleccionado
+ * y emite la constancia.
+ */
+async function emitirConstanciaLaboral() {
+  var tipo =
+    document.getElementById(
+      "tipoConstanciaLaboral"
+    );
+
+  var selectorEmpleado =
+    document.getElementById(
+      "empleadoConstanciaLaboral"
+    );
+
+  var boton =
+    document.getElementById(
+      "botonEmitirConstanciaLaboral"
+    );
+
+  if (
+    !tipo ||
+    !tipo.value
+  ) {
+    mostrarMensajeConstanciaLaboral(
+      "Seleccione el tipo de constancia.",
+      "error"
+    );
+
+    return;
+  }
+
+  if (
+    !selectorEmpleado ||
+    !selectorEmpleado.value
+  ) {
+    mostrarMensajeConstanciaLaboral(
+      "Seleccione el nombre del empleado.",
+      "error"
+    );
+
+    return;
+  }
+
+  var textoOriginal =
+    boton.textContent;
+
+  boton.disabled =
+    true;
+
+  boton.textContent =
+    "Emitiendo...";
+
+  mostrarMensajeConstanciaLaboral(
+    "Obteniendo información de Maestro...",
+    "info"
+  );
+
+  try {
+    /*
+     * Utiliza la acción buscarEmpleado
+     * que ya existe en el sistema.
+     */
+    var respuesta =
+      await jsonp(
+        "buscarEmpleado",
+        {
+          pin:
+            selectorEmpleado.value
+        }
+      );
+
+    if (
+      !respuesta ||
+      !respuesta.ok ||
+      !respuesta.empleado
+    ) {
+      throw new Error(
+        respuesta &&
+        respuesta.mensaje
+          ? respuesta.mensaje
+          : "No fue posible obtener el empleado."
+      );
+    }
+
+    validarDatosConstanciaLaboral(
+      respuesta.empleado,
+      tipo.value
+    );
+
+    mostrarConstanciaLaboral(
+      respuesta.empleado,
+      tipo.value
+    );
+
+    mostrarMensajeConstanciaLaboral(
+      "Constancia emitida correctamente.",
+      "ok"
+    );
+
+  } catch (error) {
+    mostrarMensajeConstanciaLaboral(
+      error.message ||
+      "No fue posible emitir la constancia.",
+
+      "error"
+    );
+
+  } finally {
+    boton.disabled =
+      false;
+
+    boton.textContent =
+      textoOriginal;
+  }
+}
+
+/*
+ * Evita generar documentos con datos
+ * obligatorios vacíos.
+ */
+function validarDatosConstanciaLaboral(
+  empleado,
+  tipo
+) {
+  var faltantes = [];
+
+  if (
+    !String(
+      empleado.nombre || ""
+    ).trim()
+  ) {
+    faltantes.push(
+      "Nombre"
+    );
+  }
+
+  if (
+    !String(
+      empleado.fechaIngreso || ""
+    ).trim()
+  ) {
+    faltantes.push(
+      "Fecha de ingreso"
+    );
+  }
+
+  if (
+    !String(
+      empleado.posicion || ""
+    ).trim()
+  ) {
+    faltantes.push(
+      "Posición"
+    );
+  }
+
+  if (
+    !String(
+      empleado.departamento || ""
+    ).trim()
+  ) {
+    faltantes.push(
+      "Departamento"
+    );
+  }
+
+  if (
+    tipo === "conSueldo" &&
+    (
+      !isFinite(
+        Number(
+          empleado.sueldo
+        )
+      ) ||
+      Number(
+        empleado.sueldo
+      ) <= 0
+    )
+  ) {
+    faltantes.push(
+      "Sueldo"
+    );
+  }
+
+  if (faltantes.length) {
+    throw new Error(
+      "No es posible emitir la constancia. " +
+      "Complete en Maestro: " +
+      faltantes.join(", ") +
+      "."
+    );
+  }
+}
+
+/*
+ * Construye la constancia tomando como
+ * base el formato del adjunto.
+ */
+function mostrarConstanciaLaboral(
+  empleado,
+  tipo
+) {
+  var contenedor =
+    document.getElementById(
+      "resultadoConstanciaLaboral"
+    );
+
+  if (!contenedor) {
+    return;
+  }
+
+  var empresa =
+    configuracionConstanciaLaboral
+      .empresa ||
+    "[NOMBRE DE LA EMPRESA]";
+
+  var ciudad =
+    configuracionConstanciaLaboral
+      .ciudad ||
+    "[CIUDAD]";
+
+  var nombre =
+    String(
+      empleado.nombre || ""
+    ).trim();
+
+  var fechaIngreso =
+    formatearFechaLargaConstancia(
+      empleado.fechaIngreso
+    );
+
+  var posicion =
+    String(
+      empleado.posicion || ""
+    ).trim();
+
+  var departamento =
+    String(
+      empleado.departamento || ""
+    ).trim();
+
+  var hoy =
+    new Date();
+
+  var meses = [
+    "enero",
+    "febrero",
+    "marzo",
+    "abril",
+    "mayo",
+    "junio",
+    "julio",
+    "agosto",
+    "septiembre",
+    "octubre",
+    "noviembre",
+    "diciembre"
+  ];
+
+  var parrafoSueldo =
+    "";
+
+  if (tipo === "conSueldo") {
+    parrafoSueldo = `
+      <p>
+        Actualmente, devenga un salario mensual de
+        <strong>
+          L ${escaparHtmlConstancia(
+            formatearNumeroConstancia(
+              empleado.sueldo
+            )
+          )}
+        </strong>,
+        más los beneficios establecidos por la empresa
+        y la legislación laboral vigente.
+      </p>
+    `;
+  }
+
+  contenedor.innerHTML = `
+    <article class="constancia-documento">
+
+      <p class="constancia-encabezado">
+        A QUIEN INTERESE:
+      </p>
+
+      <p>
+        Por medio de la presente,
+        <strong>
+          ${escaparHtmlConstancia(
+            empresa
+          )}
+        </strong>
+        hace constar que el(la) señor(a)
+        <strong>
+          ${escaparHtmlConstancia(
+            nombre
+          )}
+        </strong>,
+        labora en nuestra empresa desde el
+        <strong>
+          ${escaparHtmlConstancia(
+            fechaIngreso
+          )}
+        </strong>,
+        desempeñando el cargo de
+        <strong>
+          ${escaparHtmlConstancia(
+            posicion
+          )}
+        </strong>
+        en el área de
+        <strong>
+          ${escaparHtmlConstancia(
+            departamento
+          )}
+        </strong>.
+      </p>
+
+      ${parrafoSueldo}
+
+      <p>
+        Durante el tiempo que ha prestado sus servicios,
+        ha demostrado responsabilidad y cumplimiento
+        en las funciones asignadas.
+      </p>
+
+      <p>
+        La presente constancia se extiende a solicitud
+        de la persona interesada para los fines que
+        estime convenientes, en la ciudad de
+        <strong>
+          ${escaparHtmlConstancia(
+            ciudad
+          )}
+        </strong>,
+        a los
+        <strong>
+          ${hoy.getDate()}
+        </strong>
+        días del mes de
+        <strong>
+          ${meses[
+            hoy.getMonth()
+          ]}
+        </strong>
+        del año
+        <strong>
+          ${hoy.getFullYear()}
+        </strong>.
+      </p>
+
+      <p class="constancia-atentamente">
+        Atentamente,
+      </p>
+
+      <div class="constancia-firma">
+        <div class="constancia-firma-linea">
+          Recursos Humanos
+        </div>
+      </div>
+
+    </article>
+  `;
+
+  contenedor.hidden =
+    false;
+
+  contenedor.scrollIntoView({
+    behavior:
+      "smooth",
+
+    block:
+      "start"
+  });
+}
+
+/*
+ * Convierte yyyy-MM-dd o dd/MM/yyyy
+ * a una fecha escrita en español.
+ */
+function formatearFechaLargaConstancia(
+  valor
+) {
+  var texto =
+    String(
+      valor || ""
+    ).trim();
+
+  if (!texto) {
+    return "";
+  }
+
+  var dia;
+  var mes;
+  var anio;
+
+  if (
+    /^\d{4}-\d{2}-\d{2}$/.test(
+      texto
+    )
+  ) {
+    var partesISO =
+      texto.split("-");
+
+    anio =
+      Number(
+        partesISO[0]
+      );
+
+    mes =
+      Number(
+        partesISO[1]
+      );
+
+    dia =
+      Number(
+        partesISO[2]
+      );
+
+  } else if (
+    /^\d{2}\/\d{2}\/\d{4}$/.test(
+      texto
+    )
+  ) {
+    var partes =
+      texto.split("/");
+
+    dia =
+      Number(
+        partes[0]
+      );
+
+    mes =
+      Number(
+        partes[1]
+      );
+
+    anio =
+      Number(
+        partes[2]
+      );
+
+  } else {
+    return texto;
+  }
+
+  var meses = [
+    "enero",
+    "febrero",
+    "marzo",
+    "abril",
+    "mayo",
+    "junio",
+    "julio",
+    "agosto",
+    "septiembre",
+    "octubre",
+    "noviembre",
+    "diciembre"
+  ];
+
+  return (
+    dia +
+    " de " +
+    meses[
+      mes - 1
+    ] +
+    " de " +
+    anio
+  );
+}
+
+/*
+ * Formato del sueldo:
+ *
+ * 15000 -> 15,000.00
+ */
+function formatearNumeroConstancia(
+  valor
+) {
+  return new Intl.NumberFormat(
+    "es-HN",
+    {
+      minimumFractionDigits:
+        2,
+
+      maximumFractionDigits:
+        2
+    }
+  ).format(
+    Number(
+      valor
+    ) || 0
+  );
+}
+
+function mostrarMensajeConstanciaLaboral(
+  mensaje,
+  tipo
+) {
+  var contenedor =
+    document.getElementById(
+      "mensajeConstanciaLaboral"
+    );
+
+  if (!contenedor) {
+    return;
+  }
+
+  contenedor.className =
+    "mensaje";
+
+  contenedor.textContent =
+    mensaje || "";
+
+  if (
+    mensaje &&
+    tipo
+  ) {
+    contenedor.classList.add(
+      tipo
+    );
+  }
+}
+
+function escaparHtmlConstancia(
+  valor
+) {
+  return String(
+    valor === null ||
+    valor === undefined
+      ? ""
+      : valor
+  )
+    .replace(
+      /&/g,
+      "&amp;"
+    )
+    .replace(
+      /</g,
+      "&lt;"
+    )
+    .replace(
+      />/g,
+      "&gt;"
+    )
+    .replace(
+      /"/g,
+      "&quot;"
+    )
+    .replace(
+      /'/g,
+      "&#039;"
+    );
+}
+  
 </script>
 </body>
 </html>
