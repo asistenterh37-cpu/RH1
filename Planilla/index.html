@@ -13366,6 +13366,45 @@ if (
 }
 
 /*
+ * Vista previa de recibos.
+ *
+ * Se conserva la operación de pago,
+ * el período y el botón Generar,
+ * pero los recibos ocupan todo el ancho.
+ */
+.contenedor-pago-planilla.vista-previa-recibos {
+  width: 100%;
+  max-width: none;
+}
+
+/*
+ * Los selectores no necesitan ocupar
+ * todo el ancho de la cuadrícula.
+ */
+.contenedor-pago-planilla.vista-previa-recibos
+#opcionPagoPlanilla,
+.contenedor-pago-planilla.vista-previa-recibos
+#periodoPagoPlanilla {
+  display: block;
+  max-width: 520px;
+}
+
+/*
+ * Separación entre la cuadrícula
+ * y el botón Generar.
+ */
+.contenedor-pago-planilla.vista-previa-recibos
+#botonGenerarPagoPlanilla {
+  display: block;
+  margin-top: 18px;
+}
+
+.contenedor-pago-planilla.vista-previa-recibos
+#botonGenerarPagoPlanilla[hidden] {
+  display: none !important;
+}
+  
+/*
  * Recibos en cuadrícula.
  *
  * El orden visual será de izquierda
@@ -13848,34 +13887,44 @@ if (
           </select>
 
           <div
-            id="contenedorPeriodoPagoPlanilla"
-            style="margin-top: 14px;"
-            hidden
-          >
-            <label for="periodoPagoPlanilla">
-              Período de pago vigente
-            </label>
+  id="contenedorPeriodoPagoPlanilla"
+  style="margin-top: 14px;"
+  hidden
+>
+  <label for="periodoPagoPlanilla">
+    Período de pago vigente
+  </label>
 
-            <select id="periodoPagoPlanilla">
-              <option value="">Seleccionar</option>
-            </select>
+  <select
+    id="periodoPagoPlanilla"
+    onchange="previsualizarRecibosPago()"
+  >
+    <option value="">
+      Seleccionar
+    </option>
+  </select>
+</div>
 
-            <button
-              id="botonGenerarPagoPlanilla"
-              type="button"
-              class="guardar"
-              style="margin-top: 12px;"
-              onclick="generarOperacionPagoPlanilla()"
-            >
-              Generar
-            </button>
-          </div>
+<!--
+  La vista de recibos aparece antes
+  del botón Generar.
+-->
+<div
+  id="resultadoPagoPlanilla"
+  class="resultado-pago-planilla"
+  hidden
+></div>
 
-          <div
-            id="resultadoPagoPlanilla"
-            class="resultado-pago-planilla"
-            hidden
-          ></div>
+<button
+  id="botonGenerarPagoPlanilla"
+  type="button"
+  class="guardar"
+  style="margin-top: 18px;"
+  onclick="generarOperacionPagoPlanilla()"
+  hidden
+>
+  Generar
+</button>
         </div>                
       </div>               
       </div>
@@ -18781,7 +18830,109 @@ function formatearMonedaHNL(valor) {
     );
   }
 
-  function restablecerVistaProcesarPlanilla() {
+/*
+ * Guarda el período cuyos recibos
+ * ya fueron mostrados en pantalla.
+ */
+var periodoRecibosPrevisualizado =
+  "";
+
+/*
+ * Volver a mostrar todos los botones
+ * del módulo Procesar planilla.
+ */
+function restaurarBotonesProcesarPlanilla() {
+  [
+    "botonProcesarPlanilla",
+    "botonRevisarPlanilla",
+    "botonAplicarPlanilla",
+    "botonGenerarPlanilla",
+    "botonPagarPlanilla"
+  ].forEach(function (
+    id
+  ) {
+    var boton =
+      document.getElementById(
+        id
+      );
+
+    if (boton) {
+      boton.hidden =
+        false;
+    }
+  });
+}
+
+/*
+ * Mientras se trabaja en Pagar planilla,
+ * ocultar los demás botones principales.
+ */
+function mostrarSoloBotonPagarPlanilla() {
+  var selectorPrincipal =
+    document.getElementById(
+      "periodoProcesar"
+    );
+
+  var acciones =
+    document.querySelector(
+      "#procesarPlanilla " +
+      ".acciones-procesar-planilla"
+    );
+
+  /*
+   * El período principal corresponde
+   * a procesar la planilla, no al pago.
+   */
+  if (
+    selectorPrincipal &&
+    selectorPrincipal.parentElement
+  ) {
+    selectorPrincipal
+      .parentElement
+      .hidden =
+        true;
+  }
+
+  if (acciones) {
+    acciones.hidden =
+      false;
+  }
+
+  /*
+   * Ocultar todos los botones,
+   * excepto Pagar planilla.
+   */
+  [
+    "botonProcesarPlanilla",
+    "botonRevisarPlanilla",
+    "botonAplicarPlanilla",
+    "botonGenerarPlanilla"
+  ].forEach(function (
+    id
+  ) {
+    var boton =
+      document.getElementById(
+        id
+      );
+
+    if (boton) {
+      boton.hidden =
+        true;
+    }
+  });
+
+  var botonPagar =
+    document.getElementById(
+      "botonPagarPlanilla"
+    );
+
+  if (botonPagar) {
+    botonPagar.hidden =
+      false;
+  }
+}
+  
+function restablecerVistaProcesarPlanilla() {
   var selectorPrincipal =
     document.getElementById(
       "periodoProcesar"
@@ -18828,19 +18979,32 @@ function formatearMonedaHNL(valor) {
       "resumenProcesarPlanilla"
     );
 
+  var contenedorPago =
+    document.getElementById(
+      "contenedorPagoPlanilla"
+    );
+
+  var botonGenerarPago =
+    document.getElementById(
+      "botonGenerarPagoPlanilla"
+    );
+
   if (revisionPlanilla) {
-    revisionPlanilla.hidden = true;
+    revisionPlanilla.hidden =
+      true;
   }
 
   if (resultadoPlanilla) {
-    resultadoPlanilla.hidden = true;
+    resultadoPlanilla.hidden =
+      true;
   }
 
   if (resumenPlanilla) {
-    resumenPlanilla.textContent = "";
+    resumenPlanilla.textContent =
+      "";
   }
 
-  cerrarModalMovimiento();    
+  cerrarModalMovimiento();
 
   if (
     selectorPrincipal &&
@@ -18848,31 +19012,65 @@ function formatearMonedaHNL(valor) {
   ) {
     selectorPrincipal
       .parentElement
-      .hidden = false;
+      .hidden =
+        false;
   }
 
   if (acciones) {
-    acciones.hidden = false;
+    acciones.hidden =
+      false;
   }
 
+  /*
+   * Volver a mostrar todos los botones.
+   */
+  restaurarBotonesProcesarPlanilla();
+
   if (selectorOperacion) {
-    selectorOperacion.hidden = false;
+    selectorOperacion.hidden =
+      false;
   }
 
   if (etiquetaOperacion) {
-    etiquetaOperacion.hidden = false;
+    etiquetaOperacion.hidden =
+      false;
   }
 
   if (contenedorPeriodo) {
-    contenedorPeriodo.hidden = true;
+    contenedorPeriodo.hidden =
+      true;
   }
 
   if (resultadoPago) {
-    resultadoPago.hidden = true;
-    resultadoPago.innerHTML = "";
-  }
-}
+    resultadoPago.hidden =
+      true;
 
+    resultadoPago.innerHTML =
+      "";
+  }
+
+  if (contenedorPago) {
+    contenedorPago.classList.remove(
+      "vista-pago-generada",
+      "vista-previa-recibos"
+    );
+  }
+
+  if (botonGenerarPago) {
+    botonGenerarPago.hidden =
+      true;
+
+    botonGenerarPago.disabled =
+      false;
+
+    botonGenerarPago.textContent =
+      "Generar";
+  }
+
+  periodoRecibosPrevisualizado =
+    "";
+}
+  
 function ocultarControlesParaResultadoPago() {
   var selectorPrincipal =
     document.getElementById(
@@ -18904,6 +19102,11 @@ function ocultarControlesParaResultadoPago() {
     document.getElementById(
       "contenedorPagoPlanilla"
     );
+
+  var botonGenerarPago =
+  document.getElementById(
+    "botonGenerarPagoPlanilla"
+  );
 
   /*
    * Ocultar el selector principal
@@ -18948,6 +19151,16 @@ function ocultarControlesParaResultadoPago() {
   }
 
   /*
+ * El botón está fuera del contenedor
+ * del período porque debe aparecer
+ * después de la vista previa.
+ */
+if (botonGenerarPago) {
+  botonGenerarPago.hidden =
+    true;
+}
+
+  /*
    * Permitir que el resultado ocupe
    * todo el ancho del panel.
    */
@@ -18959,175 +19172,502 @@ function ocultarControlesParaResultadoPago() {
 }
   
 function mostrarOpcionesPagoPlanilla() {
-  restablecerVistaProcesarPlanilla();   
-    var contenedor =
-      document.getElementById(
-        "contenedorPagoPlanilla"
-      );
+  /*
+   * Limpiar cualquier vista anterior.
+   */
+  restablecerVistaProcesarPlanilla();
 
-    var operacion =
-      document.getElementById(
-        "opcionPagoPlanilla"
-      );
+  /*
+   * Dejar visible solamente:
+   *
+   * Pagar planilla
+   */
+  mostrarSoloBotonPagarPlanilla();
 
-    var contenedorPeriodo =
-      document.getElementById(
-        "contenedorPeriodoPagoPlanilla"
-      );
+  var contenedor =
+    document.getElementById(
+      "contenedorPagoPlanilla"
+    );
 
-    var periodo =
-      document.getElementById(
-        "periodoPagoPlanilla"
-      );
+  var operacion =
+    document.getElementById(
+      "opcionPagoPlanilla"
+    );
 
-    var resultado =
-      document.getElementById(
-        "resultadoPagoPlanilla"
-      );
+  var contenedorPeriodo =
+    document.getElementById(
+      "contenedorPeriodoPagoPlanilla"
+    );
 
-    if (
-  !contenedor ||
-  !operacion
-) {
-  return;
+  var periodo =
+    document.getElementById(
+      "periodoPagoPlanilla"
+    );
+
+  var resultado =
+    document.getElementById(
+      "resultadoPagoPlanilla"
+    );
+
+  var botonGenerar =
+    document.getElementById(
+      "botonGenerarPagoPlanilla"
+    );
+
+  if (
+    !contenedor ||
+    !operacion
+  ) {
+    return;
+  }
+
+  contenedor.classList.remove(
+    "vista-pago-generada",
+    "vista-previa-recibos"
+  );
+
+  contenedor.hidden =
+    false;
+
+  operacion.value =
+    "";
+
+  if (periodo) {
+    periodo.innerHTML =
+      '<option value="">Seleccionar</option>';
+  }
+
+  if (contenedorPeriodo) {
+    contenedorPeriodo.hidden =
+      true;
+  }
+
+  if (resultado) {
+    resultado.hidden =
+      true;
+
+    resultado.innerHTML =
+      "";
+  }
+
+  if (botonGenerar) {
+    botonGenerar.hidden =
+      true;
+  }
+
+  periodoRecibosPrevisualizado =
+    "";
+
+  operacion.focus();
+
+  mensajeProcesarPlanilla(
+    "Seleccione la operación de pago.",
+    "info"
+  );
 }
+async function seleccionarOperacionPagoPlanilla() {
+  var selectorOperacion =
+    document.getElementById(
+      "opcionPagoPlanilla"
+    );
 
-/*
- * Restablecer el formato inicial cuando
- * se vuelve a abrir Pagar planilla.
- */
-contenedor.classList.remove(
-  "vista-pago-generada"
-);
+  var contenedorPeriodo =
+    document.getElementById(
+      "contenedorPeriodoPagoPlanilla"
+    );
 
-contenedor.hidden = false;
-operacion.value = "";
-    if (periodo) {
-      periodo.innerHTML =
-        '<option value="">Seleccionar</option>';
-    }
+  var selectorPeriodo =
+    document.getElementById(
+      "periodoPagoPlanilla"
+    );
 
-    if (contenedorPeriodo) {
-      contenedorPeriodo.hidden = true;
-    }
+  var resultado =
+    document.getElementById(
+      "resultadoPagoPlanilla"
+    );
 
-    if (resultado) {
-      resultado.hidden = true;
-      resultado.innerHTML = "";
-    }
+  var botonGenerar =
+    document.getElementById(
+      "botonGenerarPagoPlanilla"
+    );
 
-    operacion.focus();
+  var contenedorPago =
+    document.getElementById(
+      "contenedorPagoPlanilla"
+    );
 
-    mensajeProcesarPlanilla(
-      "Seleccione la operación de pago.",
-      "info"
+  if (
+    !selectorOperacion ||
+    !selectorPeriodo ||
+    !contenedorPeriodo
+  ) {
+    return;
+  }
+
+  periodoRecibosPrevisualizado =
+    "";
+
+  selectorPeriodo.innerHTML =
+    '<option value="">Seleccionar</option>';
+
+  contenedorPeriodo.hidden =
+    true;
+
+  if (resultado) {
+    resultado.hidden =
+      true;
+
+    resultado.innerHTML =
+      "";
+  }
+
+  if (botonGenerar) {
+    botonGenerar.hidden =
+      true;
+  }
+
+  if (contenedorPago) {
+    contenedorPago.classList.remove(
+      "vista-previa-recibos"
     );
   }
 
-  async function seleccionarOperacionPagoPlanilla() {
-    var selectorOperacion =
-      document.getElementById(
-        "opcionPagoPlanilla"
-      );
+  if (!selectorOperacion.value) {
+    return;
+  }
 
-    var contenedorPeriodo =
-      document.getElementById(
-        "contenedorPeriodoPagoPlanilla"
-      );
+  selectorOperacion.disabled =
+    true;
 
-    var selectorPeriodo =
-      document.getElementById(
-        "periodoPagoPlanilla"
-      );
+  mensajeProcesarPlanilla(
+    "Cargando períodos de pago vigentes...",
+    "info"
+  );
 
-    var resultado =
-      document.getElementById(
-        "resultadoPagoPlanilla"
-      );
-
-    if (
-      !selectorOperacion ||
-      !selectorPeriodo ||
-      !contenedorPeriodo
-    ) {
-      return;
-    }
-
-    selectorPeriodo.innerHTML =
-      '<option value="">Seleccionar</option>';
-
-    contenedorPeriodo.hidden = true;
-
-    if (resultado) {
-      resultado.hidden = true;
-      resultado.innerHTML = "";
-    }
-
-    if (!selectorOperacion.value) {
-      return;
-    }
-
-    selectorOperacion.disabled = true;
-
-    mensajeProcesarPlanilla(
-      "Cargando períodos de pago vigentes...",
-      "info"
-    );
-
-    try {
-      var respuesta = await jsonp(
+  try {
+    var respuesta =
+      await jsonp(
         "listarPeriodosPago",
         {}
       );
 
-      if (!respuesta || !respuesta.ok) {
-        throw new Error(
-          respuesta && respuesta.mensaje
-            ? respuesta.mensaje
-            : "No fue posible cargar los períodos."
+    if (
+      !respuesta ||
+      !respuesta.ok
+    ) {
+      throw new Error(
+        respuesta &&
+        respuesta.mensaje
+          ? respuesta.mensaje
+          : "No fue posible cargar los períodos."
+      );
+    }
+
+    (
+      respuesta.periodos || []
+    ).forEach(function (
+      periodo
+    ) {
+      var opcion =
+        document.createElement(
+          "option"
         );
-      }
 
-      (respuesta.periodos || []).forEach(
-        function(periodo) {
-          var opcion =
-            document.createElement("option");
+      opcion.value =
+        periodo.codigo;
 
-          opcion.value = periodo.codigo;
-          opcion.textContent = periodo.etiqueta;
+      opcion.textContent =
+        periodo.etiqueta;
 
-          selectorPeriodo.appendChild(opcion);
+      selectorPeriodo.appendChild(
+        opcion
+      );
+    });
+
+    contenedorPeriodo.hidden =
+      false;
+
+    if (
+      !respuesta.periodos.length
+    ) {
+      mensajeProcesarPlanilla(
+        "No hay períodos vigentes disponibles para pago.",
+        "info"
+      );
+
+      return;
+    }
+
+    var esRecibos =
+      selectorOperacion.value ===
+      "recibos";
+
+    /*
+     * Recibos:
+     * Generar se muestra después
+     * de cargar la cuadrícula.
+     *
+     * Depósito:
+     * Generar se muestra normalmente.
+     */
+    if (botonGenerar) {
+      botonGenerar.hidden =
+        esRecibos;
+    }
+
+    mensajeProcesarPlanilla(
+      esRecibos
+        ? "Seleccione el período para mostrar los recibos antes de Generar."
+        : "Seleccione el período y presione Generar.",
+      "ok"
+    );
+
+    selectorPeriodo.focus();
+
+  } catch (error) {
+    mensajeProcesarPlanilla(
+      error.message ||
+      "No fue posible cargar los períodos.",
+      "error"
+    );
+
+  } finally {
+    selectorOperacion.disabled =
+      false;
+  }
+}
+
+async function previsualizarRecibosPago() {
+  var selectorOperacion =
+    document.getElementById(
+      "opcionPagoPlanilla"
+    );
+
+  var selectorPeriodo =
+    document.getElementById(
+      "periodoPagoPlanilla"
+    );
+
+  var resultado =
+    document.getElementById(
+      "resultadoPagoPlanilla"
+    );
+
+  var botonGenerar =
+    document.getElementById(
+      "botonGenerarPagoPlanilla"
+    );
+
+  var contenedorPago =
+    document.getElementById(
+      "contenedorPagoPlanilla"
+    );
+
+  var resultadoPlanilla =
+    document.getElementById(
+      "contenedorResultadoPlanilla"
+    );
+
+  var revisionPlanilla =
+    document.getElementById(
+      "contenedorRevisionPlanilla"
+    );
+
+  var resumenPlanilla =
+    document.getElementById(
+      "resumenProcesarPlanilla"
+    );
+
+  if (
+    !selectorOperacion ||
+    !selectorPeriodo ||
+    !resultado ||
+    !botonGenerar
+  ) {
+    return;
+  }
+
+  periodoRecibosPrevisualizado =
+    "";
+
+  resultado.hidden =
+    true;
+
+  resultado.innerHTML =
+    "";
+
+  /*
+   * Para depósito no se necesita
+   * previsualización automática.
+   */
+  if (
+    selectorOperacion.value !==
+    "recibos"
+  ) {
+    if (contenedorPago) {
+      contenedorPago.classList.remove(
+        "vista-previa-recibos"
+      );
+    }
+
+    botonGenerar.hidden =
+      false;
+
+    return;
+  }
+
+  botonGenerar.hidden =
+    true;
+
+  if (!selectorPeriodo.value) {
+    if (contenedorPago) {
+      contenedorPago.classList.remove(
+        "vista-previa-recibos"
+      );
+    }
+
+    return;
+  }
+
+  /*
+   * Ocultar otros resultados
+   * del módulo Procesar planilla.
+   */
+  if (resultadoPlanilla) {
+    resultadoPlanilla.hidden =
+      true;
+  }
+
+  if (revisionPlanilla) {
+    revisionPlanilla.hidden =
+      true;
+  }
+
+  if (resumenPlanilla) {
+    resumenPlanilla.textContent =
+      "";
+  }
+
+  selectorPeriodo.disabled =
+    true;
+
+  mensajeProcesarPlanilla(
+    "Cargando recibos para revisión...",
+    "info"
+  );
+
+  try {
+    /*
+     * Esta llamada solo obtiene
+     * la información del recibo.
+     *
+     * Todavía no envía correos.
+     */
+    var respuesta =
+      await jsonp(
+        "generarPagoPlanilla",
+        {
+          codigo:
+            selectorPeriodo.value,
+
+          operacion:
+            "recibos"
         }
       );
 
-      contenedorPeriodo.hidden = false;
-
-      if (!respuesta.periodos.length) {
-        mensajeProcesarPlanilla(
-          "No hay períodos vigentes disponibles para pago.",
-          "info"
-        );
-        return;
-      }
-
-      mensajeProcesarPlanilla(
-        "Seleccione el período y presione Generar.",
-        "ok"
+    if (
+      !respuesta ||
+      !respuesta.ok
+    ) {
+      throw new Error(
+        respuesta &&
+        respuesta.mensaje
+          ? respuesta.mensaje
+          : "No fue posible cargar los recibos."
       );
-
-      selectorPeriodo.focus();
-    } catch (error) {
-      mensajeProcesarPlanilla(
-        error.message ||
-          "No fue posible cargar los períodos.",
-        "error"
-      );
-    } finally {
-      selectorOperacion.disabled = false;
     }
-  }
 
-  async function generarOperacionPagoPlanilla() {
+    var recibos =
+      Array.isArray(
+        respuesta.recibos
+      )
+        ? respuesta.recibos
+        : [];
+
+    if (!recibos.length) {
+      throw new Error(
+        "No existen recibos para el período seleccionado."
+      );
+    }
+
+    if (contenedorPago) {
+      contenedorPago.classList.add(
+        "vista-previa-recibos"
+      );
+    }
+
+    resultado.hidden =
+      false;
+
+    /*
+     * La función ya ordena alfabéticamente
+     * y genera la cuadrícula.
+     */
+    mostrarRecibosPago(
+      resultado,
+      recibos,
+      {
+        mostrarAcciones:
+          false
+      }
+    );
+
+    periodoRecibosPrevisualizado =
+      selectorPeriodo.value;
+
+    /*
+     * Generar aparece después
+     * de la cuadrícula.
+     */
+    botonGenerar.hidden =
+      false;
+
+    mensajeProcesarPlanilla(
+      recibos.length +
+      " recibo(s) mostrados en cuadrícula. " +
+      "Revise la información y presione Generar.",
+      "ok"
+    );
+
+  } catch (error) {
+    resultado.hidden =
+      true;
+
+    resultado.innerHTML =
+      "";
+
+    botonGenerar.hidden =
+      true;
+
+    if (contenedorPago) {
+      contenedorPago.classList.remove(
+        "vista-previa-recibos"
+      );
+    }
+
+    mensajeProcesarPlanilla(
+      error.message ||
+      "No fue posible cargar los recibos.",
+      "error"
+    );
+
+  } finally {
+    selectorPeriodo.disabled =
+      false;
+  }
+}
+  
+async function generarOperacionPagoPlanilla() {
   var selectorOperacion =
     document.getElementById(
       "opcionPagoPlanilla"
@@ -19167,41 +19707,128 @@ operacion.value = "";
     return;
   }
 
-  var esEnvioRecibos =
+  var esRecibos =
     selectorOperacion.value ===
     "recibos";
 
+  var textoOriginal =
+    boton.textContent;
+
   /*
-   * Confirmar antes de enviar correos.
+   * ======================================
+   * EMITIR RECIBOS DE PAGO
+   * ======================================
    */
-  if (esEnvioRecibos) {
+  if (esRecibos) {
+    /*
+     * No permitir el envío hasta que
+     * la cuadrícula haya sido mostrada.
+     */
+    if (
+      periodoRecibosPrevisualizado !==
+      selectorPeriodo.value
+    ) {
+      mensajeProcesarPlanilla(
+        "Primero espere a que se muestren " +
+        "los recibos del período seleccionado.",
+        "error"
+      );
+
+      return;
+    }
+
     var confirmar =
       window.confirm(
-        "Se generarán los recibos y se enviará " +
-        "cada uno al correo registrado en Maestro " +
-        "para el No. de personal correspondiente. " +
+        "Se enviará cada recibo al correo " +
+        "registrado en Maestro para el No. " +
+        "de personal correspondiente. " +
         "¿Desea continuar?"
       );
 
     if (!confirmar) {
       return;
     }
+
+    boton.disabled =
+      true;
+
+    boton.textContent =
+      "Enviando...";
+
+    mensajeProcesarPlanilla(
+      "Enviando recibos de pago...",
+      "info"
+    );
+
+    try {
+      /*
+       * Los recibos ya están visibles.
+       * Aquí solamente se ejecuta el envío.
+       */
+      var envio =
+        await jsonp(
+          "enviarRecibosPagoCorreo",
+          {
+            codigo:
+              selectorPeriodo.value
+          }
+        );
+
+      if (
+        !envio ||
+        !envio.ok
+      ) {
+        throw new Error(
+          envio &&
+          envio.mensaje
+            ? envio.mensaje
+            : "No fue posible enviar los recibos."
+        );
+      }
+
+      /*
+       * La cuadrícula permanece visible.
+       */
+      mensajeProcesarPlanilla(
+        envio.mensaje,
+        "ok"
+      );
+
+    } catch (error) {
+      mensajeProcesarPlanilla(
+        error.message ||
+        "No fue posible enviar los recibos.",
+        "error"
+      );
+
+    } finally {
+      boton.disabled =
+        false;
+
+      boton.textContent =
+        textoOriginal;
+    }
+
+    return;
   }
 
-  boton.disabled = true;
+  /*
+   * ======================================
+   * GENERAR DEPÓSITO BANCO
+   * ======================================
+   */
+  boton.disabled =
+    true;
+
+  boton.textContent =
+    "Generando...";
 
   mensajeProcesarPlanilla(
-    esEnvioRecibos
-      ? "Generando recibos de pago..."
-      : "Generando depósito bancario...",
+    "Generando depósito bancario...",
     "info"
   );
 
   try {
-    /*
-     * Primero generar la información
-     * que se mostrará en pantalla.
-     */
     var respuesta =
       await jsonp(
         "generarPagoPlanilla",
@@ -19230,53 +19857,6 @@ operacion.value = "";
       respuesta
     );
 
-    /*
-     * Cuando la operación sea recibos,
-     * enviarlos automáticamente.
-     *
-     * El GS cruza:
-     *
-     * Recibo.No. de personal
-     * con Maestro!A
-     *
-     * y toma el correo de Maestro!O.
-     */
-    if (esEnvioRecibos) {
-      mensajeProcesarPlanilla(
-        "Recibos generados. Enviando correos...",
-        "info"
-      );
-
-      var envio =
-        await jsonp(
-          "enviarRecibosPagoCorreo",
-          {
-            codigo:
-              selectorPeriodo.value
-          }
-        );
-
-      if (
-        !envio ||
-        !envio.ok
-      ) {
-        throw new Error(
-          envio &&
-          envio.mensaje
-            ? "Los recibos se mostraron, pero " +
-              envio.mensaje
-            : "Los recibos se mostraron, pero no fue posible enviarlos."
-        );
-      }
-
-      mensajeProcesarPlanilla(
-        envio.mensaje,
-        "ok"
-      );
-
-      return;
-    }
-
     mensajeProcesarPlanilla(
       respuesta.mensaje,
       "ok"
@@ -19284,18 +19864,19 @@ operacion.value = "";
 
   } catch (error) {
     mensajeProcesarPlanilla(
-      error &&
-      error.message
-        ? error.message
-        : "No fue posible generar la operación de pago.",
+      error.message ||
+      "No fue posible generar la operación de pago.",
       "error"
     );
 
   } finally {
-    boton.disabled = false;
+    boton.disabled =
+      false;
+
+    boton.textContent =
+      textoOriginal;
   }
 }
-
   
   function mostrarResultadoPagoPlanilla(
   respuesta
