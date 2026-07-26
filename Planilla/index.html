@@ -13009,22 +13009,49 @@ if (
   text-align: right;
 }
   
+/*
+ * Controles del impuesto vecinal:
+ *
+ * Año | Desde | Hasta | Generar | Aplicar
+ */
 .fila-generar-impuesto {
-  display: flex;
-  align-items: flex-end;
+  display: grid;
+
+  grid-template-columns:
+    140px
+    minmax(220px, 1fr)
+    minmax(220px, 1fr)
+    130px
+    130px;
+
   gap: 10px;
-  max-width: 430px;
+  align-items: end;
+  width: 100%;
   margin-bottom: 16px;
 }
 
 .fila-generar-impuesto > div {
-  flex: 1;
+  min-width: 0;
 }
 
 .fila-generar-impuesto button {
+  width: 100%;
   min-width: 130px;
   height: 42px;
   margin: 0;
+}
+
+@media (max-width: 1000px) {
+  .fila-generar-impuesto {
+    grid-template-columns:
+      repeat(2, minmax(220px, 1fr));
+  }
+}
+
+@media (max-width: 600px) {
+  .fila-generar-impuesto {
+    grid-template-columns: 1fr;
+  }
 }
 
 /*
@@ -14519,29 +14546,76 @@ crearModuloDecimoMes(
       >
         <h3>Impuesto vecinal</h3>
 
-        <div class="fila-generar-impuesto">
-          <div>
-            <label for="anioImpuestoVecinal">
-              Año
-            </label>
+<div class="fila-generar-impuesto">
 
-            <input
-              id="anioImpuestoVecinal"
-              type="number"
-              min="2000"
-              max="2100"
-              step="1"
-            >
-          </div>
+  <!-- AÑO -->
+  <div>
+    <label for="anioImpuestoVecinal">
+      Año
+    </label>
 
-          <button
-            id="botonGenerarImpuestoVecinal"
-            type="button"
-            class="primario"
-          >
-            Generar
-          </button>
-        </div>
+    <input
+      id="anioImpuestoVecinal"
+      type="number"
+      min="2000"
+      max="2100"
+      step="1"
+    >
+  </div>
+
+  <!-- DESDE -->
+  <div>
+    <label for="periodoDesdeImpuestoVecinal">
+      Desde
+    </label>
+
+    <select
+      id="periodoDesdeImpuestoVecinal"
+      disabled
+    >
+      <option value="">
+        Seleccionar
+      </option>
+    </select>
+  </div>
+
+  <!-- HASTA -->
+  <div>
+    <label for="periodoHastaImpuestoVecinal">
+      Hasta
+    </label>
+
+    <select
+      id="periodoHastaImpuestoVecinal"
+      disabled
+    >
+      <option value="">
+        Seleccionar
+      </option>
+    </select>
+  </div>
+
+  <!-- GENERAR -->
+  <button
+    id="botonGenerarImpuestoVecinal"
+    type="button"
+    class="primario"
+    disabled
+  >
+    Generar
+  </button>
+
+  <!-- APLICAR -->
+  <button
+    id="botonAplicarImpuestoVecinal"
+    type="button"
+    class="guardar"
+    disabled
+  >
+    Aplicar
+  </button>
+
+</div>
 
         <div
           id="mensajeImpuestoVecinal"
@@ -16179,6 +16253,218 @@ function llenarSelectorPeriodosISR(
   });
 }
 
+/*
+ * =====================================================
+ * PERÍODOS DEL IMPUESTO VECINAL
+ * =====================================================
+ */
+
+/*
+ * Prepara el módulo al abrirlo.
+ */
+async function prepararModuloImpuestoVecinal() {
+  const campoAnio =
+    document.getElementById(
+      "anioImpuestoVecinal"
+    );
+
+  if (
+    campoAnio &&
+    !campoAnio.value
+  ) {
+    campoAnio.value =
+      new Date().getFullYear();
+  }
+
+  await cargarPeriodosImpuestoVecinal();
+}
+
+/*
+ * Carga los períodos disponibles de PlanillaF
+ * utilizando la acción que ya usa ISR.
+ */
+async function cargarPeriodosImpuestoVecinal() {
+  const campoAnio =
+    document.getElementById(
+      "anioImpuestoVecinal"
+    );
+
+  const selectorDesde =
+    document.getElementById(
+      "periodoDesdeImpuestoVecinal"
+    );
+
+  const selectorHasta =
+    document.getElementById(
+      "periodoHastaImpuestoVecinal"
+    );
+
+  const botonGenerar =
+    document.getElementById(
+      "botonGenerarImpuestoVecinal"
+    );
+
+  const botonAplicar =
+    document.getElementById(
+      "botonAplicarImpuestoVecinal"
+    );
+
+  const anio =
+    Number(
+      campoAnio
+        ? campoAnio.value
+        : 0
+    );
+
+  /*
+   * Limpiar selectores.
+   */
+  llenarSelectorPeriodosISR(
+    selectorDesde,
+    []
+  );
+
+  llenarSelectorPeriodosISR(
+    selectorHasta,
+    []
+  );
+
+  if (selectorDesde) {
+    selectorDesde.disabled =
+      true;
+  }
+
+  if (selectorHasta) {
+    selectorHasta.disabled =
+      true;
+  }
+
+  if (botonGenerar) {
+    botonGenerar.disabled =
+      true;
+  }
+
+  /*
+   * Aplicar permanecerá preparado,
+   * pero sin función por el momento.
+   */
+  if (botonAplicar) {
+    botonAplicar.disabled =
+      true;
+  }
+
+  if (
+    !anio ||
+    anio < 2000 ||
+    anio > 2100
+  ) {
+    mensajeImpuestoVecinal(
+      "Ingrese un año válido.",
+      "error"
+    );
+
+    return;
+  }
+
+  mensajeImpuestoVecinal(
+    "Cargando períodos incluidos en PlanillaF...",
+    "info"
+  );
+
+  try {
+    /*
+     * Se reutiliza la lista de períodos
+     * existente para el módulo ISR.
+     */
+    const respuesta =
+      await jsonp(
+        "listarPeriodosISR",
+        {
+          anio:
+            anio
+        }
+      );
+
+    if (
+      !respuesta ||
+      !respuesta.ok
+    ) {
+      throw new Error(
+        respuesta &&
+        respuesta.mensaje
+          ? respuesta.mensaje
+          : "No fue posible cargar los períodos."
+      );
+    }
+
+    const periodos =
+      Array.isArray(
+        respuesta.periodos
+      )
+        ? respuesta.periodos
+        : [];
+
+    llenarSelectorPeriodosISR(
+      selectorDesde,
+      periodos
+    );
+
+    llenarSelectorPeriodosISR(
+      selectorHasta,
+      periodos
+    );
+
+    if (!periodos.length) {
+      mensajeImpuestoVecinal(
+        "No existen períodos de " +
+        anio +
+        " incluidos en PlanillaF.",
+
+        "info"
+      );
+
+      return;
+    }
+
+    selectorDesde.disabled =
+      false;
+
+    selectorHasta.disabled =
+      false;
+
+    botonGenerar.disabled =
+      false;
+
+    /*
+     * Aplicar todavía permanece
+     * deshabilitado.
+     */
+    botonAplicar.disabled =
+      true;
+
+    mensajeImpuestoVecinal(
+      periodos.length +
+      (
+        periodos.length === 1
+          ? " período disponible."
+          : " períodos disponibles."
+      ),
+
+      "ok"
+    );
+
+  } catch (error) {
+    mensajeImpuestoVecinal(
+      error &&
+      error.message
+        ? error.message
+        : "No fue posible cargar los períodos.",
+
+      "error"
+    );
+  }
+}
+  
 /*
  * Solicita a Apps Script el cálculo del ISR.
  */
