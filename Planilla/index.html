@@ -13378,6 +13378,51 @@ if (
 }
 
 /*
+ * Pago de décimo tercer y cuarto mes.
+ */
+.pago-decimo-contenedor {
+  width: 100%;
+  max-width: 520px;
+}
+
+/*
+ * Al mostrar la cuadrícula de recibos,
+ * utilizar todo el ancho del panel.
+ */
+.pago-decimo-contenedor.vista-previa-recibos {
+  width: 100%;
+  max-width: none;
+}
+
+/*
+ * Los selectores permanecen con un
+ * ancho cómodo aunque la cuadrícula
+ * utilice todo el panel.
+ */
+.pago-decimo-contenedor
+.selector-operacion-pago-decimo,
+.pago-decimo-contenedor
+.selector-periodo-pago-decimo {
+  display: block;
+  width: 100%;
+  max-width: 520px;
+}
+
+/*
+ * Generar aparece después de los recibos.
+ */
+.pago-decimo-contenedor
+.boton-generar-pago-decimo {
+  display: block;
+  margin-top: 18px;
+}
+
+.pago-decimo-contenedor
+.boton-generar-pago-decimo[hidden] {
+  display: none !important;
+}
+  
+/*
  * Los selectores no necesitan ocupar
  * todo el ancho de la cuadrícula.
  */
@@ -14108,57 +14153,99 @@ if (
 
     principal.appendChild(panel);
 
+/*
+ * Botones adicionales ubicados después
+ * del botón Procesar planilla.
+ */
+crearModuloDecimoMes(
+  menu,
+  principal,
+  {
+    id:
+      "decimoTercerMes",
+
+    boton:
+      "Planilla Décimo tercer mes",
+
+    titulo:
+      "Planilla Décimo tercer mes",
+
+    accionProcesar:
+      "procesarDecimoTercerMes",
+
+    accionRevisar:
+      "revisarDecimoTercerMes",
+
+    accionAplicar:
+      "aplicarDecimoTercerMes",
+
     /*
-     * Botones adicionales ubicados después
-     * del botón Procesar planilla.
+     * Solamente períodos D13.
      */
-  crearModuloDecimoMes(
-    menu,
-    principal,
-    {
-      id:
-        "decimoTercerMes",
+    sufijoPago:
+      "-D13"
+  }
+);
 
-      boton:
-        "Planilla Décimo tercer mes",
+crearModuloDecimoMes(
+  menu,
+  principal,
+  {
+    id:
+      "decimoCuartoMes",
 
-      titulo:
-        "Planilla Décimo tercer mes",
+    boton:
+      "Planilla Décimo cuarto mes",
 
-      accionProcesar:
-        "procesarDecimoTercerMes",
+    titulo:
+      "Planilla Décimo cuarto mes",
 
-      accionRevisar:
-        "revisarDecimoTercerMes",
+    accionProcesar:
+      "procesarDecimoCuartoMes",
 
-      accionAplicar:
-        "aplicarDecimoTercerMes"
-    }
-  );
+    accionRevisar:
+      "revisarDecimoCuartoMes",
 
-  crearModuloDecimoMes(
-    menu,
-    principal,
-    {
-      id:
-        "decimoCuartoMes",
+    accionAplicar:
+      "aplicarDecimoCuartoMes",
 
-      boton:
-        "Planilla Décimo cuarto mes",
+    /*
+     * Solamente períodos D14.
+     */
+    sufijoPago:
+      "-D14"
+  }
+);
+    
+crearModuloDecimoMes(
+  menu,
+  principal,
+  {
+    id:
+      "decimoCuartoMes",
 
-      titulo:
-        "Planilla Décimo cuarto mes",
+    boton:
+      "Planilla Décimo cuarto mes",
 
-      accionProcesar:
-        "procesarDecimoCuartoMes",
+    titulo:
+      "Planilla Décimo cuarto mes",
 
-      accionRevisar:
-        "revisarDecimoCuartoMes",
+    accionProcesar:
+      "procesarDecimoCuartoMes",
 
-      accionAplicar:
-        "aplicarDecimoCuartoMes"
-    }
-  );
+    accionRevisar:
+      "revisarDecimoCuartoMes",
+
+    accionAplicar:
+      "aplicarDecimoCuartoMes",
+
+    /*
+     * Solamente períodos D14.
+     */
+    sufijoPago:
+      "-D14"
+  }
+);
     
   /*
    * Módulo ISR / Impuesto vecinal.
@@ -17666,254 +17753,318 @@ function formatearMonedaHNL(valor) {
   ).format(numero);
 }
   
-    function crearModuloDecimoMes(
-    menu,
-    principal,
-    configuracion
+/*
+ * Guarda el período de décimo cuyos
+ * recibos ya fueron previsualizados.
+ */
+var periodosRecibosDecimoPrevisualizados =
+  {};
+
+function crearModuloDecimoMes(
+  menu,
+  principal,
+  configuracion
+) {
+  if (
+    document.getElementById(
+      configuracion.id
+    )
   ) {
-    if (
-      document.getElementById(
-        configuracion.id
-      )
-    ) {
-      return;
-    }
-
-    const botonModulo =
-      document.createElement(
-        "button"
-      );
-
-    botonModulo.type =
-      "button";
-
-    botonModulo.textContent =
-      configuracion.boton;
-
-    botonModulo.onclick =
-      function () {
-        abrirPanel(
-          configuracion.id,
-          botonModulo
-        );
-
-        cargarPeriodosDecimoMes(
-          configuracion
-        );
-      };
-
-    menu.appendChild(
-      botonModulo
-    );
-
-    const panel =
-      document.createElement(
-        "section"
-      );
-
-    panel.id =
-      configuracion.id;
-
-    panel.className =
-      "panel";
-
-    panel.innerHTML = `
-      <h2>${configuracion.titulo}</h2>
-
-      <div class="procesar-controles">
-        <div>
-          <label
-            for="${configuracion.id}Periodo"
-          >
-            Períodos de planilla
-          </label>
-
-          <select
-            id="${configuracion.id}Periodo"
-          >
-            <option value="">
-              Seleccionar
-            </option>
-          </select>
-        </div>
-
-        <button
-          id="${configuracion.id}Procesar"
-          type="button"
-          class="primario"
-        >
-          Procesar planilla
-        </button>
-
-        <button
-          id="${configuracion.id}Revisar"
-          type="button"
-          class="boton-secundario"
-        >
-          Revisar planilla
-        </button>
-
-        <button
-          id="${configuracion.id}Aplicar"
-          type="button"
-          class="guardar"
-        >
-          Aplicar planilla
-        </button>
-
-        <button
-          id="${configuracion.id}Generar"
-          type="button"
-          class="boton-secundario"
-        >
-          Generar planilla
-        </button>
-
-        <button
-          id="${configuracion.id}Pagar"
-          type="button"
-          class="boton-secundario"
-        >
-          Pagar planilla
-        </button>
-      </div>
-
-      <div
-        id="${configuracion.id}Pago"
-        class="revision-planilla"
-        hidden
-      >
-        <label
-          for="${configuracion.id}OperacionPago"
-        >
-          Operación de pago
-        </label>
-
-        <div class="revision-selector-fila">
-          <select
-            id="${configuracion.id}OperacionPago"
-          >
-            <option value="">
-              Seleccionar
-            </option>
-
-           <option value="recibos">
-  Enviar recibos
-</option>
-
-<option value="deposito">
-  Generar depósito banco
-</option>
-          </select>
-
-          <button
-            id="${configuracion.id}EjecutarPago"
-            type="button"
-            class="guardar"
-          >
-            Generar
-          </button>
-        </div>
-      </div>
-
-      <div
-        id="${configuracion.id}Mensaje"
-        class="mensaje"
-      ></div>
-
-      <div
-        id="${configuracion.id}Resultado"
-        class="procesar-tabla-contenedor"
-        hidden
-      >
-        <table
-          id="${configuracion.id}Tabla"
-          class="procesar-tabla"
-        >
-          <thead></thead>
-          <tbody></tbody>
-        </table>
-      </div>
-
-      <div
-        id="${configuracion.id}Resumen"
-        class="procesar-resumen"
-      ></div>
-
-      <div
-        id="${configuracion.id}ResultadoPago"
-        hidden
-      ></div>
-    `;
-
-    principal.appendChild(
-      panel
-    );
-
-    document.getElementById(
-      configuracion.id +
-      "Procesar"
-    ).onclick =
-      function () {
-        ejecutarDecimoMes(
-          configuracion,
-          false
-        );
-      };
-
-    document.getElementById(
-      configuracion.id +
-      "Revisar"
-    ).onclick =
-      function () {
-        ejecutarDecimoMes(
-          configuracion,
-          true
-        );
-      };
-
-    document.getElementById(
-      configuracion.id +
-      "Generar"
-    ).onclick =
-      function () {
-        ejecutarDecimoMes(
-          configuracion,
-          true
-        );
-      };
-
-    document.getElementById(
-      configuracion.id +
-      "Aplicar"
-    ).onclick =
-      function () {
-        aplicarDecimoMes(
-          configuracion
-        );
-      };
-
-    document.getElementById(
-      configuracion.id +
-      "Pagar"
-    ).onclick =
-      function () {
-        mostrarPagoDecimoMes(
-          configuracion
-        );
-      };
-
-    document.getElementById(
-      configuracion.id +
-      "EjecutarPago"
-    ).onclick =
-      function () {
-        pagarDecimoMes(
-          configuracion
-        );
-      };
+    return;
   }
 
+  const botonModulo =
+    document.createElement(
+      "button"
+    );
+
+  botonModulo.type =
+    "button";
+
+  botonModulo.textContent =
+    configuracion.boton;
+
+  botonModulo.onclick =
+    function () {
+      abrirPanel(
+        configuracion.id,
+        botonModulo
+      );
+
+      /*
+       * Volver a la vista normal
+       * al abrir el módulo.
+       */
+      restablecerVistaPagoDecimoMes(
+        configuracion
+      );
+
+      cargarPeriodosDecimoMes(
+        configuracion
+      );
+    };
+
+  menu.appendChild(
+    botonModulo
+  );
+
+  const panel =
+    document.createElement(
+      "section"
+    );
+
+  panel.id =
+    configuracion.id;
+
+  panel.className =
+    "panel";
+
+  panel.innerHTML = `
+    <h2>${configuracion.titulo}</h2>
+
+    <div class="procesar-controles">
+
+      <div id="${configuracion.id}SelectorProcesar">
+
+        <label for="${configuracion.id}Periodo">
+          Períodos de planilla
+        </label>
+
+        <select id="${configuracion.id}Periodo">
+          <option value="">
+            Seleccionar
+          </option>
+        </select>
+
+      </div>
+
+      <button
+        id="${configuracion.id}Procesar"
+        type="button"
+        class="primario"
+      >
+        Procesar planilla
+      </button>
+
+      <button
+        id="${configuracion.id}Revisar"
+        type="button"
+        class="boton-secundario"
+      >
+        Revisar planilla
+      </button>
+
+      <button
+        id="${configuracion.id}Aplicar"
+        type="button"
+        class="guardar"
+      >
+        Aplicar planilla
+      </button>
+
+      <button
+        id="${configuracion.id}Generar"
+        type="button"
+        class="boton-secundario"
+      >
+        Generar planilla
+      </button>
+
+      <button
+        id="${configuracion.id}Pagar"
+        type="button"
+        class="boton-secundario"
+      >
+        Pagar planilla
+      </button>
+
+    </div>
+
+    <!-- PAGO DEL DÉCIMO -->
+    <div
+      id="${configuracion.id}Pago"
+      class="contenedor-pago-planilla pago-decimo-contenedor"
+      hidden
+    >
+
+      <label for="${configuracion.id}OperacionPago">
+        Operación de pago
+      </label>
+
+      <select
+        id="${configuracion.id}OperacionPago"
+        class="selector-operacion-pago-decimo"
+      >
+        <option value="">
+          Seleccionar
+        </option>
+
+        <option value="recibos">
+          Emitir recibos de pago
+        </option>
+
+        <option value="deposito">
+          Generar depósito banco
+        </option>
+      </select>
+
+      <!-- PERÍODO A PAGAR -->
+      <div
+        id="${configuracion.id}ContenedorPeriodoPago"
+        style="margin-top:14px;"
+        hidden
+      >
+
+        <label for="${configuracion.id}PeriodoPago">
+          Período de pago vigente
+        </label>
+
+        <select
+          id="${configuracion.id}PeriodoPago"
+          class="selector-periodo-pago-decimo"
+        >
+          <option value="">
+            Seleccionar
+          </option>
+        </select>
+
+      </div>
+
+      <!--
+        Los recibos se muestran antes
+        del botón Generar.
+      -->
+      <div
+        id="${configuracion.id}ResultadoPago"
+        class="resultado-pago-planilla"
+        hidden
+      ></div>
+
+      <button
+        id="${configuracion.id}EjecutarPago"
+        type="button"
+        class="guardar boton-generar-pago-decimo"
+        style="margin-top:18px;"
+        hidden
+      >
+        Generar
+      </button>
+
+    </div>
+
+    <div
+      id="${configuracion.id}Mensaje"
+      class="mensaje"
+    ></div>
+
+    <div
+      id="${configuracion.id}Resultado"
+      class="procesar-tabla-contenedor"
+      hidden
+    >
+      <table
+        id="${configuracion.id}Tabla"
+        class="procesar-tabla"
+      >
+        <thead></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <div
+      id="${configuracion.id}Resumen"
+      class="procesar-resumen"
+    ></div>
+  `;
+
+  principal.appendChild(
+    panel
+  );
+
+  document.getElementById(
+    configuracion.id +
+    "Procesar"
+  ).onclick =
+    function () {
+      ejecutarDecimoMes(
+        configuracion,
+        false
+      );
+    };
+
+  document.getElementById(
+    configuracion.id +
+    "Revisar"
+  ).onclick =
+    function () {
+      ejecutarDecimoMes(
+        configuracion,
+        true
+      );
+    };
+
+  document.getElementById(
+    configuracion.id +
+    "Generar"
+  ).onclick =
+    function () {
+      ejecutarDecimoMes(
+        configuracion,
+        true
+      );
+    };
+
+  document.getElementById(
+    configuracion.id +
+    "Aplicar"
+  ).onclick =
+    function () {
+      aplicarDecimoMes(
+        configuracion
+      );
+    };
+
+  document.getElementById(
+    configuracion.id +
+    "Pagar"
+  ).onclick =
+    function () {
+      mostrarPagoDecimoMes(
+        configuracion
+      );
+    };
+
+  document.getElementById(
+    configuracion.id +
+    "OperacionPago"
+  ).onchange =
+    function () {
+      seleccionarOperacionPagoDecimoMes(
+        configuracion
+      );
+    };
+
+  document.getElementById(
+    configuracion.id +
+    "PeriodoPago"
+  ).onchange =
+    function () {
+      previsualizarRecibosDecimoMes(
+        configuracion
+      );
+    };
+
+  document.getElementById(
+    configuracion.id +
+    "EjecutarPago"
+  ).onclick =
+    function () {
+      pagarDecimoMes(
+        configuracion
+      );
+    };
+}
+  
   function mensajeDecimoMes(
     id,
     texto,
@@ -18139,120 +18290,1072 @@ function formatearMonedaHNL(valor) {
     }
   }
 
-  function mostrarPagoDecimoMes(
-    configuracion
-  ) {
-    const codigo =
-      document.getElementById(
-        configuracion.id +
-        "Periodo"
-      ).value;
 
-    if (!codigo) {
-      mensajeDecimoMes(
-        configuracion.id,
-        "Seleccione un período de planilla.",
-        "error"
-      );
+/*
+ * Restablece la pantalla del módulo
+ * de décimo tercer o cuarto mes.
+ */
+function restablecerVistaPagoDecimoMes(
+  configuracion
+) {
+  var selectorProcesar =
+    document.getElementById(
+      configuracion.id +
+      "SelectorProcesar"
+    );
 
-      return;
-    }
-
+  var contenedorPago =
     document.getElementById(
       configuracion.id +
       "Pago"
-    ).hidden = false;
+    );
+
+  var selectorOperacion =
+    document.getElementById(
+      configuracion.id +
+      "OperacionPago"
+    );
+
+  var etiquetaOperacion =
+    document.querySelector(
+      'label[for="' +
+      configuracion.id +
+      'OperacionPago"]'
+    );
+
+  var contenedorPeriodo =
+    document.getElementById(
+      configuracion.id +
+      "ContenedorPeriodoPago"
+    );
+
+  var selectorPeriodo =
+    document.getElementById(
+      configuracion.id +
+      "PeriodoPago"
+    );
+
+  var resultadoPago =
+    document.getElementById(
+      configuracion.id +
+      "ResultadoPago"
+    );
+
+  var botonGenerar =
+    document.getElementById(
+      configuracion.id +
+      "EjecutarPago"
+    );
+
+  if (selectorProcesar) {
+    selectorProcesar.hidden =
+      false;
   }
 
-  async function pagarDecimoMes(
-    configuracion
+  /*
+   * Volver a mostrar los botones
+   * normales del módulo.
+   */
+  [
+    "Procesar",
+    "Revisar",
+    "Aplicar",
+    "Generar",
+    "Pagar"
+  ].forEach(function (
+    sufijo
   ) {
-    const codigo =
+    var boton =
       document.getElementById(
         configuracion.id +
-        "Periodo"
-      ).value;
+        sufijo
+      );
 
-    const operacion =
+    if (boton) {
+      boton.hidden =
+        false;
+    }
+  });
+
+  if (contenedorPago) {
+    contenedorPago.hidden =
+      true;
+
+    contenedorPago.classList.remove(
+      "vista-pago-generada",
+      "vista-previa-recibos"
+    );
+  }
+
+  if (selectorOperacion) {
+    selectorOperacion.value =
+      "";
+
+    selectorOperacion.disabled =
+      false;
+
+    selectorOperacion.hidden =
+      false;
+  }
+
+  if (etiquetaOperacion) {
+    etiquetaOperacion.hidden =
+      false;
+  }
+
+  if (contenedorPeriodo) {
+    contenedorPeriodo.hidden =
+      true;
+  }
+
+  if (selectorPeriodo) {
+    selectorPeriodo.innerHTML =
+      '<option value="">Seleccionar</option>';
+
+    selectorPeriodo.disabled =
+      false;
+  }
+
+  if (resultadoPago) {
+    resultadoPago.hidden =
+      true;
+
+    resultadoPago.innerHTML =
+      "";
+  }
+
+  if (botonGenerar) {
+    botonGenerar.hidden =
+      true;
+
+    botonGenerar.disabled =
+      false;
+
+    botonGenerar.textContent =
+      "Generar";
+  }
+
+  periodosRecibosDecimoPrevisualizados[
+    configuracion.id
+  ] = "";
+}
+
+/*
+ * Mientras se utiliza Pagar planilla,
+ * dejar visible solamente ese botón.
+ */
+function mostrarSoloBotonPagarDecimoMes(
+  configuracion
+) {
+  var selectorProcesar =
+    document.getElementById(
+      configuracion.id +
+      "SelectorProcesar"
+    );
+
+  if (selectorProcesar) {
+    selectorProcesar.hidden =
+      true;
+  }
+
+  [
+    "Procesar",
+    "Revisar",
+    "Aplicar",
+    "Generar"
+  ].forEach(function (
+    sufijo
+  ) {
+    var boton =
       document.getElementById(
         configuracion.id +
-        "OperacionPago"
-      ).value;
+        sufijo
+      );
 
-    if (!operacion) {
+    if (boton) {
+      boton.hidden =
+        true;
+    }
+  });
+
+  var botonPagar =
+    document.getElementById(
+      configuracion.id +
+      "Pagar"
+    );
+
+  if (botonPagar) {
+    botonPagar.hidden =
+      false;
+  }
+}
+
+/*
+ * Abre las opciones de pago.
+ */
+function mostrarPagoDecimoMes(
+  configuracion
+) {
+  restablecerVistaPagoDecimoMes(
+    configuracion
+  );
+
+  mostrarSoloBotonPagarDecimoMes(
+    configuracion
+  );
+
+  var contenedorPago =
+    document.getElementById(
+      configuracion.id +
+      "Pago"
+    );
+
+  var selectorOperacion =
+    document.getElementById(
+      configuracion.id +
+      "OperacionPago"
+    );
+
+  var resultadoPlanilla =
+    document.getElementById(
+      configuracion.id +
+      "Resultado"
+    );
+
+  var resumenPlanilla =
+    document.getElementById(
+      configuracion.id +
+      "Resumen"
+    );
+
+  if (resultadoPlanilla) {
+    resultadoPlanilla.hidden =
+      true;
+  }
+
+  if (resumenPlanilla) {
+    resumenPlanilla.textContent =
+      "";
+  }
+
+  if (contenedorPago) {
+    contenedorPago.hidden =
+      false;
+  }
+
+  if (selectorOperacion) {
+    selectorOperacion.focus();
+  }
+
+  mensajeDecimoMes(
+    configuracion.id,
+    "Seleccione la operación de pago.",
+    "info"
+  );
+}
+
+/*
+ * Carga solamente los períodos aplicados
+ * correspondientes al décimo seleccionado.
+ */
+async function seleccionarOperacionPagoDecimoMes(
+  configuracion
+) {
+  var selectorOperacion =
+    document.getElementById(
+      configuracion.id +
+      "OperacionPago"
+    );
+
+  var contenedorPeriodo =
+    document.getElementById(
+      configuracion.id +
+      "ContenedorPeriodoPago"
+    );
+
+  var selectorPeriodo =
+    document.getElementById(
+      configuracion.id +
+      "PeriodoPago"
+    );
+
+  var resultadoPago =
+    document.getElementById(
+      configuracion.id +
+      "ResultadoPago"
+    );
+
+  var botonGenerar =
+    document.getElementById(
+      configuracion.id +
+      "EjecutarPago"
+    );
+
+  var contenedorPago =
+    document.getElementById(
+      configuracion.id +
+      "Pago"
+    );
+
+  if (
+    !selectorOperacion ||
+    !selectorPeriodo ||
+    !contenedorPeriodo
+  ) {
+    return;
+  }
+
+  periodosRecibosDecimoPrevisualizados[
+    configuracion.id
+  ] = "";
+
+  selectorPeriodo.innerHTML =
+    '<option value="">Seleccionar</option>';
+
+  contenedorPeriodo.hidden =
+    true;
+
+  if (resultadoPago) {
+    resultadoPago.hidden =
+      true;
+
+    resultadoPago.innerHTML =
+      "";
+  }
+
+  if (botonGenerar) {
+    botonGenerar.hidden =
+      true;
+  }
+
+  if (contenedorPago) {
+    contenedorPago.classList.remove(
+      "vista-previa-recibos",
+      "vista-pago-generada"
+    );
+  }
+
+  if (!selectorOperacion.value) {
+    return;
+  }
+
+  selectorOperacion.disabled =
+    true;
+
+  mensajeDecimoMes(
+    configuracion.id,
+    "Cargando períodos de pago vigentes...",
+    "info"
+  );
+
+  try {
+    var respuesta =
+      await jsonp(
+        "listarPeriodosPago",
+        {}
+      );
+
+    if (
+      !respuesta ||
+      !respuesta.ok
+    ) {
+      throw new Error(
+        respuesta &&
+        respuesta.mensaje
+          ? respuesta.mensaje
+          : "No fue posible cargar los períodos."
+      );
+    }
+
+    var sufijo =
+      String(
+        configuracion.sufijoPago ||
+        ""
+      )
+        .trim()
+        .toUpperCase();
+
+    /*
+     * D13 solamente en Décimo tercero.
+     * D14 solamente en Décimo cuarto.
+     */
+    var periodos =
+      (
+        respuesta.periodos || []
+      ).filter(function (
+        periodo
+      ) {
+        var codigo =
+          String(
+            periodo &&
+            periodo.codigo
+              ? periodo.codigo
+              : ""
+          )
+            .trim()
+            .toUpperCase();
+
+        return (
+          !sufijo ||
+          codigo.endsWith(
+            sufijo
+          )
+        );
+      });
+
+    periodos.forEach(function (
+      periodo
+    ) {
+      var opcion =
+        document.createElement(
+          "option"
+        );
+
+      opcion.value =
+        periodo.codigo;
+
+      opcion.textContent =
+        periodo.etiqueta;
+
+      selectorPeriodo.appendChild(
+        opcion
+      );
+    });
+
+    contenedorPeriodo.hidden =
+      false;
+
+    if (!periodos.length) {
       mensajeDecimoMes(
         configuracion.id,
-        "Seleccione la operación de pago.",
+        "No hay períodos aplicados disponibles para este décimo.",
+        "info"
+      );
+
+      return;
+    }
+
+    var esRecibos =
+      selectorOperacion.value ===
+      "recibos";
+
+    /*
+     * Para recibos, Generar aparece
+     * después de la cuadrícula.
+     *
+     * Para depósito aparece de inmediato.
+     */
+    if (botonGenerar) {
+      botonGenerar.hidden =
+        esRecibos;
+    }
+
+    mensajeDecimoMes(
+      configuracion.id,
+
+      esRecibos
+        ? "Seleccione el período para mostrar los recibos antes de Generar."
+        : "Seleccione el período y presione Generar.",
+
+      "ok"
+    );
+
+    selectorPeriodo.focus();
+
+  } catch (error) {
+    mensajeDecimoMes(
+      configuracion.id,
+
+      error.message ||
+      "No fue posible cargar los períodos.",
+
+      "error"
+    );
+
+  } finally {
+    selectorOperacion.disabled =
+      false;
+  }
+}
+
+/*
+ * Muestra los recibos sin enviarlos.
+ */
+async function previsualizarRecibosDecimoMes(
+  configuracion
+) {
+  var selectorOperacion =
+    document.getElementById(
+      configuracion.id +
+      "OperacionPago"
+    );
+
+  var selectorPeriodo =
+    document.getElementById(
+      configuracion.id +
+      "PeriodoPago"
+    );
+
+  var resultadoPago =
+    document.getElementById(
+      configuracion.id +
+      "ResultadoPago"
+    );
+
+  var botonGenerar =
+    document.getElementById(
+      configuracion.id +
+      "EjecutarPago"
+    );
+
+  var contenedorPago =
+    document.getElementById(
+      configuracion.id +
+      "Pago"
+    );
+
+  if (
+    !selectorOperacion ||
+    !selectorPeriodo ||
+    !resultadoPago ||
+    !botonGenerar
+  ) {
+    return;
+  }
+
+  periodosRecibosDecimoPrevisualizados[
+    configuracion.id
+  ] = "";
+
+  resultadoPago.hidden =
+    true;
+
+  resultadoPago.innerHTML =
+    "";
+
+  /*
+   * Para depósito no se necesita
+   * vista previa automática.
+   */
+  if (
+    selectorOperacion.value !==
+    "recibos"
+  ) {
+    if (contenedorPago) {
+      contenedorPago.classList.remove(
+        "vista-previa-recibos"
+      );
+    }
+
+    botonGenerar.hidden =
+      !selectorPeriodo.value;
+
+    return;
+  }
+
+  botonGenerar.hidden =
+    true;
+
+  if (!selectorPeriodo.value) {
+    if (contenedorPago) {
+      contenedorPago.classList.remove(
+        "vista-previa-recibos"
+      );
+    }
+
+    return;
+  }
+
+  selectorPeriodo.disabled =
+    true;
+
+  mensajeDecimoMes(
+    configuracion.id,
+    "Cargando recibos para revisión...",
+    "info"
+  );
+
+  try {
+    /*
+     * Solo generar la información.
+     * Todavía no se envían correos.
+     */
+    var respuesta =
+      await jsonp(
+        "generarPagoPlanilla",
+        {
+          codigo:
+            selectorPeriodo.value,
+
+          operacion:
+            "recibos"
+        }
+      );
+
+    if (
+      !respuesta ||
+      !respuesta.ok
+    ) {
+      throw new Error(
+        respuesta &&
+        respuesta.mensaje
+          ? respuesta.mensaje
+          : "No fue posible cargar los recibos."
+      );
+    }
+
+    var recibos =
+      Array.isArray(
+        respuesta.recibos
+      )
+        ? respuesta.recibos
+        : [];
+
+    if (!recibos.length) {
+      throw new Error(
+        "No existen recibos para el período seleccionado."
+      );
+    }
+
+    if (contenedorPago) {
+      contenedorPago.classList.add(
+        "vista-previa-recibos"
+      );
+    }
+
+    resultadoPago.hidden =
+      false;
+
+    /*
+     * Sin botones internos.
+     * Orden alfabético y cuadrícula.
+     */
+    mostrarRecibosPago(
+      resultadoPago,
+      recibos,
+      {
+        mostrarAcciones:
+          false
+      }
+    );
+
+    periodosRecibosDecimoPrevisualizados[
+      configuracion.id
+    ] =
+      selectorPeriodo.value;
+
+    /*
+     * Generar aparece después
+     * de los recibos.
+     */
+    botonGenerar.hidden =
+      false;
+
+    mensajeDecimoMes(
+      configuracion.id,
+
+      recibos.length +
+      " recibo(s) mostrados en cuadrícula. " +
+      "Revise la información y presione Generar.",
+
+      "ok"
+    );
+
+  } catch (error) {
+    resultadoPago.hidden =
+      true;
+
+    resultadoPago.innerHTML =
+      "";
+
+    botonGenerar.hidden =
+      true;
+
+    if (contenedorPago) {
+      contenedorPago.classList.remove(
+        "vista-previa-recibos"
+      );
+    }
+
+    mensajeDecimoMes(
+      configuracion.id,
+
+      error.message ||
+      "No fue posible cargar los recibos.",
+
+      "error"
+    );
+
+  } finally {
+    selectorPeriodo.disabled =
+      false;
+  }
+}
+
+/*
+ * Para depósito, ocultar todos los
+ * controles y mostrar solamente:
+ *
+ * - Vista del depósito.
+ * - Botón Enviar a Excel.
+ */
+function ocultarControlesParaResultadoPagoDecimoMes(
+  configuracion
+) {
+  var selectorProcesar =
+    document.getElementById(
+      configuracion.id +
+      "SelectorProcesar"
+    );
+
+  var selectorOperacion =
+    document.getElementById(
+      configuracion.id +
+      "OperacionPago"
+    );
+
+  var etiquetaOperacion =
+    document.querySelector(
+      'label[for="' +
+      configuracion.id +
+      'OperacionPago"]'
+    );
+
+  var contenedorPeriodo =
+    document.getElementById(
+      configuracion.id +
+      "ContenedorPeriodoPago"
+    );
+
+  var botonGenerar =
+    document.getElementById(
+      configuracion.id +
+      "EjecutarPago"
+    );
+
+  var contenedorPago =
+    document.getElementById(
+      configuracion.id +
+      "Pago"
+    );
+
+  if (selectorProcesar) {
+    selectorProcesar.hidden =
+      true;
+  }
+
+  [
+    "Procesar",
+    "Revisar",
+    "Aplicar",
+    "Generar",
+    "Pagar"
+  ].forEach(function (
+    sufijo
+  ) {
+    var boton =
+      document.getElementById(
+        configuracion.id +
+        sufijo
+      );
+
+    if (boton) {
+      boton.hidden =
+        true;
+    }
+  });
+
+  if (selectorOperacion) {
+    selectorOperacion.hidden =
+      true;
+  }
+
+  if (etiquetaOperacion) {
+    etiquetaOperacion.hidden =
+      true;
+  }
+
+  if (contenedorPeriodo) {
+    contenedorPeriodo.hidden =
+      true;
+  }
+
+  if (botonGenerar) {
+    botonGenerar.hidden =
+      true;
+  }
+
+  if (contenedorPago) {
+    contenedorPago.classList.remove(
+      "vista-previa-recibos"
+    );
+
+    contenedorPago.classList.add(
+      "vista-pago-generada"
+    );
+  }
+}
+
+/*
+ * Ejecuta el envío de recibos
+ * o genera el depósito.
+ */
+async function pagarDecimoMes(
+  configuracion
+) {
+  var selectorOperacion =
+    document.getElementById(
+      configuracion.id +
+      "OperacionPago"
+    );
+
+  var selectorPeriodo =
+    document.getElementById(
+      configuracion.id +
+      "PeriodoPago"
+    );
+
+  var boton =
+    document.getElementById(
+      configuracion.id +
+      "EjecutarPago"
+    );
+
+  var resultadoPago =
+    document.getElementById(
+      configuracion.id +
+      "ResultadoPago"
+    );
+
+  if (
+    !selectorOperacion ||
+    !selectorOperacion.value
+  ) {
+    mensajeDecimoMes(
+      configuracion.id,
+      "Seleccione la operación de pago.",
+      "error"
+    );
+
+    return;
+  }
+
+  if (
+    !selectorPeriodo ||
+    !selectorPeriodo.value
+  ) {
+    mensajeDecimoMes(
+      configuracion.id,
+      "Seleccione el período de pago.",
+      "error"
+    );
+
+    return;
+  }
+
+  var codigo =
+    selectorPeriodo.value;
+
+  var esRecibos =
+    selectorOperacion.value ===
+    "recibos";
+
+  var textoOriginal =
+    boton.textContent;
+
+  /*
+   * ====================================
+   * EMITIR RECIBOS DE PAGO
+   * ====================================
+   */
+  if (esRecibos) {
+    if (
+      periodosRecibosDecimoPrevisualizados[
+        configuracion.id
+      ] !== codigo
+    ) {
+      mensajeDecimoMes(
+        configuracion.id,
+
+        "Primero espere a que se muestren " +
+        "los recibos del período seleccionado.",
+
         "error"
       );
 
       return;
     }
 
+    var confirmar =
+      window.confirm(
+        "Se enviará cada recibo al correo " +
+        "registrado en Maestro para el No. " +
+        "de personal correspondiente. " +
+        "¿Desea continuar?"
+      );
+
+    if (!confirmar) {
+      return;
+    }
+
+    boton.disabled =
+      true;
+
+    boton.textContent =
+      "Enviando...";
+
+    mensajeDecimoMes(
+      configuracion.id,
+      "Enviando recibos de pago...",
+      "info"
+    );
+
     try {
-      const respuesta =
+      /*
+       * Los recibos ya están visibles.
+       * Aquí solamente se envían.
+       */
+      var envio =
         await jsonp(
-          "generarPagoPlanilla",
+          "enviarRecibosPagoCorreo",
           {
             codigo:
-              codigo,
-
-            operacion:
-              operacion
+              codigo
           }
         );
 
       if (
-        !respuesta ||
-        !respuesta.ok
+        !envio ||
+        !envio.ok
       ) {
         throw new Error(
-          respuesta &&
-          respuesta.mensaje
-            ? respuesta.mensaje
-            : "No fue posible generar el pago."
+          envio &&
+          envio.mensaje
+            ? envio.mensaje
+            : "No fue posible enviar los recibos."
         );
       }
 
-      const contenedor =
-        document.getElementById(
-          configuracion.id +
-          "ResultadoPago"
-        );
-
-      contenedor.hidden = false;
-
-      if (
-        respuesta.tipo ===
-        "recibos"
-      ) {
-        mostrarRecibosPago(
-          contenedor,
-          respuesta.recibos || []
-        );
-      } else {
-        mostrarListadoDeposito(
-          contenedor,
-          respuesta.depositos || [],
-          respuesta.totalDeposito || 0,
-          respuesta.omitidos || []
-        );
-      }
-
+      /*
+       * Mantener visible la cuadrícula.
+       */
       mensajeDecimoMes(
         configuracion.id,
-        respuesta.mensaje,
+        envio.mensaje,
         "ok"
       );
 
     } catch (error) {
       mensajeDecimoMes(
         configuracion.id,
-        error.message,
+
+        error.message ||
+        "No fue posible enviar los recibos.",
+
         "error"
       );
+
+    } finally {
+      boton.disabled =
+        false;
+
+      boton.textContent =
+        textoOriginal;
     }
+
+    return;
   }
+
+  /*
+   * ====================================
+   * GENERAR DEPÓSITO BANCO
+   * ====================================
+   */
+  boton.disabled =
+    true;
+
+  boton.textContent =
+    "Generando...";
+
+  mensajeDecimoMes(
+    configuracion.id,
+    "Generando depósito bancario...",
+    "info"
+  );
+
+  try {
+    var respuesta =
+      await jsonp(
+        "generarPagoPlanilla",
+        {
+          codigo:
+            codigo,
+
+          operacion:
+            "deposito"
+        }
+      );
+
+    if (
+      !respuesta ||
+      !respuesta.ok
+    ) {
+      throw new Error(
+        respuesta &&
+        respuesta.mensaje
+          ? respuesta.mensaje
+          : "No fue posible generar el depósito."
+      );
+    }
+
+    ocultarControlesParaResultadoPagoDecimoMes(
+      configuracion
+    );
+
+    resultadoPago.hidden =
+      false;
+
+    /*
+     * Solo depósito y Enviar a Excel.
+     */
+    mostrarListadoDeposito(
+      resultadoPago,
+      respuesta.depositos || [],
+      respuesta.totalDeposito || 0,
+      respuesta.omitidos || [],
+      {
+        soloExcel:
+          true,
+
+        codigo:
+          codigo
+      }
+    );
+
+    mensajeDecimoMes(
+      configuracion.id,
+      respuesta.mensaje,
+      "ok"
+    );
+
+  } catch (error) {
+    mensajeDecimoMes(
+      configuracion.id,
+
+      error.message ||
+      "No fue posible generar el depósito.",
+
+      "error"
+    );
+
+  } finally {
+    boton.disabled =
+      false;
+
+    boton.textContent =
+      textoOriginal;
+  }
+}  
 
   function marcarCeldasDecimoMes(
     id,
@@ -20567,8 +21670,19 @@ function mostrarListadoDeposito(
       ? omitidos
       : [];
 
-  var html =
-    '<div class="vista-deposito-pago">';
+ var codigoPeriodo =
+  String(
+    opciones.codigo || ""
+  ).trim();
+
+var html =
+  '<div ' +
+  'class="vista-deposito-pago" ' +
+  'data-codigo-periodo="' +
+  escaparPagoPlanilla(
+    codigoPeriodo
+  ) +
+  '">';
 
   /*
    * En Procesar planilla solamente
@@ -20863,18 +21977,47 @@ function enviarDepositoAExcel(
       }
     );
 
+ /*
+ * Primero tomar el código guardado
+ * en la vista del depósito.
+ *
+ * Esto permite exportar correctamente:
+ *
+ * Q-2026-D13
+ * H-2026-D13
+ * Q-2026-D14
+ * H-2026-D14
+ */
+var codigo =
+  vista
+    ? String(
+        vista.getAttribute(
+          "data-codigo-periodo"
+        ) || ""
+      ).trim()
+    : "";
+
+/*
+ * Compatibilidad con Procesar planilla.
+ */
+if (!codigo) {
   var selectorPeriodo =
     document.getElementById(
       "periodoPagoPlanilla"
     );
 
-  var codigo =
+  codigo =
     selectorPeriodo
       ? String(
-          selectorPeriodo.value ||
-          "planilla"
+          selectorPeriodo.value || ""
         ).trim()
-      : "planilla";
+      : "";
+}
+
+if (!codigo) {
+  codigo =
+    "planilla";
+}
 
   codigo =
     codigo.replace(
