@@ -14378,36 +14378,7 @@ crearModuloDecimoMes(
   }
 );
     
-crearModuloDecimoMes(
-  menu,
-  principal,
-  {
-    id:
-      "decimoCuartoMes",
-
-    boton:
-      "Planilla Décimo cuarto mes",
-
-    titulo:
-      "Planilla Décimo cuarto mes",
-
-    accionProcesar:
-      "procesarDecimoCuartoMes",
-
-    accionRevisar:
-      "revisarDecimoCuartoMes",
-
-    accionAplicar:
-      "aplicarDecimoCuartoMes",
-
-    /*
-     * Solamente períodos D14.
-     */
-    sufijoPago:
-      "-D14"
-  }
-);
-    
+   
   /*
    * Módulo ISR / Impuesto vecinal.
    */
@@ -18575,73 +18546,188 @@ function crearModuloDecimoMes(
     mensaje.textContent =
       texto || "";
   }
+async function cargarPeriodosDecimoMes(
+  configuracion
+) {
+  const selector =
+    document.getElementById(
+      configuracion.id +
+      "Periodo"
+    );
 
-  async function cargarPeriodosDecimoMes(
-    configuracion
-  ) {
-    const selector =
-      document.getElementById(
-        configuracion.id +
-        "Periodo"
+  if (!selector) {
+    return;
+  }
+
+  selector.disabled =
+    true;
+
+  selector.innerHTML =
+    '<option value="">Cargando...</option>';
+
+  mensajeDecimoMes(
+    configuracion.id,
+    "Cargando períodos pendientes desde ControlPlanillas...",
+    "info"
+  );
+
+  try {
+    /*
+     * Esta acción obtiene desde ControlPlanillas
+     * únicamente los períodos con Estado:
+     *
+     * Pendiente
+     */
+    const respuesta =
+      await jsonp(
+        "listarPeriodosProcesar",
+        {}
       );
 
-    selector.innerHTML =
-      '<option value="">Cargando...</option>';
+    if (
+      !respuesta ||
+      !respuesta.ok
+    ) {
+      throw new Error(
+        respuesta &&
+        respuesta.mensaje
+          ? respuesta.mensaje
+          : "No fue posible cargar los períodos."
+      );
+    }
 
-    try {
-      const respuesta =
-        await jsonp(
-          "listarPeriodosProcesar",
-          {}
-        );
+    /*
+     * La configuración contiene:
+     *
+     * Décimo tercero = -D13
+     * Décimo cuarto  = -D14
+     */
+    const sufijo =
+      String(
+        configuracion.sufijoPago ||
+        ""
+      )
+        .trim()
+        .toUpperCase();
 
-      if (
-        !respuesta ||
-        !respuesta.ok
-      ) {
-        throw new Error(
-          respuesta &&
-          respuesta.mensaje
-            ? respuesta.mensaje
-            : "No fue posible cargar los períodos."
-        );
-      }
-
-      selector.innerHTML =
-        '<option value="">Seleccionar</option>';
-
+    /*
+     * Filtrar los períodos pendientes:
+     *
+     * En Décimo tercer mes:
+     * solamente códigos terminados en -D13.
+     *
+     * En Décimo cuarto mes:
+     * solamente códigos terminados en -D14.
+     */
+    const periodos =
       (
-        respuesta.periodos || []
-      ).forEach(function (
+        Array.isArray(
+          respuesta.periodos
+        )
+          ? respuesta.periodos
+          : []
+      ).filter(function (
         periodo
       ) {
-        const opcion =
-          document.createElement(
-            "option"
-          );
+        const codigo =
+          String(
+            periodo &&
+            periodo.codigo
+              ? periodo.codigo
+              : ""
+          )
+            .trim()
+            .toUpperCase();
 
-        opcion.value =
-          periodo.codigo;
-
-        opcion.textContent =
-          periodo.texto;
-
-        selector.appendChild(
-          opcion
+        return (
+          sufijo !== "" &&
+          codigo.endsWith(
+            sufijo
+          )
         );
       });
 
-    } catch (error) {
-      selector.innerHTML =
-        '<option value="">Seleccionar</option>';
+    selector.innerHTML =
+      '<option value="">Seleccionar</option>';
 
+    periodos.forEach(function (
+      periodo
+    ) {
+      const opcion =
+        document.createElement(
+          "option"
+        );
+
+      opcion.value =
+        periodo.codigo;
+
+      opcion.textContent =
+        periodo.texto ||
+        periodo.codigo;
+
+      selector.appendChild(
+        opcion
+      );
+    });
+
+    selector.disabled =
+      false;
+
+    const tipoDecimo =
+      sufijo === "-D13"
+        ? "D13"
+        : sufijo === "-D14"
+          ? "D14"
+          : "décimo";
+
+    if (!periodos.length) {
       mensajeDecimoMes(
         configuracion.id,
-        error.message,
-        "error"
+
+        "No existen períodos " +
+        tipoDecimo +
+        " pendientes en ControlPlanillas.",
+
+        "info"
       );
+
+      return;
     }
+
+    mensajeDecimoMes(
+      configuracion.id,
+
+      periodos.length +
+      (
+        periodos.length === 1
+          ? " período "
+          : " períodos "
+      ) +
+      tipoDecimo +
+      " pendiente(s).",
+
+      "ok"
+    );
+
+  } catch (error) {
+    selector.innerHTML =
+      '<option value="">Seleccionar</option>';
+
+    selector.disabled =
+      false;
+
+    mensajeDecimoMes(
+      configuracion.id,
+
+      error &&
+      error.message
+        ? error.message
+        : "No fue posible cargar los períodos.",
+
+      "error"
+    );
   }
+}
 
   async function ejecutarDecimoMes(
     configuracion,
