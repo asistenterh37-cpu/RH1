@@ -4377,7 +4377,7 @@ function mostrarTablaOrdTe(
      */
 
     const API_URL =
-      "https://script.google.com/macros/s/AKfycbytQJb27Gnyo1FQQPQAM3FUQMlBHCaeh1V30Vm8H86VLFqaGcyRP7QRIGflsYxWkHxt/exec";
+      "https://script.google.com/macros/s/AKfycbzn6i-HuRL3r670OXEXAQKEJdyeWv6OkvrmfgxNdYUQ75OfPDDGyKr2z5KS1d-YzIzM/exec";
 
     const camposEmpleado = [
 
@@ -4662,6 +4662,15 @@ const tiempoEspera =
     }
 
 /*
+ * Datos de la visita abierta.
+ */
+let filaVisitaActivaSistema =
+  0;
+
+let claveVisitaActivaSistema =
+  "";
+
+/*
  * VALIDAR ACCESO AL SISTEMA.
  */
 async function validarAccesoSistema(event) {
@@ -4727,17 +4736,30 @@ async function validarAccesoSistema(event) {
       );
     }
 
-    mostrarMensajeAccesoSistema(
-      "Acceso autorizado.",
-      "ok"
-    );
+  /*
+ * Guardar la visita abierta antes
+ * de limpiar el campo visible.
+ */
+filaVisitaActivaSistema =
+  Number(
+    respuesta.visitaFila
+  ) || 0;
 
-    /*
-     * Limpiar la contraseña.
-     */
-    if (campoClave) {
-      campoClave.value = "";
-    }
+claveVisitaActivaSistema =
+  clave;
+
+mostrarMensajeAccesoSistema(
+  "Acceso autorizado.",
+  "ok"
+);
+
+/*
+ * Limpiar la contraseña visible.
+ */
+if (campoClave) {
+  campoClave.value =
+    "";
+}
 
     /*
      * Mostrar la aplicación.
@@ -4811,7 +4833,7 @@ function mostrarMensajeAccesoSistema(
  * SALIR DE LA PLATAFORMA
  * =====================================================
  */
-function salirPlataforma() {
+async function salirPlataforma() {
   const confirmarSalida =
     window.confirm(
       "¿Desea salir de la plataforma?"
@@ -4821,16 +4843,82 @@ function salirPlataforma() {
     return;
   }
 
+  const botonSalir =
+    document.getElementById(
+      "botonSalirPlataforma"
+    );
+
+  if (botonSalir) {
+    botonSalir.disabled =
+      true;
+
+    botonSalir.textContent =
+      "Saliendo...";
+  }
+
   /*
-   * Bloquear nuevamente la aplicación.
+   * Completar Hora salida antes
+   * de cerrar la plataforma.
    */
+  if (
+    filaVisitaActivaSistema > 0 &&
+    claveVisitaActivaSistema
+  ) {
+    try {
+      const respuesta =
+        await jsonp(
+          "registrarSalidaVisita",
+          {
+            fila:
+              filaVisitaActivaSistema,
+
+            clave:
+              claveVisitaActivaSistema
+          }
+        );
+
+      if (
+        !respuesta ||
+        !respuesta.ok
+      ) {
+        throw new Error(
+          respuesta &&
+          respuesta.mensaje
+            ? respuesta.mensaje
+            : "No fue posible registrar la hora de salida."
+        );
+      }
+
+    } catch (error) {
+      if (botonSalir) {
+        botonSalir.disabled =
+          false;
+
+        botonSalir.textContent =
+          "Salir";
+      }
+
+      window.alert(
+        error &&
+        error.message
+          ? error.message
+          : "No fue posible registrar la hora de salida."
+      );
+
+      return;
+    }
+  }
+
+  filaVisitaActivaSistema =
+    0;
+
+  claveVisitaActivaSistema =
+    "";
+
   document.body.classList.add(
     "sistema-bloqueado"
   );
 
-  /*
-   * Mostrar la pantalla de acceso.
-   */
   const pantallaAcceso =
     document.getElementById(
       "pantallaAcceso"
@@ -4847,9 +4935,6 @@ function salirPlataforma() {
     );
   }
 
-  /*
-   * Limpiar la contraseña.
-   */
   const campoClave =
     document.getElementById(
       "claveAccesoSistema"
@@ -4860,10 +4945,6 @@ function salirPlataforma() {
       "";
   }
 
-  /*
-   * Quitar la selección de los botones
-   * y regresar el panel al inicio.
-   */
   document
     .querySelectorAll(
       ".menu button"
@@ -4915,11 +4996,6 @@ function salirPlataforma() {
       "auto"
   });
 
-  /*
-   * Recargar la página para eliminar
-   * formularios, resultados y datos
-   * temporales que quedaron abiertos.
-   */
   setTimeout(
     function () {
       const url =
@@ -4927,10 +5003,6 @@ function salirPlataforma() {
           window.location.href
         );
 
-      /*
-       * Evitar conservar una contraseña
-       * antigua en la dirección.
-       */
       url.searchParams.delete(
         "claveAccesoSistema"
       );
@@ -4948,11 +5020,6 @@ function salirPlataforma() {
             : ""
         );
 
-      /*
-       * replace impide regresar mediante
-       * el botón Atrás a la pantalla
-       * que estaba abierta.
-       */
       window.location.replace(
         direccionAcceso
       );
@@ -4960,8 +5027,7 @@ function salirPlataforma() {
 
     120
   );
-}
-    
+}   
 /*
  * Colocar el cursor en la contraseña
  * cuando abra el enlace.
