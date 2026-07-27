@@ -11,6 +11,17 @@
     name="viewport"
     content="width=device-width, initial-scale=1.0"
   >
+<!-- Evitar indexación y envío innecesario de referencias. -->
+<meta
+  name="robots"
+  content="noindex, nofollow, noarchive, nosnippet"
+>
+
+<meta
+  name="referrer"
+  content="no-referrer"
+>
+  
   <style>
 
     :root {
@@ -4377,7 +4388,7 @@ function mostrarTablaOrdTe(
      */
 
     const API_URL =
-      "https://script.google.com/macros/s/AKfycbzn6i-HuRL3r670OXEXAQKEJdyeWv6OkvrmfgxNdYUQ75OfPDDGyKr2z5KS1d-YzIzM/exec";
+      "https://script.google.com/macros/s/AKfycbxcyXYMEIT9Oxo86RKuuRLF4NSwgLbc85Yr5xgOR66qMdyWhBjQ9BUT4u4elqG5Hlc0/exec";
 
     const camposEmpleado = [
 
@@ -4519,156 +4530,419 @@ function mostrarTablaOrdTe(
       }
     }
 
-    /*
-     * CONEXIÓN JSONP CON APPS SCRIPT.
-     */
+/*
+ * =====================================================
+ * CONEXIÓN SEGURA CON APPS SCRIPT
+ * =====================================================
+ */
 
-    function jsonp(
-      accion,
-      datos
+/*
+ * Solo estas acciones pueden utilizarse
+ * sin iniciar sesión administrativa.
+ *
+ * Se conservan públicas para permitir
+ * la pantalla móvil de asistencia.
+ */
+const ACCIONES_PUBLICAS_SISTEMA =
+  new Set([
+    "validarAccesoSistema",
+    "validarPin",
+    "registrarAsistencia"
+  ]);
+
+/*
+ * Token temporal entregado por el GS.
+ *
+ * No contiene la contraseña.
+ */
+let tokenSesionSistema =
+  "";
+
+/*
+ * Mientras no exista sesión, las solicitudes
+ * protegidas permanecen esperando.
+ *
+ * Esto evita que los cargadores ejecutados por
+ * DOMContentLoaded fallen antes del ingreso.
+ */
+let colaSolicitudesProtegidasSistema =
+  [];
+
+/*
+ * Identificador utilizado únicamente para
+ * limitar intentos incorrectos por navegador.
+ */
+const clienteIdSeguridadSistema =
+  obtenerClienteIdSeguridadSistema_();
+
+function obtenerClienteIdSeguridadSistema_() {
+  const nombreAlmacenamiento =
+    "nexorh_cliente_seguridad";
+
+  try {
+    let identificador =
+      localStorage.getItem(
+        nombreAlmacenamiento
+      ) || "";
+
+    if (!identificador) {
+      identificador =
+        (
+          window.crypto &&
+          typeof window.crypto.randomUUID ===
+            "function"
+        )
+          ? window.crypto.randomUUID()
+          : (
+              "cliente_" +
+              Date.now() +
+              "_" +
+              Math.random()
+                .toString(36)
+                .slice(2)
+            );
+
+      localStorage.setItem(
+        nombreAlmacenamiento,
+        identificador
+      );
+    }
+
+    return identificador;
+
+  } catch (error) {
+    return (
+      "cliente_" +
+      Date.now() +
+      "_" +
+      Math.random()
+        .toString(36)
+        .slice(2)
+    );
+  }
+}
+
+/*
+ * Función utilizada por todos los módulos.
+ */
+function jsonp(
+  accion,
+  datos
+) {
+  datos =
+    datos || {};
+
+  const esPublica =
+    ACCIONES_PUBLICAS_SISTEMA.has(
+      accion
+    );
+
+  /*
+   * Una solicitud protegida hecha antes
+   * de iniciar sesión queda en espera.
+   */
+  if (
+    !esPublica &&
+    !tokenSesionSistema
+  ) {
+    let copiaDatos = {};
+
+    try {
+      copiaDatos =
+        JSON.parse(
+          JSON.stringify(
+            datos
+          )
+        );
+
+    } catch (error) {
+      copiaDatos =
+        Object.assign(
+          {},
+          datos
+        );
+    }
+
+    return new Promise(
+      function (
+        resolver,
+        rechazar
+      ) {
+        colaSolicitudesProtegidasSistema
+          .push({
+            accion:
+              accion,
+
+            datos:
+              copiaDatos,
+
+            resolver:
+              resolver,
+
+            rechazar:
+              rechazar
+          });
+      }
+    );
+  }
+
+  return ejecutarJsonpSistema_(
+    accion,
+    datos
+  );
+}
+
+/*
+ * Ejecuta físicamente la llamada JSONP.
+ */
+function ejecutarJsonpSistema_(
+  accion,
+  datos
+) {
+  datos =
+    Object.assign(
+      {},
+      datos || {}
+    );
+
+  const esPublica =
+    ACCIONES_PUBLICAS_SISTEMA.has(
+      accion
+    );
+
+  /*
+   * Enviar el token automáticamente en
+   * todas las acciones protegidas.
+   */
+  if (
+    !esPublica &&
+    tokenSesionSistema
+  ) {
+    datos.tokenSesion =
+      tokenSesionSistema;
+  }
+
+  return new Promise(
+    function (
+      resolver,
+      rechazar
     ) {
+      if (
+        !API_URL ||
+        API_URL.indexOf(
+          "PEGAR_AQUI"
+        ) === 0
+      ) {
+        rechazar(
+          new Error(
+            "Configure la URL de Apps Script en API_URL."
+          )
+        );
 
-      datos = datos || {};
+        return;
+      }
 
-      return new Promise(
-        function (
-          resolver,
-          rechazar
-        ) {
+      const callback =
+        "callback_" +
+        Date.now() +
+        "_" +
+        Math.floor(
+          Math.random() *
+          99999
+        );
 
-          if (
-            !API_URL ||
-            API_URL.indexOf(
-              "PEGAR_AQUI"
-            ) === 0
-          ) {
+      const script =
+        document.createElement(
+          "script"
+        );
 
-            rechazar(
+      const tiempoLimite =
+        accion ===
+          "consultarAnalisisIA"
+          ? 90000
+          : 20000;
+
+      const tiempoEspera =
+        setTimeout(
+          function () {
+            terminar(
               new Error(
-                "Configure la URL de Apps Script en API_URL."
+                "Se agotó el tiempo de conexión con Apps Script."
+              )
+            );
+          },
+          tiempoLimite
+        );
+
+      function terminar(
+        error,
+        respuesta
+      ) {
+        clearTimeout(
+          tiempoEspera
+        );
+
+        try {
+          delete window[
+            callback
+          ];
+
+        } catch (errorEliminar) {
+          window[
+            callback
+          ] =
+            undefined;
+        }
+
+        if (
+          script.parentNode
+        ) {
+          script.parentNode
+            .removeChild(
+              script
+            );
+        }
+
+        if (error) {
+          rechazar(
+            error
+          );
+
+        } else {
+          resolver(
+            respuesta
+          );
+        }
+      }
+
+      window[
+        callback
+      ] =
+        function (
+          respuesta
+        ) {
+          /*
+           * Bloquear la aplicación cuando
+           * el servidor indique vencimiento.
+           */
+          if (
+            respuesta &&
+            respuesta.codigo ===
+              "SESION_EXPIRADA"
+          ) {
+            const mensaje =
+              respuesta.mensaje ||
+              "La sesión venció. Ingrese nuevamente.";
+
+            manejarSesionExpiradaSistema_(
+              mensaje
+            );
+
+            terminar(
+              new Error(
+                mensaje
               )
             );
 
             return;
           }
 
-          const callback =
-            "callback_" +
-            Date.now() +
-            "_" +
-            Math.floor(
-              Math.random() *
-              99999
-            );
-
-          const script =
-            document.createElement(
-              "script"
-            );
-
-        const tiempoLimite =
-  accion === "consultarAnalisisIA"
-    ? 90000
-    : 20000;
-
-const tiempoEspera =
-  setTimeout(
-    function () {
-      terminar(
-        new Error(
-          "Se agotó el tiempo de conexión con Apps Script."
-        )
-      );
-    },
-    tiempoLimite
-  );
-
-          function terminar(
-            error,
+          terminar(
+            null,
             respuesta
-          ) {
+          );
+        };
 
-            clearTimeout(
-              tiempoEspera
-            );
+      script.onerror =
+        function () {
+          terminar(
+            new Error(
+              "No se pudo conectar con Apps Script."
+            )
+          );
+        };
 
-            try {
+      const parametros =
+        new URLSearchParams({
+          action:
+            accion,
 
-              delete window[callback];
+          callback:
+            callback,
 
-            } catch (e) {
+          data:
+            JSON.stringify(
+              datos
+            )
+        });
 
-              window[callback] =
-                undefined;
-            }
+      script.src =
+        API_URL +
+        "?" +
+        parametros.toString();
 
-            if (script.parentNode) {
+      script.async =
+        true;
 
-              script.parentNode
-                .removeChild(script);
-            }
-
-            if (error) {
-
-              rechazar(error);
-
-            } else {
-
-              resolver(respuesta);
-            }
-          }
-
-          window[callback] =
-            function (respuesta) {
-
-              terminar(
-                null,
-                respuesta
-              );
-            };
-
-          script.onerror =
-            function () {
-
-              terminar(
-                new Error(
-                  "No se pudo conectar con Apps Script."
-                )
-              );
-            };
-
-          const parametros =
-            new URLSearchParams({
-
-              action: accion,
-
-              callback: callback,
-
-              data:
-                JSON.stringify(datos)
-            });
-
-          script.src =
-            API_URL +
-            "?" +
-            parametros.toString();
-
-          script.async = true;
-
-          document.body
-            .appendChild(script);
-        }
-      );
+      document.body
+        .appendChild(
+          script
+        );
     }
+  );
+}
 
 /*
- * Datos de la visita abierta.
+ * Ejecutar las solicitudes que esperaban
+ * a que se iniciara sesión.
  */
-let filaVisitaActivaSistema =
-  0;
+function liberarSolicitudesProtegidasSistema_() {
+  const pendientes =
+    colaSolicitudesProtegidasSistema
+      .splice(
+        0
+      );
 
-let claveVisitaActivaSistema =
-  "";
+  pendientes.forEach(
+    function (
+      solicitud
+    ) {
+      ejecutarJsonpSistema_(
+        solicitud.accion,
+        solicitud.datos
+      )
+        .then(
+          solicitud.resolver
+        )
+        .catch(
+          solicitud.rechazar
+        );
+    }
+  );
+}
+
+function rechazarSolicitudesProtegidasSistema_(
+  mensaje
+) {
+  const pendientes =
+    colaSolicitudesProtegidasSistema
+      .splice(
+        0
+      );
+
+  pendientes.forEach(
+    function (
+      solicitud
+    ) {
+      solicitud.rechazar(
+        new Error(
+          mensaje ||
+          "La sesión no está disponible."
+        )
+      );
+    }
+  );
+}
 
 /*
  * VALIDAR ACCESO AL SISTEMA.
@@ -4717,12 +4991,16 @@ async function validarAccesoSistema(event) {
 
   try {
     const respuesta =
-      await jsonp(
-        "validarAccesoSistema",
-        {
-          clave: clave
-        }
-      );
+  await jsonp(
+    "validarAccesoSistema",
+    {
+      clave:
+        clave,
+
+      clienteId:
+        clienteIdSeguridadSistema
+    }
+  );
 
     if (
       !respuesta ||
@@ -4736,17 +5014,28 @@ async function validarAccesoSistema(event) {
       );
     }
 
-  /*
- * Guardar la visita abierta antes
- * de limpiar el campo visible.
+/*
+ * Guardar solamente el token temporal.
+ *
+ * La contraseña no permanece almacenada
+ * en ninguna variable del navegador.
  */
-filaVisitaActivaSistema =
-  Number(
-    respuesta.visitaFila
-  ) || 0;
+tokenSesionSistema =
+  String(
+    respuesta.tokenSesion || ""
+  ).trim();
 
-claveVisitaActivaSistema =
-  clave;
+if (!tokenSesionSistema) {
+  throw new Error(
+    "El servidor no entregó una sesión válida."
+  );
+}
+
+/*
+ * Liberar las solicitudes protegidas que
+ * estaban esperando desde la carga inicial.
+ */
+liberarSolicitudesProtegidasSistema_();
 
 mostrarMensajeAccesoSistema(
   "Acceso autorizado.",
@@ -4829,92 +5118,12 @@ function mostrarMensajeAccesoSistema(
     texto || "";
 }
 /*
- * =====================================================
- * SALIR DE LA PLATAFORMA
- * =====================================================
+ * Bloquea visualmente la plataforma y
+ * regresa a la pantalla de acceso.
  */
-async function salirPlataforma() {
-  const confirmarSalida =
-    window.confirm(
-      "¿Desea salir de la plataforma?"
-    );
-
-  if (!confirmarSalida) {
-    return;
-  }
-
-  const botonSalir =
-    document.getElementById(
-      "botonSalirPlataforma"
-    );
-
-  if (botonSalir) {
-    botonSalir.disabled =
-      true;
-
-    botonSalir.textContent =
-      "Saliendo...";
-  }
-
-  /*
-   * Completar Hora salida antes
-   * de cerrar la plataforma.
-   */
-  if (
-    filaVisitaActivaSistema > 0 &&
-    claveVisitaActivaSistema
-  ) {
-    try {
-      const respuesta =
-        await jsonp(
-          "registrarSalidaVisita",
-          {
-            fila:
-              filaVisitaActivaSistema,
-
-            clave:
-              claveVisitaActivaSistema
-          }
-        );
-
-      if (
-        !respuesta ||
-        !respuesta.ok
-      ) {
-        throw new Error(
-          respuesta &&
-          respuesta.mensaje
-            ? respuesta.mensaje
-            : "No fue posible registrar la hora de salida."
-        );
-      }
-
-    } catch (error) {
-      if (botonSalir) {
-        botonSalir.disabled =
-          false;
-
-        botonSalir.textContent =
-          "Salir";
-      }
-
-      window.alert(
-        error &&
-        error.message
-          ? error.message
-          : "No fue posible registrar la hora de salida."
-      );
-
-      return;
-    }
-  }
-
-  filaVisitaActivaSistema =
-    0;
-
-  claveVisitaActivaSistema =
-    "";
-
+function bloquearInterfazSistema_(
+  mensaje
+) {
   document.body.classList.add(
     "sistema-bloqueado"
   );
@@ -4943,6 +5152,13 @@ async function salirPlataforma() {
   if (campoClave) {
     campoClave.value =
       "";
+
+    setTimeout(
+      function () {
+        campoClave.focus();
+      },
+      50
+    );
   }
 
   document
@@ -4981,7 +5197,8 @@ async function salirPlataforma() {
   }
 
   mostrarMensajeAccesoSistema(
-    "Sesión cerrada. Ingrese nuevamente para continuar.",
+    mensaje ||
+    "Ingrese nuevamente para continuar.",
     "info"
   );
 
@@ -4995,6 +5212,209 @@ async function salirPlataforma() {
     behavior:
       "auto"
   });
+}
+
+function manejarSesionExpiradaSistema_(
+  mensaje
+) {
+  tokenSesionSistema =
+    "";
+
+  rechazarSolicitudesProtegidasSistema_(
+    mensaje ||
+    "La sesión venció."
+  );
+
+  bloquearInterfazSistema_(
+    mensaje ||
+    "La sesión venció por inactividad. Ingrese nuevamente."
+  );
+}
+
+    
+/*
+ * =====================================================
+ * SALIR DE LA PLATAFORMA
+ * =====================================================
+ */
+async function salirPlataforma() {
+  const confirmarSalida =
+    window.confirm(
+      "¿Desea salir de la plataforma?"
+    );
+
+  if (!confirmarSalida) {
+    return;
+  }
+
+  const botonSalir =
+    document.getElementById(
+      "botonSalirPlataforma"
+    );
+
+  if (botonSalir) {
+    botonSalir.disabled =
+      true;
+
+    botonSalir.textContent =
+      "Saliendo...";
+  }
+
+  let advertenciaSalida =
+    "";
+
+/*
+ * =====================================================
+ * PROTECCIÓN DISUASIVA DEL FRONTEND
+ * =====================================================
+ *
+ * Esto dificulta accesos casuales, pero no puede
+ * ocultar realmente el HTML descargado por el navegador.
+ */
+
+function esControlEditableSeguridad_(
+  elemento
+) {
+  return Boolean(
+    elemento &&
+    elemento.closest &&
+    elemento.closest(
+      "input, textarea, select, [contenteditable='true']"
+    )
+  );
+}
+
+/*
+ * Conservar menú contextual en campos para que
+ * el usuario pueda pegar y trabajar normalmente.
+ */
+document.addEventListener(
+  "contextmenu",
+  function (
+    evento
+  ) {
+    if (
+      !esControlEditableSeguridad_(
+        evento.target
+      )
+    ) {
+      evento.preventDefault();
+    }
+  }
+);
+
+document.addEventListener(
+  "keydown",
+  function (
+    evento
+  ) {
+    const tecla =
+      String(
+        evento.key || ""
+      ).toLowerCase();
+
+    const abrirFuente =
+      evento.ctrlKey &&
+      tecla === "u";
+
+    const guardarPagina =
+      evento.ctrlKey &&
+      tecla === "s";
+
+    const herramientasDesarrollo =
+      evento.ctrlKey &&
+      evento.shiftKey &&
+      (
+        tecla === "i" ||
+        tecla === "j" ||
+        tecla === "c"
+      );
+
+    const f12 =
+      evento.key === "F12";
+
+    if (
+      abrirFuente ||
+      guardarPagina ||
+      herramientasDesarrollo ||
+      f12
+    ) {
+      evento.preventDefault();
+      evento.stopPropagation();
+    }
+  },
+  true
+);
+
+/*
+ * Evitar que la aplicación sea cargada dentro
+ * de un iframe de otro sitio.
+ */
+try {
+  if (
+    window.top !==
+    window.self
+  ) {
+    window.top.location =
+      window.self.location.href;
+  }
+} catch (error) {
+  window.location =
+    window.self.location.href;
+}
+  
+  /*
+   * El GS obtiene la fila de Visitas desde
+   * la sesión. Ya no se envía la contraseña.
+   */
+  if (tokenSesionSistema) {
+    try {
+      const respuesta =
+        await jsonp(
+          "registrarSalidaVisita",
+          {}
+        );
+
+      if (
+        !respuesta ||
+        !respuesta.ok
+      ) {
+        throw new Error(
+          respuesta &&
+          respuesta.mensaje
+            ? respuesta.mensaje
+            : "No fue posible registrar la hora de salida."
+        );
+      }
+
+    } catch (error) {
+      advertenciaSalida =
+        error &&
+        error.message
+          ? error.message
+          : "No fue posible registrar la hora de salida.";
+    }
+  }
+
+  /*
+   * Invalidar la sesión local aunque exista
+   * un problema temporal de conexión.
+   */
+  tokenSesionSistema =
+    "";
+
+  rechazarSolicitudesProtegidasSistema_(
+    "La sesión fue cerrada."
+  );
+
+  bloquearInterfazSistema_(
+    advertenciaSalida
+      ? (
+          "Sesión cerrada. " +
+          advertenciaSalida
+        )
+      : "Sesión cerrada correctamente."
+  );
 
   setTimeout(
     function () {
@@ -5024,8 +5444,7 @@ async function salirPlataforma() {
         direccionAcceso
       );
     },
-
-    120
+    250
   );
 }   
 /*
