@@ -1579,6 +1579,7 @@ select:disabled {
   Expediente de personal
 </button>
 
+
 <button
   type="button"
   onclick="abrirPanel('empleados', this)"
@@ -1586,12 +1587,22 @@ select:disabled {
   Datos empleado
 </button>
 
-      <button
-        type="button"
-        onclick="abrirPanel('asistencia', this)"
-      >
-        Asistencia
-      </button>
+<button
+  type="button"
+  onclick="
+    abrirPanel('incidencias', this);
+    prepararModuloIncidencias();
+  "
+>
+  Incidencias
+</button>
+
+<button
+  type="button"
+  onclick="abrirPanel('asistencia', this)"
+>
+  Asistencia
+</button>      
 
       <button
         type="button"
@@ -3318,16 +3329,360 @@ select:disabled {
 
       </form>
 
-      <div
-        id="mensajeEmpleado"
-        class="mensaje"
-      ></div>
+    <div
+  id="mensajeEmpleado"
+  class="mensaje"
+></div>
+</section>
 
-    </section>
+<!-- INCIDENCIAS -->
+<section
+  id="incidencias"
+  class="panel"
+>
+  <style>
+    #incidencias {
+      width: 100%;
+      max-width: 100%;
+      overflow: hidden;
+    }
 
-    <!-- ASISTENCIA -->
+    .incidencias-submenu {
+      display: grid;
+      grid-template-columns:
+        repeat(3, minmax(190px, 1fr));
+      gap: 12px;
+      margin: 20px 0;
+    }
 
- <section
+    .incidencias-submenu button {
+      color: #17417f;
+      background: #e8eef6;
+      border: 1px solid #cbd5e1;
+    }
+
+    .incidencias-submenu button.activo {
+      color: #ffffff;
+      background: var(--azul);
+      border-color: var(--azul);
+    }
+
+    .incidencias-selector {
+      width: 100%;
+      max-width: 420px;
+      margin-bottom: 20px;
+    }
+
+    .incidencias-form-scroll {
+      width: 100%;
+      overflow-x: auto;
+      padding-bottom: 8px;
+    }
+
+    .incidencias-grid {
+      display: grid;
+
+      grid-template-columns:
+        minmax(180px, 1fr)
+        minmax(105px, 0.65fr)
+        minmax(220px, 1.30fr)
+        minmax(180px, 1fr)
+        minmax(155px, 0.90fr)
+        minmax(155px, 0.90fr)
+        minmax(105px, 0.65fr)
+        minmax(240px, 1.40fr)
+        minmax(155px, 0.90fr)
+        minmax(220px, 1.20fr);
+
+      gap: 12px;
+      align-items: end;
+      width: 100%;
+      min-width: 1750px;
+      padding: 16px;
+      border: 1px solid var(--borde);
+      border-radius: 10px;
+      background: #f8fafc;
+    }
+
+    .incidencias-campo {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+      min-width: 0;
+    }
+
+    .incidencias-campo label {
+      min-height: 35px;
+      margin: 0;
+      display: flex;
+      align-items: flex-end;
+      line-height: 1.2;
+    }
+
+    .incidencias-campo input,
+    .incidencias-campo select {
+      width: 100%;
+      min-width: 0;
+      height: 46px;
+      margin: 0;
+      box-sizing: border-box;
+    }
+
+    .incidencias-campo input[readonly] {
+      color: #334155;
+      background: #e8eef6;
+    }
+
+    .incidencias-campo input:disabled {
+      color: #64748b;
+      background: #e2e8f0;
+      cursor: not-allowed;
+    }
+
+    .incidencias-guardar {
+      min-width: 170px;
+      margin-top: 18px;
+      color: #ffffff;
+      background: var(--verde);
+    }
+
+    @media (max-width: 760px) {
+      .incidencias-submenu {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+
+  <h2>Incidencias</h2>
+
+  <p>
+    Seleccione el tipo de incidencia que desea registrar.
+  </p>
+
+  <div class="incidencias-submenu">
+
+    <button
+      type="button"
+      onclick="
+        seleccionarGrupoIncidencias(
+          'ausencias',
+          this
+        )
+      "
+    >
+      Ausencias y cambios
+    </button>
+
+    <button
+      type="button"
+      onclick="
+        seleccionarGrupoIncidencias(
+          'premios',
+          this
+        )
+      "
+    >
+      Premios
+    </button>
+
+    <button
+      type="button"
+      onclick="
+        seleccionarGrupoIncidencias(
+          'disciplinarias',
+          this
+        )
+      "
+    >
+      Medidas disciplinarias
+    </button>
+
+  </div>
+
+  <div
+    id="bloqueSelectorIncidencia"
+    class="incidencias-selector"
+    hidden
+  >
+    <label for="selectorIncidencia">
+      Incidencia
+    </label>
+
+    <select
+      id="selectorIncidencia"
+      onchange="
+        seleccionarIncidencia(this.value)
+      "
+    >
+      <option value="">
+        Seleccionar
+      </option>
+    </select>
+  </div>
+
+  <form
+    id="formIncidencias"
+    onsubmit="guardarIncidencia(event)"
+    hidden
+  >
+    <div class="incidencias-form-scroll">
+
+      <div class="incidencias-grid">
+
+        <div class="incidencias-campo">
+          <label for="incidenciaSeleccionada">
+            Incidencia
+          </label>
+
+          <input
+            id="incidenciaSeleccionada"
+            type="text"
+            readonly
+          >
+        </div>
+
+        <div class="incidencias-campo">
+          <label for="incidenciaNo">
+            No.
+          </label>
+
+          <input
+            id="incidenciaNo"
+            type="text"
+            autocomplete="off"
+            required
+            oninput="limpiarEmpleadoIncidencia()"
+            onblur="buscarEmpleadoIncidencia()"
+            onkeydown="
+              if (event.key === 'Enter') {
+                event.preventDefault();
+                buscarEmpleadoIncidencia();
+              }
+            "
+          >
+        </div>
+
+        <div class="incidencias-campo">
+          <label for="incidenciaNombre">
+            Nombre
+          </label>
+
+          <input
+            id="incidenciaNombre"
+            type="text"
+            readonly
+          >
+        </div>
+
+        <div class="incidencias-campo">
+          <label for="incidenciaDepartamento">
+            Departamento
+          </label>
+
+          <input
+            id="incidenciaDepartamento"
+            type="text"
+            readonly
+          >
+        </div>
+
+        <div class="incidencias-campo">
+          <label for="incidenciaDesde">
+            Desde / De
+          </label>
+
+          <input
+            id="incidenciaDesde"
+            type="text"
+            onchange="calcularDiasIncidencia()"
+            disabled
+          >
+        </div>
+
+        <div class="incidencias-campo">
+          <label for="incidenciaHasta">
+            Hasta / A
+          </label>
+
+          <input
+            id="incidenciaHasta"
+            type="text"
+            onchange="calcularDiasIncidencia()"
+            disabled
+          >
+        </div>
+
+        <div class="incidencias-campo">
+          <label for="incidenciaDias">
+            Días / Dif
+          </label>
+
+          <input
+            id="incidenciaDias"
+            type="text"
+            disabled
+          >
+        </div>
+
+        <div class="incidencias-campo">
+          <label for="incidenciaMotivo">
+            Motivo
+          </label>
+
+          <input
+            id="incidenciaMotivo"
+            type="text"
+            autocomplete="off"
+            required
+          >
+        </div>
+
+        <div class="incidencias-campo">
+          <label for="incidenciaFechaRegistro">
+            Fecha registro
+          </label>
+
+          <input
+            id="incidenciaFechaRegistro"
+            type="date"
+            readonly
+          >
+        </div>
+
+        <div class="incidencias-campo">
+          <label for="incidenciaUsuario">
+            Usuario
+          </label>
+
+          <input
+            id="incidenciaUsuario"
+            type="text"
+            placeholder="Correo o nombre"
+            required
+          >
+        </div>
+
+      </div>
+    </div>
+
+    <button
+      id="botonGuardarIncidencia"
+      type="submit"
+      class="incidencias-guardar"
+    >
+      Guardar
+    </button>
+  </form>
+
+  <div
+    id="mensajeIncidencias"
+    class="mensaje"
+    aria-live="polite"
+  ></div>
+</section>
+
+<!-- ASISTENCIA -->
+<section
   id="asistencia"
   class="panel"
 >
@@ -3894,7 +4249,7 @@ function mostrarTablaOrdTe(
      */
 
     const API_URL =
-      "https://script.google.com/macros/s/AKfycbwtPmh70c_HQCzDwijMZ2tiro0n0kS81jDIrr94cTh1A0vm9Ws79raL2g7CiEPG08Ct/exec";
+      "https://script.google.com/macros/s/AKfycbw0Ar_qTy29CNMzhvfkQkRtBTW_iOveI-6ky-HJc0kozNOVyIPbloYHHQWAA1A0o7_N/exec";
 
     const camposEmpleado = [
 
@@ -27306,7 +27661,1055 @@ function escaparHtmlConstancia(
       "&#039;"
     );
 }
-  
+
+</script>
+
+<script>
+let configuracionIncidenciasCargada = false;
+let numeroEmpleadoIncidenciaCargado = "";
+
+function prepararModuloIncidencias() {
+  establecerFechaRegistroIncidencia();
+
+  if (!configuracionIncidenciasCargada) {
+    cargarConfiguracionIncidencias();
+  }
+}
+
+async function cargarConfiguracionIncidencias() {
+  const usuario =
+    document.getElementById(
+      "incidenciaUsuario"
+    );
+
+  try {
+    const respuesta =
+      await jsonp(
+        "configuracionIncidencias",
+        {}
+      );
+
+    if (
+      !respuesta ||
+      !respuesta.ok
+    ) {
+      throw new Error(
+        respuesta &&
+        respuesta.mensaje
+          ? respuesta.mensaje
+          : "No fue posible cargar la configuración."
+      );
+    }
+
+    if (
+      usuario &&
+      !usuario.value
+    ) {
+      usuario.value =
+        respuesta.usuario || "";
+    }
+
+    configuracionIncidenciasCargada =
+      true;
+
+  } catch (error) {
+    mostrarMensajeIncidencias(
+      error && error.message
+        ? error.message
+        : "No fue posible cargar la configuración.",
+
+      "error"
+    );
+  }
+}
+
+function seleccionarGrupoIncidencias(
+  grupo,
+  boton
+) {
+  document
+    .querySelectorAll(
+      ".incidencias-submenu button"
+    )
+    .forEach(function (
+      control
+    ) {
+      control.classList.remove(
+        "activo"
+      );
+    });
+
+  if (boton) {
+    boton.classList.add(
+      "activo"
+    );
+  }
+
+  const bloqueSelector =
+    document.getElementById(
+      "bloqueSelectorIncidencia"
+    );
+
+  const selector =
+    document.getElementById(
+      "selectorIncidencia"
+    );
+
+  const formulario =
+    document.getElementById(
+      "formIncidencias"
+    );
+
+  if (
+    !bloqueSelector ||
+    !selector ||
+    !formulario
+  ) {
+    return;
+  }
+
+  formulario.hidden =
+    true;
+
+  selector.innerHTML =
+    '<option value="">Seleccionar</option>';
+
+  if (grupo === "premios") {
+    bloqueSelector.hidden =
+      true;
+
+    seleccionarIncidencia(
+      "Premios"
+    );
+
+    return;
+  }
+
+  const opciones =
+    grupo === "ausencias"
+      ? [
+          "Incapacidades",
+          "Permisos",
+          "Ausencias",
+          "Vacaciones",
+          "Cambios"
+        ]
+      : [
+          "Llamado de atención",
+          "Amonestación",
+          "Suspensión"
+        ];
+
+  opciones.forEach(function (
+    incidencia
+  ) {
+    const opcion =
+      document.createElement(
+        "option"
+      );
+
+    opcion.value =
+      incidencia;
+
+    opcion.textContent =
+      incidencia;
+
+    selector.appendChild(
+      opcion
+    );
+  });
+
+  bloqueSelector.hidden =
+    false;
+
+  selector.value =
+    "";
+
+  selector.focus();
+
+  mostrarMensajeIncidencias(
+    "Seleccione la incidencia.",
+    "info"
+  );
+}
+
+function seleccionarIncidencia(
+  incidencia
+) {
+  const formulario =
+    document.getElementById(
+      "formIncidencias"
+    );
+
+  const campoIncidencia =
+    document.getElementById(
+      "incidenciaSeleccionada"
+    );
+
+  const valor =
+    String(
+      incidencia || ""
+    ).trim();
+
+  if (
+    !formulario ||
+    !campoIncidencia
+  ) {
+    return;
+  }
+
+  if (!valor) {
+    formulario.hidden =
+      true;
+
+    campoIncidencia.value =
+      "";
+
+    return;
+  }
+
+  campoIncidencia.value =
+    valor;
+
+  limpiarDatosIncidencia(
+    true
+  );
+
+  configurarCamposIncidencia(
+    valor
+  );
+
+  formulario.hidden =
+    false;
+
+  document.getElementById(
+    "incidenciaNo"
+  ).focus();
+
+  mostrarMensajeIncidencias(
+    "Complete los datos de la incidencia.",
+    "info"
+  );
+}
+
+function normalizarTextoIncidencia(
+  valor
+) {
+  return String(
+    valor || ""
+  )
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(
+      /[\u0300-\u036f]/g,
+      ""
+    )
+    .replace(/\s+/g, " ");
+}
+
+function configurarCamposIncidencia(
+  incidencia
+) {
+  const desde =
+    document.getElementById(
+      "incidenciaDesde"
+    );
+
+  const hasta =
+    document.getElementById(
+      "incidenciaHasta"
+    );
+
+  const dias =
+    document.getElementById(
+      "incidenciaDias"
+    );
+
+  const clave =
+    normalizarTextoIncidencia(
+      incidencia
+    );
+
+  const usaRangoFechas = [
+    "incapacidades",
+    "permisos",
+    "ausencias",
+    "vacaciones",
+    "suspension"
+  ].indexOf(clave) !== -1;
+
+  desde.disabled =
+    false;
+
+  hasta.disabled =
+    false;
+
+  dias.disabled =
+    false;
+
+  dias.readOnly =
+    true;
+
+  dias.type =
+    "number";
+
+  dias.placeholder =
+    "";
+
+  desde.value =
+    "";
+
+  hasta.value =
+    "";
+
+  dias.value =
+    "";
+
+  desde.placeholder =
+    "";
+
+  hasta.placeholder =
+    "";
+
+  /*
+   * Incapacidades, Permisos,
+   * Ausencias, Vacaciones y Suspensión.
+   */
+  if (usaRangoFechas) {
+    desde.type =
+      "date";
+
+    hasta.type =
+      "date";
+
+    return;
+  }
+
+  /*
+   * Cambios:
+   *
+   * De y A son textos.
+   * Diferencia queda editable.
+   */
+  if (clave === "cambios") {
+    desde.type =
+      "text";
+
+    hasta.type =
+      "text";
+
+    desde.placeholder =
+      "De";
+
+    hasta.placeholder =
+      "A";
+
+    dias.type =
+      "text";
+
+    dias.readOnly =
+      false;
+
+    dias.placeholder =
+      "Diferencia";
+
+    return;
+  }
+
+  /*
+   * Premios:
+   *
+   * Desde / De es la fecha.
+   * Hasta / A y Días / Dif bloqueados.
+   */
+  if (clave === "premios") {
+    desde.type =
+      "date";
+
+    hasta.type =
+      "date";
+
+    hasta.disabled =
+      true;
+
+    dias.disabled =
+      true;
+
+    return;
+  }
+
+  /*
+   * Llamado de atención
+   * y Amonestación.
+   */
+  desde.type =
+    "date";
+
+  hasta.type =
+    "date";
+
+  desde.disabled =
+    true;
+
+  hasta.disabled =
+    true;
+
+  dias.disabled =
+    true;
+}
+
+function limpiarEmpleadoIncidencia() {
+  numeroEmpleadoIncidenciaCargado =
+    "";
+
+  document.getElementById(
+    "incidenciaNombre"
+  ).value = "";
+
+  document.getElementById(
+    "incidenciaDepartamento"
+  ).value = "";
+}
+
+async function buscarEmpleadoIncidencia() {
+  const numero =
+    document
+      .getElementById(
+        "incidenciaNo"
+      )
+      .value
+      .trim();
+
+  const nombre =
+    document.getElementById(
+      "incidenciaNombre"
+    );
+
+  const departamento =
+    document.getElementById(
+      "incidenciaDepartamento"
+    );
+
+  if (!numero) {
+    limpiarEmpleadoIncidencia();
+
+    return false;
+  }
+
+  if (
+    numero ===
+      numeroEmpleadoIncidenciaCargado &&
+    nombre.value &&
+    departamento.value
+  ) {
+    return true;
+  }
+
+  nombre.value =
+    "Buscando...";
+
+  departamento.value =
+    "";
+
+  try {
+    /*
+     * Se reutiliza buscarEmpleado,
+     * que ya existe.
+     */
+    const respuesta =
+      await jsonp(
+        "buscarEmpleado",
+        {
+          pin:
+            numero
+        }
+      );
+
+    if (
+      !respuesta ||
+      !respuesta.ok ||
+      !respuesta.empleado
+    ) {
+      throw new Error(
+        respuesta &&
+        respuesta.mensaje
+          ? respuesta.mensaje
+          : "No se encontró el empleado en Maestro."
+      );
+    }
+
+    nombre.value =
+      respuesta.empleado.nombre ||
+      "";
+
+    departamento.value =
+      respuesta.empleado.departamento ||
+      "";
+
+    numeroEmpleadoIncidenciaCargado =
+      numero;
+
+    mostrarMensajeIncidencias(
+      "Empleado encontrado en Maestro.",
+      "ok"
+    );
+
+    return true;
+
+  } catch (error) {
+    limpiarEmpleadoIncidencia();
+
+    mostrarMensajeIncidencias(
+      error && error.message
+        ? error.message
+        : "No fue posible buscar el empleado.",
+
+      "error"
+    );
+
+    return false;
+  }
+}
+
+function convertirFechaIncidenciaHtml(
+  valor
+) {
+  const partes =
+    String(
+      valor || ""
+    ).split("-");
+
+  if (partes.length !== 3) {
+    return null;
+  }
+
+  const anio =
+    Number(partes[0]);
+
+  const mes =
+    Number(partes[1]);
+
+  const dia =
+    Number(partes[2]);
+
+  const fecha =
+    new Date(
+      anio,
+      mes - 1,
+      dia,
+      12,
+      0,
+      0,
+      0
+    );
+
+  if (
+    isNaN(fecha.getTime()) ||
+    fecha.getFullYear() !== anio ||
+    fecha.getMonth() !== mes - 1 ||
+    fecha.getDate() !== dia
+  ) {
+    return null;
+  }
+
+  return fecha;
+}
+
+function calcularDiasIncidencia() {
+  const incidencia =
+    normalizarTextoIncidencia(
+      document.getElementById(
+        "incidenciaSeleccionada"
+      ).value
+    );
+
+  const usaRango = [
+    "incapacidades",
+    "permisos",
+    "ausencias",
+    "vacaciones",
+    "suspension"
+  ].indexOf(incidencia) !== -1;
+
+  const campoDias =
+    document.getElementById(
+      "incidenciaDias"
+    );
+
+  if (!usaRango) {
+    return;
+  }
+
+  const desde =
+    convertirFechaIncidenciaHtml(
+      document.getElementById(
+        "incidenciaDesde"
+      ).value
+    );
+
+  const hasta =
+    convertirFechaIncidenciaHtml(
+      document.getElementById(
+        "incidenciaHasta"
+      ).value
+    );
+
+  if (!desde || !hasta) {
+    campoDias.value =
+      "";
+
+    return;
+  }
+
+  if (
+    desde.getTime() >
+    hasta.getTime()
+  ) {
+    campoDias.value =
+      "";
+
+    mostrarMensajeIncidencias(
+      "La fecha Desde / De no puede ser posterior a Hasta / A.",
+      "error"
+    );
+
+    return;
+  }
+
+  let dias = 0;
+
+  const fecha =
+    new Date(
+      desde.getTime()
+    );
+
+  while (
+    fecha.getTime() <=
+    hasta.getTime()
+  ) {
+    /*
+     * Domingo = 0.
+     */
+    if (
+      fecha.getDay() !== 0
+    ) {
+      dias++;
+    }
+
+    fecha.setDate(
+      fecha.getDate() + 1
+    );
+  }
+
+  campoDias.value =
+    dias;
+
+  mostrarMensajeIncidencias(
+    dias +
+      (
+        dias === 1
+          ? " día, excluyendo domingos."
+          : " días, excluyendo domingos."
+      ),
+
+    "info"
+  );
+}
+
+function formatearFechaInputIncidencia(
+  fecha
+) {
+  const anio =
+    fecha.getFullYear();
+
+  const mes =
+    String(
+      fecha.getMonth() + 1
+    ).padStart(2, "0");
+
+  const dia =
+    String(
+      fecha.getDate()
+    ).padStart(2, "0");
+
+  return (
+    anio +
+    "-" +
+    mes +
+    "-" +
+    dia
+  );
+}
+
+function establecerFechaRegistroIncidencia() {
+  const campo =
+    document.getElementById(
+      "incidenciaFechaRegistro"
+    );
+
+  if (campo) {
+    campo.value =
+      formatearFechaInputIncidencia(
+        new Date()
+      );
+  }
+}
+
+function limpiarDatosIncidencia(
+  conservarIncidencia
+) {
+  const incidencia =
+    document.getElementById(
+      "incidenciaSeleccionada"
+    );
+
+  const usuario =
+    document.getElementById(
+      "incidenciaUsuario"
+    );
+
+  const valorIncidencia =
+    conservarIncidencia &&
+    incidencia
+      ? incidencia.value
+      : "";
+
+  const valorUsuario =
+    usuario
+      ? usuario.value
+      : "";
+
+  [
+    "incidenciaNo",
+    "incidenciaNombre",
+    "incidenciaDepartamento",
+    "incidenciaDesde",
+    "incidenciaHasta",
+    "incidenciaDias",
+    "incidenciaMotivo"
+  ].forEach(function (
+    id
+  ) {
+    const campo =
+      document.getElementById(id);
+
+    if (campo) {
+      campo.value =
+        "";
+    }
+  });
+
+  if (incidencia) {
+    incidencia.value =
+      valorIncidencia;
+  }
+
+  if (usuario) {
+    usuario.value =
+      valorUsuario;
+  }
+
+  numeroEmpleadoIncidenciaCargado =
+    "";
+
+  establecerFechaRegistroIncidencia();
+}
+
+async function guardarIncidencia(
+  event
+) {
+  event.preventDefault();
+
+  const boton =
+    document.getElementById(
+      "botonGuardarIncidencia"
+    );
+
+  const incidencia =
+    document
+      .getElementById(
+        "incidenciaSeleccionada"
+      )
+      .value
+      .trim();
+
+  const numero =
+    document
+      .getElementById(
+        "incidenciaNo"
+      )
+      .value
+      .trim();
+
+  if (!incidencia) {
+    mostrarMensajeIncidencias(
+      "Seleccione la incidencia.",
+      "error"
+    );
+
+    return;
+  }
+
+  if (!numero) {
+    mostrarMensajeIncidencias(
+      "Ingrese el No. de personal.",
+      "error"
+    );
+
+    return;
+  }
+
+  const empleadoValido =
+    await buscarEmpleadoIncidencia();
+
+  if (!empleadoValido) {
+    return;
+  }
+
+  calcularDiasIncidencia();
+
+  const campoDesde =
+    document.getElementById(
+      "incidenciaDesde"
+    );
+
+  const campoHasta =
+    document.getElementById(
+      "incidenciaHasta"
+    );
+
+  const campoDias =
+    document.getElementById(
+      "incidenciaDias"
+    );
+
+  const datos = {
+    incidencia:
+      incidencia,
+
+    numero:
+      numero,
+
+    nombre:
+      document
+        .getElementById(
+          "incidenciaNombre"
+        )
+        .value
+        .trim(),
+
+    departamento:
+      document
+        .getElementById(
+          "incidenciaDepartamento"
+        )
+        .value
+        .trim(),
+
+    desde:
+      campoDesde.disabled
+        ? ""
+        : campoDesde.value.trim(),
+
+    hasta:
+      campoHasta.disabled
+        ? ""
+        : campoHasta.value.trim(),
+
+    dias:
+      campoDias.disabled
+        ? ""
+        : campoDias.value.trim(),
+
+    motivo:
+      document
+        .getElementById(
+          "incidenciaMotivo"
+        )
+        .value
+        .trim(),
+
+    fechaRegistro:
+      document.getElementById(
+        "incidenciaFechaRegistro"
+      ).value,
+
+    usuario:
+      document
+        .getElementById(
+          "incidenciaUsuario"
+        )
+        .value
+        .trim()
+  };
+
+  if (!datos.motivo) {
+    mostrarMensajeIncidencias(
+      "Ingrese el Motivo.",
+      "error"
+    );
+
+    return;
+  }
+
+  if (!datos.usuario) {
+    mostrarMensajeIncidencias(
+      "Ingrese el Usuario.",
+      "error"
+    );
+
+    return;
+  }
+
+  const clave =
+    normalizarTextoIncidencia(
+      incidencia
+    );
+
+  const usaRango = [
+    "incapacidades",
+    "permisos",
+    "ausencias",
+    "vacaciones",
+    "suspension"
+  ].indexOf(clave) !== -1;
+
+  if (
+    usaRango &&
+    (
+      !datos.desde ||
+      !datos.hasta
+    )
+  ) {
+    mostrarMensajeIncidencias(
+      "Seleccione Desde / De y Hasta / A.",
+      "error"
+    );
+
+    return;
+  }
+
+  if (
+    clave === "cambios" &&
+    (
+      !datos.desde ||
+      !datos.hasta
+    )
+  ) {
+    mostrarMensajeIncidencias(
+      "Ingrese el valor De y el valor A del cambio.",
+      "error"
+    );
+
+    return;
+  }
+
+  if (
+    clave === "premios" &&
+    !datos.desde
+  ) {
+    mostrarMensajeIncidencias(
+      "Seleccione la fecha del premio en Desde / De.",
+      "error"
+    );
+
+    return;
+  }
+
+  boton.disabled =
+    true;
+
+  boton.textContent =
+    "Guardando...";
+
+  mostrarMensajeIncidencias(
+    "Guardando incidencia...",
+    "info"
+  );
+
+  try {
+    const respuesta =
+      await jsonp(
+        "guardarIncidencia",
+        datos
+      );
+
+    if (
+      !respuesta ||
+      !respuesta.ok
+    ) {
+      throw new Error(
+        respuesta &&
+        respuesta.mensaje
+          ? respuesta.mensaje
+          : "No fue posible guardar la incidencia."
+      );
+    }
+
+    limpiarDatosIncidencia(
+      true
+    );
+
+    configurarCamposIncidencia(
+      incidencia
+    );
+
+    mostrarMensajeIncidencias(
+      respuesta.mensaje,
+      "ok"
+    );
+
+    document.getElementById(
+      "incidenciaNo"
+    ).focus();
+
+  } catch (error) {
+    mostrarMensajeIncidencias(
+      error && error.message
+        ? error.message
+        : "No fue posible guardar la incidencia.",
+
+      "error"
+    );
+
+  } finally {
+    boton.disabled =
+      false;
+
+    boton.textContent =
+      "Guardar";
+  }
+}
+
+function mostrarMensajeIncidencias(
+  texto,
+  tipo
+) {
+  const mensaje =
+    document.getElementById(
+      "mensajeIncidencias"
+    );
+
+  if (!mensaje) {
+    return;
+  }
+
+  mensaje.className =
+    "mensaje" +
+    (
+      tipo
+        ? " " + tipo
+        : ""
+    );
+
+  mensaje.textContent =
+    texto || "";
+}
+</script>
+
+</body>
+</html>  
 </script>
 </body>
 </html>
