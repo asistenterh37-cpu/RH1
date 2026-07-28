@@ -16684,14 +16684,466 @@ if (
   principal.appendChild(
     panelAnalisis
   );
-  cambiarFuenteAnalisisIA();
+   cambiarFuenteAnalisisIA();
 }
+
+/*
+ * =====================================================
+ * MÓDULO PORTAL EMPLEADO
+ * =====================================================
+ */
+if (
+  !document.getElementById(
+    "portalEmpleado"
+  )
+) {
+  const botonPortalEmpleado =
+    document.createElement(
+      "button"
+    );
+
+  botonPortalEmpleado.id =
+    "botonPortalEmpleado";
+
+  botonPortalEmpleado.type =
+    "button";
+
+  botonPortalEmpleado.textContent =
+    "Portal empleado";
+
+  botonPortalEmpleado.onclick =
+    function () {
+      abrirPanel(
+        "portalEmpleado",
+        botonPortalEmpleado
+      );
+
+      restablecerPortalEmpleado();
+    };
 
   /*
-   * Cerrar crearModuloProcesarPlanilla.
+   * Colocar Portal empleado
+   * inmediatamente después de
+   * Análisis IA.
    */
+  const botonAnalisisReferencia =
+    Array.from(
+      menu.querySelectorAll(
+        "button"
+      )
+    ).find(function (
+      control
+    ) {
+      return String(
+        control.textContent || ""
+      ).trim() ===
+        "Análisis IA";
+    });
+
+  if (botonAnalisisReferencia) {
+    botonAnalisisReferencia
+      .insertAdjacentElement(
+        "afterend",
+        botonPortalEmpleado
+      );
+  } else {
+    menu.appendChild(
+      botonPortalEmpleado
+    );
+  }
+
+  const panelPortalEmpleado =
+    document.createElement(
+      "section"
+    );
+
+  panelPortalEmpleado.id =
+    "portalEmpleado";
+
+  panelPortalEmpleado.className =
+    "panel";
+
+  panelPortalEmpleado.innerHTML = `
+    <h2>Portal empleado</h2>
+
+    <p>
+      Seleccione la información que desea
+      consultar para el empleado.
+    </p>
+
+    <div class="portal-empleado-contenedor">
+
+      <div class="portal-empleado-menu">
+
+        <button
+          type="button"
+          class="portal-empleado-opcion"
+          onclick="
+            seleccionarOpcionPortalEmpleado(
+              'Mi perfil',
+              this
+            )
+          "
+        >
+          Mi perfil
+        </button>
+
+        <button
+          type="button"
+          class="portal-empleado-opcion"
+          onclick="
+            seleccionarOpcionPortalEmpleado(
+              'Mis recibos de pago',
+              this
+            )
+          "
+        >
+          Mis recibos de pago
+        </button>
+
+        <button
+          type="button"
+          class="portal-empleado-opcion"
+          onclick="
+            seleccionarOpcionPortalEmpleado(
+              'Mis movimientos',
+              this
+            )
+          "
+        >
+          Mis movimientos
+        </button>
+
+        <button
+          type="button"
+          class="portal-empleado-opcion"
+          onclick="
+            seleccionarOpcionPortalEmpleado(
+              'Mis vacaciones',
+              this
+            )
+          "
+        >
+          Mis vacaciones
+        </button>
+
+        <button
+          type="button"
+          class="portal-empleado-opcion"
+          onclick="
+            seleccionarOpcionPortalEmpleado(
+              'Permisos e incapacidades',
+              this
+            )
+          "
+        >
+          Permisos e incapacidades
+        </button>
+
+        <button
+          type="button"
+          class="portal-empleado-opcion"
+          onclick="
+            seleccionarOpcionPortalEmpleado(
+              'Mis solicitudes',
+              this
+            )
+          "
+        >
+          Mis solicitudes
+        </button>
+
+        <button
+          type="button"
+          class="portal-empleado-opcion"
+          onclick="
+            seleccionarOpcionPortalEmpleado(
+              'Notificaciones',
+              this
+            )
+          "
+        >
+          Notificaciones
+        </button>
+
+      </div>
+
+      <div
+        id="bloqueConsultaPortalEmpleado"
+        class="portal-empleado-consulta"
+        hidden
+      >
+
+        <h3 id="tituloConsultaPortalEmpleado">
+          Consulta
+        </h3>
+
+        <div class="portal-empleado-fila">
+
+          <div class="portal-empleado-campo">
+
+            <label for="noPersonalPortalEmpleado">
+              No. de personal
+            </label>
+
+            <input
+              id="noPersonalPortalEmpleado"
+              type="text"
+              autocomplete="off"
+              placeholder="Ingrese el No. de personal"
+              onkeydown="
+                if (event.key === 'Enter') {
+                  event.preventDefault();
+                  consultarPortalEmpleado();
+                }
+              "
+            >
+
+          </div>
+
+          <button
+            id="botonConsultarPortalEmpleado"
+            type="button"
+            class="primario"
+            onclick="consultarPortalEmpleado()"
+          >
+            Consultar
+          </button>
+
+        </div>
+
+        <div
+          id="mensajePortalEmpleado"
+          class="mensaje"
+          aria-live="polite"
+        ></div>
+
+      </div>
+
+    </div>
+  `;
+
+  principal.appendChild(
+    panelPortalEmpleado
+  );
 }
 
+/*
+ * Cerrar crearModuloProcesarPlanilla.
+ */
+}
+
+/*
+ * =====================================================
+ * FUNCIONES DEL PORTAL EMPLEADO
+ * =====================================================
+ */
+
+let opcionPortalEmpleadoSeleccionada =
+  "";
+
+/*
+ * Muestra el campo No. de personal
+ * y el botón Consultar para la
+ * opción seleccionada.
+ */
+function seleccionarOpcionPortalEmpleado(
+  opcion,
+  boton
+) {
+  opcion =
+    String(
+      opcion || ""
+    ).trim();
+
+  opcionPortalEmpleadoSeleccionada =
+    opcion;
+
+  document
+    .querySelectorAll(
+      "#portalEmpleado " +
+      ".portal-empleado-opcion"
+    )
+    .forEach(function (
+      control
+    ) {
+      control.classList.remove(
+        "activo"
+      );
+    });
+
+  if (boton) {
+    boton.classList.add(
+      "activo"
+    );
+  }
+
+  const bloque =
+    document.getElementById(
+      "bloqueConsultaPortalEmpleado"
+    );
+
+  const titulo =
+    document.getElementById(
+      "tituloConsultaPortalEmpleado"
+    );
+
+  const campoNumero =
+    document.getElementById(
+      "noPersonalPortalEmpleado"
+    );
+
+  if (!bloque) {
+    return;
+  }
+
+  bloque.hidden =
+    false;
+
+  if (titulo) {
+    titulo.textContent =
+      opcion;
+  }
+
+  if (campoNumero) {
+    campoNumero.value =
+      "";
+
+    setTimeout(
+      function () {
+        campoNumero.focus();
+      },
+      80
+    );
+  }
+
+  mostrarMensajePortalEmpleado(
+    "",
+    ""
+  );
+}
+
+/*
+ * Valida la consulta seleccionada
+ * y el No. de personal.
+ *
+ * La lectura de datos se conectará
+ * posteriormente con el GS.
+ */
+function consultarPortalEmpleado() {
+  const numero =
+    String(
+      document
+        .getElementById(
+          "noPersonalPortalEmpleado"
+        )
+        .value || ""
+    ).trim();
+
+  if (
+    !opcionPortalEmpleadoSeleccionada
+  ) {
+    mostrarMensajePortalEmpleado(
+      "Seleccione una opción del Portal empleado.",
+      "error"
+    );
+
+    return;
+  }
+
+  if (!numero) {
+    mostrarMensajePortalEmpleado(
+      "Ingrese el No. de personal.",
+      "error"
+    );
+
+    return;
+  }
+
+  mostrarMensajePortalEmpleado(
+    "Consulta seleccionada: " +
+    opcionPortalEmpleadoSeleccionada +
+    " | No. de personal: " +
+    numero +
+    ".",
+
+    "info"
+  );
+}
+
+/*
+ * Limpia el portal al abrirlo.
+ */
+function restablecerPortalEmpleado() {
+  opcionPortalEmpleadoSeleccionada =
+    "";
+
+  document
+    .querySelectorAll(
+      "#portalEmpleado " +
+      ".portal-empleado-opcion"
+    )
+    .forEach(function (
+      control
+    ) {
+      control.classList.remove(
+        "activo"
+      );
+    });
+
+  const bloque =
+    document.getElementById(
+      "bloqueConsultaPortalEmpleado"
+    );
+
+  const campoNumero =
+    document.getElementById(
+      "noPersonalPortalEmpleado"
+    );
+
+  if (bloque) {
+    bloque.hidden =
+      true;
+  }
+
+  if (campoNumero) {
+    campoNumero.value =
+      "";
+  }
+
+  mostrarMensajePortalEmpleado(
+    "",
+    ""
+  );
+}
+
+/*
+ * Mensajes del Portal empleado.
+ */
+function mostrarMensajePortalEmpleado(
+  texto,
+  tipo
+) {
+  const mensaje =
+    document.getElementById(
+      "mensajePortalEmpleado"
+    );
+
+  if (!mensaje) {
+    return;
+  }
+
+  mensaje.className =
+    "mensaje" +
+    (
+      tipo
+        ? " " + tipo
+        : ""
+    );
+
+  mensaje.textContent =
+    texto || "";
+}  
 /*
  * =====================================================
  * ANÁLISIS IA
@@ -23278,6 +23730,129 @@ async function generarOperacionPagoPlanilla() {
   }
 }
 
+/*
+ * =====================================================
+ * PORTAL EMPLEADO
+ * =====================================================
+ */
+
+.portal-empleado-contenedor {
+  width: 100%;
+  margin-top: 20px;
+  padding: 22px;
+  border: 1px solid var(--borde);
+  border-radius: 12px;
+  background: #f8fafc;
+  box-sizing: border-box;
+}
+
+.portal-empleado-menu {
+  display: grid;
+  grid-template-columns:
+    repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.portal-empleado-opcion {
+  min-height: 54px;
+  padding: 12px 14px;
+
+  color: #17417f;
+  background: #ffffff;
+
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+
+  line-height: 1.25;
+}
+
+.portal-empleado-opcion:hover {
+  border-color: #93c5fd;
+  background: #eff6ff;
+}
+
+.portal-empleado-opcion.activo {
+  color: #ffffff;
+  background: var(--azul);
+  border-color: #1e40af;
+}
+
+.portal-empleado-consulta[hidden] {
+  display: none !important;
+}
+
+.portal-empleado-consulta {
+  margin-top: 22px;
+  padding: 20px;
+
+  border: 1px solid #bfdbfe;
+  border-radius: 12px;
+
+  background: #ffffff;
+}
+
+.portal-empleado-consulta h3 {
+  margin: 0 0 16px;
+  color: #173d7a;
+  font-size: 19px;
+}
+
+.portal-empleado-fila {
+  display: grid;
+  grid-template-columns:
+    minmax(230px, 420px)
+    170px;
+
+  gap: 12px;
+  align-items: end;
+}
+
+.portal-empleado-campo {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.portal-empleado-campo label {
+  margin: 0;
+}
+
+.portal-empleado-campo input {
+  width: 100%;
+  height: 46px;
+  margin: 0;
+}
+
+#botonConsultarPortalEmpleado {
+  min-width: 170px;
+  min-height: 46px;
+  margin: 0;
+}
+
+@media (max-width: 900px) {
+  .portal-empleado-menu {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 600px) {
+  .portal-empleado-contenedor {
+    padding: 16px;
+  }
+
+  .portal-empleado-menu {
+    grid-template-columns: 1fr;
+  }
+
+  .portal-empleado-fila {
+    grid-template-columns: 1fr;
+  }
+
+  #botonConsultarPortalEmpleado {
+    width: 100%;
+  }
+}
         </style>
       </head>
 
