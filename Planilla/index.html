@@ -4630,7 +4630,7 @@ function mostrarTablaOrdTe(
      */
 
     const API_URL =
-      "https://script.google.com/macros/s/AKfycbz2ur1AHF_zgz8QRCe1-bmqp_lMJKWrFYcDHm7KVgXLi-w5qT9VjRHD76K2eZaNiww/exec";
+      "https://script.google.com/macros/s/AKfycbzwnLGCQPDquSKMjISbmoCCVSxXLiyAmyW36kMvQrr742Ylx-GckY-DphFnPlOo66_v/exec";
 
     const camposEmpleado = [
 
@@ -4801,6 +4801,153 @@ let tokenSesionSistema =
   "";
 
 /*
+ * =====================================================
+ * SEGUIMIENTO DE LA SESIÓN
+ * =====================================================
+ */
+
+let seguimientoVisitaSistema = {
+  totalAcciones:
+    0,
+
+  modulosVisitados:
+    []
+};
+
+function reiniciarSeguimientoVisitaSistema_() {
+  seguimientoVisitaSistema = {
+    totalAcciones:
+      0,
+
+    modulosVisitados:
+      []
+  };
+}
+
+function registrarAccionSeguimientoVisitaSistema_(
+  accion,
+  modulo
+) {
+  if (!tokenSesionSistema) {
+    return;
+  }
+
+  seguimientoVisitaSistema
+    .totalAcciones++;
+
+  modulo =
+    String(
+      modulo || ""
+    ).trim();
+
+  if (
+    modulo &&
+    seguimientoVisitaSistema
+      .modulosVisitados
+      .indexOf(
+        modulo
+      ) === -1
+  ) {
+    seguimientoVisitaSistema
+      .modulosVisitados
+      .push(
+        modulo
+      );
+  }
+}
+
+function obtenerResumenSeguimientoVisitaSistema_() {
+  return {
+    totalAcciones:
+      seguimientoVisitaSistema
+        .totalAcciones,
+
+    modulosVisitados:
+      seguimientoVisitaSistema
+        .modulosVisitados
+        .slice()
+  };
+}
+
+function obtenerModuloBotonSeguimientoVisita_(
+  boton
+) {
+  const panel =
+    boton.closest(
+      ".panel"
+    );
+
+  if (panel) {
+    const titulo =
+      panel.querySelector(
+        "h2"
+      );
+
+    return titulo
+      ? String(
+          titulo.textContent || ""
+        ).trim()
+      : String(
+          panel.id || ""
+        ).trim();
+  }
+
+  if (
+    boton.closest(
+      ".menu"
+    )
+  ) {
+    return String(
+      boton.textContent || ""
+    ).trim();
+  }
+
+  return "Sistema";
+}
+
+/*
+ * Detectar los botones antes de ejecutar
+ * su función normal.
+ */
+document.addEventListener(
+  "click",
+  function (
+    evento
+  ) {
+    const boton =
+      evento.target.closest
+        ? evento.target.closest(
+            "button"
+          )
+        : null;
+
+    if (
+      !boton ||
+      !tokenSesionSistema ||
+      boton.id ===
+        "botonIngresarSistema" ||
+      boton.id ===
+        "botonSalirPlataforma"
+    ) {
+      return;
+    }
+
+    registrarAccionSeguimientoVisitaSistema_(
+      String(
+        boton.textContent ||
+        boton.id ||
+        "Botón"
+      ).trim(),
+
+      obtenerModuloBotonSeguimientoVisita_(
+        boton
+      )
+    );
+  },
+  true
+);
+
+/*
  * Mientras no exista sesión, las solicitudes
  * protegidas permanecen esperando.
  *
@@ -4956,14 +5103,22 @@ function ejecutarJsonpSistema_(
    * Enviar el token automáticamente en
    * todas las acciones protegidas.
    */
-  if (
-    !esPublica &&
-    tokenSesionSistema
-  ) {
-    datos.tokenSesion =
-      tokenSesionSistema;
-  }
+ if (
+  !esPublica &&
+  tokenSesionSistema
+) {
+  datos.tokenSesion =
+    tokenSesionSistema;
 
+  /*
+   * Enviar el resumen acumulado:
+   *
+   * - Cantidad de botones.
+   * - Módulos visitados.
+   */
+  datos.seguimientoVisita =
+    obtenerResumenSeguimientoVisitaSistema_();
+}
   return new Promise(
     function (
       resolver,
@@ -5273,6 +5428,13 @@ if (!tokenSesionSistema) {
   );
 }
 
+/*
+ * Iniciar el seguimiento de esta
+ * nueva sesión desde cero.
+ */
+reiniciarSeguimientoVisitaSistema_();
+
+    
 /*
  * Liberar las solicitudes protegidas que
  * estaban esperando desde la carga inicial.
@@ -5611,12 +5773,22 @@ try {
    */
   if (tokenSesionSistema) {
     try {
-      const respuesta =
-        await jsonp(
-          "registrarSalidaVisita",
-          {}
-        );
+   /*
+ * Contar también el botón Salir.
+ */
+registrarAccionSeguimientoVisitaSistema_(
+  "Salir",
+  "Sistema"
+);
 
+const respuesta =
+  await jsonp(
+    "registrarSalidaVisita",
+    {
+      motivoSalida:
+        "Botón Salir"
+    }
+  );
       if (
         !respuesta ||
         !respuesta.ok
