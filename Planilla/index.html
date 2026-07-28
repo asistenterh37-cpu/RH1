@@ -3578,18 +3578,185 @@ select:disabled {
       cursor: not-allowed;
     }
 
-    .incidencias-guardar {
-      min-width: 170px;
-      margin-top: 18px;
-      color: #ffffff;
-      background: var(--verde);
-    }
+/*
+ * =====================================================
+ * ACCIONES DE INCIDENCIAS
+ * =====================================================
+ */
 
-    @media (max-width: 760px) {
-      .incidencias-submenu {
-        grid-template-columns: 1fr;
-      }
-    }
+.incidencias-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  margin-top: 18px;
+}
+
+.incidencias-acciones button {
+  min-width: 170px;
+  margin: 0;
+}
+
+.incidencias-consultar {
+  color: #ffffff;
+  background: var(--azul);
+}
+
+.incidencias-guardar {
+  color: #ffffff;
+  background: var(--verde);
+}
+
+/*
+ * =====================================================
+ * CONSULTA FLOTANTE DE INCIDENCIAS
+ * =====================================================
+ */
+
+.consulta-incidencias-modal[hidden] {
+  display: none !important;
+}
+
+.consulta-incidencias-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 100000;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 22px;
+  background: rgba(15, 23, 42, 0.68);
+}
+
+.consulta-incidencias-contenido {
+  display: flex;
+  flex-direction: column;
+
+  width: min(1250px, 96vw);
+  max-height: 88vh;
+
+  padding: 22px;
+  border-radius: 16px;
+  background: #ffffff;
+
+  box-shadow:
+    0 24px 65px
+    rgba(15, 23, 42, 0.30);
+}
+
+.consulta-incidencias-encabezado {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+  justify-content: space-between;
+
+  margin-bottom: 16px;
+}
+
+.consulta-incidencias-encabezado h3 {
+  margin: 0 0 6px;
+  color: #173d7a;
+  font-size: 21px;
+}
+
+.consulta-incidencias-encabezado p {
+  margin: 0;
+  color: #64748b;
+}
+
+.consulta-incidencias-cerrar {
+  flex: 0 0 auto;
+  min-width: 110px;
+
+  color: #ffffff;
+  background: #dc2626;
+}
+
+.consulta-incidencias-tabla-contenedor {
+  width: 100%;
+  overflow: auto;
+
+  border: 1px solid var(--borde);
+  border-radius: 10px;
+}
+
+.consulta-incidencias-tabla {
+  width: 100%;
+  min-width: 1150px;
+
+  border-collapse: collapse;
+  background: #ffffff;
+}
+
+.consulta-incidencias-tabla th,
+.consulta-incidencias-tabla td {
+  padding: 11px 12px;
+  border-right: 1px solid #e2e8f0;
+  border-bottom: 1px solid #e2e8f0;
+
+  text-align: left;
+  vertical-align: top;
+  white-space: normal;
+}
+
+.consulta-incidencias-tabla th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+
+  color: #ffffff;
+  background: #173d7a;
+}
+
+.consulta-incidencias-tabla tbody tr:nth-child(even) {
+  background: #f8fafc;
+}
+
+.consulta-incidencias-tabla tbody tr:hover {
+  background: #eaf2ff;
+}
+
+.consulta-incidencias-vacia {
+  padding: 28px !important;
+  color: #64748b;
+  text-align: center !important;
+}
+
+@media (max-width: 760px) {
+  .incidencias-submenu {
+    grid-template-columns: 1fr;
+  }
+
+  .incidencias-acciones {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .incidencias-acciones button {
+    width: 100%;
+  }
+
+  .consulta-incidencias-modal {
+    padding: 10px;
+  }
+
+  .consulta-incidencias-contenido {
+    width: 100%;
+    max-height: 94vh;
+    padding: 15px;
+  }
+
+  .consulta-incidencias-encabezado {
+    flex-direction: column;
+  }
+
+  .consulta-incidencias-cerrar {
+    width: 100%;
+  }
+}
+    
   </style>
 
   <h2>Incidencias</h2>
@@ -3804,20 +3971,95 @@ select:disabled {
       </div>
     </div>
 
-    <button
-      id="botonGuardarIncidencia"
-      type="submit"
-      class="incidencias-guardar"
-    >
-      Guardar
-    </button>
-  </form>
+  <div class="incidencias-acciones">
 
-  <div
-    id="mensajeIncidencias"
-    class="mensaje"
-    aria-live="polite"
-  ></div>
+  <!-- CONSULTAR ANTES DE GUARDAR -->
+  <button
+    id="botonConsultarIncidencia"
+    type="button"
+    class="incidencias-consultar"
+    onclick="consultarIncidencias()"
+  >
+    Consultar
+  </button>
+
+  <!-- GUARDAR -->
+  <button
+    id="botonGuardarIncidencia"
+    type="submit"
+    class="incidencias-guardar"
+  >
+    Guardar
+  </button>
+
+</div>
+
+</form>
+
+<!-- TABLA FLOTANTE DE CONSULTA -->
+<div
+  id="modalConsultaIncidencias"
+  class="consulta-incidencias-modal"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="tituloConsultaIncidencias"
+  hidden
+>
+  <div class="consulta-incidencias-contenido">
+
+    <div class="consulta-incidencias-encabezado">
+
+      <div>
+        <h3 id="tituloConsultaIncidencias">
+          Incidencias registradas
+        </h3>
+
+        <p id="resumenConsultaIncidencias">
+        </p>
+      </div>
+
+      <button
+        type="button"
+        class="consulta-incidencias-cerrar"
+        onclick="cerrarConsultaIncidencias()"
+      >
+        Cerrar
+      </button>
+
+    </div>
+
+    <div class="consulta-incidencias-tabla-contenedor">
+
+      <table class="consulta-incidencias-tabla">
+
+        <thead>
+          <tr>
+            <th>No.</th>
+            <th>Nombre</th>
+            <th>Departamento</th>
+            <th>Desde / De</th>
+            <th>Hasta / A</th>
+            <th>Días / Dif</th>
+            <th>Motivo</th>
+            <th>Fecha registro</th>
+          </tr>
+        </thead>
+
+        <tbody id="cuerpoTablaConsultaIncidencias">
+        </tbody>
+
+      </table>
+
+    </div>
+
+  </div>
+</div>
+
+<div
+  id="mensajeIncidencias"
+  class="mensaje"
+  aria-live="polite"
+></div>
 </section>
 
 <!-- ASISTENCIA -->
@@ -4388,7 +4630,7 @@ function mostrarTablaOrdTe(
      */
 
     const API_URL =
-      "https://script.google.com/macros/s/AKfycbxjM4g7d4oqzqCyfl8nO0FCPQByhNWxlITIRl-BJFm-Nxu-gZIkRj3mv2O1xtiphupA/exec";
+      "https://script.google.com/macros/s/AKfycbz2ur1AHF_zgz8QRCe1-bmqp_lMJKWrFYcDHm7KVgXLi-w5qT9VjRHD76K2eZaNiww/exec";
 
     const camposEmpleado = [
 
@@ -29184,6 +29426,279 @@ function limpiarDatosIncidencia(
   establecerFechaRegistroIncidencia();
 }
 
+/*
+ * =====================================================
+ * CONSULTAR INCIDENCIAS
+ * =====================================================
+ *
+ * Busca por:
+ *
+ * - Incidencia seleccionada.
+ * - No. de personal.
+ */
+async function consultarIncidencias() {
+  const boton =
+    document.getElementById(
+      "botonConsultarIncidencia"
+    );
+
+  const incidencia =
+    document
+      .getElementById(
+        "incidenciaSeleccionada"
+      )
+      .value
+      .trim();
+
+  const numero =
+    document
+      .getElementById(
+        "incidenciaNo"
+      )
+      .value
+      .trim();
+
+  /*
+   * Para consultar no es necesario
+   * completar Motivo, fechas o Usuario.
+   */
+  if (!incidencia) {
+    mostrarMensajeIncidencias(
+      "Seleccione la incidencia.",
+      "error"
+    );
+
+    return;
+  }
+
+  if (!numero) {
+    mostrarMensajeIncidencias(
+      "Ingrese el No. de personal.",
+      "error"
+    );
+
+    return;
+  }
+
+  boton.disabled =
+    true;
+
+  boton.textContent =
+    "Consultando...";
+
+  mostrarMensajeIncidencias(
+    "Consultando incidencias registradas...",
+    "info"
+  );
+
+  try {
+    const respuesta =
+      await jsonp(
+        "consultarIncidencias",
+        {
+          incidencia:
+            incidencia,
+
+          numero:
+            numero
+        }
+      );
+
+    if (
+      !respuesta ||
+      !respuesta.ok
+    ) {
+      throw new Error(
+        respuesta &&
+        respuesta.mensaje
+          ? respuesta.mensaje
+          : "No fue posible consultar las incidencias."
+      );
+    }
+
+    mostrarTablaConsultaIncidencias(
+      respuesta
+    );
+
+    mostrarMensajeIncidencias(
+      respuesta.mensaje,
+
+      respuesta.cantidad > 0
+        ? "ok"
+        : "info"
+    );
+
+  } catch (error) {
+    mostrarMensajeIncidencias(
+      error &&
+      error.message
+        ? error.message
+        : "No fue posible consultar las incidencias.",
+
+      "error"
+    );
+
+  } finally {
+    boton.disabled =
+      false;
+
+    boton.textContent =
+      "Consultar";
+  }
+}
+
+/*
+ * Construye la tabla flotante.
+ */
+function mostrarTablaConsultaIncidencias(
+  respuesta
+) {
+  const modal =
+    document.getElementById(
+      "modalConsultaIncidencias"
+    );
+
+  const cuerpo =
+    document.getElementById(
+      "cuerpoTablaConsultaIncidencias"
+    );
+
+  const resumen =
+    document.getElementById(
+      "resumenConsultaIncidencias"
+    );
+
+  if (
+    !modal ||
+    !cuerpo ||
+    !resumen
+  ) {
+    return;
+  }
+
+  const registros =
+    Array.isArray(
+      respuesta.registros
+    )
+      ? respuesta.registros
+      : [];
+
+  cuerpo.innerHTML =
+    "";
+
+  resumen.textContent =
+    respuesta.incidencia +
+    " | No. " +
+    respuesta.numero +
+    " | " +
+    registros.length +
+    (
+      registros.length === 1
+        ? " registro"
+        : " registros"
+    );
+
+  /*
+   * Mostrar la tabla incluso cuando
+   * no existan resultados.
+   */
+  if (!registros.length) {
+    const fila =
+      document.createElement(
+        "tr"
+      );
+
+    const celda =
+      document.createElement(
+        "td"
+      );
+
+    celda.colSpan =
+      8;
+
+    celda.className =
+      "consulta-incidencias-vacia";
+
+    celda.textContent =
+      "No existen registros para la incidencia y el No. seleccionados.";
+
+    fila.appendChild(
+      celda
+    );
+
+    cuerpo.appendChild(
+      fila
+    );
+
+  } else {
+    registros.forEach(function (
+      registro
+    ) {
+      const fila =
+        document.createElement(
+          "tr"
+        );
+
+      const valores = [
+        registro.numero,
+        registro.nombre,
+        registro.departamento,
+        registro.desde,
+        registro.hasta,
+        registro.dias,
+        registro.motivo,
+        registro.fechaRegistro
+      ];
+
+      valores.forEach(function (
+        valor
+      ) {
+        const celda =
+          document.createElement(
+            "td"
+          );
+
+        const texto =
+          String(
+            valor === null ||
+            valor === undefined
+              ? ""
+              : valor
+          ).trim();
+
+        celda.textContent =
+          texto || "—";
+
+        fila.appendChild(
+          celda
+        );
+      });
+
+      cuerpo.appendChild(
+        fila
+      );
+    });
+  }
+
+  modal.hidden =
+    false;
+}
+
+/*
+ * Cierra la tabla flotante.
+ */
+function cerrarConsultaIncidencias() {
+  const modal =
+    document.getElementById(
+      "modalConsultaIncidencias"
+    );
+
+  if (modal) {
+    modal.hidden =
+      true;
+  }
+}  
+  
 async function guardarIncidencia(
   event
 ) {
