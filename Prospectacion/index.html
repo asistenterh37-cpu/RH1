@@ -1184,46 +1184,39 @@
     ===================================================== */
 
     async function geocodificar(direccion) {
-  if (!geocoder) {
+  if (!Place) {
     throw new Error(
-      "El servicio de geocodificación no está disponible."
+      "Places API todavía no está disponible."
     );
   }
 
   try {
-    const respuesta = await geocoder.geocode({
-      address: direccion,
-      region: "HN"
+    const { places } = await Place.searchByText({
+      textQuery: direccion,
+      fields: [
+        "displayName",
+        "location"
+      ],
+      language: "es",
+      region: "HN",
+      maxResultCount: 1
     });
 
     if (
-      !respuesta.results ||
-      respuesta.results.length === 0
+      !places ||
+      places.length === 0 ||
+      !places[0].location
     ) {
       throw new Error(
         "No se encontró la ubicación: " + direccion
       );
     }
 
-    const ubicacion =
-      respuesta.results[0].geometry.location;
-
-    if (!ubicacion) {
-      throw new Error(
-        "Google encontró la dirección, pero no devolvió coordenadas."
-      );
-    }
-
-    return ubicacion;
+    return places[0].location;
 
   } catch (error) {
-    const mensaje =
-      error?.message ||
-      error?.code ||
-      String(error);
-
     console.error(
-      "Error de geocodificación:",
+      "Error ubicando la ciudad:",
       error
     );
 
@@ -1231,11 +1224,13 @@
       "No fue posible ubicar \"" +
       direccion +
       "\". Detalle: " +
-      mensaje
+      (
+        error?.message ||
+        String(error)
+      )
     );
   }
 }
-
     /* =====================================================
        PLACES API (NEW)
     ===================================================== */
@@ -1890,12 +1885,13 @@
 
     5. Activa la facturación del proyecto.
   -->
-
-  <script
-    async
-    src="https://maps.googleapis.com/maps/api/js?key=TU_CLAVE_DE_GOOGLE&loading=async&v=weekly&callback=initMap"
-    onerror="googleMapsError()"
-  ></script>
-
+<script
+  async
+  src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBzAxMccYrMAiEzedlF2ZudZJoiDMvm_gg&loading=async&v=weekly&callback=initMap"
+  onerror="googleMapsError()"
+></script>
+  
+></script>
+ 
 </body>
 </html>
