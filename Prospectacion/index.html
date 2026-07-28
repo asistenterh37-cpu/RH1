@@ -1184,50 +1184,57 @@
     ===================================================== */
 
     async function geocodificar(direccion) {
-      if (!geocoder) {
-        throw new Error(
-          "El servicio de geocodificación no está disponible."
-        );
-      }
+  if (!geocoder) {
+    throw new Error(
+      "El servicio de geocodificación no está disponible."
+    );
+  }
 
-      const consulta = geocoder.geocode({
-        address: direccion,
-        region: "hn"
-      }).then(respuesta => {
-        if (
-          !respuesta.results ||
-          !respuesta.results.length
-        ) {
-          throw new Error(
-            "No se encontró la ubicación: " +
-            direccion
-          );
-        }
+  try {
+    const respuesta = await geocoder.geocode({
+      address: direccion,
+      region: "HN"
+    });
 
-        return respuesta
-          .results[0]
-          .geometry
-          .location;
-      });
-
-      const limiteTiempo = new Promise(
-        (_, reject) => {
-          setTimeout(() => {
-            reject(
-              new Error(
-                "Google Maps tardó demasiado " +
-                "en ubicar la dirección."
-              )
-            );
-          }, 20000);
-        }
+    if (
+      !respuesta.results ||
+      respuesta.results.length === 0
+    ) {
+      throw new Error(
+        "No se encontró la ubicación: " + direccion
       );
-
-      return Promise.race([
-        consulta,
-        limiteTiempo
-      ]);
     }
+
+    const ubicacion =
+      respuesta.results[0].geometry.location;
+
+    if (!ubicacion) {
+      throw new Error(
+        "Google encontró la dirección, pero no devolvió coordenadas."
+      );
+    }
+
+    return ubicacion;
+
+  } catch (error) {
+    const mensaje =
+      error?.message ||
+      error?.code ||
+      String(error);
+
+    console.error(
+      "Error de geocodificación:",
+      error
+    );
+
+    throw new Error(
+      "No fue posible ubicar \"" +
+      direccion +
+      "\". Detalle: " +
+      mensaje
+    );
+  }
+}
 
     /* =====================================================
        PLACES API (NEW)
