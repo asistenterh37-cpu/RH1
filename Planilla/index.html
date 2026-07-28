@@ -4630,7 +4630,7 @@ function mostrarTablaOrdTe(
      */
 
     const API_URL =
-      "https://script.google.com/macros/s/AKfycbzwnLGCQPDquSKMjISbmoCCVSxXLiyAmyW36kMvQrr742Ylx-GckY-DphFnPlOo66_v/exec";
+      "https://script.google.com/macros/s/AKfycbyODCfRLo2kg229xw4BVXK0zuqFqjLKZdTuY1TziM36uLdfIhBUUTHs9ndPZMzQpCm1/exec";
 
     const camposEmpleado = [
 
@@ -4806,6 +4806,12 @@ let tokenSesionSistema =
  * =====================================================
  */
 
+/*
+ * =====================================================
+ * SEGUIMIENTO DE LA SESIÓN
+ * =====================================================
+ */
+
 let seguimientoVisitaSistema = {
   totalAcciones:
     0,
@@ -4813,6 +4819,19 @@ let seguimientoVisitaSistema = {
   modulosVisitados:
     []
 };
+
+/*
+ * Evita enviar varias solicitudes simultáneas
+ * cuando se presionan botones rápidamente.
+ */
+let temporizadorSeguimientoVisitaSistema =
+  null;
+
+/*
+ * Indica si la sesión ya está siendo cerrada.
+ */
+let cierreVisitaSolicitadoSistema =
+  false;
 
 function reiniciarSeguimientoVisitaSistema_() {
   seguimientoVisitaSistema = {
@@ -4822,6 +4841,20 @@ function reiniciarSeguimientoVisitaSistema_() {
     modulosVisitados:
       []
   };
+
+  cierreVisitaSolicitadoSistema =
+    false;
+
+  if (
+    temporizadorSeguimientoVisitaSistema
+  ) {
+    clearTimeout(
+      temporizadorSeguimientoVisitaSistema
+    );
+
+    temporizadorSeguimientoVisitaSistema =
+      null;
+  }
 }
 
 function registrarAccionSeguimientoVisitaSistema_(
@@ -4854,8 +4887,69 @@ function registrarAccionSeguimientoVisitaSistema_(
         modulo
       );
   }
+
+  /*
+   * Guardar el movimiento aunque el botón
+   * solamente abra un panel y no consulte
+   * ningún registro del GS.
+   */
+  programarGuardadoSeguimientoVisitaSistema_();
 }
 
+/*
+ * Espera 300 milisegundos para agrupar
+ * clics consecutivos.
+ */
+function programarGuardadoSeguimientoVisitaSistema_() {
+  if (
+    temporizadorSeguimientoVisitaSistema
+  ) {
+    clearTimeout(
+      temporizadorSeguimientoVisitaSistema
+    );
+  }
+
+  temporizadorSeguimientoVisitaSistema =
+    setTimeout(
+      function () {
+        guardarSeguimientoVisitaSistema_();
+      },
+      300
+    );
+}
+
+/*
+ * Envía al GS el total de acciones y
+ * los módulos visitados.
+ */
+async function guardarSeguimientoVisitaSistema_() {
+  temporizadorSeguimientoVisitaSistema =
+    null;
+
+  if (
+    !tokenSesionSistema ||
+    cierreVisitaSolicitadoSistema
+  ) {
+    return;
+  }
+
+  try {
+    await jsonp(
+      "registrarActividadVisita",
+      {}
+    );
+
+  } catch (error) {
+    /*
+     * No interrumpir el funcionamiento del
+     * sistema por un error de seguimiento.
+     */
+    console.warn(
+      "No se guardó el seguimiento:",
+      error
+    );
+  }
+}
 function obtenerResumenSeguimientoVisitaSistema_() {
   return {
     totalAcciones:
@@ -5666,7 +5760,14 @@ async function salirPlataforma() {
 
   let advertenciaSalida =
     "";
+/*
+ * Evitar que pagehide intente cerrar
+ * nuevamente la misma sesión.
+ */
+cierreVisitaSolicitadoSistema =
+  true;
 
+    
 /*
  * =====================================================
  * PROTECCIÓN DISUASIVA DEL FRONTEND
@@ -5860,7 +5961,95 @@ const respuesta =
     },
     250
   );
-}   
+}
+
+/*
+ * =====================================================
+ * CIERRE AUTOMÁTICO DE VISITAS
+ * =====================================================
+ *
+ * Se ejecuta cuando el usuario:
+ *
+ * - Cierra la pestaña.
+ * - Cierra el navegador.
+ * - Recarga la página.
+ * - Navega hacia otra dirección.
+ */
+function cerrarVisitaAlAbandonarPaginaSistema_() {
+  if (
+    !tokenSesionSistema ||
+    cierreVisitaSolicitadoSistema
+  ) {
+    return;
+  }
+
+  cierreVisitaSolicitadoSistema =
+    true;
+
+  const datos = {
+    tokenSesion:
+      tokenSesionSistema,
+
+    seguimientoVisita:
+      obtenerResumenSeguimientoVisitaSistema_(),
+
+    motivoSalida:
+      "Cierre o recarga de la página"
+  };
+
+  const parametros =
+    new URLSearchParams({
+      action:
+        "registrarSalidaVisita",
+
+      data:
+        JSON.stringify(
+          datos
+        )
+    });
+
+  /*
+   * keepalive permite que la solicitud
+   * continúe aunque la página esté cerrándose.
+   */
+  try {
+    fetch(
+      API_URL +
+      "?" +
+      parametros.toString(),
+      {
+        method:
+          "GET",
+
+        mode:
+          "no-cors",
+
+        cache:
+          "no-store",
+
+        keepalive:
+          true
+      }
+    ).catch(function () {
+      /*
+       * No mostrar errores durante
+       * el cierre del navegador.
+       */
+    });
+
+  } catch (error) {
+    /*
+     * El navegador ya puede estar
+     * destruyendo la página.
+     */
+  }
+}
+
+window.addEventListener(
+  "pagehide",
+  cerrarVisitaAlAbandonarPaginaSistema_
+);    
+    
 /*
  * Colocar el cursor en la contraseña
  * cuando abra el enlace.
