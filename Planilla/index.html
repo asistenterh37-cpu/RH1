@@ -5282,7 +5282,7 @@ function mostrarTablaOrdTe(
      */
 
     const API_URL =
-      "https://script.google.com/macros/s/AKfycbyODCfRLo2kg229xw4BVXK0zuqFqjLKZdTuY1TziM36uLdfIhBUUTHs9ndPZMzQpCm1/exec";
+      "https://script.google.com/macros/s/AKfycbz-cHtonkJ0vE2CT4Kycp6fNuJXepB2BSqA8Bl42tXZAmOMx4bdEh0UcAJ1qO23kok2/exec";
 
     const camposEmpleado = [
 
@@ -5440,10 +5440,11 @@ function mostrarTablaOrdTe(
 const ACCIONES_PUBLICAS_SISTEMA =
   new Set([
     "validarAccesoSistema",
+    "validarAccesoPortalEmpleado",
     "validarPin",
     "registrarAsistencia"
   ]);
-
+    
 /*
  * Token temporal entregado por el GS.
  *
@@ -18005,10 +18006,30 @@ let numeroPersonalPortalPublico =
  * Muestra el menú después de ingresar
  * el No. de personal.
  */
-function ingresarPortalEmpleadoPublico() {
+async function ingresarPortalEmpleadoPublico() {
   const campo =
     document.getElementById(
       "noPersonalPortalPublico"
+    );
+
+  const boton =
+    document.getElementById(
+      "botonIngresarPortalPublico"
+    );
+
+  const acceso =
+    document.getElementById(
+      "accesoPortalPublico"
+    );
+
+  const menu =
+    document.getElementById(
+      "menuPortalPublico"
+    );
+
+  const numeroMostrado =
+    document.getElementById(
+      "numeroPortalPublicoMostrado"
     );
 
   const numero =
@@ -18032,8 +18053,9 @@ function ingresarPortalEmpleadoPublico() {
   }
 
   /*
-   * Permitir números, letras y guion.
-   * Conserva los ceros colocados al inicio.
+   * Permite números, letras y guion.
+   * No convierte el valor a número para
+   * conservar posibles ceros iniciales.
    */
   if (
     !/^[0-9A-Za-z-]{1,20}$/.test(
@@ -18052,45 +18074,143 @@ function ingresarPortalEmpleadoPublico() {
     return;
   }
 
-  numeroPersonalPortalPublico =
-    numero;
+  if (boton) {
+    boton.disabled =
+      true;
 
-  const acceso =
-    document.getElementById(
-      "accesoPortalPublico"
-    );
+    boton.textContent =
+      "Validando...";
+  }
 
-  const menu =
-    document.getElementById(
-      "menuPortalPublico"
-    );
-
-  const numeroMostrado =
-    document.getElementById(
-      "numeroPortalPublicoMostrado"
-    );
-
-  if (acceso) {
-    acceso.hidden =
+  if (campo) {
+    campo.disabled =
       true;
   }
 
+  /*
+   * El menú continúa oculto mientras
+   * Apps Script valida Maestro!A:A.
+   */
   if (menu) {
     menu.hidden =
-      false;
-  }
-
-  if (numeroMostrado) {
-    numeroMostrado.textContent =
-      numero;
+      true;
   }
 
   mostrarMensajePortalPublico(
-    "",
-    ""
+    "Verificando No. de personal...",
+    "info"
   );
-}
 
+  try {
+    const respuesta =
+      await jsonp(
+        "validarAccesoPortalEmpleado",
+        {
+          numeroPersonal:
+            numero
+        }
+      );
+
+    if (
+      !respuesta ||
+      !respuesta.ok
+    ) {
+      throw new Error(
+        respuesta &&
+        respuesta.mensaje
+          ? respuesta.mensaje
+          : "No fue posible validar el acceso."
+      );
+    }
+
+    numeroPersonalPortalPublico =
+      String(
+        respuesta.numeroPersonal ||
+        numero
+      ).trim();
+
+    const nombreEmpleado =
+      String(
+        respuesta.empleado || ""
+      ).trim();
+
+    /*
+     * Ocultar el formulario solamente
+     * después de recibir una respuesta válida.
+     */
+    if (acceso) {
+      acceso.hidden =
+        true;
+    }
+
+    if (menu) {
+      menu.hidden =
+        false;
+    }
+
+    /*
+     * Mostrar nombre y No. de personal
+     * en la parte superior del menú.
+     */
+    if (numeroMostrado) {
+      numeroMostrado.textContent =
+        nombreEmpleado
+          ? nombreEmpleado +
+            " · " +
+            numeroPersonalPortalPublico
+          : numeroPersonalPortalPublico;
+    }
+
+    mostrarMensajePortalPublico(
+      "",
+      ""
+    );
+
+  } catch (error) {
+    numeroPersonalPortalPublico =
+      "";
+
+    if (acceso) {
+      acceso.hidden =
+        false;
+    }
+
+    if (menu) {
+      menu.hidden =
+        true;
+    }
+
+    mostrarMensajePortalPublico(
+      error &&
+      error.message
+        ? error.message
+        : "No fue posible validar el No. de personal.",
+      "error"
+    );
+
+    if (campo) {
+      campo.value =
+        numero;
+
+      campo.focus();
+      campo.select();
+    }
+
+  } finally {
+    if (campo) {
+      campo.disabled =
+        false;
+    }
+
+    if (boton) {
+      boton.disabled =
+        false;
+
+      boton.textContent =
+        "Ingresar";
+    }
+  }
+}
 
 /*
  * Abre la opción seleccionada.
