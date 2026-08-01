@@ -1965,6 +1965,127 @@ select:disabled {
   display: block;
 }
 
+/*
+ * =====================================================
+ * MI PERFIL - PORTAL EMPLEADO
+ * =====================================================
+ */
+
+.portal-perfil {
+  display: grid;
+  gap: 18px;
+}
+
+.portal-perfil-encabezado {
+  padding-bottom: 12px;
+  border-bottom: 1px solid
+    rgba(148, 163, 184, 0.25);
+}
+
+.portal-perfil-encabezado h2 {
+  margin: 0 0 5px;
+  color: #ffffff;
+  font-size: 20px;
+}
+
+.portal-perfil-encabezado p {
+  margin: 0;
+  color: #94a3b8;
+  line-height: 1.4;
+}
+
+.portal-perfil-seccion {
+  display: grid;
+  gap: 10px;
+}
+
+.portal-perfil-seccion h3 {
+  margin: 0;
+  color: #93c5fd;
+  font-size: 15px;
+}
+
+.portal-perfil-grid {
+  display: grid;
+  grid-template-columns:
+    repeat(2, minmax(0, 1fr));
+  gap: 9px;
+}
+
+.portal-perfil-campo {
+  min-width: 0;
+  padding: 11px;
+  border: 1px solid
+    rgba(148, 163, 184, 0.20);
+  border-radius: 10px;
+  background: #0f172a;
+}
+
+.portal-perfil-campo.ancho {
+  grid-column: 1 / -1;
+}
+
+.portal-perfil-campo span {
+  display: block;
+  margin-bottom: 4px;
+  color: #94a3b8;
+  font-size: 11px;
+  font-weight: normal;
+}
+
+.portal-perfil-campo strong {
+  display: block;
+  color: #f8fafc;
+  font-size: 14px;
+  line-height: 1.35;
+  word-break: break-word;
+}
+
+.portal-perfil-estudios {
+  display: grid;
+  gap: 10px;
+}
+
+.portal-perfil-estudio {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid
+    rgba(74, 222, 128, 0.25);
+  border-radius: 12px;
+  background: #0f172a;
+}
+
+.portal-perfil-estudio > strong {
+  color: #86efac;
+  font-size: 14px;
+}
+
+.portal-perfil-vacio,
+.portal-perfil-cargando,
+.portal-perfil-error {
+  margin: 0;
+  padding: 12px;
+  border-radius: 10px;
+  color: #cbd5e1;
+  background: #0f172a;
+}
+
+.portal-perfil-error {
+  color: #fecaca;
+  background: #450a0a;
+}
+
+@media (max-width: 560px) {
+  .portal-perfil-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .portal-perfil-campo.ancho {
+    grid-column: auto;
+  }
+}    
+    
 .portal-publico-cambiar {
   width: 100%;
   min-height: 44px;
@@ -5184,17 +5305,17 @@ function mostrarTablaOrdTe(
     <div class="asistencia-campo">
 
       <label for="pinAsistencia">
-        PIN
-      </label>
+  No. de personal
+</label>
 
-      <input
-        id="pinAsistencia"
-        type="password"
-        inputmode="numeric"
-        autocomplete="off"
-        placeholder="Ingrese su PIN"
-        oninput="reiniciarEmpleadoAsistencia()"
-      >
+<input
+  id="pinAsistencia"
+  type="text"
+  inputmode="numeric"
+  autocomplete="off"
+  placeholder="Ingrese su No. de personal"
+  oninput="reiniciarEmpleadoAsistencia()"
+>
 
       <button
         id="btnValidarPin"
@@ -5282,7 +5403,7 @@ function mostrarTablaOrdTe(
      */
 
     const API_URL =
-      "https://script.google.com/macros/s/AKfycbz-cHtonkJ0vE2CT4Kycp6fNuJXepB2BSqA8Bl42tXZAmOMx4bdEh0UcAJ1qO23kok2/exec";
+     "https://script.google.com/macros/s/AKfycbxdB5qor2T-OplmuwaPG1PhuWcHVgMm7VfMEzaUBxieHrfc8w_9vmssMADzohnnhlbJ/exec";
 
     const camposEmpleado = [
 
@@ -5437,10 +5558,12 @@ function mostrarTablaOrdTe(
  * Se conservan públicas para permitir
  * la pantalla móvil de asistencia.
  */
+
 const ACCIONES_PUBLICAS_SISTEMA =
   new Set([
     "validarAccesoSistema",
     "validarAccesoPortalEmpleado",
+    "consultarPerfilPortalEmpleado",
     "validarPin",
     "registrarAsistencia"
   ]);
@@ -9004,13 +9127,22 @@ function mostrarVistaCorrespondiente() {
    * Vista pública de asistencia.
    */
   if (vista === "asistencia") {
-    if (pantallaAsistencia) {
-      pantallaAsistencia.style.display =
-        "block";
-    }
-
-    return;
+  if (pantallaAsistencia) {
+    pantallaAsistencia.style.display =
+      "block";
   }
+
+  /*
+   * Si se abrió desde Portal empleado,
+   * completar y validar automáticamente.
+   */
+  setTimeout(
+    prepararAsistenciaDesdePortal,
+    0
+  );
+
+  return;
+}
 
   /*
    * Vista pública del Portal empleado.
@@ -9021,6 +9153,61 @@ function mostrarVistaCorrespondiente() {
 
     reiniciarPortalEmpleadoPublico();
   }
+}
+
+/*
+ * Recupera el No. de personal del Portal
+ * y ejecuta la validación existente.
+ */
+function prepararAsistenciaDesdePortal() {
+  let numeroPersonal =
+    "";
+
+  try {
+    numeroPersonal =
+      String(
+        sessionStorage.getItem(
+          "nexorhNumeroAsistenciaPortal"
+        ) || ""
+      ).trim();
+
+    sessionStorage.removeItem(
+      "nexorhNumeroAsistenciaPortal"
+    );
+  } catch (error) {
+    numeroPersonal =
+      "";
+  }
+
+  if (!numeroPersonal) {
+    return;
+  }
+
+  const campo =
+    document.getElementById(
+      "pinAsistencia"
+    );
+
+  if (!campo) {
+    return;
+  }
+
+  campo.value =
+    numeroPersonal;
+
+  /*
+   * El empleado llegó identificado
+   * desde el Portal.
+   */
+  campo.readOnly =
+    true;
+
+  campo.setAttribute(
+    "aria-readonly",
+    "true"
+  );
+
+  validarPinAsistencia();
 }
     
 function reiniciarEmpleadoAsistencia() {
@@ -9063,7 +9250,7 @@ async function validarPinAsistencia() {
   if (!pin) {
 
     mostrarMensajeAsistencia(
-      "Ingrese su PIN.",
+      "Ingrese su No. de personal.",
       "error"
     );
 
@@ -9078,7 +9265,7 @@ async function validarPinAsistencia() {
   boton.disabled = true;
 
   mostrarMensajeAsistencia(
-    "Validando PIN...",
+    "Validando No. de personal...",
     "info"
   );
 
@@ -9096,7 +9283,7 @@ async function validarPinAsistencia() {
 
       throw new Error(
         respuesta.mensaje ||
-        "PIN incorrecto."
+        "No. de personal incorrecto o no registrado."
       );
     }
 
@@ -17998,9 +18185,12 @@ async function enviarEnlacePortalEmpleado() {
  * No. de personal utilizado en
  * la vista pública actual.
  */
+
 let numeroPersonalPortalPublico =
   "";
 
+let nombreEmpleadoPortalPublico =
+  "";
 
 /*
  * Muestra el menú después de ingresar
@@ -18134,6 +18324,9 @@ async function ingresarPortalEmpleadoPublico() {
         respuesta.empleado || ""
       ).trim();
 
+nombreEmpleadoPortalPublico =
+  nombreEmpleado;
+    
     /*
      * Ocultar el formulario solamente
      * después de recibir una respuesta válida.
@@ -18215,17 +18408,398 @@ async function ingresarPortalEmpleadoPublico() {
 /*
  * Abre la opción seleccionada.
  */
-function seleccionarOpcionPortalPublico(
+
+ /*
+ * Construye un campo de Mi perfil.
+ */
+function campoPerfilPortalEmpleado_(
+  etiqueta,
+  valor,
+  ancho
+) {
+  const texto =
+    valor === null ||
+    valor === undefined ||
+    String(valor).trim() === ""
+      ? "—"
+      : String(valor).trim();
+
+  return (
+    '<div class="portal-perfil-campo' +
+    (
+      ancho
+        ? " ancho"
+        : ""
+    ) +
+    '">' +
+    "<span>" +
+    escaparTextoPortalPublico(
+      etiqueta
+    ) +
+    "</span>" +
+    "<strong>" +
+    escaparTextoPortalPublico(
+      texto
+    ) +
+    "</strong>" +
+    "</div>"
+  );
+}
+
+/*
+ * Convierte yyyy-mm-dd a dd/mm/yyyy.
+ */
+function formatearFechaPerfilPortal_(
+  fecha
+) {
+  const texto =
+    String(
+      fecha || ""
+    ).trim();
+
+  const coincidencia =
+    texto.match(
+      /^(\d{4})-(\d{2})-(\d{2})$/
+    );
+
+  if (!coincidencia) {
+    return texto;
+  }
+
+  return (
+    coincidencia[3] +
+    "/" +
+    coincidencia[2] +
+    "/" +
+    coincidencia[1]
+  );
+}
+
+/*
+ * Construye los registros académicos.
+ */
+function construirEducacionPortalEmpleado_(
+  registros
+) {
+  if (
+    !Array.isArray(registros) ||
+    registros.length === 0
+  ) {
+    return (
+      '<p class="portal-perfil-vacio">' +
+      "No hay formación académica registrada." +
+      "</p>"
+    );
+  }
+
+  return registros
+    .map(function (
+      registro,
+      indice
+    ) {
+      registro =
+        registro || {};
+
+      return (
+        '<div class="portal-perfil-estudio">' +
+        "<strong>Estudio " +
+        (
+          indice + 1
+        ) +
+        "</strong>" +
+        '<div class="portal-perfil-grid">' +
+
+        campoPerfilPortalEmpleado_(
+          "Nivel educativo",
+          registro.nivelEducativo,
+          false
+        ) +
+
+        campoPerfilPortalEmpleado_(
+          "Título obtenido",
+          registro.tituloObtenido,
+          false
+        ) +
+
+        campoPerfilPortalEmpleado_(
+          "Institución educativa",
+          registro.institucionEducativa,
+          true
+        ) +
+
+        campoPerfilPortalEmpleado_(
+          "País",
+          registro.paisEstudio,
+          false
+        ) +
+
+        campoPerfilPortalEmpleado_(
+          "Año de inicio",
+          registro.anioInicioEstudio,
+          false
+        ) +
+
+        campoPerfilPortalEmpleado_(
+          "Año de finalización",
+          registro.anioFinalizacionEstudio,
+          false
+        ) +
+
+        "</div>" +
+        "</div>"
+      );
+    })
+    .join("");
+}
+
+/*
+ * Consulta y despliega Mi perfil.
+ *
+ * No crea campos para guardar.
+ * No muestra botones Nuevo o Modificar.
+ */
+async function cargarMiPerfilPortalEmpleado() {
+  const resultado =
+    document.getElementById(
+      "resultadoPortalPublico"
+    );
+
+  if (!resultado) {
+    return;
+  }
+
+  resultado.hidden =
+    false;
+
+  resultado.innerHTML =
+    '<p class="portal-perfil-cargando">' +
+    "Cargando expediente..." +
+    "</p>";
+
+  try {
+    const respuesta =
+      await jsonp(
+        "consultarPerfilPortalEmpleado",
+        {
+          numeroPersonal:
+            numeroPersonalPortalPublico
+        }
+      );
+
+    if (
+      !respuesta ||
+      !respuesta.ok
+    ) {
+      throw new Error(
+        respuesta &&
+        respuesta.mensaje
+          ? respuesta.mensaje
+          : "No fue posible consultar el expediente."
+      );
+    }
+
+    const expediente =
+      respuesta.expediente || {};
+
+    const educacion =
+      Array.isArray(
+        respuesta.educacion
+      )
+        ? respuesta.educacion
+        : [];
+
+    resultado.innerHTML =
+      '<div class="portal-perfil">' +
+
+      '<div class="portal-perfil-encabezado">' +
+      "<h2>Mi perfil</h2>" +
+      "<p>" +
+      escaparTextoPortalPublico(
+        respuesta.empleado ||
+        nombreEmpleadoPortalPublico ||
+        ""
+      ) +
+      "</p>" +
+      "</div>" +
+
+      '<section class="portal-perfil-seccion">' +
+      "<h3>Datos generales</h3>" +
+      '<div class="portal-perfil-grid">' +
+
+      campoPerfilPortalEmpleado_(
+        "No. de personal",
+        expediente.noPersonal,
+        false
+      ) +
+
+      campoPerfilPortalEmpleado_(
+        "Nombres",
+        expediente.nombres,
+        false
+      ) +
+
+      campoPerfilPortalEmpleado_(
+        "Apellidos",
+        expediente.apellidos,
+        false
+      ) +
+
+      campoPerfilPortalEmpleado_(
+        "Género",
+        expediente.genero,
+        false
+      ) +
+
+      campoPerfilPortalEmpleado_(
+        "Fecha de nacimiento",
+        formatearFechaPerfilPortal_(
+          expediente.fechaNacimiento
+        ),
+        false
+      ) +
+
+      campoPerfilPortalEmpleado_(
+        "Edad",
+        expediente.edad,
+        false
+      ) +
+
+      campoPerfilPortalEmpleado_(
+        "País de nacimiento",
+        expediente.paisNacimiento,
+        false
+      ) +
+
+      campoPerfilPortalEmpleado_(
+        "Departamento",
+        expediente.departamento,
+        false
+      ) +
+
+      campoPerfilPortalEmpleado_(
+        "Municipio",
+        expediente.municipio,
+        false
+      ) +
+
+      campoPerfilPortalEmpleado_(
+        "Estado civil",
+        expediente.estadoCivil,
+        false
+      ) +
+
+      campoPerfilPortalEmpleado_(
+        "Dirección completa",
+        expediente.direccionCompleta,
+        true
+      ) +
+
+      "</div>" +
+      "</section>" +
+
+      '<section class="portal-perfil-seccion">' +
+      "<h3>Contacto e identificación</h3>" +
+      '<div class="portal-perfil-grid">' +
+
+      campoPerfilPortalEmpleado_(
+        "Teléfono personal",
+        expediente.telefonoPersonal,
+        false
+      ) +
+
+      campoPerfilPortalEmpleado_(
+        "Correo personal",
+        expediente.correoPersonal,
+        true
+      ) +
+
+      campoPerfilPortalEmpleado_(
+        "No. de identidad",
+        expediente.identidad,
+        false
+      ) +
+
+      campoPerfilPortalEmpleado_(
+        "RTN",
+        expediente.rtn,
+        false
+      ) +
+
+      campoPerfilPortalEmpleado_(
+        "No. IHSS",
+        expediente.ihss,
+        false
+      ) +
+
+      campoPerfilPortalEmpleado_(
+        "Tipo de sangre",
+        expediente.tipoSangre,
+        false
+      ) +
+
+      "</div>" +
+      "</section>" +
+
+      '<section class="portal-perfil-seccion">' +
+      "<h3>Contacto de emergencia</h3>" +
+      '<div class="portal-perfil-grid">' +
+
+      campoPerfilPortalEmpleado_(
+        "Contacto",
+        expediente.contactoEmergencia,
+        false
+      ) +
+
+      campoPerfilPortalEmpleado_(
+        "Teléfono",
+        expediente.telefonoEmergencia,
+        false
+      ) +
+
+      campoPerfilPortalEmpleado_(
+        "Parentesco",
+        expediente.parentesco,
+        false
+      ) +
+
+      "</div>" +
+      "</section>" +
+
+      '<section class="portal-perfil-seccion">' +
+      "<h3>Formación académica</h3>" +
+      '<div class="portal-perfil-estudios">' +
+
+      construirEducacionPortalEmpleado_(
+        educacion
+      ) +
+
+      "</div>" +
+      "</section>" +
+
+      "</div>";
+
+  } catch (error) {
+    resultado.innerHTML =
+      '<p class="portal-perfil-error">' +
+      escaparTextoPortalPublico(
+        error &&
+        error.message
+          ? error.message
+          : "No fue posible cargar Mi perfil."
+      ) +
+      "</p>";
+  }
+} 
+  
+async function seleccionarOpcionPortalPublico(
   opcion,
   boton
 ) {
-  /*
-   * Asistencia ya tiene su propia
-   * pantalla pública funcional.
-   */
-  if (opcion === "Asistencia") {
-    window.location.href =
-      obtenerEnlaceAsistencia();
+  if (!numeroPersonalPortalPublico) {
+    mostrarMensajePortalPublico(
+      "Primero debe ingresar su No. de personal.",
+      "error"
+    );
 
     return;
   }
@@ -18249,6 +18823,40 @@ function seleccionarOpcionPortalPublico(
     );
   }
 
+  /*
+   * MI PERFIL:
+   * cargar expediente en modo consulta.
+   */
+  if (opcion === "Mi perfil") {
+    await cargarMiPerfilPortalEmpleado();
+    return;
+  }
+
+  /*
+   * ASISTENCIA:
+   * conservar temporalmente el número
+   * para identificar automáticamente
+   * al empleado en la pantalla existente.
+   */
+  if (opcion === "Asistencia") {
+    try {
+      sessionStorage.setItem(
+        "nexorhNumeroAsistenciaPortal",
+        numeroPersonalPortalPublico
+      );
+    } catch (error) {
+      /*
+       * La pantalla también puede funcionar
+       * ingresando el número manualmente.
+       */
+    }
+
+    window.location.href =
+      obtenerEnlaceAsistencia();
+
+    return;
+  }
+
   const resultado =
     document.getElementById(
       "resultadoPortalPublico"
@@ -18264,7 +18872,6 @@ function seleccionarOpcionPortalPublico(
         opcion
       ) +
       "</strong>" +
-
       "<span>No. de personal: " +
       escaparTextoPortalPublico(
         numeroPersonalPortalPublico
