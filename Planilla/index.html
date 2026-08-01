@@ -5602,7 +5602,7 @@ function mostrarTablaOrdTe(
      */
 
     const API_URL =
-     "https://script.google.com/macros/s/AKfycbyHRd2mBczQicnR2vDalA6lndYmRPsCZnq1qKzT4ZuQQKFuNdqtkPLhPSE9mAjdG5yj/exec";
+     "https://script.google.com/macros/s/AKfycbzZMPix0CwYlbE01_ZbMIilofRmGWzqrRE5afGdlvlZ1ppGAJYRrKMJ3FAoxIvlnIQ8/exec";
 
     const camposEmpleado = [
 
@@ -5766,10 +5766,11 @@ const ACCIONES_PUBLICAS_SISTEMA =
     "listarPeriodosPagoPortalEmpleado",
     "consultarReciboPagoPortalEmpleado",
     "consultarVacacionesPortalEmpleado",
+    "consultarPermisosIncapacidadesPortalEmpleado",
     "validarPin",
     "registrarAsistencia"
-  ]);    
-/*
+  ]);
+    /*
  * Token temporal entregado por el GS.
  *
  * No contiene la contraseña.
@@ -19454,6 +19455,176 @@ async function cargarVacacionesPortalEmpleado() {
  * Crea cada campo del registro
  * de vacaciones.
  */
+
+/*
+ * =====================================================
+ * PERMISOS E INCAPACIDADES
+ * =====================================================
+ */
+async function cargarPermisosIncapacidadesPortalEmpleado() {
+  const resultado =
+    document.getElementById(
+      "resultadoPortalPublico"
+    );
+
+  if (!resultado) {
+    return;
+  }
+
+  resultado.hidden =
+    false;
+
+  resultado.innerHTML =
+    '<div class="portal-modulo">' +
+
+    '<div class="portal-modulo-encabezado">' +
+    "<h2>Permisos e incapacidades</h2>" +
+    "<p>Cargando incapacidades, permisos y ausencias...</p>" +
+    "</div>" +
+
+    "</div>";
+
+  try {
+    const respuesta =
+      await jsonp(
+        "consultarPermisosIncapacidadesPortalEmpleado",
+        {
+          numeroPersonal:
+            numeroPersonalPortalPublico
+        }
+      );
+
+    if (
+      !respuesta ||
+      !respuesta.ok
+    ) {
+      throw new Error(
+        respuesta &&
+        respuesta.mensaje
+          ? respuesta.mensaje
+          : "No fue posible consultar los registros."
+      );
+    }
+
+    const registros =
+      Array.isArray(
+        respuesta.registros
+      )
+        ? respuesta.registros
+        : [];
+
+    let html =
+      '<div class="portal-modulo">' +
+
+      '<div class="portal-modulo-encabezado">' +
+      "<h2>Permisos e incapacidades</h2>" +
+
+      "<p>" +
+      escaparTextoPortalPublico(
+        respuesta.mensaje || ""
+      ) +
+      "</p>" +
+
+      "</div>";
+
+    if (!registros.length) {
+      html +=
+        '<p class="portal-modulo-vacio">' +
+        "No existen registros de incapacidades, permisos o ausencias." +
+        "</p>";
+
+    } else {
+      /*
+       * Lleva numeración independiente
+       * para cada tipo de incidencia.
+       */
+      const contadorTipos = {};
+
+      html +=
+        '<div class="portal-vacaciones-lista">';
+
+      registros.forEach(function (
+        registro
+      ) {
+        const incidencia =
+          String(
+            registro.incidencia ||
+            "Registro"
+          ).trim();
+
+        contadorTipos[
+          incidencia
+        ] =
+          (
+            contadorTipos[
+              incidencia
+            ] || 0
+          ) + 1;
+
+        html +=
+          '<article class="portal-vacacion-registro">' +
+
+          "<h3>" +
+          escaparTextoPortalPublico(
+            incidencia
+          ) +
+          " " +
+          contadorTipos[
+            incidencia
+          ] +
+          "</h3>" +
+
+          '<div class="portal-vacacion-grid">' +
+
+          campoVacacionPortal_(
+            "Desde",
+            registro.desde
+          ) +
+
+          campoVacacionPortal_(
+            "Hasta",
+            registro.hasta
+          ) +
+
+          campoVacacionPortal_(
+            "Días",
+            registro.dias
+          ) +
+
+          campoVacacionPortal_(
+            "Fecha de registro",
+            registro.fechaRegistro
+          ) +
+
+          "</div>" +
+          "</article>";
+      });
+
+      html +=
+        "</div>";
+    }
+
+    html +=
+      "</div>";
+
+    resultado.innerHTML =
+      html;
+
+  } catch (error) {
+    resultado.innerHTML =
+      '<p class="portal-perfil-error">' +
+
+      escaparTextoPortalPublico(
+        error &&
+        error.message
+          ? error.message
+          : "No fue posible consultar los registros."
+      ) +
+
+      "</p>";
+  }
+}
+  
 function campoVacacionPortal_(
   etiqueta,
   valor
@@ -19572,6 +19743,17 @@ if (
   "Mis vacaciones"
 ) {
   await cargarVacacionesPortalEmpleado();
+  return;
+}
+
+/*
+ * PERMISOS E INCAPACIDADES.
+ */
+if (
+  opcion ===
+  "Permisos e incapacidades"
+) {
+  await cargarPermisosIncapacidadesPortalEmpleado();
   return;
 }
 
