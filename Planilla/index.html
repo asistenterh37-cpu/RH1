@@ -4182,35 +4182,60 @@ select:disabled {
       </div>
 
       <div
-        id="busqueda"
-        class="barra-busqueda"
-        hidden
-      >
+  id="busqueda"
+  class="barra-busqueda"
+  hidden
+>
+  <!--
+    Búsqueda utilizada en Ver y Modificar.
+  -->
+  <div
+    id="bloqueBusquedaMaestroEmpleado"
+    hidden
+  >
+    <label for="pinBuscar">
+      No. de personal / PIN
+    </label>
 
-        <div>
+    <input
+      id="pinBuscar"
+      type="text"
+      autocomplete="off"
+      placeholder="Ingrese el No. de personal"
+    >
+  </div>
 
-          <label for="pinBuscar">
-            No. de personal / PIN
-          </label>
+  <!--
+    Selector utilizado únicamente
+    en la opción Ingresar.
+  -->
+  <div
+    id="bloqueSeleccionExpedienteEmpleado"
+    hidden
+  >
+    <label for="expedienteEmpleadoIngresar">
+      No. de personal, nombres y apellidos
+    </label>
 
-          <input
-            id="pinBuscar"
-            type="text"
-            placeholder="Ingrese el PIN"
-          >
+    <select
+      id="expedienteEmpleadoIngresar"
+      disabled
+    >
+      <option value="">
+        Seleccionar
+      </option>
+    </select>
+  </div>
 
-        </div>
-
-        <button
-          type="button"
-          class="primario"
-          onclick="buscarEmpleado()"
-        >
-          Buscar
-        </button>
-
-      </div>
-
+  <button
+    id="botonBuscarEmpleado"
+    type="button"
+    class="primario"
+    onclick="buscarEmpleado()"
+  >
+    Buscar
+  </button>
+</div>
       <form
         id="formEmpleado"
         hidden
@@ -5602,13 +5627,19 @@ function mostrarTablaOrdTe(
      */
 
     const API_URL =
-     "https://script.google.com/macros/s/AKfycbylz9MrVp_WqS5ZUHc1wRlvRq_VPycK4KyJFJiAXf78Kd2lFFd-fhEFfSWO9DBPK7c/exec";
+     "https://script.google.com/macros/s/AKfycbypnbVD9g8uqIClw4HOqhoAkyeyiHRWK7wXCc3zurDfnCeNBs1OF_d42bK2xrndLDGZ/exec";
 
     const camposEmpleado = [
-
-      ["pin", "Pin", "text"],
-
-      ["nombre", "Nombre", "text"],
+  [
+    "pin",
+    "No. de personal",
+    "text"
+  ],
+  [
+    "nombre",
+    "Nombres y apellidos",
+    "text"
+  ],
 
       ["planilla", "Planilla", "select"],
 
@@ -7236,10 +7267,22 @@ function cambiarModoExpediente(
   campoBusqueda.focus();
 }
 
-function prepararNuevoExpediente() {
+async function prepararNuevoExpediente(
+  silenciarMensaje
+) {
   const formulario =
     document.getElementById(
       "formExpedientePersonal"
+    );
+
+  const campoNoPersonal =
+    document.getElementById(
+      "noPersonalExpediente"
+    );
+
+  const campoNombres =
+    document.getElementById(
+      "nombresExpediente"
     );
 
   limpiarFormularioExpediente();
@@ -7248,21 +7291,97 @@ function prepararNuevoExpediente() {
     false
   );
 
-  document.getElementById(
-    "noPersonalExpediente"
-  ).disabled = false;
+  /*
+   * El No. de personal se asigna
+   * automáticamente y no se modifica
+   * manualmente.
+   */
+  campoNoPersonal.disabled =
+    false;
+
+  campoNoPersonal.readOnly =
+    true;
+
+  campoNoPersonal.value =
+    "";
 
   document.getElementById(
     "botonGuardarExpediente"
-  ).hidden = false;
+  ).hidden =
+    false;
 
-  formulario.hidden = false;
+  formulario.hidden =
+    false;
 
-  document.getElementById(
-    "noPersonalExpediente"
-  ).focus();
+  if (!silenciarMensaje) {
+    mensajeExpedientePersonal(
+      "Calculando el siguiente No. de personal...",
+      "info"
+    );
+  }
+
+  try {
+    const respuesta =
+      await jsonp(
+        "obtenerSiguienteNoPersonalExpediente",
+        {}
+      );
+
+    if (
+      !respuesta ||
+      !respuesta.ok ||
+      !respuesta.noPersonal
+    ) {
+      throw new Error(
+        respuesta &&
+        respuesta.mensaje
+          ? respuesta.mensaje
+          : "No fue posible calcular el siguiente No. de personal."
+      );
+    }
+
+    campoNoPersonal.value =
+      String(
+        respuesta.noPersonal
+      ).trim();
+
+    /*
+     * El cursor pasa directamente
+     * al campo Nombres.
+     */
+    if (campoNombres) {
+      campoNombres.focus();
+    }
+
+    if (!silenciarMensaje) {
+      mensajeExpedientePersonal(
+        "No. de personal " +
+        campoNoPersonal.value +
+        " asignado automáticamente.",
+        "ok"
+      );
+    }
+
+    return (
+      campoNoPersonal.value
+    );
+
+  } catch (error) {
+    formulario.hidden =
+      true;
+
+    mensajeExpedientePersonal(
+      error &&
+      error.message
+        ? error.message
+        : "No fue posible asignar el No. de personal.",
+      "error"
+    );
+
+    return "";
+  }
 }
-
+    
 async function buscarExpedientePersonal() {
   if (
     modoExpediente !== "ver" &&
@@ -8073,41 +8192,54 @@ async function guardarExpedientePersonal(
       );
     }
 
-    /*
-     * Limpiar siempre después de guardar.
-     */
-    limpiarFormularioExpediente();
+    if (
+  modoGuardado ===
+  "nuevo"
+) {
+  /*
+   * Después de guardar, limpiar
+   * y asignar inmediatamente el
+   * siguiente No. de personal.
+   */
+  const siguienteNoPersonal =
+    await prepararNuevoExpediente(
+      true
+    );
 
-    if (modoGuardado === "nuevo") {
-      establecerSoloLecturaExpediente(
-        false
-      );
-
-      formulario.hidden = false;
-
-      document.getElementById(
-        "noPersonalExpediente"
-      ).disabled = false;
-
-      document.getElementById(
-        "noPersonalExpediente"
-      ).focus();
-    } else {
-      formulario.hidden = true;
-
-      document.getElementById(
-        "noPersonalBuscarExpediente"
-      ).value = "";
-
-      document.getElementById(
-        "noPersonalBuscarExpediente"
-      ).focus();
-    }
-
+  /*
+   * No sobrescribir un posible mensaje
+   * de error al calcular el siguiente número.
+   */
+  if (siguienteNoPersonal) {
     mensajeExpedientePersonal(
-      respuesta.mensaje,
+      respuesta.mensaje +
+      " Siguiente No. de personal asignado: " +
+      siguienteNoPersonal +
+      ".",
       "ok"
     );
+  }
+
+} else {
+  limpiarFormularioExpediente();
+
+  formulario.hidden =
+    true;
+
+  document.getElementById(
+    "noPersonalBuscarExpediente"
+  ).value =
+    "";
+
+  document.getElementById(
+    "noPersonalBuscarExpediente"
+  ).focus();
+
+  mensajeExpedientePersonal(
+    respuesta.mensaje,
+    "ok"
+  );
+}
   } catch (error) {
     mensajeExpedientePersonal(
       error && error.message
@@ -8835,117 +8967,388 @@ function dibujarFormulario(
     .hidden =
       false;
 }
-    async function cambiarAccion() {
-
-      modo =
-        document
-          .getElementById(
-            "accion"
-          )
-          .value;
-
-      const formulario =
-        document.getElementById(
-          "formEmpleado"
-        );
-
-      const busqueda =
-        document.getElementById(
-          "busqueda"
-        );
-
-      busqueda.hidden =
-        !(
-          modo === "ver" ||
-          modo === "modificar"
-        );
-
-      formulario.hidden = true;
-
-      document
-        .getElementById(
-          "pinBuscar"
-        )
-        .value = "";
-
-      mostrarMensajeEmpleado(
-        "",
-        ""
-      );
-
-      if (modo !== "ingresar") {
-        return;
-      }
-
-      mostrarMensajeEmpleado(
-        "Cargando filtros desde Catalogos...",
-        "info"
-      );
-
-      try {
-
-        /*
-         * Primero carga las listas y después
-         * construye el formulario.
-         */
-
-        await cargarCatalogos();
-
-        dibujarFormulario({});
-
-        document
-          .querySelectorAll(
-            "#formEmpleado input, " +
-            "#formEmpleado select"
-          )
-          .forEach(
-            function (control) {
-
-              control.disabled =
-                false;
-            }
-          );
-
-       document
-  .getElementById(
-    "pin"
-  )
-  .disabled =
-    false;
-
 /*
- * Volver a aplicar las reglas porque
- * el bloque anterior habilita todos
- * los controles del formulario.
+ * Carga los números y nombres registrados
+ * en la hoja Expediente.
  */
-aplicarReglasCamposEmpleado();
+async function cargarExpedientesParaEmpleado() {
+  const selector =
+    document.getElementById(
+      "expedienteEmpleadoIngresar"
+    );
 
-document
-  .getElementById(
-    "btnGuardar"
-  )
-  .hidden =
+  const boton =
+    document.getElementById(
+      "botonBuscarEmpleado"
+    );
+
+  selector.disabled =
+    true;
+
+  boton.disabled =
+    true;
+
+  selector.innerHTML =
+    '<option value="">' +
+    "Cargando expedientes..." +
+    "</option>";
+
+  const respuesta =
+    await jsonp(
+      "listarExpedientesParaEmpleado",
+      {}
+    );
+
+  if (
+    !respuesta ||
+    !respuesta.ok
+  ) {
+    throw new Error(
+      respuesta &&
+      respuesta.mensaje
+        ? respuesta.mensaje
+        : "No fue posible cargar los expedientes."
+    );
+  }
+
+  const expedientes =
+    Array.isArray(
+      respuesta.expedientes
+    )
+      ? respuesta.expedientes
+      : [];
+
+  selector.innerHTML =
+    '<option value="">' +
+    "Seleccionar" +
+    "</option>";
+
+  expedientes.forEach(function (
+    expediente
+  ) {
+    const opcion =
+      document.createElement(
+        "option"
+      );
+
+    opcion.value =
+      String(
+        expediente.noPersonal ||
+        ""
+      ).trim();
+
+    /*
+     * Guardar el nombre completo en
+     * el propio elemento option.
+     */
+    opcion.dataset.nombre =
+      String(
+        expediente.nombreCompleto ||
+        ""
+      ).trim();
+
+    opcion.textContent =
+      opcion.value +
+      (
+        opcion.dataset.nombre
+          ? " | " +
+            opcion.dataset.nombre
+          : ""
+      );
+
+    selector.appendChild(
+      opcion
+    );
+  });
+
+  selector.disabled =
+    expedientes.length ===
+    0;
+
+  boton.disabled =
+    expedientes.length ===
+    0;
+
+  return (
+    expedientes.length
+  );
+}
+    
+    async function cambiarAccion() {
+  modo =
+    document
+      .getElementById(
+        "accion"
+      )
+      .value;
+
+  const formulario =
+    document.getElementById(
+      "formEmpleado"
+    );
+
+  const busqueda =
+    document.getElementById(
+      "busqueda"
+    );
+
+  const bloqueBusquedaMaestro =
+    document.getElementById(
+      "bloqueBusquedaMaestroEmpleado"
+    );
+
+  const bloqueSeleccionExpediente =
+    document.getElementById(
+      "bloqueSeleccionExpedienteEmpleado"
+    );
+
+  const campoBuscar =
+    document.getElementById(
+      "pinBuscar"
+    );
+
+  const selectorExpediente =
+    document.getElementById(
+      "expedienteEmpleadoIngresar"
+    );
+
+  const botonBuscar =
+    document.getElementById(
+      "botonBuscarEmpleado"
+    );
+
+  const esIngreso =
+    modo ===
+    "ingresar";
+
+  const esConsulta =
+    modo === "ver" ||
+    modo === "modificar";
+
+  /*
+   * En Ingresar se muestra el selector
+   * de Expediente.
+   *
+   * En Ver y Modificar se conserva
+   * la búsqueda manual en Maestro.
+   */
+  busqueda.hidden =
+    !(
+      esIngreso ||
+      esConsulta
+    );
+
+  bloqueBusquedaMaestro.hidden =
+    !esConsulta;
+
+  bloqueSeleccionExpediente.hidden =
+    !esIngreso;
+
+  botonBuscar.textContent =
+    esIngreso
+      ? "Cargar"
+      : "Buscar";
+
+  botonBuscar.disabled =
     false;
 
-mostrarMensajeEmpleado(
-  "",
-  ""
-);
+  formulario.hidden =
+    true;
 
-      } catch (error) {
+  campoBuscar.value =
+    "";
 
-        formulario.hidden = true;
+  selectorExpediente.innerHTML =
+    '<option value="">' +
+    "Seleccionar" +
+    "</option>";
 
-        mostrarMensajeEmpleado(
-          "No se pudieron cargar los filtros: " +
-          error.message,
-          "error"
-        );
-      }
-    }
+  selectorExpediente.disabled =
+    true;
 
+  mostrarMensajeEmpleado(
+    "",
+    ""
+  );
+
+  if (!esIngreso) {
+    return;
+  }
+
+  mostrarMensajeEmpleado(
+    "Cargando filtros y expedientes...",
+    "info"
+  );
+
+  try {
+    /*
+     * Cargar los catálogos necesarios
+     * para los demás campos del empleado.
+     */
+    await cargarCatalogos();
+
+    dibujarFormulario(
+      {}
+    );
+
+    document
+      .querySelectorAll(
+        "#formEmpleado input, " +
+        "#formEmpleado select"
+      )
+      .forEach(function (
+        control
+      ) {
+        control.disabled =
+          false;
+      });
+
+    const campoPin =
+      document.getElementById(
+        "pin"
+      );
+
+    const campoNombre =
+      document.getElementById(
+        "nombre"
+      );
+
+    /*
+     * Estos dos valores solamente
+     * podrán venir del expediente.
+     */
+    campoPin.disabled =
+      false;
+
+    campoPin.readOnly =
+      true;
+
+    campoNombre.disabled =
+      false;
+
+    campoNombre.readOnly =
+      true;
+
+    aplicarReglasCamposEmpleado();
+
+    document.getElementById(
+      "btnGuardar"
+    ).hidden =
+      false;
+
+    const cantidad =
+      await cargarExpedientesParaEmpleado();
+
+    mostrarMensajeEmpleado(
+      cantidad
+        ? "Seleccione un expediente y presione Cargar."
+        : "No existen expedientes registrados para ingresar empleados.",
+
+      cantidad
+        ? "info"
+        : "error"
+    );
+
+  } catch (error) {
+    formulario.hidden =
+      true;
+
+    mostrarMensajeEmpleado(
+      "No se pudieron cargar los datos: " +
+      (
+        error &&
+        error.message
+          ? error.message
+          : String(error)
+      ),
+      "error"
+    );
+  }
+}
     async function buscarEmpleado() {
+/*
+ * En modo Ingresar no se busca en Maestro.
+ *
+ * Se toma el empleado seleccionado
+ * desde la hoja Expediente.
+ */
+if (
+  modo ===
+  "ingresar"
+) {
+  const selector =
+    document.getElementById(
+      "expedienteEmpleadoIngresar"
+    );
 
+  const noPersonal =
+    String(
+      selector.value || ""
+    ).trim();
+
+  if (!noPersonal) {
+    mostrarMensajeEmpleado(
+      "Seleccione un expediente.",
+      "error"
+    );
+
+    selector.focus();
+
+    return;
+  }
+
+  const opcion =
+    selector.options[
+      selector.selectedIndex
+    ];
+
+  const nombreCompleto =
+    String(
+      opcion &&
+      opcion.dataset
+        ? opcion.dataset.nombre ||
+          ""
+        : ""
+    ).trim();
+
+  const campoPin =
+    document.getElementById(
+      "pin"
+    );
+
+  const campoNombre =
+    document.getElementById(
+      "nombre"
+    );
+
+  campoPin.value =
+    noPersonal;
+
+  campoNombre.value =
+    nombreCompleto;
+
+  campoPin.readOnly =
+    true;
+
+  campoNombre.readOnly =
+    true;
+
+  mostrarMensajeEmpleado(
+    "No. de personal y nombres y apellidos cargados desde Expediente.",
+    "ok"
+  );
+
+  const campoPlanilla =
+    document.getElementById(
+      "planilla"
+    );
+
+  if (campoPlanilla) {
+    campoPlanilla.focus();
+  }
+
+  return;
+}
       const pin =
         document
           .getElementById(
@@ -9086,7 +9489,7 @@ mostrarMensajeEmpleado(
       ) {
 
         mostrarMensajeEmpleado(
-          "Pin y Nombre son obligatorios.",
+         "No. de personal y Nombres y apellidos son obligatorios."
           "error"
         );
 
