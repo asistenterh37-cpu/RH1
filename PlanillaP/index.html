@@ -1,0 +1,1455 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NEXORH | Sistema de gestión de planillas</title>
+  <style>
+    :root{
+      --bg:#eef4fb;
+      --panel:#ffffff;
+      --panel-2:#f6f9fd;
+      --line:#d9e3f0;
+      --text:#17324d;
+      --muted:#6d829b;
+      --primary:#2456d3;
+      --primary-2:#2d7ef7;
+      --secondary:#19a76d;
+      --dark:#10213a;
+      --danger:#e35b5b;
+      --warning:#f2b94b;
+      --shadow:0 18px 45px rgba(18,43,76,.10);
+      --radius:22px;
+    }
+
+    *{box-sizing:border-box}
+    html,body{margin:0;padding:0;font-family:Segoe UI,Arial,sans-serif;background:var(--bg);color:var(--text)}
+    body{min-height:100vh}
+
+    .app{
+      display:grid;
+      grid-template-columns:290px 1fr;
+      min-height:100vh;
+    }
+
+    /* Sidebar */
+    .sidebar{
+      background:linear-gradient(180deg,#0f2140 0%, #173867 100%);
+      color:#fff;
+      padding:20px 18px;
+      position:sticky;
+      top:0;
+      height:100vh;
+      overflow:auto;
+      box-shadow:8px 0 30px rgba(0,0,0,.08);
+    }
+
+    .brand{
+      display:flex;
+      align-items:center;
+      gap:14px;
+      padding:10px 8px 18px;
+      border-bottom:1px solid rgba(255,255,255,.12);
+      margin-bottom:18px;
+    }
+
+    .brand-badge{
+      width:54px;
+      height:54px;
+      border-radius:16px;
+      background:linear-gradient(135deg,#2b84ff,#1bd09a);
+      display:grid;
+      place-items:center;
+      font-weight:900;
+      font-size:20px;
+      box-shadow:0 10px 30px rgba(0,0,0,.18);
+    }
+
+    .brand h1{
+      margin:0;
+      font-size:24px;
+      line-height:1;
+      letter-spacing:.2px;
+    }
+
+    .brand small{
+      display:block;
+      opacity:.8;
+      margin-top:6px;
+      font-size:12px;
+      line-height:1.3;
+    }
+
+    .sidebar-section-title{
+      font-size:12px;
+      text-transform:uppercase;
+      letter-spacing:1.3px;
+      opacity:.65;
+      margin:18px 8px 10px;
+    }
+
+    .menu{
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+
+    .menu button{
+      width:100%;
+      border:none;
+      text-align:left;
+      padding:14px 16px;
+      border-radius:16px;
+      background:rgba(255,255,255,.08);
+      color:#fff;
+      font-size:14px;
+      font-weight:600;
+      cursor:pointer;
+      transition:.25s ease;
+      border:1px solid rgba(255,255,255,.08);
+    }
+
+    .menu button:hover,
+    .menu button.active{
+      background:linear-gradient(135deg,rgba(43,132,255,.95),rgba(27,208,154,.9));
+      transform:translateY(-1px);
+      box-shadow:0 10px 25px rgba(0,0,0,.15);
+    }
+
+    .menu .danger-btn:hover,
+    .menu .danger-btn.active{
+      background:linear-gradient(135deg,#e26d6d,#d95353);
+    }
+
+    /* Main */
+    .main{
+      padding:24px;
+    }
+
+    .topbar{
+      background:linear-gradient(90deg,#2456d3,#2f71ec);
+      color:#fff;
+      padding:22px 28px;
+      border-radius:24px;
+      box-shadow:var(--shadow);
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:20px;
+      margin-bottom:22px;
+    }
+
+    .topbar h2{
+      margin:0;
+      font-size:34px;
+      line-height:1.05;
+    }
+
+    .topbar p{
+      margin:8px 0 0;
+      opacity:.9;
+    }
+
+    .top-actions{
+      display:flex;
+      gap:12px;
+      flex-wrap:wrap;
+    }
+
+    .chip-btn{
+      border:none;
+      background:rgba(255,255,255,.14);
+      color:#fff;
+      padding:12px 16px;
+      border-radius:14px;
+      font-weight:700;
+      cursor:pointer;
+      border:1px solid rgba(255,255,255,.18);
+    }
+
+    .hero{
+      display:grid;
+      grid-template-columns:1.25fr .95fr;
+      gap:22px;
+      margin-bottom:22px;
+    }
+
+    .card{
+      background:var(--panel);
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+    }
+
+    .hero-card{
+      padding:34px;
+      min-height:300px;
+      display:flex;
+      flex-direction:column;
+      justify-content:center;
+      position:relative;
+      overflow:hidden;
+    }
+
+    .hero-card::before{
+      content:"";
+      position:absolute;
+      width:380px;height:380px;
+      right:-140px;top:-140px;
+      background:radial-gradient(circle, rgba(45,126,247,.13) 0%, rgba(45,126,247,0) 70%);
+      pointer-events:none;
+    }
+
+    .eyebrow{
+      display:inline-flex;
+      align-items:center;
+      gap:10px;
+      background:#edf4ff;
+      color:var(--primary);
+      border:1px solid #cfe0ff;
+      border-radius:999px;
+      padding:8px 14px;
+      font-weight:700;
+      width:max-content;
+      margin-bottom:18px;
+      font-size:13px;
+    }
+
+    .hero-card h3{
+      font-size:44px;
+      line-height:1.05;
+      margin:0 0 10px;
+      color:var(--dark);
+    }
+
+    .hero-card h3 span{
+      color:var(--secondary);
+    }
+
+    .hero-card p{
+      margin:0;
+      color:var(--muted);
+      font-size:17px;
+      max-width:760px;
+      line-height:1.6;
+    }
+
+    .hero-actions{
+      display:flex;
+      gap:14px;
+      flex-wrap:wrap;
+      margin-top:24px;
+    }
+
+    .primary-btn,
+    .ghost-btn{
+      border:none;
+      padding:14px 18px;
+      border-radius:14px;
+      font-weight:800;
+      cursor:pointer;
+      font-size:14px;
+    }
+
+    .primary-btn{
+      background:linear-gradient(135deg,var(--primary),var(--primary-2));
+      color:#fff;
+      box-shadow:0 12px 24px rgba(36,86,211,.25);
+    }
+
+    .ghost-btn{
+      background:#f3f8ff;
+      color:var(--primary);
+      border:1px solid #dbe8fb;
+    }
+
+    .portal-preview{
+      padding:22px;
+      display:flex;
+      flex-direction:column;
+      gap:14px;
+      background:linear-gradient(135deg,#0d1d38,#162f59 55%, #1d3973 100%);
+      color:#fff;
+      overflow:hidden;
+      min-height:300px;
+    }
+
+    .portal-title{
+      text-align:center;
+      margin-top:4px;
+    }
+
+    .portal-title .mini-brand{
+      font-size:18px;
+      font-weight:900;
+      color:#74e0a7;
+    }
+
+    .portal-title h4{
+      margin:6px 0 0;
+      font-size:22px;
+    }
+
+    .portal-title p{
+      margin:6px 0 0;
+      font-size:13px;
+      opacity:.82;
+    }
+
+    .employee-bar{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      background:rgba(34, 214, 143, .08);
+      border:1px solid rgba(34,214,143,.25);
+      padding:12px 14px;
+      border-radius:14px;
+      font-weight:700;
+      font-size:14px;
+    }
+
+    .portal-grid{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:10px;
+    }
+
+    .portal-item{
+      background:linear-gradient(180deg,#314662,#23364e);
+      border:1px solid rgba(255,255,255,.12);
+      padding:18px 14px;
+      text-align:center;
+      border-radius:16px;
+      font-weight:800;
+      font-size:14px;
+      min-height:60px;
+      display:grid;
+      place-items:center;
+      box-shadow:inset 0 -3px 0 rgba(0,0,0,.28);
+    }
+
+    .portal-item.portal-highlight{
+      background:linear-gradient(135deg,#1ea647,#179948);
+    }
+
+    .portal-bottom{
+      background:#10213a;
+      border:1px solid rgba(255,255,255,.12);
+      border-radius:14px;
+      text-align:center;
+      padding:12px 14px;
+      font-weight:700;
+      margin-top:auto;
+    }
+
+    /* metrics */
+    .metrics{
+      display:grid;
+      grid-template-columns:repeat(4,1fr);
+      gap:18px;
+      margin-bottom:22px;
+    }
+
+    .metric{
+      padding:20px;
+      position:relative;
+      overflow:hidden;
+    }
+
+    .metric small{
+      color:var(--muted);
+      display:block;
+      margin-bottom:8px;
+      font-weight:600;
+    }
+
+    .metric strong{
+      font-size:30px;
+      display:block;
+      margin-bottom:6px;
+      color:var(--dark);
+    }
+
+    .metric span{
+      font-size:13px;
+      color:var(--muted);
+    }
+
+    .metric .dot{
+      position:absolute;
+      top:18px;
+      right:18px;
+      width:14px;
+      height:14px;
+      border-radius:50%;
+    }
+
+    .blue{background:#2d7ef7}
+    .green{background:#19a76d}
+    .orange{background:#f2b94b}
+    .red{background:#e35b5b}
+
+    /* content panels */
+    .content-grid{
+      display:grid;
+      grid-template-columns:1.3fr 1fr;
+      gap:22px;
+    }
+
+    .panel{
+      padding:22px;
+    }
+
+    .panel-header{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:12px;
+      margin-bottom:18px;
+    }
+
+    .panel-header h4{
+      margin:0;
+      font-size:20px;
+      color:var(--dark);
+    }
+
+    .panel-header span{
+      font-size:13px;
+      color:var(--muted);
+      font-weight:600;
+    }
+
+    .quick-grid{
+      display:grid;
+      grid-template-columns:repeat(3,1fr);
+      gap:14px;
+    }
+
+    .quick-action{
+      padding:18px 16px;
+      border-radius:18px;
+      border:1px solid var(--line);
+      background:linear-gradient(180deg,#ffffff,#f6fafe);
+      min-height:110px;
+      display:flex;
+      flex-direction:column;
+      justify-content:space-between;
+      transition:.22s;
+    }
+
+    .quick-action:hover{
+      transform:translateY(-2px);
+      box-shadow:0 14px 28px rgba(18,43,76,.08);
+    }
+
+    .quick-action .icon{
+      width:42px;
+      height:42px;
+      border-radius:14px;
+      display:grid;
+      place-items:center;
+      color:#fff;
+      font-size:18px;
+      font-weight:900;
+      margin-bottom:12px;
+    }
+
+    .quick-action b{
+      font-size:15px;
+      color:var(--dark);
+      line-height:1.3;
+    }
+
+    .quick-action em{
+      font-style:normal;
+      font-size:12px;
+      color:var(--muted);
+      margin-top:6px;
+      line-height:1.4;
+    }
+
+    .timeline{
+      display:flex;
+      flex-direction:column;
+      gap:14px;
+    }
+
+    .timeline-item{
+      display:grid;
+      grid-template-columns:14px 1fr;
+      gap:14px;
+      align-items:start;
+    }
+
+    .timeline-item .bullet{
+      width:14px;height:14px;border-radius:50%;margin-top:4px;
+      background:linear-gradient(135deg,var(--primary),var(--secondary));
+    }
+
+    .timeline-item h5{
+      margin:0 0 4px;
+      font-size:15px;
+      color:var(--dark);
+    }
+
+    .timeline-item p{
+      margin:0;
+      color:var(--muted);
+      font-size:13px;
+      line-height:1.5;
+    }
+
+    /* Screens */
+    .screens{
+      margin-top:22px;
+    }
+
+    .screen-tabs{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      margin-bottom:16px;
+    }
+
+    .screen-tab{
+      border:none;
+      background:#eaf1fb;
+      color:var(--primary);
+      padding:12px 16px;
+      border-radius:14px;
+      font-weight:800;
+      cursor:pointer;
+    }
+
+    .screen-tab.active{
+      background:linear-gradient(135deg,var(--primary),var(--primary-2));
+      color:#fff;
+    }
+
+    .screen{
+      display:none;
+      padding:24px;
+      border-radius:22px;
+      background:var(--panel);
+      border:1px solid var(--line);
+      box-shadow:var(--shadow);
+    }
+
+    .screen.active{
+      display:block;
+    }
+
+    .screen h4{
+      margin:0 0 8px;
+      font-size:24px;
+      color:var(--dark);
+    }
+
+    .screen p.lead{
+      margin:0 0 22px;
+      color:var(--muted);
+      line-height:1.6;
+    }
+
+    .mock-form{
+      display:grid;
+      grid-template-columns:repeat(4,1fr);
+      gap:14px;
+    }
+
+    .field{
+      background:var(--panel-2);
+      border:1px solid var(--line);
+      border-radius:16px;
+      padding:12px 14px;
+      min-height:76px;
+    }
+
+    .field label{
+      display:block;
+      font-size:12px;
+      color:var(--muted);
+      margin-bottom:8px;
+      font-weight:700;
+      text-transform:uppercase;
+      letter-spacing:.4px;
+    }
+
+    .field .value{
+      font-size:15px;
+      font-weight:700;
+      color:var(--dark);
+    }
+
+    .wide-2{grid-column:span 2}
+    .wide-3{grid-column:span 3}
+    .wide-4{grid-column:span 4}
+
+    .mock-table{
+      width:100%;
+      border-collapse:collapse;
+      overflow:hidden;
+      border-radius:18px;
+      border:1px solid var(--line);
+      background:#fff;
+    }
+
+    .mock-table th,
+    .mock-table td{
+      padding:14px 12px;
+      text-align:left;
+      border-bottom:1px solid #edf2f8;
+      font-size:14px;
+    }
+
+    .mock-table th{
+      background:#f5f9ff;
+      color:var(--dark);
+      font-size:13px;
+      text-transform:uppercase;
+      letter-spacing:.5px;
+    }
+
+    .badge{
+      display:inline-block;
+      padding:7px 10px;
+      border-radius:999px;
+      font-size:12px;
+      font-weight:800;
+    }
+
+    .badge-success{background:#dff5ea;color:#107a4f}
+    .badge-info{background:#e5f0ff;color:#2456d3}
+    .badge-warning{background:#fff2d8;color:#af7d10}
+    .badge-danger{background:#fde3e3;color:#b53e3e}
+
+    .mini-cards{
+      display:grid;
+      grid-template-columns:repeat(3,1fr);
+      gap:14px;
+      margin-top:18px;
+    }
+
+    .mini-card{
+      padding:18px;
+      background:linear-gradient(180deg,#fff,#f8fbff);
+      border:1px solid var(--line);
+      border-radius:18px;
+    }
+
+    .mini-card h5{
+      margin:0 0 8px;
+      font-size:15px;
+      color:var(--dark);
+    }
+
+    .mini-card p{
+      margin:0;
+      font-size:13px;
+      color:var(--muted);
+      line-height:1.55;
+    }
+
+    .footer-note{
+      margin-top:18px;
+      padding:14px 16px;
+      border-radius:16px;
+      background:#f4f8ff;
+      border:1px dashed #c8d8ef;
+      color:#517090;
+      font-size:13px;
+      line-height:1.6;
+    }
+
+    @media(max-width:1300px){
+      .hero,
+      .content-grid{grid-template-columns:1fr}
+      .metrics{grid-template-columns:repeat(2,1fr)}
+      .quick-grid{grid-template-columns:repeat(2,1fr)}
+      .mock-form{grid-template-columns:repeat(2,1fr)}
+    }
+
+    @media(max-width:980px){
+      .app{grid-template-columns:1fr}
+      .sidebar{
+        position:relative;
+        height:auto;
+        border-radius:0 0 26px 26px;
+      }
+      .main{padding:18px}
+      .topbar h2{font-size:28px}
+    }
+
+    @media(max-width:720px){
+      .metrics,
+      .quick-grid,
+      .mini-cards,
+      .portal-grid,
+      .mock-form{grid-template-columns:1fr}
+      .hero-card h3{font-size:32px}
+      .topbar{padding:20px}
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-badge">NR</div>
+        <div>
+          <h1>NEXORH</h1>
+          <small>Sistema de gestión de planillas<br>con asistencia móvil e IA</small>
+        </div>
+      </div>
+
+      <div class="sidebar-section-title">Accesos principales</div>
+      <div class="menu">
+        <button class="menu-link active" data-screen="inicio">🏠 Inicio ejecutivo</button>
+        <button class="menu-link" data-screen="parametros">⚙️ Parámetros de planilla</button>
+        <button class="menu-link" data-screen="expediente">📁 Expediente de personal</button>
+        <button class="menu-link" data-screen="empleado">👤 Datos empleado</button>
+        <button class="menu-link" data-screen="incidencias">📝 Incidencias</button>
+        <button class="menu-link" data-screen="ordte">⏱️ Ord y TE</button>
+        <button class="menu-link" data-screen="movimientos">💸 Movimientos</button>
+        <button class="menu-link" data-screen="procesar">🧮 Procesar planilla</button>
+        <button class="menu-link" data-screen="decimotercero">🎁 Planilla décimo tercer mes</button>
+        <button class="menu-link" data-screen="decimocuarto">🎉 Planilla décimo cuarto mes</button>
+        <button class="menu-link" data-screen="isr">📊 ISR / Impuesto vecinal</button>
+        <button class="menu-link" data-screen="liquidacion">📌 Cálculo liquidación laboral</button>
+        <button class="menu-link" data-screen="constancias">📄 Constancias</button>
+        <button class="menu-link" data-screen="reportes">📈 Reportes dinámicos</button>
+        <button class="menu-link" data-screen="ia">🤖 Análisis IA</button>
+        <button class="menu-link" data-screen="portal">📱 Portal empleado</button>
+        <button class="danger-btn">🚪 Salir</button>
+      </div>
+    </aside>
+
+    <!-- MAIN -->
+    <main class="main">
+      <section class="topbar">
+        <div>
+          <h2>Sistema de gestión de planillas <br>NEXORH</h2>
+          <p>Con marcas de asistencia vía celular, automatización de procesos e IA incorporada.</p>
+        </div>
+        <div class="top-actions">
+          <button class="chip-btn">📍 Asistencia móvil</button>
+          <button class="chip-btn">🤖 IA incorporada</button>
+          <button class="chip-btn">📄 Portal empleado</button>
+        </div>
+      </section>
+
+      <!-- HERO -->
+      <section class="hero">
+        <div class="card hero-card">
+          <div class="eyebrow">✨ Plataforma integral de RRHH y planillas</div>
+          <h3>NEXORH <span>Payroll Suite</span></h3>
+          <p>
+            Solución ejecutiva para la gestión de planillas, asistencia, incidencias, movimientos,
+            cálculos laborales y autoservicio del colaborador. Diseñada para presentación comercial,
+            con una experiencia moderna, profesional y orientada a automatización.
+          </p>
+          <div class="hero-actions">
+            <button class="primary-btn" onclick="activateScreen('inicio')">Ver dashboard</button>
+            <button class="ghost-btn" onclick="activateScreen('portal')">Explorar portal empleado</button>
+            <button class="ghost-btn" onclick="activateScreen('ia')">Ver módulo de IA</button>
+          </div>
+        </div>
+
+        <div class="card portal-preview">
+          <div class="portal-title">
+            <div class="mini-brand">NexoRH</div>
+            <h4>Portal empleado</h4>
+            <p>Acceso rápido para autoservicio y marcas de asistencia</p>
+          </div>
+
+          <div class="employee-bar">
+            <span>Empleado</span>
+            <span>Carlos Paz · 1216</span>
+          </div>
+
+          <div class="portal-grid">
+            <div class="portal-item">Mi perfil</div>
+            <div class="portal-item portal-highlight">Asistencia</div>
+            <div class="portal-item">Mis recibos de pago</div>
+            <div class="portal-item">Mis vacaciones</div>
+            <div class="portal-item">Permisos e incapacidades</div>
+            <div class="portal-item">Mis solicitudes</div>
+          </div>
+
+          <div class="portal-item" style="width:100%">Notificaciones</div>
+          <div class="portal-bottom">Cambiar No. de personal</div>
+        </div>
+      </section>
+
+      <!-- METRICS -->
+      <section class="metrics">
+        <div class="card metric">
+          <div class="dot blue"></div>
+          <small>Empleados activos</small>
+          <strong>248</strong>
+          <span>Base maestra actualizada</span>
+        </div>
+        <div class="card metric">
+          <div class="dot green"></div>
+          <small>Marcaciones hoy</small>
+          <strong>193</strong>
+          <span>Vía celular con geolocalización</span>
+        </div>
+        <div class="card metric">
+          <div class="dot orange"></div>
+          <small>Procesos automatizados</small>
+          <strong>17</strong>
+          <span>Planillas, reportes, constancias y más</span>
+        </div>
+        <div class="card metric">
+          <div class="dot red"></div>
+          <small>Alertas / incidencias</small>
+          <strong>9</strong>
+          <span>Llegadas tardías, permisos e inconsistencias</span>
+        </div>
+      </section>
+
+      <!-- CONTENT -->
+      <section class="content-grid">
+        <div class="card panel">
+          <div class="panel-header">
+            <h4>Accesos rápidos del sistema</h4>
+            <span>Simulación visual del ecosistema</span>
+          </div>
+
+          <div class="quick-grid">
+            <div class="quick-action">
+              <div class="icon" style="background:linear-gradient(135deg,#2456d3,#4b8cff)">⚙️</div>
+              <b>Parámetros de planilla</b>
+              <em>Feriados, recargos, salario mínimo, antigüedad y configuración general.</em>
+            </div>
+            <div class="quick-action">
+              <div class="icon" style="background:linear-gradient(135deg,#1ea647,#3ad18b)">📱</div>
+              <b>Asistencia vía celular</b>
+              <em>Marcas de entrada y salida con tipo de registro y validación.</em>
+            </div>
+            <div class="quick-action">
+              <div class="icon" style="background:linear-gradient(135deg,#7357ff,#aa74ff)">🤖</div>
+              <b>IA incorporada</b>
+              <em>Análisis de incidencias, interpretación de datos y soporte de gestión.</em>
+            </div>
+            <div class="quick-action">
+              <div class="icon" style="background:linear-gradient(135deg,#0da5d9,#48d6ef)">💸</div>
+              <b>Movimientos</b>
+              <em>Ingresos, deducciones y aplicación automática por planilla.</em>
+            </div>
+            <div class="quick-action">
+              <div class="icon" style="background:linear-gradient(135deg,#f0a32e,#f6c155)">📈</div>
+              <b>Reportes dinámicos</b>
+              <em>Indicadores, comparativos y vistas ejecutivas para presentación.</em>
+            </div>
+            <div class="quick-action">
+              <div class="icon" style="background:linear-gradient(135deg,#df5762,#ff8a93)">📄</div>
+              <b>Portal empleado</b>
+              <em>Autoservicio: perfil, recibos, vacaciones, solicitudes y asistencia.</em>
+            </div>
+          </div>
+        </div>
+
+        <div class="card panel">
+          <div class="panel-header">
+            <h4>Flujo del sistema</h4>
+            <span>Vista de presentación</span>
+          </div>
+
+          <div class="timeline">
+            <div class="timeline-item">
+              <div class="bullet"></div>
+              <div>
+                <h5>1. Configuración inicial</h5>
+                <p>Se definen parámetros de planilla, periodos, recargos, feriados y reglas laborales.</p>
+              </div>
+            </div>
+            <div class="timeline-item">
+              <div class="bullet"></div>
+              <div>
+                <h5>2. Gestión de empleados</h5>
+                <p>Se administra expediente, datos generales, estructura salarial y ubicación organizacional.</p>
+              </div>
+            </div>
+            <div class="timeline-item">
+              <div class="bullet"></div>
+              <div>
+                <h5>3. Marcación de asistencia</h5>
+                <p>Los empleados registran entrada y salida desde el celular mediante portal o enlace seguro.</p>
+              </div>
+            </div>
+            <div class="timeline-item">
+              <div class="bullet"></div>
+              <div>
+                <h5>4. Incidencias y movimientos</h5>
+                <p>Se agregan permisos, incapacidades, ingresos, deducciones, horas extra y novedades.</p>
+              </div>
+            </div>
+            <div class="timeline-item">
+              <div class="bullet"></div>
+              <div>
+                <h5>5. Procesamiento e inteligencia</h5>
+                <p>El sistema consolida información, calcula planillas y presenta análisis asistidos por IA.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SCREENS -->
+      <section class="screens">
+        <div class="screen-tabs">
+          <button class="screen-tab active" data-screen="inicio">Inicio</button>
+          <button class="screen-tab" data-screen="parametros">Parámetros</button>
+          <button class="screen-tab" data-screen="empleado">Datos empleado</button>
+          <button class="screen-tab" data-screen="movimientos">Movimientos</button>
+          <button class="screen-tab" data-screen="procesar">Procesar planilla</button>
+          <button class="screen-tab" data-screen="portal">Portal empleado</button>
+          <button class="screen-tab" data-screen="ia">Análisis IA</button>
+        </div>
+
+        <!-- INICIO -->
+        <div class="screen active" id="inicio">
+          <h4>Dashboard general del sistema</h4>
+          <p class="lead">
+            Vista ejecutiva de la plataforma NEXORH con enfoque en automatización de planillas,
+            marcas de asistencia vía celular y experiencia moderna para demostración comercial.
+          </p>
+
+          <table class="mock-table">
+            <thead>
+              <tr>
+                <th>Módulo</th>
+                <th>Descripción</th>
+                <th>Estado</th>
+                <th>Tipo</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Parámetros de planilla</td>
+                <td>Configuración del año, feriados, recargos, periodos y tablas legales</td>
+                <td><span class="badge badge-success">Activo</span></td>
+                <td>Administrativo</td>
+              </tr>
+              <tr>
+                <td>Asistencia móvil</td>
+                <td>Marcación desde celular de entrada/salida con trazabilidad</td>
+                <td><span class="badge badge-success">Operando</span></td>
+                <td>Portal / Movilidad</td>
+              </tr>
+              <tr>
+                <td>Movimientos</td>
+                <td>Ingresos, deducciones, aplicación por planilla y validación</td>
+                <td><span class="badge badge-info">Disponible</span></td>
+                <td>Operativo</td>
+              </tr>
+              <tr>
+                <td>Procesar planilla</td>
+                <td>Consolidación, cálculo y revisión de resultados</td>
+                <td><span class="badge badge-warning">En revisión</span></td>
+                <td>Core Payroll</td>
+              </tr>
+              <tr>
+                <td>Análisis IA</td>
+                <td>Interpretación de incidencias, alertas y resúmenes ejecutivos</td>
+                <td><span class="badge badge-info">Demo</span></td>
+                <td>Inteligencia</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="mini-cards">
+            <div class="mini-card">
+              <h5>Asistencia vía celular</h5>
+              <p>Permite registrar marcas desde el teléfono del empleado con un flujo simple y amigable para captura de entrada y salida.</p>
+            </div>
+            <div class="mini-card">
+              <h5>Portal empleado</h5>
+              <p>Facilita el autoservicio del colaborador y reduce carga operativa en RRHH mediante accesos directos y consultas frecuentes.</p>
+            </div>
+            <div class="mini-card">
+              <h5>IA incorporada</h5>
+              <p>Apoya la gestión ejecutiva con análisis, alertas, recomendaciones y visualizaciones enfocadas en decisiones rápidas.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- PARAMETROS -->
+        <div class="screen" id="parametros">
+          <h4>Parámetros de planilla</h4>
+          <p class="lead">
+            Pantalla de simulación para configuración de variables base del sistema: año, periodos,
+            feriados, recargos y reglas de cálculo.
+          </p>
+
+          <div class="mock-form">
+            <div class="field"><label>Año</label><div class="value">2026</div></div>
+            <div class="field"><label>Tipo de planilla</label><div class="value">Quincenal / Semanal</div></div>
+            <div class="field"><label>Estatus hora entrada</label><div class="value">08:00 AM</div></div>
+            <div class="field"><label>Estado inicial</label><div class="value">Pendiente</div></div>
+
+            <div class="field"><label>HE diurna</label><div class="value">1.25</div></div>
+            <div class="field"><label>HE nocturna</label><div class="value">1.50</div></div>
+            <div class="field"><label>HE descanso</label><div class="value">2.00</div></div>
+            <div class="field"><label>HE feriado</label><div class="value">2.50</div></div>
+
+            <div class="field wide-2"><label>Salario mínimo</label><div class="value">L 12,500.00</div></div>
+            <div class="field"><label>RAP %</label><div class="value">1.5%</div></div>
+            <div class="field"><label>INFOP %</label><div class="value">1%</div></div>
+
+            <div class="field wide-4"><label>Feriados configurados</label><div class="value">01/01 · 14/04 · 15/09 · 03/10 · 12/10 · 25/12 · ...</div></div>
+          </div>
+
+          <div class="footer-note">
+            <b>Objetivo demo:</b> mostrar que el sistema permite parametrizar toda la lógica de planilla
+            desde una sola interfaz centralizada y preparada para automatización.
+          </div>
+        </div>
+
+        <!-- EXPEDIENTE -->
+        <div class="screen" id="expediente">
+          <h4>Expediente de personal</h4>
+          <p class="lead">Vista resumida del expediente digital del colaborador para fines de presentación.</p>
+
+          <table class="mock-table">
+            <thead>
+              <tr>
+                <th>No.</th>
+                <th>Empleado</th>
+                <th>Departamento</th>
+                <th>Puesto</th>
+                <th>Estatus</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>1216</td>
+                <td>Carlos Paz</td>
+                <td>Operaciones</td>
+                <td>Supervisor</td>
+                <td><span class="badge badge-success">Activo</span></td>
+              </tr>
+              <tr>
+                <td>1054</td>
+                <td>Ana Rivera</td>
+                <td>Finanzas</td>
+                <td>Analista</td>
+                <td><span class="badge badge-success">Activo</span></td>
+              </tr>
+              <tr>
+                <td>1308</td>
+                <td>María López</td>
+                <td>Recursos Humanos</td>
+                <td>Generalista</td>
+                <td><span class="badge badge-info">Vigente</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- EMPLEADO -->
+        <div class="screen" id="empleado">
+          <h4>Datos empleado</h4>
+          <p class="lead">
+            Formulario tipo del registro de empleados con estructura visual similar a la operación real.
+          </p>
+
+          <div class="mock-form">
+            <div class="field"><label>PIN</label><div class="value">1216</div></div>
+            <div class="field"><label>Nombre</label><div class="value">Carlos Paz</div></div>
+            <div class="field"><label>Planilla</label><div class="value">Administrativa</div></div>
+            <div class="field"><label>Sueldo</label><div class="value">L 18,500.00</div></div>
+
+            <div class="field"><label>Tipo contrato</label><div class="value">Tiempo indefinido</div></div>
+            <div class="field"><label>Fecha ingreso</label><div class="value">12/03/2023</div></div>
+            <div class="field"><label>Posición</label><div class="value">Supervisor</div></div>
+            <div class="field"><label>Departamento</label><div class="value">Operaciones</div></div>
+
+            <div class="field"><label>Centro de costo</label><div class="value">CC-01</div></div>
+            <div class="field"><label>Ubicación</label><div class="value">San Pedro Sula</div></div>
+            <div class="field"><label>Jornada</label><div class="value">Diurna</div></div>
+            <div class="field"><label>Estatus</label><div class="value">Activo</div></div>
+
+            <div class="field"><label>Correo</label><div class="value">cpaz@nexorh.demo</div></div>
+            <div class="field"><label>Banco</label><div class="value">BAC</div></div>
+            <div class="field"><label>Tipo cuenta</label><div class="value">Ahorro</div></div>
+            <div class="field"><label>No. de cuenta</label><div class="value">***4578</div></div>
+          </div>
+        </div>
+
+        <!-- INCIDENCIAS -->
+        <div class="screen" id="incidencias">
+          <h4>Incidencias</h4>
+          <p class="lead">Registro visual de incidencias laborales que impactan la planilla y el control diario.</p>
+
+          <table class="mock-table">
+            <thead>
+              <tr>
+                <th>Fecha</th>
+                <th>Empleado</th>
+                <th>Tipo</th>
+                <th>Detalle</th>
+                <th>Estado</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>08/08/2026</td>
+                <td>Carlos Paz</td>
+                <td>Llegada tardía</td>
+                <td>12 minutos de retraso</td>
+                <td><span class="badge badge-warning">Pendiente</span></td>
+              </tr>
+              <tr>
+                <td>08/08/2026</td>
+                <td>Ana Rivera</td>
+                <td>Permiso</td>
+                <td>Salida médica</td>
+                <td><span class="badge badge-info">Revisado</span></td>
+              </tr>
+              <tr>
+                <td>07/08/2026</td>
+                <td>María López</td>
+                <td>Incapacidad</td>
+                <td>Reposo 3 días</td>
+                <td><span class="badge badge-success">Aprobado</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- ORD Y TE -->
+        <div class="screen" id="ordte">
+          <h4>Ord y TE</h4>
+          <p class="lead">Consolidado visual de horas ordinarias y tiempo extra por colaborador.</p>
+
+          <table class="mock-table">
+            <thead>
+              <tr>
+                <th>Empleado</th>
+                <th>Horas ordinarias</th>
+                <th>HE diurna</th>
+                <th>HE nocturna</th>
+                <th>HE feriado</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Carlos Paz</td>
+                <td>80.0</td>
+                <td>4.5</td>
+                <td>1.0</td>
+                <td>0.0</td>
+              </tr>
+              <tr>
+                <td>Ana Rivera</td>
+                <td>80.0</td>
+                <td>2.0</td>
+                <td>0.0</td>
+                <td>0.0</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- MOVIMIENTOS -->
+        <div class="screen" id="movimientos">
+          <h4>Movimientos</h4>
+          <p class="lead">
+            Módulo de ingresos y deducciones con aplicación por rango de planillas.
+          </p>
+
+          <div class="mock-form">
+            <div class="field"><label>Tipo</label><div class="value">Ingresos</div></div>
+            <div class="field"><label>No. personal</label><div class="value">1216</div></div>
+            <div class="field wide-2"><label>Nombre</label><div class="value">Carlos Paz</div></div>
+
+            <div class="field"><label>Concepto</label><div class="value">Bono de productividad</div></div>
+            <div class="field"><label>Desde</label><div class="value">2026-08</div></div>
+            <div class="field"><label>Hasta</label><div class="value">2026-10</div></div>
+            <div class="field"><label>Planillas aplic.</label><div class="value">3</div></div>
+
+            <div class="field"><label>Días</label><div class="value">0</div></div>
+            <div class="field"><label>Valor</label><div class="value">L 3,000.00</div></div>
+            <div class="field"><label>Fecha registro</label><div class="value">08/08/2026</div></div>
+            <div class="field"><label>Usuario</label><div class="value">Admin RRHH</div></div>
+          </div>
+
+          <div class="footer-note">
+            El diseño de demostración comunica que el sistema puede repetir automáticamente el registro
+            por cada planilla comprendida dentro del rango seleccionado.
+          </div>
+        </div>
+
+        <!-- PROCESAR -->
+        <div class="screen" id="procesar">
+          <h4>Procesar planilla</h4>
+          <p class="lead">
+            Vista tipo procesamiento con periodos, estatus y resumen del cálculo.
+          </p>
+
+          <table class="mock-table">
+            <thead>
+              <tr>
+                <th>Código</th>
+                <th>Periodo</th>
+                <th>Fecha desde</th>
+                <th>Fecha hasta</th>
+                <th>Estatus</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Q-2026-15</td>
+                <td>Quincenal 15</td>
+                <td>01/08/2026</td>
+                <td>15/08/2026</td>
+                <td><span class="badge badge-warning">Calculada</span></td>
+              </tr>
+              <tr>
+                <td>S-2026-32</td>
+                <td>Semanal 32</td>
+                <td>03/08/2026</td>
+                <td>09/08/2026</td>
+                <td><span class="badge badge-info">Revisada</span></td>
+              </tr>
+              <tr>
+                <td>Q-2026-16</td>
+                <td>Quincenal 16</td>
+                <td>16/08/2026</td>
+                <td>31/08/2026</td>
+                <td><span class="badge badge-success">Pendiente</span></td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="mini-cards">
+            <div class="mini-card">
+              <h5>Total empleados incluidos</h5>
+              <p>248 colaboradores procesados en la corrida actual.</p>
+            </div>
+            <div class="mini-card">
+              <h5>Horas extra identificadas</h5>
+              <p>126.5 horas clasificadas por tipo de recargo.</p>
+            </div>
+            <div class="mini-card">
+              <h5>Resumen monetario</h5>
+              <p>Neto estimado de planilla: L 1,985,450.00</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- DECIMOS -->
+        <div class="screen" id="decimotercero">
+          <h4>Planilla décimo tercer mes</h4>
+          <p class="lead">Simulación del proceso extraordinario para décimo tercer mes.</p>
+          <div class="footer-note">Se contempla base salarial, antigüedad aplicable, elegibilidad y periodo de cálculo acumulado.</div>
+        </div>
+
+        <div class="screen" id="decimocuarto">
+          <h4>Planilla décimo cuarto mes</h4>
+          <p class="lead">Simulación del cálculo extraordinario del décimo cuarto mes.</p>
+          <div class="footer-note">La demo comunica que el sistema separa procesos especiales y genera planillas dedicadas.</div>
+        </div>
+
+        <!-- ISR -->
+        <div class="screen" id="isr">
+          <h4>ISR / Impuesto vecinal</h4>
+          <p class="lead">Panel demostrativo para estimación, seguimiento y distribución del impuesto.</p>
+
+          <table class="mock-table">
+            <thead>
+              <tr>
+                <th>Empleado</th>
+                <th>Ingreso anual estimado</th>
+                <th>ISR acumulado</th>
+                <th>ISR pendiente</th>
+                <th>Vecinal</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Carlos Paz</td>
+                <td>L 247,000.00</td>
+                <td>L 7,200.00</td>
+                <td>L 2,300.00</td>
+                <td>L 640.00</td>
+              </tr>
+              <tr>
+                <td>Ana Rivera</td>
+                <td>L 298,500.00</td>
+                <td>L 9,100.00</td>
+                <td>L 3,200.00</td>
+                <td>L 720.00</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- LIQUIDACION -->
+        <div class="screen" id="liquidacion">
+          <h4>Cálculo liquidación laboral</h4>
+          <p class="lead">Estimación visual de prestaciones, vacaciones, décimos y otros componentes de salida.</p>
+
+          <div class="mock-form">
+            <div class="field"><label>Empleado</label><div class="value">Carlos Paz</div></div>
+            <div class="field"><label>Fecha ingreso</label><div class="value">12/03/2023</div></div>
+            <div class="field"><label>Fecha salida</label><div class="value">08/08/2026</div></div>
+            <div class="field"><label>Salario mensual</label><div class="value">L 18,500.00</div></div>
+
+            <div class="field"><label>Cesantía</label><div class="value">L 38,420.00</div></div>
+            <div class="field"><label>Vacaciones</label><div class="value">L 7,890.00</div></div>
+            <div class="field"><label>Décimos</label><div class="value">L 9,450.00</div></div>
+            <div class="field"><label>Total estimado</label><div class="value">L 55,760.00</div></div>
+          </div>
+        </div>
+
+        <!-- CONSTANCIAS -->
+        <div class="screen" id="constancias">
+          <h4>Constancias</h4>
+          <p class="lead">Módulo de emisión de constancias laborales, salariales y otros formatos oficiales.</p>
+          <div class="mini-cards">
+            <div class="mini-card"><h5>Constancia laboral</h5><p>Generación rápida para fines de empleo, trámites o referencias.</p></div>
+            <div class="mini-card"><h5>Constancia salarial</h5><p>Emisión con estructura corporativa y datos verificados del colaborador.</p></div>
+            <div class="mini-card"><h5>Plantillas automáticas</h5><p>La demostración puede incluir exportación a PDF o Word en fase real.</p></div>
+          </div>
+        </div>
+
+        <!-- REPORTES -->
+        <div class="screen" id="reportes">
+          <h4>Reportes dinámicos</h4>
+          <p class="lead">Tableros visuales para gerencia y RRHH con enfoque ejecutivo.</p>
+
+          <table class="mock-table">
+            <thead>
+              <tr>
+                <th>Reporte</th>
+                <th>Descripción</th>
+                <th>Periodicidad</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Resumen de planilla</td>
+                <td>Totales por periodo, netos, deducciones y costos</td>
+                <td>Quincenal / Semanal</td>
+              </tr>
+              <tr>
+                <td>Asistencia</td>
+                <td>Marcaciones, tardanzas, ausencias y horas extra</td>
+                <td>Diaria</td>
+              </tr>
+              <tr>
+                <td>Rotación y control</td>
+                <td>Indicadores de personal y seguimiento de incidencias</td>
+                <td>Mensual</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- IA -->
+        <div class="screen" id="ia">
+          <h4>Análisis IA</h4>
+          <p class="lead">
+            Simulación del módulo de inteligencia artificial incorporada al sistema.
+          </p>
+
+          <div class="mini-cards">
+            <div class="mini-card">
+              <h5>Resumen inteligente de incidencias</h5>
+              <p>La IA puede identificar patrones de tardanzas, ausencias o variaciones inusuales en asistencia.</p>
+            </div>
+            <div class="mini-card">
+              <h5>Alertas operativas</h5>
+              <p>Permite destacar colaboradores con inconsistencias de marcación, movimientos atípicos o errores potenciales.</p>
+            </div>
+            <div class="mini-card">
+              <h5>Apoyo a decisión</h5>
+              <p>Genera observaciones ejecutivas, hallazgos resumidos y recomendaciones para RRHH y gerencia.</p>
+            </div>
+          </div>
+
+          <div class="footer-note">
+            <b>Ejemplo de mensaje IA:</b>
+            “Se detecta concentración de llegadas tardías en el turno matutino del área de Operaciones.
+            Se recomienda revisar horarios de ingreso, supervisión inicial y consistencia de marcaciones móviles.”
+          </div>
+        </div>
+
+        <!-- PORTAL -->
+        <div class="screen" id="portal">
+          <h4>Portal empleado</h4>
+          <p class="lead">
+            Simulación ampliada del portal de autoservicio para colaboradores.
+          </p>
+
+          <div class="card portal-preview" style="min-height:auto;">
+            <div class="portal-title">
+              <div class="mini-brand">NexoRH</div>
+              <h4>Portal empleado</h4>
+              <p>Ingrese su No. de personal para continuar</p>
+            </div>
+
+            <div class="employee-bar">
+              <span>Empleado</span>
+              <span>Carlos Paz · 1216</span>
+            </div>
+
+            <div class="portal-grid">
+              <div class="portal-item">Mi perfil</div>
+              <div class="portal-item portal-highlight">Asistencia</div>
+              <div class="portal-item">Mis recibos de pago</div>
+              <div class="portal-item">Mis vacaciones</div>
+              <div class="portal-item">Permisos e incapacidades</div>
+              <div class="portal-item">Mis solicitudes</div>
+            </div>
+
+            <div class="portal-item" style="width:100%">Notificaciones</div>
+            <div class="portal-bottom">Cambiar No. de personal</div>
+          </div>
+
+          <div class="footer-note">
+            Esta vista de presentación comunica el concepto de autoservicio: el empleado puede consultar
+            información personal, asistencia, recibos, vacaciones y solicitudes desde una interfaz moderna.
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const screenTabs = document.querySelectorAll('.screen-tab');
+    const screens = document.querySelectorAll('.screen');
+    const menuLinks = document.querySelectorAll('.menu-link');
+
+    function activateScreen(screenId){
+      screens.forEach(screen => {
+        screen.classList.toggle('active', screen.id === screenId);
+      });
+
+      screenTabs.forEach(tab => {
+        tab.classList.toggle('active', tab.dataset.screen === screenId);
+      });
+
+      menuLinks.forEach(link => {
+        link.classList.toggle('active', link.dataset.screen === screenId);
+      });
+
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    screenTabs.forEach(tab => {
+      tab.addEventListener('click', () => activateScreen(tab.dataset.screen));
+    });
+
+    menuLinks.forEach(link => {
+      link.addEventListener('click', () => activateScreen(link.dataset.screen));
+    });
+  </script>
+</body>
+</html>
