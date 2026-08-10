@@ -1,0 +1,1702 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>PDCA | Análisis y Resolución de Problemas</title>
+
+<style>
+
+:root{
+    --azul:#123b5d;
+    --azul2:#0b5d8f;
+    --celeste:#eaf5fb;
+    --gris:#f3f5f7;
+    --borde:#cbd5df;
+    --texto:#23313d;
+    --verde:#198754;
+    --amarillo:#f3b21a;
+    --rojo:#d94444;
+}
+
+*{
+    box-sizing:border-box;
+}
+
+body{
+    margin:0;
+    font-family:Arial, Helvetica, sans-serif;
+    background:#eef2f5;
+    color:var(--texto);
+}
+
+.contenedor{
+    width:min(1400px,96%);
+    margin:30px auto;
+}
+
+/* ==========================
+   BARRA SUPERIOR
+========================== */
+
+.toolbar{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:15px;
+    margin-bottom:16px;
+}
+
+.toolbar h1{
+    margin:0;
+    font-size:24px;
+    color:var(--azul);
+}
+
+.botones{
+    display:flex;
+    gap:8px;
+}
+
+button{
+    border:0;
+    padding:10px 16px;
+    border-radius:7px;
+    cursor:pointer;
+    font-weight:bold;
+}
+
+.btn-guardar{
+    background:var(--azul2);
+    color:white;
+}
+
+.btn-imprimir{
+    background:var(--verde);
+    color:white;
+}
+
+.btn-limpiar{
+    background:#e6e9ec;
+    color:#333;
+}
+
+
+/* ==========================
+   DOCUMENTO
+========================== */
+
+.pdca{
+    background:white;
+    border:1px solid #aeb9c2;
+    box-shadow:0 8px 30px rgba(0,0,0,.10);
+}
+
+.encabezado{
+    display:grid;
+    grid-template-columns:110px 1fr 180px;
+    align-items:center;
+    border-bottom:2px solid var(--azul);
+}
+
+.logo{
+    text-align:center;
+    font-weight:900;
+    font-size:34px;
+    color:var(--azul2);
+}
+
+.titulo{
+    text-align:center;
+    padding:16px;
+}
+
+.titulo h2{
+    margin:0;
+    font-size:27px;
+}
+
+.titulo p{
+    margin:4px 0 0;
+    color:#6b7782;
+    font-size:13px;
+}
+
+.codigo{
+    text-align:center;
+    font-size:12px;
+    color:#687580;
+}
+
+
+/* ==========================
+   SECCIONES
+========================== */
+
+.seccion{
+    border-bottom:1px solid #9fabb5;
+}
+
+.seccion-titulo{
+    background:var(--azul);
+    color:white;
+    padding:8px 14px;
+    font-size:14px;
+    text-align:center;
+    text-transform:uppercase;
+    font-weight:bold;
+    letter-spacing:.5px;
+}
+
+.contenido{
+    padding:15px;
+}
+
+
+/* ==========================
+   CAMPOS
+========================== */
+
+.grid-problema{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+}
+
+.campo{
+    display:flex;
+    align-items:center;
+    gap:8px;
+}
+
+.campo label{
+    width:90px;
+    font-weight:bold;
+    font-size:13px;
+}
+
+input,
+textarea,
+select{
+    width:100%;
+    border:1px solid var(--borde);
+    border-radius:5px;
+    padding:9px;
+    font-size:13px;
+    background:white;
+}
+
+textarea{
+    min-height:70px;
+    resize:vertical;
+}
+
+input:focus,
+textarea:focus,
+select:focus{
+    outline:2px solid rgba(11,93,143,.18);
+    border-color:var(--azul2);
+}
+
+
+/* ==========================
+   ISHIKAWA
+========================== */
+
+.analisis-grid{
+    display:grid;
+    grid-template-columns:2fr 1fr;
+    gap:15px;
+}
+
+.ishikawa{
+    position:relative;
+    min-height:390px;
+    border:1px solid var(--borde);
+    border-radius:8px;
+    overflow:hidden;
+    background:
+        linear-gradient(#fafcfd,#f8fafb);
+}
+
+.ishikawa svg{
+    position:absolute;
+    inset:0;
+    width:100%;
+    height:100%;
+    pointer-events:none;
+}
+
+.causa{
+    position:absolute;
+    width:27%;
+}
+
+.causa h4{
+    margin:0 0 5px;
+    color:var(--azul);
+    font-size:13px;
+    text-align:center;
+}
+
+.causa textarea{
+    min-height:95px;
+    font-size:12px;
+    background:rgba(255,255,255,.95);
+}
+
+.personas{
+    top:15px;
+    left:4%;
+}
+
+.maquina{
+    top:15px;
+    left:36%;
+}
+
+.gestion{
+    top:15px;
+    right:4%;
+}
+
+.metodo{
+    bottom:13px;
+    left:4%;
+}
+
+.material{
+    bottom:13px;
+    left:36%;
+}
+
+.entorno{
+    bottom:13px;
+    right:4%;
+}
+
+
+/* PROBLEMA CENTRAL */
+
+.problema-final{
+    border:2px solid var(--rojo);
+    background:#fff6f6;
+    border-radius:8px;
+    padding:15px;
+}
+
+.problema-final h3{
+    margin:0 0 10px;
+    color:var(--rojo);
+    font-size:16px;
+}
+
+.problema-final textarea{
+    min-height:240px;
+}
+
+
+/* ==========================
+   5 POR QUÉS
+========================== */
+
+.tabla-wrap{
+    overflow:auto;
+}
+
+table{
+    width:100%;
+    border-collapse:collapse;
+}
+
+th{
+    background:#e5edf3;
+    color:#263844;
+    font-size:12px;
+    padding:8px;
+    border:1px solid var(--borde);
+}
+
+td{
+    border:1px solid var(--borde);
+    padding:5px;
+}
+
+td input,
+td textarea,
+td select{
+    border:0;
+    border-radius:0;
+}
+
+.numero{
+    text-align:center;
+    width:55px;
+    font-weight:bold;
+    color:var(--azul2);
+}
+
+
+/* ==========================
+   PLAN DE ACCIÓN
+========================== */
+
+.acciones th{
+    background:#e7f2f8;
+}
+
+.estado{
+    min-width:130px;
+}
+
+
+/* ==========================
+   VALIDACIÓN
+========================== */
+
+.validacion{
+    display:grid;
+    grid-template-columns:1fr 1fr 1fr;
+    gap:15px;
+}
+
+.box{
+    border:1px solid var(--borde);
+    padding:13px;
+    border-radius:7px;
+    background:#fafbfc;
+}
+
+.box h4{
+    margin:0 0 12px;
+    color:var(--azul);
+}
+
+.check{
+    display:flex;
+    align-items:center;
+    margin:8px 0;
+    font-size:13px;
+}
+
+.check input{
+    width:auto;
+    margin-right:7px;
+}
+
+
+/* ==========================
+   INDICADOR
+========================== */
+
+.indicadores{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:10px;
+    margin-top:12px;
+}
+
+.indicador{
+    border:1px solid var(--borde);
+    padding:10px;
+    border-radius:6px;
+}
+
+.indicador label{
+    display:block;
+    font-size:11px;
+    font-weight:bold;
+    margin-bottom:5px;
+    color:#65717b;
+}
+
+
+/* ==========================
+   PIE
+========================== */
+
+.pie{
+    padding:10px;
+    text-align:center;
+    font-size:11px;
+    color:#7c8790;
+}
+
+
+/* ==========================
+   RESPONSIVE
+========================== */
+
+@media(max-width:900px){
+
+    .analisis-grid{
+        grid-template-columns:1fr;
+    }
+
+    .grid-problema{
+        grid-template-columns:1fr;
+    }
+
+    .validacion{
+        grid-template-columns:1fr;
+    }
+
+    .indicadores{
+        grid-template-columns:1fr 1fr;
+    }
+
+    .ishikawa{
+        min-height:700px;
+    }
+
+    .causa{
+        position:relative;
+        width:auto;
+        top:auto !important;
+        left:auto !important;
+        right:auto !important;
+        bottom:auto !important;
+        margin:12px;
+    }
+
+    .ishikawa svg{
+        display:none;
+    }
+
+}
+
+
+/* ==========================
+   IMPRESIÓN
+========================== */
+
+@media print{
+
+    body{
+        background:white;
+    }
+
+    .toolbar{
+        display:none;
+    }
+
+    .contenedor{
+        width:100%;
+        margin:0;
+    }
+
+    .pdca{
+        box-shadow:none;
+    }
+
+    input,
+    textarea,
+    select{
+        border:none;
+    }
+
+    @page{
+        size:A4 landscape;
+        margin:8mm;
+    }
+
+}
+
+</style>
+</head>
+
+
+<body>
+
+<div class="contenedor">
+
+    <!-- BARRA -->
+
+    <div class="toolbar">
+
+        <h1>PDCA · Resolución de Problemas</h1>
+
+        <div class="botones">
+
+            <button
+                class="btn-guardar"
+                onclick="guardarDatos()">
+                💾 Guardar
+            </button>
+
+            <button
+                class="btn-imprimir"
+                onclick="window.print()">
+                🖨 Imprimir / PDF
+            </button>
+
+            <button
+                class="btn-limpiar"
+                onclick="limpiarFormulario()">
+                Limpiar
+            </button>
+
+        </div>
+
+    </div>
+
+
+    <main class="pdca">
+
+
+        <!-- ===================================
+             ENCABEZADO
+        ==================================== -->
+
+        <header class="encabezado">
+
+            <div class="logo">
+                Σ
+            </div>
+
+            <div class="titulo">
+
+                <h2>
+                    PDCA · Problem Solving
+                </h2>
+
+                <p>
+                    Análisis estructurado y resolución de problemas
+                </p>
+
+            </div>
+
+            <div class="codigo">
+
+                PROCESO DE MEJORA<br>
+
+                <strong>PDCA-001</strong>
+
+            </div>
+
+        </header>
+
+
+
+        <!-- ===================================
+             1. REGISTRO DEL PROBLEMA
+        ==================================== -->
+
+        <section class="seccion">
+
+            <div class="seccion-titulo">
+                1. Registrar el problema
+            </div>
+
+            <div class="contenido">
+
+                <div class="grid-problema">
+
+                    <div class="campo">
+
+                        <label>
+                            ¿Qué?
+                        </label>
+
+                        <input
+                            type="text"
+                            id="que"
+                            placeholder="¿Qué problema está ocurriendo?"
+                        >
+
+                    </div>
+
+
+                    <div class="campo">
+
+                        <label>
+                            ¿Dónde?
+                        </label>
+
+                        <input
+                            type="text"
+                            id="donde"
+                            placeholder="Lugar, proceso o departamento"
+                        >
+
+                    </div>
+
+
+                    <div class="campo">
+
+                        <label>
+                            ¿Cuándo?
+                        </label>
+
+                        <input
+                            type="date"
+                            id="cuando"
+                        >
+
+                    </div>
+
+
+                    <div class="campo">
+
+                        <label>
+                            ¿Quién?
+                        </label>
+
+                        <input
+                            type="text"
+                            id="quien"
+                            placeholder="Persona, puesto o equipo relacionado"
+                        >
+
+                    </div>
+
+                </div>
+
+
+                <div style="margin-top:12px;">
+
+                    <label>
+                        <strong>
+                            Descripción del problema
+                        </strong>
+                    </label>
+
+                    <textarea
+                        id="descripcion"
+                        placeholder="Describa el problema de forma clara, objetiva y medible..."
+                    ></textarea>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+
+        <!-- ===================================
+             2. ANALIZAR PROBLEMA
+        ==================================== -->
+
+        <section class="seccion">
+
+            <div class="seccion-titulo">
+                2. Analizar el problema · Diagrama de Ishikawa
+            </div>
+
+            <div class="contenido">
+
+                <div class="analisis-grid">
+
+
+                    <!-- ISHIKAWA -->
+
+                    <div class="ishikawa">
+
+
+                        <svg
+                            viewBox="0 0 1000 450"
+                            preserveAspectRatio="none"
+                        >
+
+                            <!-- COLUMNA PRINCIPAL -->
+
+                            <line
+                                x1="60"
+                                y1="225"
+                                x2="940"
+                                y2="225"
+                                stroke="#41596a"
+                                stroke-width="5"
+                            />
+
+                            <!-- FLECHA -->
+
+                            <polygon
+                                points="940,210 990,225 940,240"
+                                fill="#41596a"
+                            />
+
+
+                            <!-- RAMAS SUPERIORES -->
+
+                            <line
+                                x1="260"
+                                y1="225"
+                                x2="150"
+                                y2="120"
+                                stroke="#6e808c"
+                                stroke-width="3"
+                            />
+
+                            <line
+                                x1="500"
+                                y1="225"
+                                x2="390"
+                                y2="120"
+                                stroke="#6e808c"
+                                stroke-width="3"
+                            />
+
+                            <line
+                                x1="740"
+                                y1="225"
+                                x2="630"
+                                y2="120"
+                                stroke="#6e808c"
+                                stroke-width="3"
+                            />
+
+
+                            <!-- RAMAS INFERIORES -->
+
+                            <line
+                                x1="260"
+                                y1="225"
+                                x2="150"
+                                y2="330"
+                                stroke="#6e808c"
+                                stroke-width="3"
+                            />
+
+                            <line
+                                x1="500"
+                                y1="225"
+                                x2="390"
+                                y2="330"
+                                stroke="#6e808c"
+                                stroke-width="3"
+                            />
+
+                            <line
+                                x1="740"
+                                y1="225"
+                                x2="630"
+                                y2="330"
+                                stroke="#6e808c"
+                                stroke-width="3"
+                            />
+
+                        </svg>
+
+
+                        <!-- PERSONAS -->
+
+                        <div class="causa personas">
+
+                            <h4>
+                                👥 Personas
+                            </h4>
+
+                            <textarea
+                                id="personas"
+                                placeholder="Capacitación, experiencia, carga de trabajo..."
+                            ></textarea>
+
+                        </div>
+
+
+                        <!-- MÁQUINA -->
+
+                        <div class="causa maquina">
+
+                            <h4>
+                                ⚙️ Máquina / Tecnología
+                            </h4>
+
+                            <textarea
+                                id="maquina"
+                                placeholder="Equipos, sistemas, software, herramientas..."
+                            ></textarea>
+
+                        </div>
+
+
+                        <!-- GESTIÓN -->
+
+                        <div class="causa gestion">
+
+                            <h4>
+                                📊 Gestión
+                            </h4>
+
+                            <textarea
+                                id="gestion"
+                                placeholder="Supervisión, planificación, controles..."
+                            ></textarea>
+
+                        </div>
+
+
+                        <!-- MÉTODO -->
+
+                        <div class="causa metodo">
+
+                            <h4>
+                                📋 Método
+                            </h4>
+
+                            <textarea
+                                id="metodo"
+                                placeholder="Procedimientos, instrucciones, estándares..."
+                            ></textarea>
+
+                        </div>
+
+
+                        <!-- MATERIAL -->
+
+                        <div class="causa material">
+
+                            <h4>
+                                📦 Material / Información
+                            </h4>
+
+                            <textarea
+                                id="material"
+                                placeholder="Datos, documentos, materiales, insumos..."
+                            ></textarea>
+
+                        </div>
+
+
+                        <!-- ENTORNO -->
+
+                        <div class="causa entorno">
+
+                            <h4>
+                                🌐 Entorno
+                            </h4>
+
+                            <textarea
+                                id="entorno"
+                                placeholder="Ambiente, cultura, condiciones externas..."
+                            ></textarea>
+
+                        </div>
+
+                    </div>
+
+
+
+                    <!-- DEFINICIÓN DEL PROBLEMA -->
+
+                    <div class="problema-final">
+
+                        <h3>
+                            🎯 Problema
+                        </h3>
+
+                        <textarea
+                            id="problema"
+                            placeholder="Defina aquí el problema concreto que será analizado..."
+                        ></textarea>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+
+        <!-- ===================================
+             3. IDENTIFICAR CAUSA
+        ==================================== -->
+
+        <section class="seccion">
+
+            <div class="seccion-titulo">
+                3. Identificar la causa raíz · Técnica de los 5 Porqués
+            </div>
+
+            <div class="contenido">
+
+                <div class="tabla-wrap">
+
+                    <table>
+
+                        <thead>
+
+                            <tr>
+
+                                <th style="width:70px;">
+                                    Nivel
+                                </th>
+
+                                <th>
+                                    ¿Por qué ocurre?
+                                </th>
+
+                                <th style="width:25%;">
+                                    Evidencia
+                                </th>
+
+                                <th style="width:100px;">
+                                    ¿Validado?
+                                </th>
+
+                            </tr>
+
+                        </thead>
+
+
+                        <tbody>
+
+                            <tr>
+
+                                <td class="numero">
+                                    1
+                                </td>
+
+                                <td>
+                                    <input
+                                        id="porque1"
+                                        placeholder="Primer por qué..."
+                                    >
+                                </td>
+
+                                <td>
+                                    <input
+                                        id="evidencia1"
+                                        placeholder="Dato o evidencia"
+                                    >
+                                </td>
+
+                                <td>
+                                    <select id="validado1">
+                                        <option>No</option>
+                                        <option>Sí</option>
+                                    </select>
+                                </td>
+
+                            </tr>
+
+
+                            <tr>
+
+                                <td class="numero">
+                                    2
+                                </td>
+
+                                <td>
+                                    <input
+                                        id="porque2"
+                                        placeholder="¿Por qué sucede lo anterior?"
+                                    >
+                                </td>
+
+                                <td>
+                                    <input id="evidencia2">
+                                </td>
+
+                                <td>
+                                    <select id="validado2">
+                                        <option>No</option>
+                                        <option>Sí</option>
+                                    </select>
+                                </td>
+
+                            </tr>
+
+
+                            <tr>
+
+                                <td class="numero">
+                                    3
+                                </td>
+
+                                <td>
+                                    <input
+                                        id="porque3"
+                                        placeholder="Profundice en la causa..."
+                                    >
+                                </td>
+
+                                <td>
+                                    <input id="evidencia3">
+                                </td>
+
+                                <td>
+                                    <select id="validado3">
+                                        <option>No</option>
+                                        <option>Sí</option>
+                                    </select>
+                                </td>
+
+                            </tr>
+
+
+                            <tr>
+
+                                <td class="numero">
+                                    4
+                                </td>
+
+                                <td>
+                                    <input
+                                        id="porque4"
+                                        placeholder="¿Por qué?"
+                                    >
+                                </td>
+
+                                <td>
+                                    <input id="evidencia4">
+                                </td>
+
+                                <td>
+                                    <select id="validado4">
+                                        <option>No</option>
+                                        <option>Sí</option>
+                                    </select>
+                                </td>
+
+                            </tr>
+
+
+                            <tr>
+
+                                <td class="numero">
+                                    5
+                                </td>
+
+                                <td>
+                                    <input
+                                        id="porque5"
+                                        placeholder="Causa raíz probable..."
+                                    >
+                                </td>
+
+                                <td>
+                                    <input id="evidencia5">
+                                </td>
+
+                                <td>
+                                    <select id="validado5">
+                                        <option>No</option>
+                                        <option>Sí</option>
+                                    </select>
+                                </td>
+
+                            </tr>
+
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+
+                <div style="margin-top:12px;">
+
+                    <label>
+                        <strong>
+                            Causa raíz identificada
+                        </strong>
+                    </label>
+
+                    <textarea
+                        id="causaraiz"
+                        placeholder="Describa la causa raíz validada..."
+                    ></textarea>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+
+        <!-- ===================================
+             4. PLAN DE ACCIÓN
+        ==================================== -->
+
+        <section class="seccion">
+
+            <div class="seccion-titulo">
+                4. Plan de acción
+            </div>
+
+            <div class="contenido tabla-wrap">
+
+                <table class="acciones">
+
+                    <thead>
+
+                        <tr>
+
+                            <th>
+                                Acción correctiva
+                            </th>
+
+                            <th>
+                                Responsable
+                            </th>
+
+                            <th style="width:150px;">
+                                Fecha
+                            </th>
+
+                            <th class="estado">
+                                Estado
+                            </th>
+
+                            <th>
+                                Evidencia / Comentario
+                            </th>
+
+                        </tr>
+
+                    </thead>
+
+
+                    <tbody>
+
+                        <tr>
+
+                            <td>
+                                <textarea
+                                    id="accion1"
+                                    placeholder="Acción 1"
+                                ></textarea>
+                            </td>
+
+                            <td>
+                                <input id="responsable1">
+                            </td>
+
+                            <td>
+                                <input
+                                    type="date"
+                                    id="fecha1"
+                                >
+                            </td>
+
+                            <td>
+
+                                <select id="estado1">
+
+                                    <option>
+                                        Pendiente
+                                    </option>
+
+                                    <option>
+                                        En proceso
+                                    </option>
+
+                                    <option>
+                                        Finalizada
+                                    </option>
+
+                                </select>
+
+                            </td>
+
+                            <td>
+                                <textarea id="comentario1"></textarea>
+                            </td>
+
+                        </tr>
+
+
+                        <tr>
+
+                            <td>
+                                <textarea
+                                    id="accion2"
+                                    placeholder="Acción 2"
+                                ></textarea>
+                            </td>
+
+                            <td>
+                                <input id="responsable2">
+                            </td>
+
+                            <td>
+                                <input
+                                    type="date"
+                                    id="fecha2"
+                                >
+                            </td>
+
+                            <td>
+
+                                <select id="estado2">
+
+                                    <option>
+                                        Pendiente
+                                    </option>
+
+                                    <option>
+                                        En proceso
+                                    </option>
+
+                                    <option>
+                                        Finalizada
+                                    </option>
+
+                                </select>
+
+                            </td>
+
+                            <td>
+                                <textarea id="comentario2"></textarea>
+                            </td>
+
+                        </tr>
+
+
+                        <tr>
+
+                            <td>
+                                <textarea
+                                    id="accion3"
+                                    placeholder="Acción 3"
+                                ></textarea>
+                            </td>
+
+                            <td>
+                                <input id="responsable3">
+                            </td>
+
+                            <td>
+                                <input
+                                    type="date"
+                                    id="fecha3"
+                                >
+                            </td>
+
+                            <td>
+
+                                <select id="estado3">
+
+                                    <option>
+                                        Pendiente
+                                    </option>
+
+                                    <option>
+                                        En proceso
+                                    </option>
+
+                                    <option>
+                                        Finalizada
+                                    </option>
+
+                                </select>
+
+                            </td>
+
+                            <td>
+                                <textarea id="comentario3"></textarea>
+                            </td>
+
+                        </tr>
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </section>
+
+
+
+        <!-- ===================================
+             5. VALIDACIÓN
+        ==================================== -->
+
+        <section class="seccion">
+
+            <div class="seccion-titulo">
+                5. Validar resultados
+            </div>
+
+            <div class="contenido">
+
+
+                <div class="validacion">
+
+
+                    <!-- RESULTADO -->
+
+                    <div class="box">
+
+                        <h4>
+                            Resultado
+                        </h4>
+
+                        <label class="check">
+
+                            <input
+                                type="radio"
+                                name="resultado"
+                                value="objetivo"
+                            >
+
+                            Bueno · Objetivo alcanzado
+
+                        </label>
+
+
+                        <label class="check">
+
+                            <input
+                                type="radio"
+                                name="resultado"
+                                value="parcial"
+                            >
+
+                            Parcialmente mejorado
+
+                        </label>
+
+
+                        <label class="check">
+
+                            <input
+                                type="radio"
+                                name="resultado"
+                                value="malo"
+                            >
+
+                            No alcanzado
+
+                        </label>
+
+                    </div>
+
+
+
+                    <!-- ESTANDARIZACIÓN -->
+
+                    <div class="box">
+
+                        <h4>
+                            Estandarización
+                        </h4>
+
+                        <label class="check">
+
+                            <input
+                                type="checkbox"
+                                id="nuevoEstandar"
+                            >
+
+                            Nuevo estándar creado
+
+                        </label>
+
+
+                        <label class="check">
+
+                            <input
+                                type="checkbox"
+                                id="actualizado"
+                            >
+
+                            Procedimiento actualizado
+
+                        </label>
+
+
+                        <label class="check">
+
+                            <input
+                                type="checkbox"
+                                id="capacitado"
+                            >
+
+                            Personal capacitado
+
+                        </label>
+
+                    </div>
+
+
+
+                    <!-- APROBACIÓN -->
+
+                    <div class="box">
+
+                        <h4>
+                            Aprobación
+                        </h4>
+
+                        <input
+                            id="aprobador"
+                            placeholder="Responsable de aprobación"
+                        >
+
+                        <input
+                            id="fechaAprobacion"
+                            type="date"
+                            style="margin-top:8px;"
+                        >
+
+                        <label class="check">
+
+                            <input
+                                type="checkbox"
+                                id="aprobado"
+                            >
+
+                            PDCA aprobado
+
+                        </label>
+
+                    </div>
+
+                </div>
+
+
+
+                <!-- INDICADORES -->
+
+                <div class="indicadores">
+
+                    <div class="indicador">
+
+                        <label>
+                            INDICADOR
+                        </label>
+
+                        <input
+                            id="indicador"
+                            placeholder="Ej.: errores de planilla"
+                        >
+
+                    </div>
+
+
+                    <div class="indicador">
+
+                        <label>
+                            VALOR INICIAL
+                        </label>
+
+                        <input
+                            id="valorInicial"
+                            placeholder="Ej.: 18%"
+                        >
+
+                    </div>
+
+
+                    <div class="indicador">
+
+                        <label>
+                            META
+                        </label>
+
+                        <input
+                            id="meta"
+                            placeholder="Ej.: ≤ 3%"
+                        >
+
+                    </div>
+
+
+                    <div class="indicador">
+
+                        <label>
+                            RESULTADO FINAL
+                        </label>
+
+                        <input
+                            id="resultadoFinal"
+                            placeholder="Ej.: 2.1%"
+                        >
+
+                    </div>
+
+                </div>
+
+
+
+                <div style="margin-top:15px;">
+
+                    <label>
+
+                        <strong>
+                            Conclusión del análisis
+                        </strong>
+
+                    </label>
+
+                    <textarea
+                        id="conclusion"
+                        placeholder="Conclusiones, aprendizaje obtenido y próximos pasos..."
+                    ></textarea>
+
+                </div>
+
+
+            </div>
+
+        </section>
+
+
+        <div class="pie">
+
+            PDCA · Plan · Do · Check · Act |
+            Sistema de mejora continua
+
+        </div>
+
+
+    </main>
+
+</div>
+
+
+
+<script>
+
+/* =====================================
+   GUARDADO LOCAL
+===================================== */
+
+function guardarDatos(){
+
+    const elementos =
+        document.querySelectorAll(
+            "input, textarea, select"
+        );
+
+    let datos = {};
+
+    elementos.forEach(elemento => {
+
+        if(!elemento.id) return;
+
+        if(
+            elemento.type === "checkbox"
+            ||
+            elemento.type === "radio"
+        ){
+
+            datos[elemento.id] =
+                elemento.checked;
+
+        }else{
+
+            datos[elemento.id] =
+                elemento.value;
+
+        }
+
+    });
+
+    localStorage.setItem(
+        "PDCA_ANALISIS",
+        JSON.stringify(datos)
+    );
+
+    alert(
+        "Análisis guardado correctamente."
+    );
+
+}
+
+
+
+/* =====================================
+   RECUPERAR DATOS
+===================================== */
+
+function cargarDatos(){
+
+    const guardado =
+        localStorage.getItem(
+            "PDCA_ANALISIS"
+        );
+
+    if(!guardado) return;
+
+    const datos =
+        JSON.parse(guardado);
+
+    Object.keys(datos).forEach(id => {
+
+        const elemento =
+            document.getElementById(id);
+
+        if(!elemento) return;
+
+        if(
+            elemento.type === "checkbox"
+            ||
+            elemento.type === "radio"
+        ){
+
+            elemento.checked =
+                datos[id];
+
+        }else{
+
+            elemento.value =
+                datos[id];
+
+        }
+
+    });
+
+}
+
+
+
+/* =====================================
+   LIMPIAR
+===================================== */
+
+function limpiarFormulario(){
+
+    if(
+        !confirm(
+            "¿Desea borrar todo el análisis?"
+        )
+    ){
+        return;
+    }
+
+    localStorage.removeItem(
+        "PDCA_ANALISIS"
+    );
+
+    document
+        .querySelectorAll(
+            "input, textarea, select"
+        )
+        .forEach(elemento => {
+
+            if(
+                elemento.type === "checkbox"
+                ||
+                elemento.type === "radio"
+            ){
+
+                elemento.checked = false;
+
+            }else{
+
+                elemento.value = "";
+
+            }
+
+        });
+
+}
+
+
+window.onload = cargarDatos;
+
+</script>
+
+
+</body>
+</html>
