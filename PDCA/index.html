@@ -1830,7 +1830,7 @@ cambia solamente esta constante.
 */
 
 const API_URL =
-'https://script.google.com/macros/s/AKfycbwlB4Qknsr05jyTvVPDg5WgsjRqKsT4e_3bjMERSScZYOCXc5RUOBLoMlVmJvYnGnxp/exec';
+'https://script.google.com/macros/s/AKfycbyarFP1MIHQ1oUQ9EgOqhZQQ3AuCyrvp8KIGIEHEjmSk3aVuVIMKjAoQMtl2SqHtABwqw/exec';
 
 
 let analisisIA =
@@ -1954,14 +1954,416 @@ function mostrarError(
 
 
 /***********************************************************
- COMUNICACIÓN GITHUB -> APPS SCRIPT
- FORM POST + IFRAME + POSTMESSAGE
+ GITHUB -> APPS SCRIPT
+ PUENTE ESTABLE CON GOOGLE.SCRIPT.RUN
 ***********************************************************/
 
-function apiRequest(
+const solicitudes =
+  new Map();
+
+
+let bridgeWindow =
+  null;
+
+
+let bridgeReady =
+  false;
+
+
+let bridgePromise =
+  null;
+
+
+const BRIDGE_TOKEN =
+
+  'pdca_' +
+
+  Date.now() +
+
+  '_' +
+
+  Math.random()
+    .toString(
+      36
+    )
+    .slice(
+      2
+    )
+
+  +
+
+  '_' +
+
+  Math.random()
+    .toString(
+      36
+    )
+    .slice(
+      2
+    );
+
+
+/***********************************************************
+ RECIBIR RESPUESTAS DE APPS SCRIPT
+***********************************************************/
+
+window.addEventListener(
+  'message',
+  event => {
+
+
+    const m =
+      event.data;
+
+
+    if(
+      !m ||
+      !m.source
+    ){
+
+      return;
+
+    }
+
+
+    /*
+     * Apps Script avisa que el puente ya está listo.
+     */
+
+    if(
+      m.source ===
+      'PDCA_BRIDGE'
+
+      &&
+
+      m.type ===
+      'READY'
+
+      &&
+
+      m.token ===
+      BRIDGE_TOKEN
+    ){
+
+      bridgeWindow =
+        event.source;
+
+
+      bridgeReady =
+        true;
+
+
+      document.dispatchEvent(
+        new CustomEvent(
+          'pdcaBridgeReady'
+        )
+      );
+
+
+      return;
+
+    }
+
+
+    /*
+     * Respuesta de una operación concreta.
+     */
+
+    if(
+      m.source !==
+      'PDCA_APPS_SCRIPT'
+
+      ||
+
+      m.token !==
+      BRIDGE_TOKEN
+
+      ||
+
+      !m.requestId
+    ){
+
+      return;
+
+    }
+
+
+    const peticion =
+      solicitudes.get(
+        m.requestId
+      );
+
+
+    if(
+      !peticion
+    ){
+
+      return;
+
+    }
+
+
+    solicitudes.delete(
+      m.requestId
+    );
+
+
+    clearTimeout(
+      peticion.timer
+    );
+
+
+    if(
+      m.ok
+    ){
+
+      peticion.resolve(
+        m.data
+      );
+
+    }else{
+
+      peticion.reject(
+        new Error(
+          m.error ||
+          'Error en Apps Script.'
+        )
+      );
+
+    }
+
+  }
+);
+
+
+/***********************************************************
+ INICIAR PUENTE
+***********************************************************/
+
+function iniciarBridge_(){
+
+  if(
+    bridgeReady &&
+    bridgeWindow
+  ){
+
+    return Promise.resolve(
+      true
+    );
+
+  }
+
+
+  if(
+    bridgePromise
+  ){
+
+    return bridgePromise;
+
+  }
+
+
+  bridgePromise =
+    new Promise(
+      (
+        resolve,
+        reject
+      ) => {
+
+
+        let iframe =
+          document.getElementById(
+            'pdcaAppsScriptBridge'
+          );
+
+
+        /*
+         * Si quedó un iframe viejo,
+         * lo eliminamos y creamos uno nuevo.
+         */
+
+        if(
+          iframe
+        ){
+
+          iframe.remove();
+
+        }
+
+
+        iframe =
+          document.createElement(
+            'iframe'
+          );
+
+
+        iframe.id =
+          'pdcaAppsScriptBridge';
+
+
+        iframe.style.display =
+          'none';
+
+
+        iframe.setAttribute(
+          'aria-hidden',
+          'true'
+        );
+
+
+        const separador =
+
+          API_URL.includes(
+            '?'
+          )
+
+            ? '&'
+
+            : '?';
+
+
+        iframe.src =
+
+          API_URL +
+
+          separador +
+
+          'bridge=1&token=' +
+
+          encodeURIComponent(
+            BRIDGE_TOKEN
+          )
+
+          +
+
+          '&t=' +
+
+          Date.now();
+
+
+        document.body.appendChild(
+          iframe
+        );
+
+
+        const timeout =
+          setTimeout(
+            () => {
+
+
+              document.removeEventListener(
+                'pdcaBridgeReady',
+                listo
+              );
+
+
+              bridgeReady =
+                false;
+
+
+              bridgeWindow =
+                null;
+
+
+              bridgePromise =
+                null;
+
+
+              const actual =
+                document.getElementById(
+                  'pdcaAppsScriptBridge'
+                );
+
+
+              if(
+                actual
+              ){
+
+                actual.remove();
+
+              }
+
+
+              reject(
+                new Error(
+                  'No fue posible iniciar el puente con Apps Script.'
+                )
+              );
+
+            },
+            30000
+          );
+
+
+        function listo(){
+
+          clearTimeout(
+            timeout
+          );
+
+
+          document.removeEventListener(
+            'pdcaBridgeReady',
+            listo
+          );
+
+
+          resolve(
+            true
+          );
+
+        }
+
+
+        document.addEventListener(
+          'pdcaBridgeReady',
+          listo
+        );
+
+
+        if(
+          bridgeReady &&
+          bridgeWindow
+        ){
+
+          listo();
+
+        }
+
+      }
+    );
+
+
+  return bridgePromise;
+
+}
+
+
+/***********************************************************
+ SOLICITUD A APPS SCRIPT
+***********************************************************/
+
+async function apiRequest(
   action,
   payload = {}
 ){
+
+  if(
+    !/^https:\/\/script\.google\.com\/macros\/s\/.+\/exec(?:\?.*)?$/
+      .test(
+        API_URL
+      )
+  ){
+
+    throw new Error(
+      'API_URL debe ser la URL /exec de Apps Script.'
+    );
+
+  }
+
+
+  await iniciarBridge_();
+
 
   return new Promise(
     (
@@ -1972,7 +2374,7 @@ function apiRequest(
 
       const requestId =
 
-        'pdca_' +
+        'req_' +
 
         Date.now() +
 
@@ -1987,104 +2389,6 @@ function apiRequest(
           );
 
 
-      const iframe =
-        document.createElement(
-          'iframe'
-        );
-
-
-      iframe.name =
-        'f_' +
-        requestId;
-
-
-      iframe.style.display =
-        'none';
-
-
-      const form =
-        document.createElement(
-          'form'
-        );
-
-
-      form.method =
-        'POST';
-
-
-      form.action =
-        API_URL;
-
-
-      form.target =
-        iframe.name;
-
-
-      form.style.display =
-        'none';
-
-
-      [
-
-        [
-          'requestId',
-          requestId
-        ],
-
-        [
-          'action',
-          action
-        ],
-
-        [
-          'payload',
-          JSON.stringify(
-            payload
-          )
-        ]
-
-      ]
-      .forEach(
-        (
-          [
-            n,
-            v
-          ]
-        ) => {
-
-
-          const i =
-            document.createElement(
-              'input'
-            );
-
-
-          i.type =
-            'hidden';
-
-
-          i.name =
-            n;
-
-
-          i.value =
-            v;
-
-
-          form.appendChild(
-            i
-          );
-
-        }
-      );
-
-
-      document.body.append(
-        iframe,
-        form
-      );
-
-
       const ms =
 
         action ===
@@ -2097,25 +2401,7 @@ function apiRequest(
 
               ? 120000
 
-              : 45000;
-
-
-      const clean =
-        () => {
-
-
-          window.removeEventListener(
-            'message',
-            handler
-          );
-
-
-          form.remove();
-
-
-          iframe.remove();
-
-        };
+              : 60000;
 
 
       const timer =
@@ -2123,12 +2409,16 @@ function apiRequest(
           () => {
 
 
-            clean();
+            solicitudes.delete(
+              requestId
+            );
 
 
             reject(
               new Error(
-                'Apps Script no respondió. Revise la URL /exec y la implementación como “Cualquiera”.'
+                'Apps Script no respondió a la operación "' +
+                action +
+                '".'
               )
             );
 
@@ -2137,85 +2427,67 @@ function apiRequest(
         );
 
 
-      function handler(
-        ev
-      ){
+      solicitudes.set(
+        requestId,
+        {
 
-        const m =
-          ev.data;
+          resolve:
+            resolve,
 
+          reject:
+            reject,
 
-        if(
-          !m
-
-          ||
-
-          m.source !==
-          'PDCA_APPS_SCRIPT'
-
-          ||
-
-          m.requestId !==
-          requestId
-        ){
-
-          return;
+          timer:
+            timer
 
         }
-
-
-        clearTimeout(
-          timer
-        );
-
-
-        clean();
-
-
-        if(
-          m.ok
-        ){
-
-          resolve(
-            m.data
-          );
-
-        }else{
-
-          reject(
-            new Error(
-              m.error ||
-              'Error en Apps Script.'
-            )
-          );
-
-        }
-
-      }
-
-
-      window.addEventListener(
-        'message',
-        handler
       );
 
 
       try{
 
-        form.submit();
 
-      }catch(e){
+        bridgeWindow.postMessage(
+          {
+
+            source:
+              'PDCA_GITHUB',
+
+            token:
+              BRIDGE_TOKEN,
+
+            requestId:
+              requestId,
+
+            action:
+              action,
+
+            payload:
+              payload ||
+              {}
+
+          },
+          '*'
+        );
+
+
+      }catch(error){
+
 
         clearTimeout(
           timer
         );
 
 
-        clean();
+        solicitudes.delete(
+          requestId
+        );
 
 
         reject(
-          e
+          new Error(
+            'No fue posible comunicarse con Apps Script.'
+          )
         );
 
       }
@@ -2224,8 +2496,6 @@ function apiRequest(
   );
 
 }
-
-
 /***********************************************************
  INICIO
 ***********************************************************/
