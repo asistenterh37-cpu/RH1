@@ -403,9 +403,52 @@ select:focus{
 .analysis-action .btn{
   width:100%;
   min-height:39px;
-  white-space:nowrap
+  white-space:nowrap;
+  transition:
+    transform .2s ease,
+    box-shadow .2s ease,
+    filter .2s ease;
 }
 
+
+/* BOTÓN LISTO PARA ANALIZAR */
+
+#btnAnalizarIA.analisis-listo{
+  transform:translateY(-1px);
+  filter:brightness(1.12);
+
+  box-shadow:
+    0 0 0 3px rgba(117,87,231,.18),
+    0 0 16px rgba(117,87,231,.65),
+    0 0 30px rgba(8,124,184,.35);
+
+  animation:
+    pulsoAnalizarIA 1.5s ease-in-out infinite;
+}
+
+
+@keyframes pulsoAnalizarIA{
+
+  0%,
+  100%{
+
+    box-shadow:
+      0 0 0 3px rgba(117,87,231,.15),
+      0 0 12px rgba(117,87,231,.48),
+      0 0 22px rgba(8,124,184,.25);
+
+  }
+
+  50%{
+
+    box-shadow:
+      0 0 0 5px rgba(117,87,231,.22),
+      0 0 22px rgba(117,87,231,.90),
+      0 0 38px rgba(25,195,211,.48);
+
+  }
+
+}
 .causes{
   display:grid;
   grid-template-columns:repeat(3,1fr);
@@ -1148,6 +1191,7 @@ EVIDENCIA DISPONIBLE
 <div class="analysis-action">
 
 <button
+  id="btnAnalizarIA"
   class="btn btn-ai"
   onclick="analizarIA()"
 >
@@ -1155,7 +1199,6 @@ EVIDENCIA DISPONIBLE
 </button>
 
 </div>
-
 
 </div>
 
@@ -2638,6 +2681,131 @@ async function apiRequest(
   );
 
 }
+
+/***********************************************************
+ ILUMINAR BOTÓN ANALIZAR CUANDO TODO ESTÉ COMPLETO
+***********************************************************/
+
+const CAMPOS_REGISTRAR_PROBLEMA = [
+
+  'empresa',
+
+  'departamento',
+
+  'responsable',
+
+  'que',
+
+  'donde',
+
+  'cuando',
+
+  'quien',
+
+  'descripcion',
+
+  'frecuencia',
+
+  'impacto',
+
+  'evidencia'
+
+];
+
+
+function actualizarEstadoBotonAnalisis(){
+
+  const boton =
+    document.getElementById(
+      'btnAnalizarIA'
+    );
+
+
+  if(
+    !boton
+  ){
+
+    return;
+
+  }
+
+
+  const todoCompleto =
+
+    CAMPOS_REGISTRAR_PROBLEMA
+      .every(
+        id => {
+
+          const campo =
+            document.getElementById(
+              id
+            );
+
+
+          return (
+
+            campo &&
+
+            String(
+              campo.value ||
+              ''
+            )
+            .trim() !== ''
+
+          );
+
+        }
+      );
+
+
+  boton.classList.toggle(
+    'analisis-listo',
+    todoCompleto
+  );
+
+}
+
+
+function activarIluminacionBotonAnalisis(){
+
+  CAMPOS_REGISTRAR_PROBLEMA
+    .forEach(
+      id => {
+
+        const campo =
+          document.getElementById(
+            id
+          );
+
+
+        if(
+          !campo
+        ){
+
+          return;
+
+        }
+
+
+        campo.addEventListener(
+          'input',
+          actualizarEstadoBotonAnalisis
+        );
+
+
+        campo.addEventListener(
+          'change',
+          actualizarEstadoBotonAnalisis
+        );
+
+      }
+    );
+
+
+  actualizarEstadoBotonAnalisis();
+
+}  
+  
 /***********************************************************
  INICIO
 ***********************************************************/
@@ -2652,12 +2820,11 @@ async function iniciar(){
 
   activarProteccionInterfaz();
 
-
   crearFilasPorques();
-
 
   crearFilasAcciones();
 
+  activarIluminacionBotonAnalisis();
 
   try{
 
@@ -3922,9 +4089,12 @@ function limpiar(){
       'Registre un problema y pulse Analizar con IA.';
 
 
-  marcarFlujo(
+    marcarFlujo(
     1
   );
+
+
+  actualizarEstadoBotonAnalisis();
 
 }
 
@@ -4385,12 +4555,14 @@ function mostrarCaso(
         : '4 / 5';
 
 
+    actualizarEstadoBotonAnalisis();
+
+
   toast(
     'Caso cargado.'
   );
 
 }
-
 
 /***********************************************************
  FLUJO
