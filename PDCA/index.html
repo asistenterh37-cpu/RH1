@@ -988,6 +988,8 @@ Análisis Inteligente de Problemas
 <span
   class="pdca-info"
   tabindex="0"
+  onmouseenter="hablarPDCA()"
+  onfocus="hablarPDCA()"
 >
 ( PDCA )
 
@@ -1001,7 +1003,6 @@ cuyo nombre viene de
 </span>
 
 </span>
-
 </h1>
 <p>
 Registre el problema y permita que la Inteligencia Artificial organice hipótesis de causa, desarrolle los 5 Porqués, sugiera una posible causa raíz y construya un plan de acción. La IA propone; el responsable valida utilizando evidencia.
@@ -2269,6 +2270,145 @@ const setValue =
 
   };
 
+/***********************************************************
+ VOZ INFORMATIVA PDCA
+***********************************************************/
+
+let ultimaVozPDCA =
+  0;
+
+
+function hablarPDCA(){
+
+  /*
+   * Evita que la voz se dispare dos veces
+   * inmediatamente por hover + focus.
+   */
+
+  const ahora =
+    Date.now();
+
+
+  if(
+    ahora -
+    ultimaVozPDCA <
+    1200
+  ){
+
+    return;
+
+  }
+
+
+  ultimaVozPDCA =
+    ahora;
+
+
+  if(
+    !(
+      'speechSynthesis'
+      in window
+    )
+  ){
+
+    return;
+
+  }
+
+
+  /*
+   * Detiene una reproducción anterior
+   * antes de iniciar nuevamente.
+   */
+
+  window
+    .speechSynthesis
+    .cancel();
+
+
+  const mensaje =
+    new SpeechSynthesisUtterance(
+      'Soy un asistente inteligente capaz de llevar tu organización a otro nivel.'
+    );
+
+
+  /*
+   * Configuración de la voz.
+   */
+
+  mensaje.lang =
+    'es-HN';
+
+
+  mensaje.rate =
+    0.92;
+
+
+  mensaje.pitch =
+    1;
+
+
+  mensaje.volume =
+    1;
+
+
+  /*
+   * Busca preferentemente una voz
+   * disponible en español.
+   */
+
+  const voces =
+    window
+      .speechSynthesis
+      .getVoices();
+
+
+  const vozEspanol =
+
+    voces.find(
+      voz =>
+        String(
+          voz.lang ||
+          ''
+        )
+        .toLowerCase()
+        .startsWith(
+          'es-hn'
+        )
+    )
+
+    ||
+
+    voces.find(
+      voz =>
+        String(
+          voz.lang ||
+          ''
+        )
+        .toLowerCase()
+        .startsWith(
+          'es'
+        )
+    );
+
+
+  if(
+    vozEspanol
+  ){
+
+    mensaje.voice =
+      vozEspanol;
+
+  }
+
+
+  window
+    .speechSynthesis
+    .speak(
+      mensaje
+    );
+
+}  
 
 /***********************************************************
  TOAST
