@@ -5199,6 +5199,150 @@ function activarProteccionInterfaz(){
 
 })();
 </script>
+
+<!-- =========================================================
+     TRACKING CONTROLCORREOS
+     Registra cuando el usuario llega desde un correo
+========================================================== -->
+
+<script>
+(function () {
+
+  try {
+
+    const params =
+      new URLSearchParams(
+        window.location.search
+      );
+
+    const correoId =
+      params.get('ccid');
+
+    const token =
+      params.get('cct');
+
+
+    /*
+     * Si entró normalmente a PDCA
+     * y no desde un correo rastreado,
+     * no hacemos nada.
+     */
+    if (!correoId || !token) {
+      return;
+    }
+
+
+    /*
+     * URL pública de ControlCorreos
+     */
+    const TRACKING_URL =
+      'https://script.google.com/macros/s/AKfycbx7aAKcvz9f9ZvHQsQ8NS1zhsxc748h7aYJZLrGeh2aMLdkDsjcNKgEAt3bM0E8k7XewQ/exec';
+
+
+    const trackingRequest =
+      TRACKING_URL +
+      '?a=clickbg' +
+      '&id=' +
+      encodeURIComponent(correoId) +
+      '&t=' +
+      encodeURIComponent(token) +
+      '&_=' +
+      Date.now();
+
+
+    /*
+     * Usamos una imagen invisible.
+     *
+     * No necesitamos leer la respuesta.
+     * Solo necesitamos que el navegador
+     * haga la petición a Apps Script.
+     */
+    const tracker =
+      new Image();
+
+    tracker.width = 1;
+    tracker.height = 1;
+
+    tracker.style.position =
+      'absolute';
+
+    tracker.style.left =
+      '-9999px';
+
+    tracker.style.top =
+      '-9999px';
+
+    tracker.src =
+      trackingRequest;
+
+
+    /*
+     * Quitamos los parámetros de tracking
+     * de la barra del navegador.
+     *
+     * Así al actualizar PDCA no aumenta
+     * Clics nuevamente.
+     */
+    setTimeout(
+      function () {
+
+        try {
+
+          const cleanParams =
+            new URLSearchParams(
+              window.location.search
+            );
+
+          cleanParams.delete(
+            'ccid'
+          );
+
+          cleanParams.delete(
+            'cct'
+          );
+
+
+          const query =
+            cleanParams.toString();
+
+
+          const cleanUrl =
+            window.location.pathname +
+            (
+              query
+                ? '?' + query
+                : ''
+            ) +
+            window.location.hash;
+
+
+          window.history.replaceState(
+            {},
+            document.title,
+            cleanUrl
+          );
+
+        } catch (e) {
+          // No impedir funcionamiento de PDCA.
+        }
+
+      },
+      1500
+    );
+
+
+  } catch (error) {
+
+    console.log(
+      'Tracking ControlCorreos no disponible.'
+    );
+  }
+
+})();
+</script>
+
+</body>
+</html>
   
 </body>
 </html>
