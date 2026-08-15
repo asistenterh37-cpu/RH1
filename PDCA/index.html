@@ -5071,5 +5071,134 @@ function activarProteccionInterfaz(){
 
 </script>
 
+<script>
+(function () {
+
+  try {
+
+    const params =
+      new URLSearchParams(
+        window.location.search
+      );
+
+
+    const id =
+      params.get('ccid');
+
+    const token =
+      params.get('cct');
+
+
+    /*
+     * Si el usuario llegó normalmente
+     * a PDCA, no hacemos nada.
+     */
+    if (
+      !id ||
+      !token
+    ) {
+
+      return;
+    }
+
+
+    /*
+     * URL pública de ControlCorreos
+     */
+    const TRACKING_URL =
+      'https://script.google.com/macros/s/AKfycbx7aAKcvz9f9ZvHQsQ8NS1zhsxc748h7aYJZLrGeh2aMLdkDsjcNKgEAt3bM0E8k7XewQ/exec';
+
+
+    const trackingRequest =
+      TRACKING_URL +
+      '?a=clickbg' +
+      '&id=' +
+      encodeURIComponent(id) +
+      '&t=' +
+      encodeURIComponent(token) +
+      '&_=' +
+      Date.now();
+
+
+    /*
+     * IMPORTANTÍSIMO:
+     *
+     * credentials:'omit'
+     *
+     * No enviamos las sesiones Google del usuario.
+     * De esta forma evitamos precisamente el
+     * problema /u/0/, /u/1/, /u/2/, etc.
+     */
+    fetch(
+      trackingRequest,
+      {
+        method: 'GET',
+
+        mode: 'no-cors',
+
+        credentials: 'omit',
+
+        cache: 'no-store',
+
+        keepalive: true
+      }
+    )
+    .catch(
+      function () {
+        /*
+         * El fallo del tracking NUNCA
+         * debe impedir usar PDCA.
+         */
+      }
+    );
+
+
+    /*
+     * Quitamos ccid y cct de la URL
+     * después de registrar.
+     *
+     * Así si actualiza la página,
+     * no aumenta clics otra vez.
+     */
+    params.delete(
+      'ccid'
+    );
+
+    params.delete(
+      'cct'
+    );
+
+
+    const query =
+      params.toString();
+
+
+    const cleanUrl =
+      window.location.pathname +
+      (
+        query
+          ? '?' + query
+          : ''
+      ) +
+      window.location.hash;
+
+
+    window.history.replaceState(
+      {},
+      document.title,
+      cleanUrl
+    );
+
+
+  } catch (error) {
+
+    console.log(
+      'Tracking no disponible.'
+    );
+  }
+
+})();
+</script>
+  
 </body>
 </html>
