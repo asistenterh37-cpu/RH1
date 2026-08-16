@@ -5070,41 +5070,418 @@ function activarProteccionInterfaz(){
 }
 
 </script>
+<!-- =========================================================
+     CONTROL INTELIGENTE DE INGRESOS PDCA
+     ID | Nombre | Entrada | Clics | Salida
+========================================================== -->
 
 <script>
 (function () {
 
-  try {
+  /*
+   * =====================================================
+   * DATOS DE LA VISITA
+   * =====================================================
+   */
 
-    const params =
-      new URLSearchParams(
-        window.location.search
-      );
+  const params =
+    new URLSearchParams(
+      window.location.search
+    );
 
 
-    const id =
-      params.get('ccid');
+  const idCorreo =
+    String(
+      params.get('ccid') ||
+      ''
+    )
+    .trim();
 
-    const token =
-      params.get('cct');
+
+  const tokenCorreo =
+    String(
+      params.get('cct') ||
+      ''
+    )
+    .trim();
+
+
+  const nombreCorreo =
+    String(
+      params.get('ccn') ||
+      params.get('nombre') ||
+      ''
+    )
+    .trim();
+
+
+  const vieneDeCorreo =
+    Boolean(
+      idCorreo
+    );
+
+
+  /*
+   * =====================================================
+   * ID PARA ACCESO DIRECTO
+   * =====================================================
+   *
+   * Si la persona NO viene desde un correo,
+   * creamos un ID automático para ese navegador.
+   *
+   * El mismo navegador conservará el mismo ID.
+   * De esta manera NO se crean filas repetidas
+   * cada vez que vuelve al sistema.
+   */
+
+  function obtenerIdDirecto(){
+
+    let id =
+      String(
+        localStorage.getItem(
+          'pdca_visitante_id'
+        ) ||
+        ''
+      )
+      .trim();
+
+
+    if(
+      id
+    ){
+
+      return id;
+
+    }
+
+
+    let aleatorio =
+      '';
+
+
+    try {
+
+      if(
+        window.crypto &&
+        crypto.randomUUID
+      ){
+
+        aleatorio =
+          crypto
+            .randomUUID()
+            .replace(
+              /-/g,
+              ''
+            )
+            .substring(
+              0,
+              12
+            )
+            .toUpperCase();
+
+      }
+
+    } catch(e) {}
+
+
+    if(
+      !aleatorio
+    ){
+
+      aleatorio =
+        (
+          Date.now()
+            .toString(36) +
+          Math.random()
+            .toString(36)
+            .substring(2,10)
+        )
+        .toUpperCase();
+
+    }
+
+
+    id =
+      'WEB-' +
+      aleatorio;
+
+
+    localStorage.setItem(
+      'pdca_visitante_id',
+      id
+    );
+
+
+    return id;
+
+  }
+
+
+  /*
+   * Si viene de correo:
+   * usamos el ID del correo.
+   *
+   * Si entra directamente:
+   * usamos el ID automático WEB-...
+   */
+
+  const id =
+    vieneDeCorreo
+      ? idCorreo
+      : obtenerIdDirecto();
+
+
+  /*
+   * =====================================================
+   * NOMBRE
+   * =====================================================
+   */
+
+  if(
+    nombreCorreo
+  ){
+
+    sessionStorage.setItem(
+      'pdca_visitante_nombre',
+      nombreCorreo
+    );
+
+  }
+
+
+  function obtenerNombre(){
+
+    const guardado =
+      String(
+        sessionStorage.getItem(
+          'pdca_visitante_nombre'
+        ) ||
+        ''
+      )
+      .trim();
+
+
+    const responsable =
+      String(
+        document.getElementById(
+          'responsable'
+        )?.value ||
+        ''
+      )
+      .trim();
 
 
     /*
-     * Si el usuario llegó normalmente
-     * a PDCA, no hacemos nada.
+     * PRIORIDAD:
+     *
+     * 1. Nombre recibido desde el correo.
+     * 2. Nombre ya guardado en la sesión.
+     * 3. Responsable escrito en PDCA.
+     * 4. Nombre automático según origen.
      */
-    if (
-      !id ||
-      !token
-    ) {
 
-      return;
+    return (
+      nombreCorreo ||
+      guardado ||
+      responsable ||
+      (
+        vieneDeCorreo
+          ? 'Enlace de correo'
+          : 'Acceso directo'
+      )
+    );
+
+  }
+
+
+  /*
+   * =====================================================
+   * FECHA/HORA DE ESTA ENTRADA
+   * =====================================================
+   */
+
+  const entradaMs =
+    Math.floor(
+      Date.now() / 1000
+    ) * 1000;
+
+
+  let clicks =
+    0;
+
+
+  let salidaRegistrada =
+    false;
+
+
+  let temporizadorClicks =
+    null;
+
+
+  /*
+   * =====================================================
+   * REGISTRAR EN GOOGLE SHEETS
+   * =====================================================
+   */
+
+  function registrarActividad(
+    tipo,
+    usarBeacon
+  ){
+
+    const payload = {
+
+      id:
+        id,
+
+      nombre:
+        obtenerNombre(),
+
+      tipo:
+        tipo,
+
+      clicks:
+        clicks,
+
+      entradaMs:
+        entradaMs,
+
+      salidaMs:
+        tipo === 'salida'
+          ? Date.now()
+          : 0
+
+    };
+
+
+    /*
+     * SALIDA:
+     *
+     * utilizamos sendBeacon porque la página
+     * puede estar cerrándose.
+     */
+
+    if(
+      usarBeacon &&
+      navigator.sendBeacon
+    ){
+
+      try {
+
+        const datos =
+          new URLSearchParams();
+
+
+        datos.set(
+          'requestId',
+          'registro_' +
+          Date.now() +
+          '_' +
+          Math.random()
+            .toString(36)
+            .substring(2)
+        );
+
+
+        datos.set(
+          'action',
+          'registrarActividadWeb'
+        );
+
+
+        datos.set(
+          'payload',
+          JSON.stringify(
+            payload
+          )
+        );
+
+
+        const blob =
+          new Blob(
+            [
+              datos.toString()
+            ],
+            {
+              type:
+                'application/x-www-form-urlencoded;charset=UTF-8'
+            }
+          );
+
+
+        const enviado =
+          navigator.sendBeacon(
+            API_URL,
+            blob
+          );
+
+
+        if(
+          enviado
+        ){
+
+          return;
+
+        }
+
+      } catch(e) {}
+
     }
 
 
     /*
-     * URL pública de ControlCorreos
+     * ENTRADA Y CLICS:
+     *
+     * Usamos el MISMO puente de Apps Script
+     * que ya utiliza todo tu sistema PDCA.
+     *
+     * Esto es más confiable que mandar un
+     * fetch externo paralelo.
      */
+
+    apiRequest(
+      'registrarActividadWeb',
+      payload
+    )
+    .catch(
+      function(error){
+
+        console.log(
+          'No se pudo registrar actividad:',
+          error
+        );
+
+      }
+    );
+
+  }
+
+
+  /*
+   * =====================================================
+   * REGISTRAR ENTRADA INMEDIATAMENTE
+   * =====================================================
+   */
+
+  registrarActividad(
+    'entrada',
+    false
+  );
+
+
+  /*
+   * =====================================================
+   * TRACKING DEL CORREO ORIGINAL
+   * =====================================================
+   *
+   * Conservamos ControlCorreos.
+   */
+
+  if(
+    vieneDeCorreo &&
+    tokenCorreo
+  ){
+
     const TRACKING_URL =
       'https://script.google.com/macros/s/AKfycbx7aAKcvz9f9ZvHQsQ8NS1zhsxc748h7aYJZLrGeh2aMLdkDsjcNKgEAt3bM0E8k7XewQ/exec';
 
@@ -5113,59 +5490,215 @@ function activarProteccionInterfaz(){
       TRACKING_URL +
       '?a=clickbg' +
       '&id=' +
-      encodeURIComponent(id) +
+      encodeURIComponent(
+        idCorreo
+      ) +
       '&t=' +
-      encodeURIComponent(token) +
+      encodeURIComponent(
+        tokenCorreo
+      ) +
       '&_=' +
       Date.now();
 
 
-    /*
-     * IMPORTANTÍSIMO:
-     *
-     * credentials:'omit'
-     *
-     * No enviamos las sesiones Google del usuario.
-     * De esta forma evitamos precisamente el
-     * problema /u/0/, /u/1/, /u/2/, etc.
-     */
     fetch(
       trackingRequest,
       {
-        method: 'GET',
+        method:
+          'GET',
 
-        mode: 'no-cors',
+        mode:
+          'no-cors',
 
-        credentials: 'omit',
+        credentials:
+          'omit',
 
-        cache: 'no-store',
+        cache:
+          'no-store',
 
-        keepalive: true
+        keepalive:
+          true
       }
     )
     .catch(
-      function () {
-        /*
-         * El fallo del tracking NUNCA
-         * debe impedir usar PDCA.
-         */
-      }
+      function(){}
+    );
+
+  }
+
+
+  /*
+   * =====================================================
+   * CONTAR CLICS DENTRO DEL PDCA
+   * =====================================================
+   */
+
+  document.addEventListener(
+    'click',
+    function(){
+
+      clicks++;
+
+
+      clearTimeout(
+        temporizadorClicks
+      );
+
+
+      temporizadorClicks =
+        setTimeout(
+          function(){
+
+            registrarActividad(
+              'click',
+              false
+            );
+
+          },
+          500
+        );
+
+    },
+    true
+  );
+
+
+  /*
+   * =====================================================
+   * SI ESCRIBEN RESPONSABLE, ACTUALIZAR NOMBRE
+   * =====================================================
+   *
+   * Esto es especialmente útil cuando la persona
+   * entró directamente al sistema.
+   */
+
+  const campoResponsable =
+    document.getElementById(
+      'responsable'
     );
 
 
-    /*
-     * Quitamos ccid y cct de la URL
-     * después de registrar.
-     *
-     * Así si actualiza la página,
-     * no aumenta clics otra vez.
-     */
+  if(
+    campoResponsable
+  ){
+
+    campoResponsable.addEventListener(
+      'change',
+      function(){
+
+        const nombre =
+          String(
+            campoResponsable.value ||
+            ''
+          )
+          .trim();
+
+
+        if(
+          nombre
+        ){
+
+          sessionStorage.setItem(
+            'pdca_visitante_nombre',
+            nombre
+          );
+
+
+          registrarActividad(
+            'click',
+            false
+          );
+
+        }
+
+      }
+    );
+
+  }
+
+
+  /*
+   * =====================================================
+   * REGISTRAR SALIDA
+   * =====================================================
+   */
+
+  function registrarSalida(){
+
+    if(
+      salidaRegistrada
+    ){
+
+      return;
+
+    }
+
+
+    salidaRegistrada =
+      true;
+
+
+    if(
+      temporizadorClicks
+    ){
+
+      clearTimeout(
+        temporizadorClicks
+      );
+
+    }
+
+
+    registrarActividad(
+      'salida',
+      true
+    );
+
+  }
+
+
+  window.addEventListener(
+    'pagehide',
+    registrarSalida
+  );
+
+
+  window.addEventListener(
+    'beforeunload',
+    registrarSalida
+  );
+
+
+  /*
+   * =====================================================
+   * LIMPIAR LOS DATOS DEL CORREO DE LA URL
+   * =====================================================
+   *
+   * Esto se hace AL FINAL, después de haber capturado
+   * y registrado ID, nombre y token.
+   */
+
+  if(
+    vieneDeCorreo
+  ){
+
     params.delete(
       'ccid'
     );
 
+
     params.delete(
       'cct'
+    );
+
+
+    params.delete(
+      'ccn'
+    );
+
+
+    params.delete(
+      'nombre'
     );
 
 
@@ -5189,628 +5722,9 @@ function activarProteccionInterfaz(){
       cleanUrl
     );
 
-
-  } catch (error) {
-
-    console.log(
-      'Tracking no disponible.'
-    );
   }
 
 })();
 </script>
-
-<!-- =========================================================
-     TRACKING CONTROLCORREOS
-     Registra cuando el usuario llega desde un correo
-========================================================== -->
-
-<!-- =========================================================
-     CONTROL DE INGRESOS PDCA
-     ID | Nombre | Entrada | Clics | Salida
-========================================================== -->
-
-<script>
-(function () {
-
-  try {
-
-    const params =
-      new URLSearchParams(
-        window.location.search
-      );
-
-
-    /*
-     * ID enviado desde ControlCorreos.
-     */
-    const idUrl =
-      String(
-        params.get('ccid') ||
-        ''
-      )
-      .trim();
-
-
-    /*
-     * Token actual de ControlCorreos.
-     */
-    const token =
-      String(
-        params.get('cct') ||
-        ''
-      )
-      .trim();
-
-
-    /*
-     * Nombre opcional.
-     *
-     * Si el enlace enviado por ControlCorreos
-     * incluye:
-     *
-     * &ccn=Nombre del cliente
-     *
-     * se guardará automáticamente.
-     *
-     * El HTML actual solamente recibe
-     * ccid y cct, por eso no inventamos
-     * ningún nombre.
-     */
-    const nombreUrl =
-      String(
-        params.get('ccn') ||
-        ''
-      )
-      .trim();
-
-
-    /*
-     * Detectar si la página fue recargada.
-     */
-    const navegacion =
-      performance
-        .getEntriesByType(
-          'navigation'
-        )[0];
-
-
-    const esRecarga =
-      navegacion &&
-      (
-        navegacion.type === 'reload' ||
-        navegacion.type === 'back_forward'
-      );
-
-
-    /*
-     * Si entramos desde un correo,
-     * almacenamos el ID en esta pestaña.
-     */
-    if(
-      idUrl
-    ){
-
-      sessionStorage.setItem(
-        'pdca_ingreso_id',
-        idUrl
-      );
-
-
-      if(
-        nombreUrl
-      ){
-
-        sessionStorage.setItem(
-          'pdca_ingreso_nombre',
-          nombreUrl
-        );
-
-      }
-
-    }
-
-
-    /*
-     * ID que utilizaremos.
-     *
-     * Si viene en la URL:
-     * usamos ese.
-     *
-     * Si solamente recargó:
-     * recuperamos el existente.
-     */
-    const id =
-      idUrl ||
-      (
-        esRecarga
-          ? String(
-              sessionStorage.getItem(
-                'pdca_ingreso_id'
-              ) ||
-              ''
-            )
-          : ''
-      );
-
-
-    /*
-     * Si la persona entró directamente
-     * al PDCA sin provenir de un correo
-     * identificado, no registramos nada.
-     */
-    if(
-      !id
-    ){
-
-      return;
-
-    }
-
-
-    /*
-     * Fecha/hora de esta entrada.
-     *
-     * Se redondea a segundos para que
-     * Apps Script pueda reconocer
-     * correctamente la misma sesión.
-     */
-    const entradaMs =
-      Math.floor(
-        Date.now() / 1000
-      ) * 1000;
-
-
-    /*
-     * Cantidad de clics realizados
-     * durante esta visita.
-     */
-    let clicks =
-      0;
-
-
-    sessionStorage.setItem(
-      'pdca_ingreso_entrada',
-      String(
-        entradaMs
-      )
-    );
-
-
-    sessionStorage.setItem(
-      'pdca_ingreso_clicks',
-      '0'
-    );
-
-
-    /*
-     * Devuelve el nombre disponible.
-     *
-     * No utilizamos Responsable del análisis
-     * porque no necesariamente corresponde
-     * con la persona que recibió el correo.
-     */
-    function obtenerNombre(){
-
-      return String(
-        nombreUrl ||
-        sessionStorage.getItem(
-          'pdca_ingreso_nombre'
-        ) ||
-        ''
-      )
-      .trim();
-
-    }
-
-
-    /*
-     * =====================================================
-     * ENVIAR DATOS A APPS SCRIPT
-     * =====================================================
-     */
-    function registrarActividad(
-      tipo,
-      usarBeacon
-    ){
-
-      const payload = {
-
-        id:
-          id,
-
-        nombre:
-          obtenerNombre(),
-
-        tipo:
-          tipo,
-
-        clicks:
-          clicks,
-
-        entradaMs:
-          entradaMs,
-
-        salidaMs:
-          tipo === 'salida'
-            ? Date.now()
-            : 0
-
-      };
-
-
-      const datos =
-        new URLSearchParams();
-
-
-      datos.set(
-        'requestId',
-        'registro_' +
-        Date.now() +
-        '_' +
-        Math.random()
-          .toString(36)
-          .slice(2)
-      );
-
-
-      datos.set(
-        'action',
-        'registrarActividadWeb'
-      );
-
-
-      datos.set(
-        'payload',
-        JSON.stringify(
-          payload
-        )
-      );
-
-
-      /*
-       * Para registrar la salida usamos
-       * sendBeacon porque está diseñado
-       * para funcionar cuando la página
-       * se está cerrando.
-       */
-      if(
-        usarBeacon &&
-        navigator.sendBeacon
-      ){
-
-        try {
-
-          const blob =
-            new Blob(
-              [
-                datos.toString()
-              ],
-              {
-                type:
-                  'application/x-www-form-urlencoded;charset=UTF-8'
-              }
-            );
-
-
-          const enviado =
-            navigator.sendBeacon(
-              API_URL,
-              blob
-            );
-
-
-          if(
-            enviado
-          ){
-
-            return;
-
-          }
-
-        } catch(e) {}
-
-      }
-
-
-      /*
-       * Registro normal mediante POST.
-       */
-      fetch(
-        API_URL,
-        {
-          method:
-            'POST',
-
-          mode:
-            'no-cors',
-
-          credentials:
-            'omit',
-
-          cache:
-            'no-store',
-
-          keepalive:
-            true,
-
-          headers: {
-            'Content-Type':
-              'application/x-www-form-urlencoded;charset=UTF-8'
-          },
-
-          body:
-            datos.toString()
-        }
-      )
-      .catch(
-        function () {
-
-          /*
-           * Un fallo del registro nunca
-           * debe impedir utilizar el PDCA.
-           */
-
-        }
-      );
-
-    }
-
-
-    /*
-     * =====================================================
-     * MANTENER TRACKING DE CONTROLCORREOS
-     * =====================================================
-     *
-     * Esto conserva el funcionamiento
-     * que ya tienes para registrar el
-     * clic procedente del correo.
-     */
-    if(
-      idUrl &&
-      token
-    ){
-
-      const TRACKING_URL =
-        'https://script.google.com/macros/s/AKfycbx7aAKcvz9f9ZvHQsQ8NS1zhsxc748h7aYJZLrGeh2aMLdkDsjcNKgEAt3bM0E8k7XewQ/exec';
-
-
-      const trackingRequest =
-        TRACKING_URL +
-        '?a=clickbg' +
-        '&id=' +
-        encodeURIComponent(
-          idUrl
-        ) +
-        '&t=' +
-        encodeURIComponent(
-          token
-        ) +
-        '&_=' +
-        Date.now();
-
-
-      fetch(
-        trackingRequest,
-        {
-          method:
-            'GET',
-
-          mode:
-            'no-cors',
-
-          credentials:
-            'omit',
-
-          cache:
-            'no-store',
-
-          keepalive:
-            true
-        }
-      )
-      .catch(
-        function () {}
-      );
-
-    }
-
-
-    /*
-     * =====================================================
-     * REGISTRAR FECHA Y HORA DE ENTRADA
-     * =====================================================
-     */
-    registrarActividad(
-      'entrada',
-      false
-    );
-
-
-    /*
-     * =====================================================
-     * REGISTRAR CLICS
-     * =====================================================
-     */
-    let temporizadorClicks =
-      null;
-
-
-    document.addEventListener(
-      'click',
-      function () {
-
-
-        clicks++;
-
-
-        sessionStorage.setItem(
-          'pdca_ingreso_clicks',
-          String(
-            clicks
-          )
-        );
-
-
-        /*
-         * No hacemos una llamada al servidor
-         * por cada clic instantáneamente.
-         *
-         * Esperamos 600 ms y enviamos
-         * el total actualizado.
-         */
-        clearTimeout(
-          temporizadorClicks
-        );
-
-
-        temporizadorClicks =
-          setTimeout(
-            function () {
-
-              registrarActividad(
-                'click',
-                false
-              );
-
-            },
-            600
-          );
-
-      },
-      true
-    );
-
-
-    /*
-     * =====================================================
-     * REGISTRAR FECHA Y HORA DE SALIDA
-     * =====================================================
-     */
-    let salidaRegistrada =
-      false;
-
-
-    function registrarSalida(){
-
-
-      if(
-        salidaRegistrada
-      ){
-
-        return;
-
-      }
-
-
-      salidaRegistrada =
-        true;
-
-
-      if(
-        temporizadorClicks
-      ){
-
-        clearTimeout(
-          temporizadorClicks
-        );
-
-      }
-
-
-      registrarActividad(
-        'salida',
-        true
-      );
-
-    }
-
-
-    /*
-     * pagehide cubre:
-     *
-     * cerrar pestaña
-     * recargar
-     * navegar hacia otra página
-     * botón atrás
-     */
-    window.addEventListener(
-      'pagehide',
-      registrarSalida
-    );
-
-
-    /*
-     * Respaldo adicional.
-     */
-    window.addEventListener(
-      'beforeunload',
-      registrarSalida
-    );
-
-
-    /*
-     * =====================================================
-     * LIMPIAR PARÁMETROS DE LA URL
-     * =====================================================
-     *
-     * Esto evita que actualizar la página
-     * vuelva a generar otro clic en
-     * ControlCorreos.
-     */
-    if(
-      idUrl
-    ){
-
-      params.delete(
-        'ccid'
-      );
-
-
-      params.delete(
-        'cct'
-      );
-
-
-      params.delete(
-        'ccn'
-      );
-
-
-      const query =
-        params.toString();
-
-
-      const cleanUrl =
-        window.location.pathname +
-        (
-          query
-            ? '?' + query
-            : ''
-        ) +
-        window.location.hash;
-
-
-      window.history.replaceState(
-        {},
-        document.title,
-        cleanUrl
-      );
-
-    }
-
-
-  } catch(error) {
-
-    console.log(
-      'Registro de ingresos no disponible.',
-      error
-    );
-
-  }
-
-})();
-</script>
-
 </body>
 </html>
