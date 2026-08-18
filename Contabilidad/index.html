@@ -1,1 +1,5824 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <base target="_top">
 
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>Sistema Contable</title>
+
+  <style>
+    :root {
+      --sidebar: #0f172a;
+      --sidebar2: #1e293b;
+      --primary: #2563eb;
+      --primary2: #1d4ed8;
+      --success: #059669;
+      --warning: #d97706;
+      --danger: #dc2626;
+      --purple: #7c3aed;
+
+      --bg: #f6f8fc;
+      --card: #ffffff;
+      --border: #e2e8f0;
+
+      --text: #172033;
+      --muted: #64748b;
+
+      --shadow: 0 3px 12px rgba(15, 23, 42, 0.05);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Inter, Arial, Helvetica, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    button,
+    input,
+    select,
+    textarea {
+      font-family: inherit;
+    }
+
+    button {
+      cursor: pointer;
+    }
+
+    /* ======================================================
+       ESTRUCTURA
+    ====================================================== */
+
+    .app {
+      display: flex;
+      min-height: 100vh;
+    }
+
+    .sidebar {
+      width: 250px;
+      position: fixed;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      background: var(--sidebar);
+      color: white;
+      overflow-y: auto;
+      z-index: 1000;
+    }
+
+    .brand {
+      padding: 24px 20px 20px;
+      border-bottom: 1px solid rgba(255,255,255,.08);
+    }
+
+    .brand-title {
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: -.5px;
+    }
+
+    .brand-title span {
+      color: #38bdf8;
+    }
+
+    .brand-subtitle {
+      font-size: 11px;
+      color: #94a3b8;
+      margin-top: 4px;
+    }
+
+    .menu {
+      padding: 15px 10px 30px;
+    }
+
+    .menu-label {
+      font-size: 10px;
+      color: #64748b;
+      font-weight: 800;
+      letter-spacing: 1px;
+      padding: 15px 13px 6px;
+    }
+
+    .menu-btn {
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      width: 100%;
+      background: transparent;
+      border: 0;
+      color: #cbd5e1;
+      padding: 11px 13px;
+      border-radius: 8px;
+      margin-bottom: 3px;
+      text-align: left;
+      font-size: 13px;
+      transition: .15s;
+    }
+
+    .menu-btn:hover {
+      background: var(--sidebar2);
+      color: white;
+    }
+
+    .menu-btn.active {
+      background: #2563eb;
+      color: white;
+      font-weight: 700;
+    }
+
+    .menu-icon {
+      width: 20px;
+      text-align: center;
+      font-size: 16px;
+    }
+
+    .main {
+      margin-left: 250px;
+      width: calc(100% - 250px);
+      min-height: 100vh;
+    }
+
+    /* ======================================================
+       TOPBAR
+    ====================================================== */
+
+    .topbar {
+      height: 68px;
+      background: white;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 28px;
+      position: sticky;
+      top: 0;
+      z-index: 900;
+    }
+
+    .page-title {
+      font-weight: 800;
+      font-size: 20px;
+    }
+
+    .page-subtitle {
+      color: var(--muted);
+      font-size: 12px;
+      margin-top: 2px;
+    }
+
+    .top-user {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: #e0e7ff;
+      color: #3730a3;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+    }
+
+    .user-name {
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .user-role {
+      font-size: 10px;
+      color: var(--muted);
+    }
+
+    /* ======================================================
+       CONTENIDO
+    ====================================================== */
+
+    .content {
+      padding: 26px;
+    }
+
+    .view {
+      display: none;
+    }
+
+    .view.active {
+      display: block;
+    }
+
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 18px;
+      gap: 15px;
+      flex-wrap: wrap;
+    }
+
+    .section-title {
+      font-size: 20px;
+      font-weight: 800;
+      margin: 0;
+    }
+
+    .section-description {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+
+    /* ======================================================
+       CARDS
+    ====================================================== */
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 18px;
+      box-shadow: var(--shadow);
+    }
+
+    .card-label {
+      font-size: 11px;
+      color: var(--muted);
+      margin-bottom: 8px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .4px;
+    }
+
+    .card-value {
+      font-size: 24px;
+      font-weight: 800;
+    }
+
+    .card-small {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 7px;
+    }
+
+    /* ======================================================
+       PANELES
+    ====================================================== */
+
+    .panel {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      box-shadow: var(--shadow);
+      margin-bottom: 18px;
+      overflow: hidden;
+    }
+
+    .panel-header {
+      padding: 16px 18px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 15px;
+      flex-wrap: wrap;
+    }
+
+    .panel-title {
+      font-size: 14px;
+      font-weight: 800;
+    }
+
+    .panel-description {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 3px;
+    }
+
+    .panel-body {
+      padding: 18px;
+    }
+
+    /* ======================================================
+       FORMULARIOS
+    ====================================================== */
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+    }
+
+    .form-grid.cols-3 {
+      grid-template-columns: repeat(3, 1fr);
+    }
+
+    .form-grid.cols-2 {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    .field {
+      min-width: 0;
+    }
+
+    .field.span-2 {
+      grid-column: span 2;
+    }
+
+    .field.span-3 {
+      grid-column: span 3;
+    }
+
+    .field.span-4 {
+      grid-column: span 4;
+    }
+
+    label {
+      display: block;
+      font-size: 11px;
+      font-weight: 700;
+      color: #475569;
+      margin-bottom: 5px;
+    }
+
+    input,
+    select,
+    textarea {
+      width: 100%;
+      border: 1px solid #cbd5e1;
+      background: white;
+      border-radius: 8px;
+      padding: 9px 10px;
+      font-size: 12px;
+      color: var(--text);
+      transition: .15s;
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 70px;
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(37,99,235,.08);
+    }
+
+    input[readonly] {
+      background: #f8fafc;
+      color: #64748b;
+    }
+
+    .money-input {
+      text-align: right;
+    }
+
+    /* ======================================================
+       BOTONES
+    ====================================================== */
+
+    .btn {
+      border: 0;
+      border-radius: 8px;
+      padding: 9px 14px;
+      font-size: 12px;
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      transition: .15s;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: var(--primary2);
+    }
+
+    .btn-secondary {
+      background: white;
+      color: #334155;
+      border: 1px solid #cbd5e1;
+    }
+
+    .btn-success {
+      background: var(--success);
+      color: white;
+    }
+
+    .btn-danger {
+      background: var(--danger);
+      color: white;
+    }
+
+    .btn-purple {
+      background: var(--purple);
+      color: white;
+    }
+
+    .btn-light {
+      background: #f1f5f9;
+      color: #334155;
+    }
+
+    .btn-sm {
+      padding: 6px 10px;
+      font-size: 11px;
+    }
+
+    .actions-right {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-top: 18px;
+    }
+
+    /* ======================================================
+       TABLAS
+    ====================================================== */
+
+    .table-wrap {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 700px;
+    }
+
+    th {
+      background: #f8fafc;
+      padding: 10px;
+      border-bottom: 1px solid var(--border);
+      text-align: left;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: .35px;
+      color: #64748b;
+      white-space: nowrap;
+    }
+
+    td {
+      padding: 10px;
+      border-bottom: 1px solid #edf2f7;
+      font-size: 11px;
+      vertical-align: middle;
+    }
+
+    tbody tr:hover {
+      background: #f8fafc;
+    }
+
+    .text-right {
+      text-align: right;
+    }
+
+    .text-center {
+      text-align: center;
+    }
+
+    /* ======================================================
+       STATUS
+    ====================================================== */
+
+    .status {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 999px;
+      font-size: 9px;
+      font-weight: 800;
+    }
+
+    .status-green {
+      background: #d1fae5;
+      color: #047857;
+    }
+
+    .status-red {
+      background: #fee2e2;
+      color: #b91c1c;
+    }
+
+    .status-yellow {
+      background: #fef3c7;
+      color: #b45309;
+    }
+
+    .status-blue {
+      background: #dbeafe;
+      color: #1d4ed8;
+    }
+
+    .status-gray {
+      background: #e2e8f0;
+      color: #475569;
+    }
+
+    /* ======================================================
+       TABS
+    ====================================================== */
+
+    .tabs {
+      display: flex;
+      gap: 6px;
+      padding: 6px;
+      background: #f1f5f9;
+      border-radius: 9px;
+      margin-bottom: 18px;
+      overflow-x: auto;
+    }
+
+    .tab-btn {
+      border: 0;
+      background: transparent;
+      padding: 8px 13px;
+      border-radius: 7px;
+      color: #64748b;
+      font-size: 11px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .tab-btn.active {
+      background: white;
+      color: var(--primary);
+      box-shadow: 0 1px 4px rgba(15,23,42,.08);
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    /* ======================================================
+       TOTALES
+    ====================================================== */
+
+    .totals-box {
+      margin-left: auto;
+      max-width: 380px;
+      margin-top: 18px;
+      border-top: 1px solid var(--border);
+      padding-top: 12px;
+    }
+
+    .total-line {
+      display: flex;
+      justify-content: space-between;
+      padding: 5px 0;
+      font-size: 12px;
+    }
+
+    .total-final {
+      border-top: 1px solid var(--border);
+      margin-top: 5px;
+      padding-top: 10px;
+      font-size: 17px;
+      font-weight: 800;
+    }
+
+    /* ======================================================
+       ALERTAS
+    ====================================================== */
+
+    .alert-list {
+      display: grid;
+      gap: 9px;
+    }
+
+    .alert {
+      border-radius: 9px;
+      padding: 11px 13px;
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      font-size: 11px;
+    }
+
+    .alert-warning {
+      background: #fff7ed;
+      color: #9a3412;
+    }
+
+    .alert-danger {
+      background: #fef2f2;
+      color: #991b1b;
+    }
+
+    .alert-success {
+      background: #ecfdf5;
+      color: #065f46;
+    }
+
+    /* ======================================================
+       IA
+    ====================================================== */
+
+    .ia-box {
+      border: 1px solid #ddd6fe;
+      background: linear-gradient(135deg,#faf5ff,#eef2ff);
+      border-radius: 12px;
+      padding: 20px;
+    }
+
+    .ia-title {
+      font-size: 18px;
+      font-weight: 800;
+      color: #5b21b6;
+    }
+
+    .ia-response {
+      background: white;
+      border-radius: 10px;
+      padding: 16px;
+      margin-top: 15px;
+      border: 1px solid #e9d5ff;
+      line-height: 1.55;
+      font-size: 12px;
+    }
+
+    /* ======================================================
+       MODAL
+    ====================================================== */
+
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      z-index: 3000;
+      inset: 0;
+      background: rgba(15,23,42,.55);
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .modal-overlay.active {
+      display: flex;
+    }
+
+    .modal {
+      background: white;
+      width: min(900px, 100%);
+      max-height: 90vh;
+      overflow-y: auto;
+      border-radius: 14px;
+      box-shadow: 0 20px 50px rgba(0,0,0,.2);
+    }
+
+    .modal-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .modal-body {
+      padding: 20px;
+    }
+
+    .modal-close {
+      background: transparent;
+      border: 0;
+      font-size: 20px;
+      color: #64748b;
+    }
+
+    /* ======================================================
+       TOAST
+    ====================================================== */
+
+    .toast {
+      display: none;
+      position: fixed;
+      right: 25px;
+      bottom: 25px;
+      z-index: 5000;
+      background: #0f172a;
+      color: white;
+      padding: 13px 17px;
+      border-radius: 9px;
+      box-shadow: 0 8px 30px rgba(0,0,0,.2);
+      font-size: 12px;
+      max-width: 350px;
+    }
+
+    /* ======================================================
+       RESPONSIVE
+    ====================================================== */
+
+    @media (max-width: 1100px) {
+      .cards {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .form-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .field.span-3,
+      .field.span-4 {
+        grid-column: span 2;
+      }
+    }
+
+    @media (max-width: 760px) {
+      .sidebar {
+        width: 70px;
+      }
+
+      .brand-title,
+      .brand-subtitle,
+      .menu-label,
+      .menu-btn span.menu-text {
+        display: none;
+      }
+
+      .brand {
+        padding: 20px 15px;
+        text-align: center;
+      }
+
+      .brand::after {
+        content: "C";
+        font-weight: 800;
+        font-size: 22px;
+      }
+
+      .menu-btn {
+        justify-content: center;
+      }
+
+      .main {
+        margin-left: 70px;
+        width: calc(100% - 70px);
+      }
+
+      .content {
+        padding: 15px;
+      }
+
+      .topbar {
+        padding: 0 15px;
+      }
+
+      .cards,
+      .form-grid,
+      .form-grid.cols-2,
+      .form-grid.cols-3 {
+        grid-template-columns: 1fr;
+      }
+
+      .field.span-2,
+      .field.span-3,
+      .field.span-4 {
+        grid-column: span 1;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="app">
+
+  <!-- ====================================================
+       MENU LATERAL
+  ===================================================== -->
+
+  <aside class="sidebar">
+
+    <div class="brand">
+      <div class="brand-title">
+        Conta<span>PYME</span>
+      </div>
+
+      <div class="brand-subtitle">
+        Gestión contable inteligente
+      </div>
+    </div>
+
+    <nav class="menu">
+
+      <div class="menu-label">PRINCIPAL</div>
+
+      <button class="menu-btn active" data-view="dashboard">
+        <span class="menu-icon">📊</span>
+        <span class="menu-text">Dashboard</span>
+      </button>
+
+      <button class="menu-btn" data-view="configuracion">
+        <span class="menu-icon">⚙️</span>
+        <span class="menu-text">Configuración</span>
+      </button>
+
+      <div class="menu-label">OPERACIONES</div>
+
+      <button class="menu-btn" data-view="facturacion">
+        <span class="menu-icon">🧾</span>
+        <span class="menu-text">Facturación</span>
+      </button>
+
+      <button class="menu-btn" data-view="inventarios">
+        <span class="menu-icon">📦</span>
+        <span class="menu-text">Inventarios</span>
+      </button>
+
+      <button class="menu-btn" data-view="compras">
+        <span class="menu-icon">🛒</span>
+        <span class="menu-text">Compras</span>
+      </button>
+
+      <button class="menu-btn" data-view="gastos">
+        <span class="menu-icon">💸</span>
+        <span class="menu-text">Gastos</span>
+      </button>
+
+      <button class="menu-btn" data-view="cxc">
+        <span class="menu-icon">📥</span>
+        <span class="menu-text">Cuentas por cobrar</span>
+      </button>
+
+      <button class="menu-btn" data-view="cxp">
+        <span class="menu-icon">📤</span>
+        <span class="menu-text">Cuentas por pagar</span>
+      </button>
+
+      <button class="menu-btn" data-view="bancos">
+        <span class="menu-icon">🏦</span>
+        <span class="menu-text">Bancos</span>
+      </button>
+
+      <div class="menu-label">FINANZAS</div>
+
+      <button class="menu-btn" data-view="contabilidad">
+        <span class="menu-icon">📚</span>
+        <span class="menu-text">Contabilidad</span>
+      </button>
+
+      <button class="menu-btn" data-view="ia">
+        <span class="menu-icon">✦</span>
+        <span class="menu-text">Análisis IA</span>
+      </button>
+
+      <button class="menu-btn" data-view="reportes">
+        <span class="menu-icon">📈</span>
+        <span class="menu-text">Reportes</span>
+      </button>
+
+    </nav>
+  </aside>
+
+
+  <!-- ====================================================
+       CONTENIDO
+  ===================================================== -->
+
+  <main class="main">
+
+    <header class="topbar">
+
+      <div>
+        <div class="page-title" id="pageTitle">
+          Dashboard
+        </div>
+
+        <div class="page-subtitle" id="pageSubtitle">
+          Resumen general del negocio
+        </div>
+      </div>
+
+      <div class="top-user">
+        <div class="avatar">S</div>
+
+        <div>
+          <div class="user-name" id="usuarioNombre">
+            Usuario
+          </div>
+
+          <div class="user-role" id="usuarioRol">
+            Administrador
+          </div>
+        </div>
+      </div>
+
+    </header>
+
+
+    <div class="content">
+
+      <!-- ==================================================
+           DASHBOARD
+      =================================================== -->
+
+      <section id="dashboard" class="view active">
+
+        <div class="cards">
+
+          <div class="card">
+            <div class="card-label">Ventas del mes</div>
+            <div class="card-value" id="dashVentas">L 0.00</div>
+            <div class="card-small">Facturación acumulada</div>
+          </div>
+
+          <div class="card">
+            <div class="card-label">Por cobrar</div>
+            <div class="card-value" id="dashCxc">L 0.00</div>
+            <div class="card-small">Saldo pendiente clientes</div>
+          </div>
+
+          <div class="card">
+            <div class="card-label">Por pagar</div>
+            <div class="card-value" id="dashCxp">L 0.00</div>
+            <div class="card-small">Saldo pendiente proveedores</div>
+          </div>
+
+          <div class="card">
+            <div class="card-label">Bancos</div>
+            <div class="card-value" id="dashBancos">L 0.00</div>
+            <div class="card-small">Saldo disponible</div>
+          </div>
+
+          <div class="card">
+            <div class="card-label">Gastos del mes</div>
+            <div class="card-value" id="dashGastos">L 0.00</div>
+          </div>
+
+          <div class="card">
+            <div class="card-label">Compras del mes</div>
+            <div class="card-value" id="dashCompras">L 0.00</div>
+          </div>
+
+          <div class="card">
+            <div class="card-label">Utilidad estimada</div>
+            <div class="card-value" id="dashUtilidad">L 0.00</div>
+          </div>
+
+          <div class="card">
+            <div class="card-label">Productos bajos</div>
+            <div class="card-value" id="dashStockBajo">0</div>
+          </div>
+
+        </div>
+
+
+        <div class="panel">
+
+          <div class="panel-header">
+            <div>
+              <div class="panel-title">Alertas importantes</div>
+              <div class="panel-description">
+                Situaciones que requieren atención
+              </div>
+            </div>
+          </div>
+
+          <div class="panel-body">
+
+            <div class="alert-list">
+
+              <div class="alert alert-warning">
+                ⚠️
+                <div>
+                  <b>Inventario</b><br>
+                  Productos bajo el stock mínimo aparecerán aquí.
+                </div>
+              </div>
+
+              <div class="alert alert-danger">
+                🔴
+                <div>
+                  <b>Cuentas por cobrar</b><br>
+                  Clientes con facturas vencidas aparecerán aquí.
+                </div>
+              </div>
+
+              <div class="alert alert-warning">
+                ⏳
+                <div>
+                  <b>Cuentas por pagar</b><br>
+                  Obligaciones próximas a vencer aparecerán aquí.
+                </div>
+              </div>
+
+            </div>
+
+          </div>
+        </div>
+
+
+        <div class="panel">
+
+          <div class="panel-header">
+            <div>
+              <div class="panel-title">Últimas facturas</div>
+            </div>
+          </div>
+
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Factura</th>
+                  <th>Fecha</th>
+                  <th>Cliente</th>
+                  <th>Total</th>
+                  <th>Saldo</th>
+                  <th>Estado</th>
+                </tr>
+              </thead>
+
+              <tbody id="dashboardFacturas">
+                <tr>
+                  <td colspan="6" class="text-center">
+                    No hay registros
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+        </div>
+
+      </section>
+
+
+      <!-- ==================================================
+           CONFIGURACION
+      =================================================== -->
+
+      <section id="configuracion" class="view">
+
+        <div class="section-header">
+          <div>
+            <h2 class="section-title">Configuración</h2>
+            <div class="section-description">
+              Parámetros generales del sistema
+            </div>
+          </div>
+        </div>
+
+        <div class="tabs">
+          <button class="tab-btn active" data-tab-group="config" data-tab="configEmpresa">
+            Empresa
+          </button>
+
+          <button class="tab-btn" data-tab-group="config" data-tab="configFacturacion">
+            Facturación
+          </button>
+
+          <button class="tab-btn" data-tab-group="config" data-tab="configInventario">
+            Inventario
+          </button>
+
+          <button class="tab-btn" data-tab-group="config" data-tab="configContabilidad">
+            Contabilidad
+          </button>
+
+          <button class="tab-btn" data-tab-group="config" data-tab="configUsuarios">
+            Usuarios
+          </button>
+        </div>
+
+
+        <!-- EMPRESA -->
+
+        <div id="configEmpresa" class="tab-content active">
+
+          <div class="panel">
+
+            <div class="panel-header">
+              <div>
+                <div class="panel-title">Datos de la empresa</div>
+              </div>
+            </div>
+
+            <div class="panel-body">
+
+              <div class="form-grid">
+
+                <div class="field span-2">
+                  <label>Nombre de empresa</label>
+                  <input id="cfgEmpresaNombre">
+                </div>
+
+                <div class="field">
+                  <label>RTN</label>
+                  <input id="cfgEmpresaRTN">
+                </div>
+
+                <div class="field">
+                  <label>Moneda</label>
+                  <select id="cfgEmpresaMoneda">
+                    <option value="HNL">HNL - Lempira</option>
+                    <option value="USD">USD - Dólar</option>
+                  </select>
+                </div>
+
+                <div class="field span-2">
+                  <label>Dirección</label>
+                  <input id="cfgEmpresaDireccion">
+                </div>
+
+                <div class="field">
+                  <label>Teléfono</label>
+                  <input id="cfgEmpresaTelefono">
+                </div>
+
+                <div class="field">
+                  <label>Correo</label>
+                  <input type="email" id="cfgEmpresaCorreo">
+                </div>
+
+                <div class="field span-2">
+                  <label>Logo / URL</label>
+                  <input id="cfgEmpresaLogo">
+                </div>
+
+              </div>
+
+              <div class="actions-right">
+                <button class="btn btn-primary" onclick="guardarConfiguracion('EMPRESA')">
+                  💾 Guardar
+                </button>
+              </div>
+
+            </div>
+          </div>
+
+        </div>
+
+
+        <!-- FACTURACION CONFIG -->
+
+        <div id="configFacturacion" class="tab-content">
+
+          <div class="panel">
+            <div class="panel-header">
+              <div class="panel-title">Configuración de facturación</div>
+            </div>
+
+            <div class="panel-body">
+
+              <div class="form-grid">
+
+                <div class="field span-2">
+                  <label>CAI</label>
+                  <input id="cfgCai">
+                </div>
+
+                <div class="field">
+                  <label>Fecha límite de emisión</label>
+                  <input type="date" id="cfgFechaLimite">
+                </div>
+
+                <div class="field">
+                  <label>ISV predeterminado</label>
+                  <select id="cfgIsv">
+                    <option value="0">0%</option>
+                    <option value="15" selected>15%</option>
+                    <option value="18">18%</option>
+                  </select>
+                </div>
+
+                <div class="field span-2">
+                  <label>Rango autorizado desde</label>
+                  <input id="cfgRangoDesde">
+                </div>
+
+                <div class="field span-2">
+                  <label>Rango autorizado hasta</label>
+                  <input id="cfgRangoHasta">
+                </div>
+
+                <div class="field">
+                  <label>Siguiente número</label>
+                  <input type="number" id="cfgFacturaSiguiente" value="1">
+                </div>
+
+                <div class="field">
+                  <label>Permitir crédito</label>
+                  <select id="cfgPermitirCredito">
+                    <option>SI</option>
+                    <option>NO</option>
+                  </select>
+                </div>
+
+                <div class="field">
+                  <label>Días de crédito</label>
+                  <input type="number" id="cfgDiasCredito" value="30">
+                </div>
+
+                <div class="field">
+                  <label>Permitir descuentos</label>
+                  <select id="cfgDescuentos">
+                    <option>SI</option>
+                    <option>NO</option>
+                  </select>
+                </div>
+
+              </div>
+
+              <div class="actions-right">
+                <button class="btn btn-primary" onclick="guardarConfiguracion('FACTURACION')">
+                  💾 Guardar
+                </button>
+              </div>
+
+            </div>
+          </div>
+
+        </div>
+
+
+        <!-- INVENTARIO CONFIG -->
+
+        <div id="configInventario" class="tab-content">
+
+          <div class="panel">
+
+            <div class="panel-header">
+              <div class="panel-title">Configuración de inventario</div>
+            </div>
+
+            <div class="panel-body">
+
+              <div class="form-grid cols-3">
+
+                <div class="field">
+                  <label>Controlar inventario</label>
+                  <select id="cfgInvControl">
+                    <option>SI</option>
+                    <option>NO</option>
+                  </select>
+                </div>
+
+                <div class="field">
+                  <label>Permitir inventario negativo</label>
+                  <select id="cfgInvNegativo">
+                    <option>NO</option>
+                    <option>SI</option>
+                  </select>
+                </div>
+
+                <div class="field">
+                  <label>Controlar stock mínimo</label>
+                  <select id="cfgInvStock">
+                    <option>SI</option>
+                    <option>NO</option>
+                  </select>
+                </div>
+
+                <div class="field">
+                  <label>Método de costo</label>
+                  <select id="cfgInvCosto">
+                    <option value="PROMEDIO">Promedio</option>
+                    <option value="FIFO">FIFO</option>
+                  </select>
+                </div>
+
+              </div>
+
+              <div class="actions-right">
+                <button class="btn btn-primary" onclick="guardarConfiguracion('INVENTARIO')">
+                  💾 Guardar
+                </button>
+              </div>
+
+            </div>
+          </div>
+
+        </div>
+
+
+        <!-- CONTABILIDAD CONFIG -->
+
+        <div id="configContabilidad" class="tab-content">
+
+          <div class="panel">
+
+            <div class="panel-header">
+              <div class="panel-title">Configuración contable</div>
+            </div>
+
+            <div class="panel-body">
+
+              <div class="form-grid">
+
+                <div class="field">
+                  <label>Generar asientos automáticos</label>
+                  <select id="cfgConAuto">
+                    <option>SI</option>
+                    <option>NO</option>
+                  </select>
+                </div>
+
+                <div class="field">
+                  <label>Permitir asientos manuales</label>
+                  <select id="cfgConManual">
+                    <option>SI</option>
+                    <option>NO</option>
+                  </select>
+                </div>
+
+                <div class="field">
+                  <label>Año contable</label>
+                  <input type="number" id="cfgConAno" value="2026">
+                </div>
+
+                <div class="field">
+                  <label>Moneda contable</label>
+                  <select id="cfgConMoneda">
+                    <option>HNL</option>
+                    <option>USD</option>
+                  </select>
+                </div>
+
+              </div>
+
+              <div class="actions-right">
+                <button class="btn btn-primary" onclick="guardarConfiguracion('CONTABILIDAD')">
+                  💾 Guardar
+                </button>
+              </div>
+
+            </div>
+          </div>
+
+        </div>
+
+
+        <!-- USUARIOS -->
+
+        <div id="configUsuarios" class="tab-content">
+
+          <div class="panel">
+
+            <div class="panel-header">
+              <div>
+                <div class="panel-title">Usuarios</div>
+                <div class="panel-description">
+                  Catálogo de usuarios del sistema
+                </div>
+              </div>
+
+              <button class="btn btn-primary" onclick="abrirModal('modalUsuario')">
+                + Nuevo usuario
+              </button>
+            </div>
+
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Nombre</th>
+                    <th>Correo</th>
+                    <th>Rol</th>
+                    <th>Estado</th>
+                    <th>Último acceso</th>
+                  </tr>
+                </thead>
+
+                <tbody id="tablaUsuarios">
+                  <tr>
+                    <td colspan="6" class="text-center">
+                      No hay usuarios cargados
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+          </div>
+
+        </div>
+
+      </section>
+
+
+      <!-- ==================================================
+           FACTURACION
+      =================================================== -->
+
+      <section id="facturacion" class="view">
+
+        <div class="tabs">
+
+          <button class="tab-btn active" data-tab-group="facturacion" data-tab="factNueva">
+            Nueva factura
+          </button>
+
+          <button class="tab-btn" data-tab-group="facturacion" data-tab="factListado">
+            Facturas
+          </button>
+
+          <button class="tab-btn" data-tab-group="facturacion" data-tab="factClientes">
+            Clientes
+          </button>
+
+        </div>
+
+
+        <!-- NUEVA FACTURA -->
+
+        <div id="factNueva" class="tab-content active">
+
+          <div class="panel">
+
+            <div class="panel-header">
+              <div>
+                <div class="panel-title">Nueva factura</div>
+                <div class="panel-description">
+                  Registro de venta
+                </div>
+              </div>
+            </div>
+
+            <div class="panel-body">
+
+              <div class="form-grid">
+
+                <div class="field">
+                  <label>Número factura</label>
+                  <input id="facNumero" readonly placeholder="Automático">
+                </div>
+
+                <div class="field">
+                  <label>Fecha</label>
+                  <input type="date" id="facFecha">
+                </div>
+
+                <div class="field span-2">
+                  <label>Cliente</label>
+
+                  <div style="display:flex;gap:6px;">
+                    <select id="facCliente">
+                      <option value="">Seleccionar cliente...</option>
+                    </select>
+
+                    <button class="btn btn-light" type="button" onclick="abrirModal('modalCliente')">
+                      +
+                    </button>
+                  </div>
+                </div>
+
+                <div class="field">
+                  <label>RTN</label>
+                  <input id="facRTN" readonly>
+                </div>
+
+                <div class="field">
+                  <label>Tipo de venta</label>
+                  <select id="facTipoVenta" onchange="actualizarCreditoFactura()">
+                    <option value="CONTADO">Contado</option>
+                    <option value="CREDITO">Crédito</option>
+                  </select>
+                </div>
+
+                <div class="field">
+                  <label>Fecha vencimiento</label>
+                  <input type="date" id="facVencimiento">
+                </div>
+
+                <div class="field">
+                  <label>Forma de pago</label>
+                  <select id="facFormaPago">
+                    <option>EFECTIVO</option>
+                    <option>TRANSFERENCIA</option>
+                    <option>TARJETA</option>
+                    <option>CHEQUE</option>
+                    <option>CREDITO</option>
+                  </select>
+                </div>
+
+              </div>
+
+            </div>
+          </div>
+
+
+          <div class="panel">
+
+            <div class="panel-header">
+              <div class="panel-title">Detalle de factura</div>
+
+              <button class="btn btn-secondary btn-sm" onclick="agregarLineaFactura()">
+                + Agregar línea
+              </button>
+            </div>
+
+            <div class="table-wrap">
+
+              <table>
+
+                <thead>
+                  <tr>
+                    <th>Producto / Servicio</th>
+                    <th>Cantidad</th>
+                    <th>Precio</th>
+                    <th>Desc.</th>
+                    <th>ISV</th>
+                    <th>Subtotal</th>
+                    <th>Total</th>
+                    <th></th>
+                  </tr>
+                </thead>
+
+                <tbody id="facturaDetalle"></tbody>
+
+              </table>
+
+            </div>
+
+
+            <div class="panel-body">
+
+              <div class="totals-box">
+
+                <div class="total-line">
+                  <span>Subtotal</span>
+                  <strong id="facSubtotal">L 0.00</strong>
+                </div>
+
+                <div class="total-line">
+                  <span>Descuento</span>
+                  <strong id="facDescuento">L 0.00</strong>
+                </div>
+
+                <div class="total-line">
+                  <span>ISV</span>
+                  <strong id="facIsvTotal">L 0.00</strong>
+                </div>
+
+                <div class="total-line total-final">
+                  <span>TOTAL</span>
+                  <span id="facTotal">L 0.00</span>
+                </div>
+
+              </div>
+
+
+              <div class="form-grid cols-2" style="margin-top:18px">
+
+                <div class="field">
+                  <label>Referencia / transacción</label>
+                  <input id="facReferencia">
+                </div>
+
+                <div class="field">
+                  <label>Observaciones</label>
+                  <input id="facObservaciones">
+                </div>
+
+              </div>
+
+
+              <div class="actions-right">
+
+                <button class="btn btn-secondary" onclick="limpiarFactura()">
+                  Limpiar
+                </button>
+
+                <button class="btn btn-success" onclick="guardarFactura()">
+                  ✓ Emitir factura
+                </button>
+
+              </div>
+
+            </div>
+          </div>
+
+        </div>
+
+
+        <!-- LISTADO FACTURAS -->
+
+        <div id="factListado" class="tab-content">
+
+          <div class="panel">
+
+            <div class="panel-header">
+
+              <div>
+                <div class="panel-title">Facturas emitidas</div>
+              </div>
+
+              <input
+                style="max-width:260px"
+                placeholder="Buscar factura o cliente..."
+                oninput="filtrarTabla(this.value,'tablaFacturas')"
+              >
+
+            </div>
+
+            <div class="table-wrap">
+
+              <table>
+
+                <thead>
+                  <tr>
+                    <th>Factura</th>
+                    <th>Fecha</th>
+                    <th>Cliente</th>
+                    <th>Tipo</th>
+                    <th>Total</th>
+                    <th>Pagado</th>
+                    <th>Saldo</th>
+                    <th>Estado</th>
+                  </tr>
+                </thead>
+
+                <tbody id="tablaFacturas">
+                  <tr>
+                    <td colspan="8" class="text-center">
+                      No hay facturas
+                    </td>
+                  </tr>
+                </tbody>
+
+              </table>
+
+            </div>
+          </div>
+
+        </div>
+
+
+        <!-- CLIENTES -->
+
+        <div id="factClientes" class="tab-content">
+
+          <div class="panel">
+
+            <div class="panel-header">
+
+              <div>
+                <div class="panel-title">Catálogo de clientes</div>
+              </div>
+
+              <button class="btn btn-primary" onclick="abrirModal('modalCliente')">
+                + Nuevo cliente
+              </button>
+
+            </div>
+
+            <div class="table-wrap">
+
+              <table>
+
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Código</th>
+                    <th>Nombre</th>
+                    <th>RTN</th>
+                    <th>Teléfono</th>
+                    <th>Correo</th>
+                    <th>Días crédito</th>
+                    <th>Límite</th>
+                    <th>Estado</th>
+                  </tr>
+                </thead>
+
+                <tbody id="tablaClientes">
+                  <tr>
+                    <td colspan="9" class="text-center">
+                      No hay clientes
+                    </td>
+                  </tr>
+                </tbody>
+
+              </table>
+
+            </div>
+          </div>
+
+        </div>
+
+      </section>
+
+
+      <!-- ==================================================
+           INVENTARIOS
+      =================================================== -->
+
+      <section id="inventarios" class="view">
+
+        <div class="tabs">
+
+          <button class="tab-btn active" data-tab-group="inventario" data-tab="invExistencias">
+            Existencias
+          </button>
+
+          <button class="tab-btn" data-tab-group="inventario" data-tab="invProductos">
+            Productos
+          </button>
+
+          <button class="tab-btn" data-tab-group="inventario" data-tab="invMovimientos">
+            Movimientos
+          </button>
+
+        </div>
+
+
+        <div id="invExistencias" class="tab-content active">
+
+          <div class="cards">
+
+            <div class="card">
+              <div class="card-label">Productos activos</div>
+              <div class="card-value" id="invCantidadProductos">0</div>
+            </div>
+
+            <div class="card">
+              <div class="card-label">Valor inventario</div>
+              <div class="card-value" id="invValor">L 0.00</div>
+            </div>
+
+            <div class="card">
+              <div class="card-label">Stock bajo</div>
+              <div class="card-value" id="invBajo">0</div>
+            </div>
+
+            <div class="card">
+              <div class="card-label">Sin existencia</div>
+              <div class="card-value" id="invCero">0</div>
+            </div>
+
+          </div>
+
+          <div class="panel">
+
+            <div class="panel-header">
+              <div class="panel-title">Existencias actuales</div>
+            </div>
+
+            <div class="table-wrap">
+
+              <table>
+                <thead>
+                  <tr>
+                    <th>Código</th>
+                    <th>Producto</th>
+                    <th>Categoría</th>
+                    <th>Existencia</th>
+                    <th>Mínimo</th>
+                    <th>Costo</th>
+                    <th>Valor</th>
+                    <th>Estado</th>
+                  </tr>
+                </thead>
+
+                <tbody id="tablaExistencias">
+                  <tr>
+                    <td colspan="8" class="text-center">
+                      No hay productos
+                    </td>
+                  </tr>
+                </tbody>
+
+              </table>
+
+            </div>
+          </div>
+
+        </div>
+
+
+        <!-- PRODUCTOS -->
+
+        <div id="invProductos" class="tab-content">
+
+          <div class="panel">
+
+            <div class="panel-header">
+
+              <div class="panel-title">Catálogo de productos y servicios</div>
+
+              <button class="btn btn-primary" onclick="abrirModal('modalProducto')">
+                + Nuevo producto
+              </button>
+
+            </div>
+
+            <div class="table-wrap">
+
+              <table>
+
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Código</th>
+                    <th>Nombre</th>
+                    <th>Tipo</th>
+                    <th>Categoría</th>
+                    <th>Costo</th>
+                    <th>Precio</th>
+                    <th>Impuesto</th>
+                    <th>Estado</th>
+                  </tr>
+                </thead>
+
+                <tbody id="tablaProductos">
+                  <tr>
+                    <td colspan="9" class="text-center">
+                      No hay productos
+                    </td>
+                  </tr>
+                </tbody>
+
+              </table>
+
+            </div>
+          </div>
+
+        </div>
+
+
+        <!-- MOVIMIENTOS INVENTARIO -->
+
+        <div id="invMovimientos" class="tab-content">
+
+          <div class="panel">
+
+            <div class="panel-header">
+              <div class="panel-title">Movimientos de inventario</div>
+
+              <button class="btn btn-primary" onclick="abrirModal('modalMovimientoInventario')">
+                + Ajuste
+              </button>
+            </div>
+
+            <div class="table-wrap">
+
+              <table>
+
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Fecha</th>
+                    <th>Tipo</th>
+                    <th>Documento</th>
+                    <th>Producto</th>
+                    <th>Entrada</th>
+                    <th>Salida</th>
+                    <th>Costo</th>
+                    <th>Existencia</th>
+                  </tr>
+                </thead>
+
+                <tbody id="tablaMovimientosInventario">
+                  <tr>
+                    <td colspan="9" class="text-center">
+                      No hay movimientos
+                    </td>
+                  </tr>
+                </tbody>
+
+              </table>
+
+            </div>
+          </div>
+
+        </div>
+
+      </section>
+
+
+      <!-- ==================================================
+           COMPRAS
+      =================================================== -->
+
+      <section id="compras" class="view">
+
+        <div class="tabs">
+
+          <button class="tab-btn active" data-tab-group="compras" data-tab="compNueva">
+            Nueva compra
+          </button>
+
+          <button class="tab-btn" data-tab-group="compras" data-tab="compListado">
+            Compras
+          </button>
+
+          <button class="tab-btn" data-tab-group="compras" data-tab="compProveedores">
+            Proveedores
+          </button>
+
+        </div>
+
+
+        <div id="compNueva" class="tab-content active">
+
+          <div class="panel">
+
+            <div class="panel-header">
+              <div class="panel-title">Registrar compra</div>
+            </div>
+
+            <div class="panel-body">
+
+              <div class="form-grid">
+
+                <div class="field">
+                  <label>ID compra</label>
+                  <input id="comId" readonly placeholder="Automático">
+                </div>
+
+                <div class="field">
+                  <label>Fecha</label>
+                  <input type="date" id="comFecha">
+                </div>
+
+                <div class="field span-2">
+                  <label>Proveedor</label>
+
+                  <div style="display:flex;gap:6px;">
+                    <select id="comProveedor">
+                      <option value="">Seleccionar proveedor...</option>
+                    </select>
+
+                    <button class="btn btn-light" onclick="abrirModal('modalProveedor')">
+                      +
+                    </button>
+                  </div>
+                </div>
+
+                <div class="field">
+                  <label>Documento proveedor</label>
+                  <input id="comDocumento">
+                </div>
+
+                <div class="field">
+                  <label>CAI</label>
+                  <input id="comCai">
+                </div>
+
+                <div class="field">
+                  <label>Tipo de compra</label>
+                  <select id="comTipo">
+                    <option>CONTADO</option>
+                    <option>CREDITO</option>
+                  </select>
+                </div>
+
+                <div class="field">
+                  <label>Fecha vencimiento</label>
+                  <input type="date" id="comVencimiento">
+                </div>
+
+              </div>
+
+            </div>
+          </div>
+
+
+          <div class="panel">
+
+            <div class="panel-header">
+              <div class="panel-title">Detalle de compra</div>
+
+              <button class="btn btn-secondary btn-sm" onclick="agregarLineaCompra()">
+                + Agregar producto
+              </button>
+            </div>
+
+            <div class="table-wrap">
+
+              <table>
+
+                <thead>
+                  <tr>
+                    <th>Producto</th>
+                    <th>Cantidad</th>
+                    <th>Costo unitario</th>
+                    <th>Descuento</th>
+                    <th>ISV</th>
+                    <th>Total</th>
+                    <th></th>
+                  </tr>
+                </thead>
+
+                <tbody id="compraDetalle"></tbody>
+
+              </table>
+
+            </div>
+
+            <div class="panel-body">
+
+              <div class="totals-box">
+
+                <div class="total-line">
+                  <span>Subtotal</span>
+                  <strong id="comSubtotal">L 0.00</strong>
+                </div>
+
+                <div class="total-line">
+                  <span>ISV</span>
+                  <strong id="comIsvTotal">L 0.00</strong>
+                </div>
+
+                <div class="total-line total-final">
+                  <span>Total</span>
+                  <span id="comTotal">L 0.00</span>
+                </div>
+
+              </div>
+
+              <div class="actions-right">
+                <button class="btn btn-success" onclick="guardarCompra()">
+                  ✓ Registrar compra
+                </button>
+              </div>
+
+            </div>
+
+          </div>
+
+        </div>
+
+
+        <div id="compListado" class="tab-content">
+
+          <div class="panel">
+
+            <div class="panel-header">
+              <div class="panel-title">Compras registradas</div>
+            </div>
+
+            <div class="table-wrap">
+
+              <table>
+
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Fecha</th>
+                    <th>Proveedor</th>
+                    <th>Documento</th>
+                    <th>Tipo</th>
+                    <th>Total</th>
+                    <th>Saldo</th>
+                    <th>Estado</th>
+                  </tr>
+                </thead>
+
+                <tbody id="tablaCompras">
+                  <tr>
+                    <td colspan="8" class="text-center">
+                      No hay compras
+                    </td>
+                  </tr>
+                </tbody>
+
+              </table>
+
+            </div>
+          </div>
+
+        </div>
+
+
+        <div id="compProveedores" class="tab-content">
+
+          <div class="panel">
+
+            <div class="panel-header">
+
+              <div class="panel-title">Catálogo de proveedores</div>
+
+              <button class="btn btn-primary" onclick="abrirModal('modalProveedor')">
+                + Nuevo proveedor
+              </button>
+
+            </div>
+
+            <div class="table-wrap">
+
+              <table>
+
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Código</th>
+                    <th>Nombre</th>
+                    <th>RTN</th>
+                    <th>Contacto</th>
+                    <th>Teléfono</th>
+                    <th>Correo</th>
+                    <th>Días crédito</th>
+                    <th>Estado</th>
+                  </tr>
+                </thead>
+
+                <tbody id="tablaProveedores">
+                  <tr>
+                    <td colspan="9" class="text-center">
+                      No hay proveedores
+                    </td>
+                  </tr>
+                </tbody>
+
+              </table>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      </section>
+
+
+      <!-- ==================================================
+           GASTOS
+      =================================================== -->
+
+      <section id="gastos" class="view">
+
+        <div class="section-header">
+
+          <div>
+            <h2 class="section-title">Gastos</h2>
+            <div class="section-description">
+              Gastos administrativos y operativos
+            </div>
+          </div>
+
+        </div>
+
+
+        <div class="panel">
+
+          <div class="panel-header">
+            <div class="panel-title">Registrar gasto</div>
+          </div>
+
+          <div class="panel-body">
+
+            <div class="form-grid">
+
+              <div class="field">
+                <label>ID gasto</label>
+                <input id="gasId" readonly placeholder="Automático">
+              </div>
+
+              <div class="field">
+                <label>Fecha</label>
+                <input type="date" id="gasFecha">
+              </div>
+
+              <div class="field">
+                <label>Categoría</label>
+
+                <select id="gasCategoria">
+                  <option>ENERGIA</option>
+                  <option>AGUA</option>
+                  <option>INTERNET</option>
+                  <option>ALQUILER</option>
+                  <option>COMBUSTIBLE</option>
+                  <option>MANTENIMIENTO</option>
+                  <option>HONORARIOS</option>
+                  <option>PAPELERIA</option>
+                  <option>OTRO</option>
+                </select>
+              </div>
+
+              <div class="field">
+                <label>Proveedor</label>
+
+                <select id="gasProveedor">
+                  <option value="">Seleccionar...</option>
+                </select>
+              </div>
+
+              <div class="field span-2">
+                <label>Descripción</label>
+                <input id="gasDescripcion">
+              </div>
+
+              <div class="field">
+                <label>Documento</label>
+                <input id="gasDocumento">
+              </div>
+
+              <div class="field">
+                <label>CAI</label>
+                <input id="gasCai">
+              </div>
+
+              <div class="field">
+                <label>Subtotal</label>
+                <input
+                  type="number"
+                  class="money-input"
+                  id="gasSubtotal"
+                  oninput="calcularGasto()"
+                >
+              </div>
+
+              <div class="field">
+                <label>ISV</label>
+                <select id="gasImpuesto" onchange="calcularGasto()">
+                  <option value="0">0%</option>
+                  <option value="15">15%</option>
+                  <option value="18">18%</option>
+                </select>
+              </div>
+
+              <div class="field">
+                <label>Total</label>
+                <input id="gasTotal" class="money-input" readonly>
+              </div>
+
+              <div class="field">
+                <label>Tipo pago</label>
+                <select id="gasTipoPago">
+                  <option>CONTADO</option>
+                  <option>CREDITO</option>
+                </select>
+              </div>
+
+              <div class="field">
+                <label>Forma de pago</label>
+                <select id="gasFormaPago">
+                  <option>EFECTIVO</option>
+                  <option>TRANSFERENCIA</option>
+                  <option>CHEQUE</option>
+                  <option>TARJETA</option>
+                  <option>CREDITO</option>
+                </select>
+              </div>
+
+              <div class="field">
+                <label>Banco</label>
+                <select id="gasBanco">
+                  <option value="">Seleccionar...</option>
+                </select>
+              </div>
+
+              <div class="field">
+                <label>Referencia</label>
+                <input id="gasReferencia">
+              </div>
+
+              <div class="field span-2">
+                <label>Observaciones</label>
+                <textarea id="gasObservaciones"></textarea>
+              </div>
+
+            </div>
+
+            <div class="actions-right">
+              <button class="btn btn-success" onclick="guardarGasto()">
+                ✓ Guardar gasto
+              </button>
+            </div>
+
+          </div>
+        </div>
+
+
+        <div class="panel">
+
+          <div class="panel-header">
+            <div class="panel-title">Gastos registrados</div>
+          </div>
+
+          <div class="table-wrap">
+
+            <table>
+
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Fecha</th>
+                  <th>Categoría</th>
+                  <th>Descripción</th>
+                  <th>Proveedor</th>
+                  <th>Total</th>
+                  <th>Forma pago</th>
+                  <th>Estado</th>
+                </tr>
+              </thead>
+
+              <tbody id="tablaGastos">
+                <tr>
+                  <td colspan="8" class="text-center">
+                    No hay gastos
+                  </td>
+                </tr>
+              </tbody>
+
+            </table>
+
+          </div>
+        </div>
+
+      </section>
+
+
+      <!-- ==================================================
+           CXC
+      =================================================== -->
+
+      <section id="cxc" class="view">
+
+        <div class="cards">
+
+          <div class="card">
+            <div class="card-label">Total por cobrar</div>
+            <div class="card-value" id="cxcTotal">L 0.00</div>
+          </div>
+
+          <div class="card">
+            <div class="card-label">Vencido</div>
+            <div class="card-value" id="cxcVencido">L 0.00</div>
+          </div>
+
+          <div class="card">
+            <div class="card-label">Clientes con saldo</div>
+            <div class="card-value" id="cxcClientes">0</div>
+          </div>
+
+          <div class="card">
+            <div class="card-label">Cobrado mes</div>
+            <div class="card-value" id="cxcCobrado">L 0.00</div>
+          </div>
+
+        </div>
+
+
+        <div class="panel">
+
+          <div class="panel-header">
+
+            <div>
+              <div class="panel-title">Cuentas por cobrar</div>
+            </div>
+
+            <button class="btn btn-success" onclick="abrirModal('modalCobro')">
+              + Registrar cobro
+            </button>
+
+          </div>
+
+          <div class="table-wrap">
+
+            <table>
+
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Factura</th>
+                  <th>Cliente</th>
+                  <th>Fecha</th>
+                  <th>Vence</th>
+                  <th>Total</th>
+                  <th>Abonado</th>
+                  <th>Saldo</th>
+                  <th>Estado</th>
+                </tr>
+              </thead>
+
+              <tbody id="tablaCxc">
+                <tr>
+                  <td colspan="9" class="text-center">
+                    No hay cuentas por cobrar
+                  </td>
+                </tr>
+              </tbody>
+
+            </table>
+
+          </div>
+        </div>
+
+      </section>
+
+
+      <!-- ==================================================
+           CXP
+      =================================================== -->
+
+      <section id="cxp" class="view">
+
+        <div class="cards">
+
+          <div class="card">
+            <div class="card-label">Total por pagar</div>
+            <div class="card-value" id="cxpTotal">L 0.00</div>
+          </div>
+
+          <div class="card">
+            <div class="card-label">Vencido</div>
+            <div class="card-value" id="cxpVencido">L 0.00</div>
+          </div>
+
+          <div class="card">
+            <div class="card-label">Proveedores con saldo</div>
+            <div class="card-value" id="cxpProveedores">0</div>
+          </div>
+
+          <div class="card">
+            <div class="card-label">Pagado mes</div>
+            <div class="card-value" id="cxpPagado">L 0.00</div>
+          </div>
+
+        </div>
+
+
+        <div class="panel">
+
+          <div class="panel-header">
+
+            <div class="panel-title">Cuentas por pagar</div>
+
+            <button class="btn btn-success" onclick="abrirModal('modalPago')">
+              + Registrar pago
+            </button>
+
+          </div>
+
+          <div class="table-wrap">
+
+            <table>
+
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Documento</th>
+                  <th>Proveedor</th>
+                  <th>Fecha</th>
+                  <th>Vence</th>
+                  <th>Total</th>
+                  <th>Pagado</th>
+                  <th>Saldo</th>
+                  <th>Estado</th>
+                </tr>
+              </thead>
+
+              <tbody id="tablaCxp">
+                <tr>
+                  <td colspan="9" class="text-center">
+                    No hay cuentas por pagar
+                  </td>
+                </tr>
+              </tbody>
+
+            </table>
+
+          </div>
+
+        </div>
+
+      </section>
+
+
+      <!-- ==================================================
+           BANCOS
+      =================================================== -->
+
+      <section id="bancos" class="view">
+
+        <div class="tabs">
+
+          <button class="tab-btn active" data-tab-group="bancos" data-tab="banResumen">
+            Resumen
+          </button>
+
+          <button class="tab-btn" data-tab-group="bancos" data-tab="banCatalogo">
+            Cuentas bancarias
+          </button>
+
+          <button class="tab-btn" data-tab-group="bancos" data-tab="banMovimientos">
+            Movimientos
+          </button>
+
+        </div>
+
+
+        <div id="banResumen" class="tab-content active">
+
+          <div class="cards">
+
+            <div class="card">
+              <div class="card-label">Saldo total bancos</div>
+              <div class="card-value" id="banSaldoTotal">L 0.00</div>
+            </div>
+
+            <div class="card">
+              <div class="card-label">Ingresos mes</div>
+              <div class="card-value" id="banIngresos">L 0.00</div>
+            </div>
+
+            <div class="card">
+              <div class="card-label">Egresos mes</div>
+              <div class="card-value" id="banEgresos">L 0.00</div>
+            </div>
+
+            <div class="card">
+              <div class="card-label">Cuentas activas</div>
+              <div class="card-value" id="banCantidad">0</div>
+            </div>
+
+          </div>
+
+        </div>
+
+
+        <div id="banCatalogo" class="tab-content">
+
+          <div class="panel">
+
+            <div class="panel-header">
+
+              <div class="panel-title">Cuentas bancarias</div>
+
+              <button class="btn btn-primary" onclick="abrirModal('modalBanco')">
+                + Nueva cuenta
+              </button>
+
+            </div>
+
+            <div class="table-wrap">
+
+              <table>
+
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Código</th>
+                    <th>Banco</th>
+                    <th>Nombre cuenta</th>
+                    <th>Número</th>
+                    <th>Tipo</th>
+                    <th>Moneda</th>
+                    <th>Cuenta contable</th>
+                    <th>Estado</th>
+                  </tr>
+                </thead>
+
+                <tbody id="tablaBancos">
+                  <tr>
+                    <td colspan="9" class="text-center">
+                      No hay cuentas bancarias
+                    </td>
+                  </tr>
+                </tbody>
+
+              </table>
+
+            </div>
+
+          </div>
+
+        </div>
+
+
+        <div id="banMovimientos" class="tab-content">
+
+          <div class="panel">
+
+            <div class="panel-header">
+              <div class="panel-title">Movimientos bancarios</div>
+            </div>
+
+            <div class="table-wrap">
+
+              <table>
+
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Fecha</th>
+                    <th>Banco</th>
+                    <th>Tipo</th>
+                    <th>Origen</th>
+                    <th>Concepto</th>
+                    <th>Referencia</th>
+                    <th>Entrada</th>
+                    <th>Salida</th>
+                    <th>Saldo</th>
+                  </tr>
+                </thead>
+
+                <tbody id="tablaMovimientosBanco">
+                  <tr>
+                    <td colspan="10" class="text-center">
+                      No hay movimientos
+                    </td>
+                  </tr>
+                </tbody>
+
+              </table>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      </section>
+
+
+      <!-- ==================================================
+           CONTABILIDAD
+      =================================================== -->
+
+      <section id="contabilidad" class="view">
+
+        <div class="tabs">
+
+          <button class="tab-btn active" data-tab-group="contabilidad" data-tab="conAsientos">
+            Asientos
+          </button>
+
+          <button class="tab-btn" data-tab-group="contabilidad" data-tab="conCuentas">
+            Catálogo de cuentas
+          </button>
+
+          <button class="tab-btn" data-tab-group="contabilidad" data-tab="conDiario">
+            Libro diario
+          </button>
+
+          <button class="tab-btn" data-tab-group="contabilidad" data-tab="conMayor">
+            Libro mayor
+          </button>
+
+          <button class="tab-btn" data-tab-group="contabilidad" data-tab="conBalanza">
+            Balanza
+          </button>
+
+        </div>
+
+
+        <!-- ASIENTOS -->
+
+        <div id="conAsientos" class="tab-content active">
+
+          <div class="panel">
+
+            <div class="panel-header">
+
+              <div class="panel-title">Asientos contables</div>
+
+              <button class="btn btn-primary" onclick="abrirModal('modalAsiento')">
+                + Asiento manual
+              </button>
+
+            </div>
+
+            <div class="table-wrap">
+
+              <table>
+
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Número</th>
+                    <th>Fecha</th>
+                    <th>Origen</th>
+                    <th>Documento</th>
+                    <th>Concepto</th>
+                    <th>Debe</th>
+                    <th>Haber</th>
+                    <th>Estado</th>
+                  </tr>
+                </thead>
+
+                <tbody id="tablaAsientos">
+                  <tr>
+                    <td colspan="9" class="text-center">
+                      No hay asientos
+                    </td>
+                  </tr>
+                </tbody>
+
+              </table>
+
+            </div>
+          </div>
+
+        </div>
+
+
+        <!-- CUENTAS CONTABLES -->
+
+        <div id="conCuentas" class="tab-content">
+
+          <div class="panel">
+
+            <div class="panel-header">
+
+              <div class="panel-title">Catálogo de cuentas contables</div>
+
+              <button class="btn btn-primary" onclick="abrirModal('modalCuentaContable')">
+                + Nueva cuenta
+              </button>
+
+            </div>
+
+            <div class="table-wrap">
+
+              <table>
+
+                <thead>
+                  <tr>
+                    <th>Código</th>
+                    <th>Cuenta</th>
+                    <th>Tipo</th>
+                    <th>Naturaleza</th>
+                    <th>Cuenta padre</th>
+                    <th>Nivel</th>
+                    <th>Movimiento</th>
+                    <th>Estado</th>
+                  </tr>
+                </thead>
+
+                <tbody id="tablaCuentasContables">
+                  <tr>
+                    <td colspan="8" class="text-center">
+                      No hay cuentas contables
+                    </td>
+                  </tr>
+                </tbody>
+
+              </table>
+
+            </div>
+
+          </div>
+
+        </div>
+
+
+        <!-- DIARIO -->
+
+        <div id="conDiario" class="tab-content">
+
+          <div class="panel">
+
+            <div class="panel-header">
+              <div class="panel-title">Libro diario</div>
+            </div>
+
+            <div class="panel-body">
+
+              <div class="form-grid cols-3">
+
+                <div class="field">
+                  <label>Desde</label>
+                  <input type="date" id="diarioDesde">
+                </div>
+
+                <div class="field">
+                  <label>Hasta</label>
+                  <input type="date" id="diarioHasta">
+                </div>
+
+                <div class="field" style="padding-top:16px">
+                  <button class="btn btn-primary" onclick="generarLibroDiario()">
+                    Generar
+                  </button>
+                </div>
+
+              </div>
+
+            </div>
+
+            <div class="table-wrap">
+
+              <table>
+
+                <thead>
+                  <tr>
+                    <th>Fecha</th>
+                    <th>Asiento</th>
+                    <th>Cuenta</th>
+                    <th>Descripción</th>
+                    <th>Debe</th>
+                    <th>Haber</th>
+                  </tr>
+                </thead>
+
+                <tbody id="tablaLibroDiario"></tbody>
+
+              </table>
+
+            </div>
+
+          </div>
+
+        </div>
+
+
+        <!-- MAYOR -->
+
+        <div id="conMayor" class="tab-content">
+
+          <div class="panel">
+
+            <div class="panel-header">
+              <div class="panel-title">Libro mayor</div>
+            </div>
+
+            <div class="panel-body">
+
+              <div class="form-grid">
+
+                <div class="field span-2">
+                  <label>Cuenta contable</label>
+                  <select id="mayorCuenta">
+                    <option value="">Seleccionar...</option>
+                  </select>
+                </div>
+
+                <div class="field">
+                  <label>Desde</label>
+                  <input type="date" id="mayorDesde">
+                </div>
+
+                <div class="field">
+                  <label>Hasta</label>
+                  <input type="date" id="mayorHasta">
+                </div>
+
+              </div>
+
+              <div class="actions-right">
+                <button class="btn btn-primary" onclick="generarLibroMayor()">
+                  Generar mayor
+                </button>
+              </div>
+
+            </div>
+
+
+            <div class="table-wrap">
+
+              <table>
+
+                <thead>
+                  <tr>
+                    <th>Fecha</th>
+                    <th>Asiento</th>
+                    <th>Concepto</th>
+                    <th>Debe</th>
+                    <th>Haber</th>
+                    <th>Saldo</th>
+                  </tr>
+                </thead>
+
+                <tbody id="tablaLibroMayor"></tbody>
+
+              </table>
+
+            </div>
+
+          </div>
+
+        </div>
+
+
+        <!-- BALANZA -->
+
+        <div id="conBalanza" class="tab-content">
+
+          <div class="panel">
+
+            <div class="panel-header">
+              <div class="panel-title">Balanza de comprobación</div>
+            </div>
+
+            <div class="panel-body">
+
+              <div class="form-grid cols-3">
+
+                <div class="field">
+                  <label>Desde</label>
+                  <input type="date" id="balanzaDesde">
+                </div>
+
+                <div class="field">
+                  <label>Hasta</label>
+                  <input type="date" id="balanzaHasta">
+                </div>
+
+                <div class="field" style="padding-top:16px">
+                  <button class="btn btn-primary" onclick="generarBalanza()">
+                    Generar
+                  </button>
+                </div>
+
+              </div>
+
+            </div>
+
+            <div class="table-wrap">
+
+              <table>
+
+                <thead>
+                  <tr>
+                    <th>Código</th>
+                    <th>Cuenta</th>
+                    <th>Debe</th>
+                    <th>Haber</th>
+                    <th>Saldo</th>
+                  </tr>
+                </thead>
+
+                <tbody id="tablaBalanza"></tbody>
+
+              </table>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      </section>
+
+
+      <!-- ==================================================
+           IA
+      =================================================== -->
+
+      <section id="ia" class="view">
+
+        <div class="ia-box">
+
+          <div class="ia-title">
+            ✦ Análisis Inteligente del Negocio
+          </div>
+
+          <div style="font-size:12px;color:#6d28d9;margin-top:5px;">
+            Consulta ventas, gastos, cartera, inventario y situación financiera.
+          </div>
+
+
+          <div class="form-grid cols-3" style="margin-top:20px">
+
+            <div class="field">
+              <label>Período</label>
+
+              <select id="iaPeriodo">
+                <option>MES_ACTUAL</option>
+                <option>MES_ANTERIOR</option>
+                <option>ULTIMOS_3_MESES</option>
+                <option>ULTIMOS_6_MESES</option>
+                <option>AÑO_ACTUAL</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label>Tipo de análisis</label>
+
+              <select id="iaTipo">
+                <option value="GENERAL">General</option>
+                <option value="VENTAS">Ventas</option>
+                <option value="GASTOS">Gastos</option>
+                <option value="CXC">Cuentas por cobrar</option>
+                <option value="CXP">Cuentas por pagar</option>
+                <option value="INVENTARIO">Inventario</option>
+                <option value="FINANCIERO">Financiero</option>
+              </select>
+            </div>
+
+            <div class="field" style="padding-top:16px">
+              <button class="btn btn-purple" onclick="analizarIA()">
+                ✦ Analizar negocio
+              </button>
+            </div>
+
+          </div>
+
+
+          <div style="margin-top:20px">
+
+            <label>Pregúntale a tus datos</label>
+
+            <div style="display:flex;gap:8px">
+
+              <input
+                id="iaPregunta"
+                placeholder="Ej.: ¿Por qué bajó mi utilidad este mes?"
+              >
+
+              <button class="btn btn-purple" onclick="preguntarIA()">
+                Analizar
+              </button>
+
+            </div>
+
+          </div>
+
+
+          <div class="ia-response" id="iaResultado">
+            Selecciona un análisis o escribe una pregunta para comenzar.
+          </div>
+
+        </div>
+
+      </section>
+
+
+      <!-- ==================================================
+           REPORTES
+      =================================================== -->
+
+      <section id="reportes" class="view">
+
+        <div class="panel">
+
+          <div class="panel-header">
+            <div>
+              <div class="panel-title">Generador de reportes</div>
+              <div class="panel-description">
+                Selecciona un reporte y el período
+              </div>
+            </div>
+          </div>
+
+          <div class="panel-body">
+
+            <div class="form-grid">
+
+              <div class="field span-2">
+                <label>Reporte</label>
+
+                <select id="repTipo">
+
+                  <optgroup label="Ventas">
+                    <option value="VENTAS_FECHA">Ventas por fecha</option>
+                    <option value="VENTAS_CLIENTE">Ventas por cliente</option>
+                    <option value="VENTAS_PRODUCTO">Ventas por producto</option>
+                  </optgroup>
+
+                  <optgroup label="Inventario">
+                    <option value="EXISTENCIAS">Existencias</option>
+                    <option value="KARDEX">Kardex</option>
+                    <option value="STOCK_BAJO">Productos bajo mínimo</option>
+                  </optgroup>
+
+                  <optgroup label="Compras">
+                    <option value="COMPRAS_PROVEEDOR">Compras por proveedor</option>
+                  </optgroup>
+
+                  <optgroup label="Cuentas por cobrar">
+                    <option value="CXC">Cuentas por cobrar</option>
+                    <option value="CXC_VENCIDA">Cartera vencida</option>
+                  </optgroup>
+
+                  <optgroup label="Cuentas por pagar">
+                    <option value="CXP">Cuentas por pagar</option>
+                    <option value="CXP_VENCIDA">Obligaciones vencidas</option>
+                  </optgroup>
+
+                  <optgroup label="Contabilidad">
+                    <option value="LIBRO_DIARIO">Libro diario</option>
+                    <option value="LIBRO_MAYOR">Libro mayor</option>
+                    <option value="BALANZA">Balanza</option>
+                    <option value="ESTADO_RESULTADOS">Estado de resultados</option>
+                    <option value="BALANCE_GENERAL">Balance general</option>
+                  </optgroup>
+
+                </select>
+              </div>
+
+              <div class="field">
+                <label>Desde</label>
+                <input type="date" id="repDesde">
+              </div>
+
+              <div class="field">
+                <label>Hasta</label>
+                <input type="date" id="repHasta">
+              </div>
+
+            </div>
+
+            <div class="actions-right">
+
+              <button class="btn btn-primary" onclick="generarReporte()">
+                📊 Generar
+              </button>
+
+              <button class="btn btn-secondary" onclick="exportarReporte('PDF')">
+                PDF
+              </button>
+
+              <button class="btn btn-secondary" onclick="exportarReporte('EXCEL')">
+                Excel
+              </button>
+
+            </div>
+
+          </div>
+
+        </div>
+
+
+        <div class="panel">
+
+          <div class="panel-header">
+            <div class="panel-title">Resultado</div>
+          </div>
+
+          <div class="panel-body" id="reporteResultado">
+            Selecciona un reporte para visualizarlo.
+          </div>
+
+        </div>
+
+      </section>
+
+    </div>
+
+  </main>
+
+</div>
+
+
+<!-- ======================================================
+     MODAL CLIENTE
+====================================================== -->
+
+<div class="modal-overlay" id="modalCliente">
+
+  <div class="modal">
+
+    <div class="modal-header">
+      <strong>Nuevo cliente</strong>
+
+      <button class="modal-close" onclick="cerrarModal('modalCliente')">
+        ×
+      </button>
+    </div>
+
+    <div class="modal-body">
+
+      <div class="form-grid">
+
+        <div class="field">
+          <label>Código</label>
+          <input id="cliCodigo">
+        </div>
+
+        <div class="field span-2">
+          <label>Nombre / Razón social</label>
+          <input id="cliNombre">
+        </div>
+
+        <div class="field">
+          <label>RTN</label>
+          <input id="cliRtn">
+        </div>
+
+        <div class="field">
+          <label>Identidad</label>
+          <input id="cliIdentidad">
+        </div>
+
+        <div class="field">
+          <label>Contacto</label>
+          <input id="cliContacto">
+        </div>
+
+        <div class="field">
+          <label>Teléfono</label>
+          <input id="cliTelefono">
+        </div>
+
+        <div class="field">
+          <label>Correo</label>
+          <input type="email" id="cliCorreo">
+        </div>
+
+        <div class="field span-2">
+          <label>Dirección</label>
+          <input id="cliDireccion">
+        </div>
+
+        <div class="field">
+          <label>Ciudad</label>
+          <input id="cliCiudad">
+        </div>
+
+        <div class="field">
+          <label>Días crédito</label>
+          <input type="number" id="cliDiasCredito" value="30">
+        </div>
+
+        <div class="field">
+          <label>Límite crédito</label>
+          <input type="number" id="cliLimiteCredito">
+        </div>
+
+        <div class="field">
+          <label>Estado</label>
+          <select id="cliEstado">
+            <option>ACTIVO</option>
+            <option>INACTIVO</option>
+          </select>
+        </div>
+
+        <div class="field span-4">
+          <label>Observaciones</label>
+          <textarea id="cliObservaciones"></textarea>
+        </div>
+
+      </div>
+
+      <div class="actions-right">
+        <button class="btn btn-primary" onclick="guardarCliente()">
+          Guardar cliente
+        </button>
+      </div>
+
+    </div>
+
+  </div>
+
+</div>
+
+
+<!-- ======================================================
+     MODAL PROVEEDOR
+====================================================== -->
+
+<div class="modal-overlay" id="modalProveedor">
+
+  <div class="modal">
+
+    <div class="modal-header">
+      <strong>Nuevo proveedor</strong>
+
+      <button class="modal-close" onclick="cerrarModal('modalProveedor')">
+        ×
+      </button>
+    </div>
+
+    <div class="modal-body">
+
+      <div class="form-grid">
+
+        <div class="field">
+          <label>Código</label>
+          <input id="proCodigo">
+        </div>
+
+        <div class="field span-2">
+          <label>Nombre</label>
+          <input id="proNombre">
+        </div>
+
+        <div class="field">
+          <label>RTN</label>
+          <input id="proRtn">
+        </div>
+
+        <div class="field">
+          <label>Contacto</label>
+          <input id="proContacto">
+        </div>
+
+        <div class="field">
+          <label>Teléfono</label>
+          <input id="proTelefono">
+        </div>
+
+        <div class="field">
+          <label>Correo</label>
+          <input type="email" id="proCorreo">
+        </div>
+
+        <div class="field span-2">
+          <label>Dirección</label>
+          <input id="proDireccion">
+        </div>
+
+        <div class="field">
+          <label>Ciudad</label>
+          <input id="proCiudad">
+        </div>
+
+        <div class="field">
+          <label>Días crédito</label>
+          <input type="number" id="proDiasCredito" value="30">
+        </div>
+
+        <div class="field">
+          <label>Límite crédito</label>
+          <input type="number" id="proLimiteCredito">
+        </div>
+
+        <div class="field">
+          <label>Banco</label>
+          <input id="proBanco">
+        </div>
+
+        <div class="field">
+          <label>Cuenta bancaria</label>
+          <input id="proCuentaBanco">
+        </div>
+
+        <div class="field">
+          <label>Tipo cuenta</label>
+          <select id="proTipoCuenta">
+            <option value=""></option>
+            <option>CORRIENTE</option>
+            <option>AHORRO</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Estado</label>
+          <select id="proEstado">
+            <option>ACTIVO</option>
+            <option>INACTIVO</option>
+          </select>
+        </div>
+
+        <div class="field span-4">
+          <label>Observaciones</label>
+          <textarea id="proObservaciones"></textarea>
+        </div>
+
+      </div>
+
+      <div class="actions-right">
+        <button class="btn btn-primary" onclick="guardarProveedor()">
+          Guardar proveedor
+        </button>
+      </div>
+
+    </div>
+
+  </div>
+
+</div>
+
+
+<!-- ======================================================
+     MODAL PRODUCTO
+====================================================== -->
+
+<div class="modal-overlay" id="modalProducto">
+
+  <div class="modal">
+
+    <div class="modal-header">
+      <strong>Producto / Servicio</strong>
+
+      <button class="modal-close" onclick="cerrarModal('modalProducto')">
+        ×
+      </button>
+    </div>
+
+    <div class="modal-body">
+
+      <div class="form-grid">
+
+        <div class="field">
+          <label>Código</label>
+          <input id="prdCodigo">
+        </div>
+
+        <div class="field">
+          <label>Código barras</label>
+          <input id="prdBarras">
+        </div>
+
+        <div class="field span-2">
+          <label>Nombre</label>
+          <input id="prdNombre">
+        </div>
+
+        <div class="field span-2">
+          <label>Descripción</label>
+          <input id="prdDescripcion">
+        </div>
+
+        <div class="field">
+          <label>Tipo</label>
+
+          <select id="prdTipo">
+            <option>PRODUCTO</option>
+            <option>SERVICIO</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Categoría</label>
+          <input id="prdCategoria">
+        </div>
+
+        <div class="field">
+          <label>Unidad</label>
+
+          <select id="prdUnidad">
+            <option>UNIDAD</option>
+            <option>CAJA</option>
+            <option>PAQUETE</option>
+            <option>LIBRA</option>
+            <option>KG</option>
+            <option>LITRO</option>
+            <option>METRO</option>
+            <option>HORA</option>
+            <option>SERVICIO</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Costo</label>
+          <input type="number" id="prdCosto">
+        </div>
+
+        <div class="field">
+          <label>Precio</label>
+          <input type="number" id="prdPrecio">
+        </div>
+
+        <div class="field">
+          <label>Impuesto</label>
+          <select id="prdImpuesto">
+            <option value="0">0%</option>
+            <option value="15">15%</option>
+            <option value="18">18%</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Stock mínimo</label>
+          <input type="number" id="prdStockMinimo">
+        </div>
+
+        <div class="field">
+          <label>Cuenta inventario</label>
+          <select id="prdCuentaInventario">
+            <option value="">Seleccionar...</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Cuenta venta</label>
+          <select id="prdCuentaVenta">
+            <option value="">Seleccionar...</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Cuenta costo</label>
+          <select id="prdCuentaCosto">
+            <option value="">Seleccionar...</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Estado</label>
+          <select id="prdEstado">
+            <option>ACTIVO</option>
+            <option>INACTIVO</option>
+          </select>
+        </div>
+
+        <div class="field span-4">
+          <label>Observaciones</label>
+          <textarea id="prdObservaciones"></textarea>
+        </div>
+
+      </div>
+
+      <div class="actions-right">
+        <button class="btn btn-primary" onclick="guardarProducto()">
+          Guardar producto
+        </button>
+      </div>
+
+    </div>
+
+  </div>
+
+</div>
+
+
+<!-- ======================================================
+     MODAL BANCO
+====================================================== -->
+
+<div class="modal-overlay" id="modalBanco">
+
+  <div class="modal">
+
+    <div class="modal-header">
+      <strong>Nueva cuenta bancaria</strong>
+
+      <button class="modal-close" onclick="cerrarModal('modalBanco')">
+        ×
+      </button>
+    </div>
+
+    <div class="modal-body">
+
+      <div class="form-grid">
+
+        <div class="field">
+          <label>Código</label>
+          <input id="banCodigo">
+        </div>
+
+        <div class="field">
+          <label>Banco</label>
+          <input id="banNombreBanco">
+        </div>
+
+        <div class="field span-2">
+          <label>Nombre de cuenta</label>
+          <input id="banNombreCuenta">
+        </div>
+
+        <div class="field">
+          <label>Número de cuenta</label>
+          <input id="banNumeroCuenta">
+        </div>
+
+        <div class="field">
+          <label>Tipo cuenta</label>
+
+          <select id="banTipoCuenta">
+            <option>CORRIENTE</option>
+            <option>AHORRO</option>
+            <option>TARJETA</option>
+            <option>OTRA</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Moneda</label>
+
+          <select id="banMoneda">
+            <option>HNL</option>
+            <option>USD</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Saldo inicial</label>
+          <input type="number" id="banSaldoInicial">
+        </div>
+
+        <div class="field span-2">
+          <label>Cuenta contable</label>
+          <select id="banCuentaContable">
+            <option value="">Seleccionar...</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Estado</label>
+
+          <select id="banEstado">
+            <option>ACTIVO</option>
+            <option>INACTIVO</option>
+          </select>
+        </div>
+
+        <div class="field span-4">
+          <label>Observaciones</label>
+          <textarea id="banObservaciones"></textarea>
+        </div>
+
+      </div>
+
+      <div class="actions-right">
+        <button class="btn btn-primary" onclick="guardarBanco()">
+          Guardar banco
+        </button>
+      </div>
+
+    </div>
+
+  </div>
+
+</div>
+
+
+<!-- ======================================================
+     MODAL CUENTA CONTABLE
+====================================================== -->
+
+<div class="modal-overlay" id="modalCuentaContable">
+
+  <div class="modal">
+
+    <div class="modal-header">
+      <strong>Nueva cuenta contable</strong>
+
+      <button class="modal-close" onclick="cerrarModal('modalCuentaContable')">
+        ×
+      </button>
+    </div>
+
+    <div class="modal-body">
+
+      <div class="form-grid">
+
+        <div class="field">
+          <label>Código</label>
+          <input id="ctaCodigo">
+        </div>
+
+        <div class="field span-2">
+          <label>Cuenta</label>
+          <input id="ctaNombre">
+        </div>
+
+        <div class="field">
+          <label>Tipo</label>
+
+          <select id="ctaTipo">
+            <option>ACTIVO</option>
+            <option>PASIVO</option>
+            <option>PATRIMONIO</option>
+            <option>INGRESO</option>
+            <option>COSTO</option>
+            <option>GASTO</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Naturaleza</label>
+
+          <select id="ctaNaturaleza">
+            <option>DEUDORA</option>
+            <option>ACREEDORA</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Cuenta padre</label>
+          <input id="ctaPadre">
+        </div>
+
+        <div class="field">
+          <label>Nivel</label>
+          <input type="number" id="ctaNivel">
+        </div>
+
+        <div class="field">
+          <label>Acepta movimiento</label>
+
+          <select id="ctaMovimiento">
+            <option>SI</option>
+            <option>NO</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Estado</label>
+
+          <select id="ctaEstado">
+            <option>ACTIVO</option>
+            <option>INACTIVO</option>
+          </select>
+        </div>
+
+      </div>
+
+      <div class="actions-right">
+        <button class="btn btn-primary" onclick="guardarCuentaContable()">
+          Guardar cuenta
+        </button>
+      </div>
+
+    </div>
+
+  </div>
+
+</div>
+
+
+<!-- ======================================================
+     MODAL USUARIO
+====================================================== -->
+
+<div class="modal-overlay" id="modalUsuario">
+
+  <div class="modal">
+
+    <div class="modal-header">
+      <strong>Nuevo usuario</strong>
+
+      <button class="modal-close" onclick="cerrarModal('modalUsuario')">
+        ×
+      </button>
+    </div>
+
+    <div class="modal-body">
+
+      <div class="form-grid">
+
+        <div class="field span-2">
+          <label>Nombre</label>
+          <input id="usrNombre">
+        </div>
+
+        <div class="field span-2">
+          <label>Correo</label>
+          <input type="email" id="usrCorreo">
+        </div>
+
+        <div class="field">
+          <label>Rol</label>
+
+          <select id="usrRol">
+            <option>ADMINISTRADOR</option>
+            <option>CONTABILIDAD</option>
+            <option>FACTURACION</option>
+            <option>COMPRAS</option>
+            <option>INVENTARIO</option>
+            <option>CONSULTA</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Estado</label>
+
+          <select id="usrEstado">
+            <option>ACTIVO</option>
+            <option>INACTIVO</option>
+          </select>
+        </div>
+
+        <div class="field span-2">
+          <label>Observaciones</label>
+          <input id="usrObservaciones">
+        </div>
+
+      </div>
+
+      <div class="actions-right">
+        <button class="btn btn-primary" onclick="guardarUsuario()">
+          Guardar usuario
+        </button>
+      </div>
+
+    </div>
+
+  </div>
+
+</div>
+
+
+<!-- ======================================================
+     MODAL COBRO
+====================================================== -->
+
+<div class="modal-overlay" id="modalCobro">
+
+  <div class="modal">
+
+    <div class="modal-header">
+      <strong>Registrar cobro</strong>
+
+      <button class="modal-close" onclick="cerrarModal('modalCobro')">
+        ×
+      </button>
+    </div>
+
+    <div class="modal-body">
+
+      <div class="form-grid">
+
+        <div class="field">
+          <label>Fecha</label>
+          <input type="date" id="cobFecha">
+        </div>
+
+        <div class="field span-2">
+          <label>Cliente</label>
+          <select id="cobCliente"></select>
+        </div>
+
+        <div class="field">
+          <label>Cuenta por cobrar</label>
+          <select id="cobCxc"></select>
+        </div>
+
+        <div class="field">
+          <label>Valor</label>
+          <input type="number" id="cobValor">
+        </div>
+
+        <div class="field">
+          <label>Forma de pago</label>
+
+          <select id="cobForma">
+            <option>EFECTIVO</option>
+            <option>TRANSFERENCIA</option>
+            <option>CHEQUE</option>
+            <option>TARJETA</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Banco</label>
+          <select id="cobBanco"></select>
+        </div>
+
+        <div class="field">
+          <label>Referencia</label>
+          <input id="cobReferencia">
+        </div>
+
+        <div class="field span-4">
+          <label>Observaciones</label>
+          <textarea id="cobObservaciones"></textarea>
+        </div>
+
+      </div>
+
+      <div class="actions-right">
+        <button class="btn btn-success" onclick="guardarCobro()">
+          Registrar cobro
+        </button>
+      </div>
+
+    </div>
+
+  </div>
+
+</div>
+
+
+<!-- ======================================================
+     MODAL PAGO
+====================================================== -->
+
+<div class="modal-overlay" id="modalPago">
+
+  <div class="modal">
+
+    <div class="modal-header">
+      <strong>Registrar pago</strong>
+
+      <button class="modal-close" onclick="cerrarModal('modalPago')">
+        ×
+      </button>
+    </div>
+
+    <div class="modal-body">
+
+      <div class="form-grid">
+
+        <div class="field">
+          <label>Fecha</label>
+          <input type="date" id="pagFecha">
+        </div>
+
+        <div class="field span-2">
+          <label>Proveedor</label>
+          <select id="pagProveedor"></select>
+        </div>
+
+        <div class="field">
+          <label>Cuenta por pagar</label>
+          <select id="pagCxp"></select>
+        </div>
+
+        <div class="field">
+          <label>Valor</label>
+          <input type="number" id="pagValor">
+        </div>
+
+        <div class="field">
+          <label>Forma de pago</label>
+
+          <select id="pagForma">
+            <option>EFECTIVO</option>
+            <option>TRANSFERENCIA</option>
+            <option>CHEQUE</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Banco</label>
+          <select id="pagBanco"></select>
+        </div>
+
+        <div class="field">
+          <label>Referencia</label>
+          <input id="pagReferencia">
+        </div>
+
+        <div class="field span-4">
+          <label>Observaciones</label>
+          <textarea id="pagObservaciones"></textarea>
+        </div>
+
+      </div>
+
+      <div class="actions-right">
+        <button class="btn btn-success" onclick="guardarPago()">
+          Registrar pago
+        </button>
+      </div>
+
+    </div>
+
+  </div>
+
+</div>
+
+
+<!-- ======================================================
+     MODAL MOVIMIENTO INVENTARIO
+====================================================== -->
+
+<div class="modal-overlay" id="modalMovimientoInventario">
+
+  <div class="modal">
+
+    <div class="modal-header">
+      <strong>Ajuste de inventario</strong>
+
+      <button class="modal-close" onclick="cerrarModal('modalMovimientoInventario')">
+        ×
+      </button>
+    </div>
+
+    <div class="modal-body">
+
+      <div class="form-grid">
+
+        <div class="field">
+          <label>Fecha</label>
+          <input type="date" id="movInvFecha">
+        </div>
+
+        <div class="field">
+          <label>Tipo movimiento</label>
+
+          <select id="movInvTipo">
+            <option>AJUSTE_ENTRADA</option>
+            <option>AJUSTE_SALIDA</option>
+          </select>
+        </div>
+
+        <div class="field span-2">
+          <label>Producto</label>
+          <select id="movInvProducto"></select>
+        </div>
+
+        <div class="field">
+          <label>Cantidad</label>
+          <input type="number" id="movInvCantidad">
+        </div>
+
+        <div class="field">
+          <label>Costo unitario</label>
+          <input type="number" id="movInvCosto">
+        </div>
+
+        <div class="field span-2">
+          <label>Observaciones</label>
+          <input id="movInvObservaciones">
+        </div>
+
+      </div>
+
+      <div class="actions-right">
+        <button class="btn btn-primary" onclick="guardarMovimientoInventario()">
+          Guardar ajuste
+        </button>
+      </div>
+
+    </div>
+
+  </div>
+
+</div>
+
+
+<!-- ======================================================
+     MODAL ASIENTO
+====================================================== -->
+
+<div class="modal-overlay" id="modalAsiento">
+
+  <div class="modal">
+
+    <div class="modal-header">
+      <strong>Asiento contable manual</strong>
+
+      <button class="modal-close" onclick="cerrarModal('modalAsiento')">
+        ×
+      </button>
+    </div>
+
+    <div class="modal-body">
+
+      <div class="form-grid">
+
+        <div class="field">
+          <label>Fecha</label>
+          <input type="date" id="asiFecha">
+        </div>
+
+        <div class="field span-3">
+          <label>Concepto</label>
+          <input id="asiConcepto">
+        </div>
+
+      </div>
+
+
+      <div class="table-wrap" style="margin-top:18px">
+
+        <table>
+
+          <thead>
+            <tr>
+              <th>Cuenta</th>
+              <th>Descripción</th>
+              <th>Debe</th>
+              <th>Haber</th>
+              <th></th>
+            </tr>
+          </thead>
+
+          <tbody id="asientoDetalle"></tbody>
+
+        </table>
+
+      </div>
+
+
+      <div style="margin-top:10px">
+        <button class="btn btn-secondary btn-sm" onclick="agregarLineaAsiento()">
+          + Línea
+        </button>
+      </div>
+
+
+      <div class="totals-box">
+
+        <div class="total-line">
+          <span>Debe</span>
+          <strong id="asiDebe">L 0.00</strong>
+        </div>
+
+        <div class="total-line">
+          <span>Haber</span>
+          <strong id="asiHaber">L 0.00</strong>
+        </div>
+
+        <div class="total-line">
+          <span>Diferencia</span>
+          <strong id="asiDiferencia">L 0.00</strong>
+        </div>
+
+      </div>
+
+
+      <div class="actions-right">
+        <button class="btn btn-success" onclick="guardarAsiento()">
+          Contabilizar
+        </button>
+      </div>
+
+    </div>
+
+  </div>
+
+</div>
+
+
+<div class="toast" id="toast"></div>
+
+
+<script>
+
+  /* =====================================================
+     VARIABLES
+  ====================================================== */
+
+  let catalogoProductos = [];
+  let catalogoClientes = [];
+  let catalogoProveedores = [];
+  let catalogoBancos = [];
+  let catalogoCuentas = [];
+
+
+  const titulos = {
+
+    dashboard: [
+      'Dashboard',
+      'Resumen general del negocio'
+    ],
+
+    configuracion: [
+      'Configuración',
+      'Parámetros generales'
+    ],
+
+    facturacion: [
+      'Facturación',
+      'Ventas y clientes'
+    ],
+
+    inventarios: [
+      'Inventarios',
+      'Productos, existencias y movimientos'
+    ],
+
+    compras: [
+      'Compras',
+      'Compras y proveedores'
+    ],
+
+    gastos: [
+      'Gastos',
+      'Control de gastos operativos'
+    ],
+
+    cxc: [
+      'Cuentas por cobrar',
+      'Cartera y cobros de clientes'
+    ],
+
+    cxp: [
+      'Cuentas por pagar',
+      'Obligaciones y pagos'
+    ],
+
+    bancos: [
+      'Bancos',
+      'Cuentas y movimientos bancarios'
+    ],
+
+    contabilidad: [
+      'Contabilidad',
+      'Asientos y estados contables'
+    ],
+
+    ia: [
+      'Análisis IA',
+      'Inteligencia financiera'
+    ],
+
+    reportes: [
+      'Reportes',
+      'Información gerencial y contable'
+    ]
+
+  };
+
+
+  /* =====================================================
+     INICIO
+  ====================================================== */
+
+  document.addEventListener('DOMContentLoaded', () => {
+
+    configurarMenu();
+    configurarTabs();
+
+    inicializarFechas();
+
+    agregarLineaFactura();
+    agregarLineaCompra();
+    agregarLineaAsiento();
+
+    cargarSistema();
+
+  });
+
+
+  function cargarSistema() {
+
+    /*
+      Más adelante conectaremos aquí:
+
+      google.script.run
+        .withSuccessHandler(inicializarDatos)
+        .withFailureHandler(errorServidor)
+        .getDatosIniciales();
+
+    */
+
+    toast('Interfaz cargada correctamente');
+
+  }
+
+
+  function inicializarFechas() {
+
+    const hoy = fechaISO(new Date());
+
+    [
+      'facFecha',
+      'comFecha',
+      'gasFecha',
+      'cobFecha',
+      'pagFecha',
+      'movInvFecha',
+      'asiFecha'
+    ].forEach(id => {
+
+      const el =
+        document.getElementById(id);
+
+      if (el)
+        el.value = hoy;
+
+    });
+
+  }
+
+
+  /* =====================================================
+     MENU
+  ====================================================== */
+
+  function configurarMenu() {
+
+    document
+      .querySelectorAll('.menu-btn')
+      .forEach(btn => {
+
+        btn.addEventListener(
+          'click',
+          () => mostrarVista(
+            btn.dataset.view,
+            btn
+          )
+        );
+
+      });
+
+  }
+
+
+  function mostrarVista(id, btn) {
+
+    document
+      .querySelectorAll('.view')
+      .forEach(v =>
+        v.classList.remove('active')
+      );
+
+    document
+      .getElementById(id)
+      .classList.add('active');
+
+
+    document
+      .querySelectorAll('.menu-btn')
+      .forEach(b =>
+        b.classList.remove('active')
+      );
+
+    btn.classList.add('active');
+
+
+    document
+      .getElementById('pageTitle')
+      .textContent =
+        titulos[id][0];
+
+    document
+      .getElementById('pageSubtitle')
+      .textContent =
+        titulos[id][1];
+
+  }
+
+
+  /* =====================================================
+     TABS
+  ====================================================== */
+
+  function configurarTabs() {
+
+    document
+      .querySelectorAll('.tab-btn')
+      .forEach(btn => {
+
+        btn.addEventListener(
+          'click',
+          () => {
+
+            const grupo =
+              btn.dataset.tabGroup;
+
+            const destino =
+              btn.dataset.tab;
+
+
+            document
+              .querySelectorAll(
+                `.tab-btn[data-tab-group="${grupo}"]`
+              )
+              .forEach(b =>
+                b.classList.remove('active')
+              );
+
+
+            btn.classList.add('active');
+
+
+            const grupoTabs =
+              btn.closest('.view');
+
+
+            grupoTabs
+              .querySelectorAll('.tab-content')
+              .forEach(t => {
+
+                if (
+                  t.id === destino ||
+                  !document.querySelector(
+                    `.tab-btn[data-tab-group="${grupo}"][data-tab="${t.id}"]`
+                  )
+                ) {
+                  return;
+                }
+
+                t.classList.remove('active');
+
+              });
+
+
+            document
+              .getElementById(destino)
+              .classList.add('active');
+
+          }
+        );
+
+      });
+
+  }
+
+
+  /* =====================================================
+     MODALES
+  ====================================================== */
+
+  function abrirModal(id) {
+
+    document
+      .getElementById(id)
+      .classList.add('active');
+
+  }
+
+
+  function cerrarModal(id) {
+
+    document
+      .getElementById(id)
+      .classList.remove('active');
+
+  }
+
+
+  document
+    .querySelectorAll('.modal-overlay')
+    .forEach(modal => {
+
+      modal.addEventListener(
+        'click',
+        e => {
+
+          if (e.target === modal)
+            modal.classList.remove('active');
+
+        }
+      );
+
+    });
+
+
+  /* =====================================================
+     FACTURA
+  ====================================================== */
+
+  function agregarLineaFactura() {
+
+    const tbody =
+      document.getElementById(
+        'facturaDetalle'
+      );
+
+    const tr =
+      document.createElement('tr');
+
+
+    tr.innerHTML = `
+
+      <td>
+        <select class="facProducto"
+                onchange="cambiarProductoFactura(this)">
+          ${opcionesProductos()}
+        </select>
+      </td>
+
+      <td>
+        <input
+          class="facCantidad"
+          type="number"
+          min="0"
+          step="0.01"
+          value="1"
+          oninput="calcularFactura()">
+      </td>
+
+      <td>
+        <input
+          class="facPrecio"
+          type="number"
+          min="0"
+          step="0.01"
+          oninput="calcularFactura()">
+      </td>
+
+      <td>
+        <input
+          class="facDesc"
+          type="number"
+          min="0"
+          step="0.01"
+          value="0"
+          oninput="calcularFactura()">
+      </td>
+
+      <td>
+        <select
+          class="facImp"
+          onchange="calcularFactura()">
+
+          <option value="0">0%</option>
+          <option value="15">15%</option>
+          <option value="18">18%</option>
+
+        </select>
+      </td>
+
+      <td class="text-right facSub">
+        L 0.00
+      </td>
+
+      <td class="text-right facTot">
+        L 0.00
+      </td>
+
+      <td class="text-center">
+        <button
+          class="btn btn-danger btn-sm"
+          onclick="eliminarFila(this,calcularFactura)">
+          ×
+        </button>
+      </td>
+
+    `;
+
+    tbody.appendChild(tr);
+
+  }
+
+
+  function cambiarProductoFactura(select) {
+
+    const producto =
+      catalogoProductos.find(
+        p =>
+          String(p.ID_PRODUCTO || p.id) ===
+          select.value
+      );
+
+    if (!producto)
+      return;
+
+
+    const tr =
+      select.closest('tr');
+
+
+    tr.querySelector('.facPrecio').value =
+      Number(
+        producto.PRECIO ||
+        producto.precio ||
+        0
+      );
+
+
+    tr.querySelector('.facImp').value =
+      String(
+        producto.IMPUESTO ||
+        producto.impuesto ||
+        0
+      );
+
+
+    calcularFactura();
+
+  }
+
+
+  function calcularFactura() {
+
+    let subtotalGeneral = 0;
+    let descuentoGeneral = 0;
+    let isvGeneral = 0;
+    let totalGeneral = 0;
+
+
+    document
+      .querySelectorAll(
+        '#facturaDetalle tr'
+      )
+      .forEach(tr => {
+
+        const cantidad =
+          Number(
+            tr.querySelector(
+              '.facCantidad'
+            ).value
+          ) || 0;
+
+        const precio =
+          Number(
+            tr.querySelector(
+              '.facPrecio'
+            ).value
+          ) || 0;
+
+        const descuento =
+          Number(
+            tr.querySelector(
+              '.facDesc'
+            ).value
+          ) || 0;
+
+        const tasa =
+          Number(
+            tr.querySelector(
+              '.facImp'
+            ).value
+          ) || 0;
+
+
+        const bruto =
+          cantidad * precio;
+
+        const neto =
+          Math.max(
+            0,
+            bruto - descuento
+          );
+
+        const isv =
+          neto * tasa / 100;
+
+        const total =
+          neto + isv;
+
+
+        tr.querySelector(
+          '.facSub'
+        ).textContent =
+          dinero(neto);
+
+        tr.querySelector(
+          '.facTot'
+        ).textContent =
+          dinero(total);
+
+
+        subtotalGeneral += bruto;
+        descuentoGeneral += descuento;
+        isvGeneral += isv;
+        totalGeneral += total;
+
+      });
+
+
+    document.getElementById(
+      'facSubtotal'
+    ).textContent =
+      dinero(subtotalGeneral);
+
+
+    document.getElementById(
+      'facDescuento'
+    ).textContent =
+      dinero(descuentoGeneral);
+
+
+    document.getElementById(
+      'facIsvTotal'
+    ).textContent =
+      dinero(isvGeneral);
+
+
+    document.getElementById(
+      'facTotal'
+    ).textContent =
+      dinero(totalGeneral);
+
+  }
+
+
+  function guardarFactura() {
+
+    const detalles = [];
+
+
+    document
+      .querySelectorAll(
+        '#facturaDetalle tr'
+      )
+      .forEach((tr, index) => {
+
+        const producto =
+          tr.querySelector(
+            '.facProducto'
+          ).value;
+
+        if (!producto)
+          return;
+
+
+        detalles.push({
+
+          linea:
+            index + 1,
+
+          idProducto:
+            producto,
+
+          cantidad:
+            Number(
+              tr.querySelector(
+                '.facCantidad'
+              ).value
+            ) || 0,
+
+          precio:
+            Number(
+              tr.querySelector(
+                '.facPrecio'
+              ).value
+            ) || 0,
+
+          descuento:
+            Number(
+              tr.querySelector(
+                '.facDesc'
+              ).value
+            ) || 0,
+
+          impuesto:
+            Number(
+              tr.querySelector(
+                '.facImp'
+              ).value
+            ) || 0
+
+        });
+
+      });
+
+
+    const factura = {
+
+      numero:
+        valor('facNumero'),
+
+      fecha:
+        valor('facFecha'),
+
+      cliente:
+        valor('facCliente'),
+
+      rtn:
+        valor('facRTN'),
+
+      tipoVenta:
+        valor('facTipoVenta'),
+
+      vencimiento:
+        valor('facVencimiento'),
+
+      formaPago:
+        valor('facFormaPago'),
+
+      referencia:
+        valor('facReferencia'),
+
+      observaciones:
+        valor('facObservaciones'),
+
+      detalles:
+        detalles
+
+    };
+
+
+    console.log(
+      'FACTURA:',
+      factura
+    );
+
+
+    /*
+      Próximo Code.gs:
+
+      google.script.run
+        .withSuccessHandler(respuestaFactura)
+        .withFailureHandler(errorServidor)
+        .guardarFactura(factura);
+    */
+
+
+    toast(
+      'Factura preparada para guardar'
+    );
+
+  }
+
+
+  function limpiarFactura() {
+
+    document.getElementById(
+      'facCliente'
+    ).value = '';
+
+    document.getElementById(
+      'facRTN'
+    ).value = '';
+
+    document.getElementById(
+      'facReferencia'
+    ).value = '';
+
+    document.getElementById(
+      'facObservaciones'
+    ).value = '';
+
+    document.getElementById(
+      'facturaDetalle'
+    ).innerHTML = '';
+
+    agregarLineaFactura();
+
+    calcularFactura();
+
+  }
+
+
+  function actualizarCreditoFactura() {
+
+    const tipo =
+      valor('facTipoVenta');
+
+    if (tipo === 'CONTADO') {
+
+      document.getElementById(
+        'facVencimiento'
+      ).value = '';
+
+    }
+
+  }
+
+
+  /* =====================================================
+     COMPRAS
+  ====================================================== */
+
+  function agregarLineaCompra() {
+
+    const tbody =
+      document.getElementById(
+        'compraDetalle'
+      );
+
+    const tr =
+      document.createElement('tr');
+
+
+    tr.innerHTML = `
+
+      <td>
+        <select class="comProducto">
+          ${opcionesProductos()}
+        </select>
+      </td>
+
+      <td>
+        <input
+          class="comCantidad"
+          type="number"
+          value="1"
+          min="0"
+          step="0.01"
+          oninput="calcularCompra()">
+      </td>
+
+      <td>
+        <input
+          class="comCosto"
+          type="number"
+          min="0"
+          step="0.01"
+          oninput="calcularCompra()">
+      </td>
+
+      <td>
+        <input
+          class="comDesc"
+          type="number"
+          value="0"
+          min="0"
+          step="0.01"
+          oninput="calcularCompra()">
+      </td>
+
+      <td>
+        <select
+          class="comImp"
+          onchange="calcularCompra()">
+
+          <option value="0">0%</option>
+          <option value="15">15%</option>
+          <option value="18">18%</option>
+
+        </select>
+      </td>
+
+      <td class="text-right comTotal">
+        L 0.00
+      </td>
+
+      <td>
+        <button
+          class="btn btn-danger btn-sm"
+          onclick="eliminarFila(this,calcularCompra)">
+          ×
+        </button>
+      </td>
+
+    `;
+
+
+    tbody.appendChild(tr);
+
+  }
+
+
+  function calcularCompra() {
+
+    let subtotal = 0;
+    let isv = 0;
+    let total = 0;
+
+
+    document
+      .querySelectorAll(
+        '#compraDetalle tr'
+      )
+      .forEach(tr => {
+
+        const cantidad =
+          Number(
+            tr.querySelector(
+              '.comCantidad'
+            ).value
+          ) || 0;
+
+        const costo =
+          Number(
+            tr.querySelector(
+              '.comCosto'
+            ).value
+          ) || 0;
+
+        const descuento =
+          Number(
+            tr.querySelector(
+              '.comDesc'
+            ).value
+          ) || 0;
+
+        const tasa =
+          Number(
+            tr.querySelector(
+              '.comImp'
+            ).value
+          ) || 0;
+
+
+        const base =
+          Math.max(
+            0,
+            cantidad * costo -
+            descuento
+          );
+
+        const impuesto =
+          base * tasa / 100;
+
+        const filaTotal =
+          base + impuesto;
+
+
+        tr.querySelector(
+          '.comTotal'
+        ).textContent =
+          dinero(filaTotal);
+
+
+        subtotal += base;
+        isv += impuesto;
+        total += filaTotal;
+
+      });
+
+
+    document.getElementById(
+      'comSubtotal'
+    ).textContent =
+      dinero(subtotal);
+
+    document.getElementById(
+      'comIsvTotal'
+    ).textContent =
+      dinero(isv);
+
+    document.getElementById(
+      'comTotal'
+    ).textContent =
+      dinero(total);
+
+  }
+
+
+  function guardarCompra() {
+
+    toast(
+      'Compra preparada para guardar'
+    );
+
+  }
+
+
+  /* =====================================================
+     GASTOS
+  ====================================================== */
+
+  function calcularGasto() {
+
+    const subtotal =
+      Number(
+        valor('gasSubtotal')
+      ) || 0;
+
+    const impuesto =
+      Number(
+        valor('gasImpuesto')
+      ) || 0;
+
+    const total =
+      subtotal +
+      subtotal * impuesto / 100;
+
+
+    document.getElementById(
+      'gasTotal'
+    ).value =
+      total.toFixed(2);
+
+  }
+
+
+  function guardarGasto() {
+
+    toast(
+      'Gasto preparado para guardar'
+    );
+
+  }
+
+
+  /* =====================================================
+     CATALOGOS
+  ====================================================== */
+
+  function guardarCliente() {
+
+    const data = {
+
+      codigo:
+        valor('cliCodigo'),
+
+      nombre:
+        valor('cliNombre'),
+
+      rtn:
+        valor('cliRtn'),
+
+      identidad:
+        valor('cliIdentidad'),
+
+      contacto:
+        valor('cliContacto'),
+
+      telefono:
+        valor('cliTelefono'),
+
+      correo:
+        valor('cliCorreo'),
+
+      direccion:
+        valor('cliDireccion'),
+
+      ciudad:
+        valor('cliCiudad'),
+
+      diasCredito:
+        valor('cliDiasCredito'),
+
+      limiteCredito:
+        valor('cliLimiteCredito'),
+
+      estado:
+        valor('cliEstado'),
+
+      observaciones:
+        valor('cliObservaciones')
+
+    };
+
+
+    console.log(
+      'CLIENTE:',
+      data
+    );
+
+
+    toast(
+      'Cliente preparado para guardar'
+    );
+
+    cerrarModal(
+      'modalCliente'
+    );
+
+  }
+
+
+  function guardarProveedor() {
+
+    toast(
+      'Proveedor preparado para guardar'
+    );
+
+    cerrarModal(
+      'modalProveedor'
+    );
+
+  }
+
+
+  function guardarProducto() {
+
+    toast(
+      'Producto preparado para guardar'
+    );
+
+    cerrarModal(
+      'modalProducto'
+    );
+
+  }
+
+
+  function guardarBanco() {
+
+    toast(
+      'Banco preparado para guardar'
+    );
+
+    cerrarModal(
+      'modalBanco'
+    );
+
+  }
+
+
+  function guardarCuentaContable() {
+
+    toast(
+      'Cuenta contable preparada para guardar'
+    );
+
+    cerrarModal(
+      'modalCuentaContable'
+    );
+
+  }
+
+
+  function guardarUsuario() {
+
+    toast(
+      'Usuario preparado para guardar'
+    );
+
+    cerrarModal(
+      'modalUsuario'
+    );
+
+  }
+
+
+  function guardarConfiguracion(seccion) {
+
+    toast(
+      `Configuración ${seccion} preparada para guardar`
+    );
+
+  }
+
+
+  /* =====================================================
+     CXC / CXP
+  ====================================================== */
+
+  function guardarCobro() {
+
+    toast(
+      'Cobro preparado para guardar'
+    );
+
+    cerrarModal(
+      'modalCobro'
+    );
+
+  }
+
+
+  function guardarPago() {
+
+    toast(
+      'Pago preparado para guardar'
+    );
+
+    cerrarModal(
+      'modalPago'
+    );
+
+  }
+
+
+  /* =====================================================
+     INVENTARIO
+  ====================================================== */
+
+  function guardarMovimientoInventario() {
+
+    toast(
+      'Movimiento de inventario preparado'
+    );
+
+    cerrarModal(
+      'modalMovimientoInventario'
+    );
+
+  }
+
+
+  /* =====================================================
+     ASIENTO
+  ====================================================== */
+
+  function agregarLineaAsiento() {
+
+    const tbody =
+      document.getElementById(
+        'asientoDetalle'
+      );
+
+    const tr =
+      document.createElement('tr');
+
+
+    tr.innerHTML = `
+
+      <td>
+        <select class="asiCuenta">
+          ${opcionesCuentas()}
+        </select>
+      </td>
+
+      <td>
+        <input class="asiDescripcion">
+      </td>
+
+      <td>
+        <input
+          class="asiDebe"
+          type="number"
+          min="0"
+          step="0.01"
+          oninput="calcularAsiento()">
+      </td>
+
+      <td>
+        <input
+          class="asiHaber"
+          type="number"
+          min="0"
+          step="0.01"
+          oninput="calcularAsiento()">
+      </td>
+
+      <td>
+        <button
+          class="btn btn-danger btn-sm"
+          onclick="eliminarFila(this,calcularAsiento)">
+          ×
+        </button>
+      </td>
+
+    `;
+
+
+    tbody.appendChild(tr);
+
+  }
+
+
+  function calcularAsiento() {
+
+    let debe = 0;
+    let haber = 0;
+
+
+    document
+      .querySelectorAll(
+        '#asientoDetalle tr'
+      )
+      .forEach(tr => {
+
+        debe +=
+          Number(
+            tr.querySelector(
+              '.asiDebe'
+            ).value
+          ) || 0;
+
+        haber +=
+          Number(
+            tr.querySelector(
+              '.asiHaber'
+            ).value
+          ) || 0;
+
+      });
+
+
+    document.getElementById(
+      'asiDebe'
+    ).textContent =
+      dinero(debe);
+
+    document.getElementById(
+      'asiHaber'
+    ).textContent =
+      dinero(haber);
+
+    document.getElementById(
+      'asiDiferencia'
+    ).textContent =
+      dinero(debe - haber);
+
+  }
+
+
+  function guardarAsiento() {
+
+    let debe = 0;
+    let haber = 0;
+
+
+    document
+      .querySelectorAll(
+        '#asientoDetalle tr'
+      )
+      .forEach(tr => {
+
+        debe +=
+          Number(
+            tr.querySelector(
+              '.asiDebe'
+            ).value
+          ) || 0;
+
+        haber +=
+          Number(
+            tr.querySelector(
+              '.asiHaber'
+            ).value
+          ) || 0;
+
+      });
+
+
+    if (
+      Math.abs(
+        debe - haber
+      ) > 0.009
+    ) {
+
+      toast(
+        'El asiento está descuadrado'
+      );
+
+      return;
+
+    }
+
+
+    if (debe <= 0) {
+
+      toast(
+        'El asiento no tiene movimientos'
+      );
+
+      return;
+
+    }
+
+
+    toast(
+      'Asiento listo para contabilizar'
+    );
+
+  }
+
+
+  /* =====================================================
+     CONTABILIDAD REPORTES
+  ====================================================== */
+
+  function generarLibroDiario() {
+
+    toast(
+      'Generando libro diario'
+    );
+
+  }
+
+
+  function generarLibroMayor() {
+
+    toast(
+      'Generando libro mayor'
+    );
+
+  }
+
+
+  function generarBalanza() {
+
+    toast(
+      'Generando balanza'
+    );
+
+  }
+
+
+  /* =====================================================
+     IA
+  ====================================================== */
+
+  function analizarIA() {
+
+    const tipo =
+      valor('iaTipo');
+
+    const periodo =
+      valor('iaPeriodo');
+
+
+    document.getElementById(
+      'iaResultado'
+    ).innerHTML = `
+
+      <strong>Análisis ${tipo}</strong><br><br>
+
+      Período:
+      ${periodo}<br><br>
+
+      Cuando conectemos el backend,
+      la IA analizará ventas, gastos,
+      inventario, CxC, CxP y datos
+      contables reales almacenados
+      en Google Sheets.
+
+    `;
+
+  }
+
+
+  function preguntarIA() {
+
+    const pregunta =
+      valor('iaPregunta');
+
+
+    if (!pregunta) {
+
+      toast(
+        'Escribe una pregunta'
+      );
+
+      return;
+
+    }
+
+
+    document.getElementById(
+      'iaResultado'
+    ).innerHTML = `
+
+      <strong>Pregunta:</strong><br>
+
+      ${esc(pregunta)}
+
+      <br><br>
+
+      <strong>Análisis:</strong><br>
+
+      Esta respuesta será generada
+      con los datos reales del sistema
+      cuando conectemos el backend de IA.
+
+    `;
+
+  }
+
+
+  /* =====================================================
+     REPORTES
+  ====================================================== */
+
+  function generarReporte() {
+
+    const tipo =
+      valor('repTipo');
+
+    const desde =
+      valor('repDesde');
+
+    const hasta =
+      valor('repHasta');
+
+
+    document.getElementById(
+      'reporteResultado'
+    ).innerHTML = `
+
+      <h3 style="margin-top:0">
+        ${esc(tipo)}
+      </h3>
+
+      <p>
+        Desde:
+        ${esc(desde || 'Inicio')}
+        &nbsp;
+        Hasta:
+        ${esc(hasta || 'Actual')}
+      </p>
+
+      <div
+        style="
+          padding:30px;
+          text-align:center;
+          color:#64748b;
+          background:#f8fafc;
+          border-radius:8px;
+        ">
+
+        Aquí se mostrará
+        el reporte generado.
+
+      </div>
+
+    `;
+
+  }
+
+
+  function exportarReporte(formato) {
+
+    toast(
+      `Exportación ${formato} se conectará al backend`
+    );
+
+  }
+
+
+  /* =====================================================
+     UTILIDADES
+  ====================================================== */
+
+  function opcionesProductos() {
+
+    let html =
+      `<option value="">
+        Seleccionar...
+      </option>`;
+
+
+    catalogoProductos
+      .filter(p =>
+        String(
+          p.ESTADO ||
+          p.estado ||
+          'ACTIVO'
+        ).toUpperCase() ===
+        'ACTIVO'
+      )
+      .forEach(p => {
+
+        const id =
+          p.ID_PRODUCTO ||
+          p.id ||
+          '';
+
+        const codigo =
+          p.CODIGO ||
+          p.codigo ||
+          '';
+
+        const nombre =
+          p.NOMBRE ||
+          p.nombre ||
+          '';
+
+
+        html += `
+          <option value="${esc(id)}">
+            ${esc(codigo)}
+            ·
+            ${esc(nombre)}
+          </option>
+        `;
+
+      });
+
+
+    return html;
+
+  }
+
+
+  function opcionesCuentas() {
+
+    let html =
+      `<option value="">
+        Seleccionar...
+      </option>`;
+
+
+    catalogoCuentas
+      .filter(c =>
+        String(
+          c.ACEPTA_MOVIMIENTO ||
+          c.aceptaMovimiento ||
+          'SI'
+        ).toUpperCase() ===
+        'SI'
+      )
+      .forEach(c => {
+
+        const codigo =
+          c.CODIGO ||
+          c.codigo ||
+          '';
+
+        const cuenta =
+          c.CUENTA ||
+          c.cuenta ||
+          '';
+
+
+        html += `
+          <option value="${esc(codigo)}">
+            ${esc(codigo)}
+            ·
+            ${esc(cuenta)}
+          </option>
+        `;
+
+      });
+
+
+    return html;
+
+  }
+
+
+  function eliminarFila(btn, callback) {
+
+    btn
+      .closest('tr')
+      .remove();
+
+
+    if (callback)
+      callback();
+
+  }
+
+
+  function valor(id) {
+
+    const el =
+      document.getElementById(id);
+
+    return el
+      ? el.value
+      : '';
+
+  }
+
+
+  function dinero(valor) {
+
+    return 'L ' +
+      Number(
+        valor || 0
+      ).toLocaleString(
+        'es-HN',
+        {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2
+        }
+      );
+
+  }
+
+
+  function fechaISO(fecha) {
+
+    const y =
+      fecha.getFullYear();
+
+    const m =
+      String(
+        fecha.getMonth() + 1
+      ).padStart(2,'0');
+
+    const d =
+      String(
+        fecha.getDate()
+      ).padStart(2,'0');
+
+
+    return `${y}-${m}-${d}`;
+
+  }
+
+
+  function esc(texto) {
+
+    const div =
+      document.createElement('div');
+
+    div.textContent =
+      texto == null
+        ? ''
+        : String(texto);
+
+    return div.innerHTML;
+
+  }
+
+
+  function filtrarTabla(texto, idTabla) {
+
+    const filtro =
+      String(texto)
+        .toLowerCase();
+
+
+    document
+      .querySelectorAll(
+        `#${idTabla} tr`
+      )
+      .forEach(tr => {
+
+        const contenido =
+          tr.textContent
+            .toLowerCase();
+
+
+        tr.style.display =
+          contenido.includes(
+            filtro
+          )
+          ? ''
+          : 'none';
+
+      });
+
+  }
+
+
+  function toast(mensaje) {
+
+    const t =
+      document.getElementById(
+        'toast'
+      );
+
+    t.textContent =
+      mensaje;
+
+    t.style.display =
+      'block';
+
+
+    clearTimeout(
+      window.toastTimer
+    );
+
+
+    window.toastTimer =
+      setTimeout(
+        () =>
+          t.style.display =
+            'none',
+        3500
+      );
+
+  }
+
+
+  function errorServidor(error) {
+
+    console.error(error);
+
+    toast(
+      'Error: ' +
+      (
+        error &&
+        error.message
+          ? error.message
+          : error
+      )
+    );
+
+  }
+
+</script>
+
+</body>
+</html>
