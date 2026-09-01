@@ -706,10 +706,102 @@
       font-size: 12px;
     }
 
-    .campoReadonly {
+        .campoReadonly {
       background: #f3f5f4 !important;
       color: #53635c;
       font-weight: 750;
+    }
+
+
+    /**********************************************************
+     * DASHBOARD
+     **********************************************************/
+    .dashboardPeriodo {
+      margin: -5px 0 15px;
+      color: var(--muted);
+      font-size: 12px;
+      text-align: center;
+    }
+
+
+    .dashboardGrid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 11px;
+    }
+
+
+    .dashboardCard {
+      min-width: 0;
+      min-height: 122px;
+
+      padding: 15px 12px;
+
+      border: 1px solid var(--borde);
+      border-radius: 17px;
+
+      background: white;
+
+      box-shadow:
+        0 5px 16px
+        rgba(20,45,38,.07);
+    }
+
+
+    .dashboardIcon {
+      margin-bottom: 9px;
+      font-size: 28px;
+    }
+
+
+    .dashboardLabel {
+      color: #61716a;
+      font-size: 11px;
+      font-weight: 750;
+      text-transform: uppercase;
+      letter-spacing: .3px;
+    }
+
+
+    .dashboardValor {
+      margin-top: 7px;
+
+      color: #1d3028;
+
+      font-size: 20px;
+      font-weight: 850;
+
+      line-height: 1.15;
+
+      word-break: break-word;
+    }
+
+
+    .dashboardDetalle {
+      margin-top: 5px;
+      color: var(--muted);
+      font-size: 10px;
+      line-height: 1.3;
+    }
+
+
+    .dashboardVentas {
+      border-top: 4px solid #0d8d68;
+    }
+
+
+    .dashboardInventario {
+      border-top: 4px solid #175ea8;
+    }
+
+
+    .dashboardCompras {
+      border-top: 4px solid #d69200;
+    }
+
+
+    .dashboardGastos {
+      border-top: 4px solid #b42318;
     }
 
 
@@ -797,6 +889,13 @@
             id="menuDropdown"
             class="menuDropdown"
           >
+
+                     <button
+              onclick="abrirDashboard()"
+            >
+              📱 Dashboard
+            </button>
+
 
             <button
               onclick="abrirMovimientos()"
@@ -1256,9 +1355,163 @@
 
     </div>
 
-  </main>
+    </main>
 
 </div>
+
+
+<!-- ======================================================
+     DASHBOARD
+======================================================= -->
+<div
+  id="dashboardOverlay"
+  class="overlay"
+>
+
+  <div class="dialog">
+
+    <div class="panelHeader">
+
+      <h2>
+        📱 Dashboard
+      </h2>
+
+      <button
+        class="btnCerrarPanel"
+        onclick="cerrarPanel('dashboardOverlay')"
+      >
+        ×
+      </button>
+
+    </div>
+
+
+    <div
+      id="dashboardPeriodo"
+      class="dashboardPeriodo"
+    >
+      Mes actual
+    </div>
+
+
+    <div class="dashboardGrid">
+
+
+      <!-- VENTAS -->
+      <div class="dashboardCard dashboardVentas">
+
+        <div class="dashboardIcon">
+          💰
+        </div>
+
+        <div class="dashboardLabel">
+          Ventas
+        </div>
+
+        <div
+          id="dashVentas"
+          class="dashboardValor"
+        >
+          L 0.00
+        </div>
+
+        <div class="dashboardDetalle">
+          Ventas del mes
+        </div>
+
+      </div>
+
+
+      <!-- INVENTARIO -->
+      <div class="dashboardCard dashboardInventario">
+
+        <div class="dashboardIcon">
+          📦
+        </div>
+
+        <div class="dashboardLabel">
+          Inventario
+        </div>
+
+        <div
+          id="dashInventario"
+          class="dashboardValor"
+        >
+          L 0.00
+        </div>
+
+        <div class="dashboardDetalle">
+          Valor actual al costo
+        </div>
+
+      </div>
+
+
+      <!-- COMPRAS -->
+      <div class="dashboardCard dashboardCompras">
+
+        <div class="dashboardIcon">
+          🛒
+        </div>
+
+        <div class="dashboardLabel">
+          Compras
+        </div>
+
+        <div
+          id="dashCompras"
+          class="dashboardValor"
+        >
+          L 0.00
+        </div>
+
+        <div class="dashboardDetalle">
+          Compras del mes
+        </div>
+
+      </div>
+
+
+      <!-- GASTOS -->
+      <div class="dashboardCard dashboardGastos">
+
+        <div class="dashboardIcon">
+          💸
+        </div>
+
+        <div class="dashboardLabel">
+          Gastos
+        </div>
+
+        <div
+          id="dashGastos"
+          class="dashboardValor"
+        >
+          L 0.00
+        </div>
+
+        <div class="dashboardDetalle">
+          Gastos del mes
+        </div>
+
+      </div>
+
+
+    </div>
+
+
+    <button
+      class="btn btnLight"
+      onclick="cargarDashboard()"
+      style="margin-top:15px;"
+    >
+      🔄 Actualizar
+    </button>
+
+  </div>
+
+</div>
+
 
 <!-- ======================================================
      MOVIMIENTOS
@@ -3339,7 +3592,139 @@ function fechaHoyISO() {
   );
 }
 
+/************************************************************
+ * DASHBOARD
+ ************************************************************/
+function abrirDashboard() {
 
+  cerrarMenu();
+
+
+  document
+    .getElementById(
+      'dashboardOverlay'
+    )
+    .style.display =
+    'block';
+
+
+  cargarDashboard();
+}
+
+
+/************************************************************
+ * CARGAR DASHBOARD
+ ************************************************************/
+function cargarDashboard() {
+
+  document
+    .getElementById(
+      'dashboardPeriodo'
+    )
+    .textContent =
+    'Calculando mes actual...';
+
+
+  document
+    .getElementById(
+      'dashVentas'
+    )
+    .textContent =
+    '...';
+
+
+  document
+    .getElementById(
+      'dashInventario'
+    )
+    .textContent =
+    '...';
+
+
+  document
+    .getElementById(
+      'dashCompras'
+    )
+    .textContent =
+    '...';
+
+
+  document
+    .getElementById(
+      'dashGastos'
+    )
+    .textContent =
+    '...';
+
+
+  google.script.run
+
+    .withSuccessHandler(
+      mostrarDashboard
+    )
+
+    .withFailureHandler(
+      errorServidor
+    )
+
+    .consultarDashboard(
+      APP_PIN
+    );
+}
+
+
+/************************************************************
+ * MOSTRAR DASHBOARD
+ ************************************************************/
+function mostrarDashboard(r) {
+
+  document
+    .getElementById(
+      'dashboardPeriodo'
+    )
+    .textContent =
+    r.periodo || 'Mes actual';
+
+
+  document
+    .getElementById(
+      'dashVentas'
+    )
+    .textContent =
+    formatoDinero(
+      r.ventas
+    );
+
+
+  document
+    .getElementById(
+      'dashInventario'
+    )
+    .textContent =
+    formatoDinero(
+      r.inventario
+    );
+
+
+  document
+    .getElementById(
+      'dashCompras'
+    )
+    .textContent =
+    formatoDinero(
+      r.compras
+    );
+
+
+  document
+    .getElementById(
+      'dashGastos'
+    )
+    .textContent =
+    formatoDinero(
+      r.gastos
+    );
+}
 /************************************************************
  * MOVIMIENTOS
  ************************************************************/
