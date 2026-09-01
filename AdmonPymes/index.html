@@ -1,1 +1,2521 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <base target="_top">
 
+  <meta charset="UTF-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"
+  >
+
+  <meta
+    name="theme-color"
+    content="#126B56"
+  >
+
+  <title>AdmónPymes - Inventario IA</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    :root {
+      --verde: #126b56;
+      --verde2: #0d8d68;
+      --verde-claro: #eaf7f2;
+      --rojo: #b42318;
+      --rojo-claro: #fff0ee;
+      --azul: #175ea8;
+      --azul-claro: #edf5ff;
+      --fondo: #f4f7f6;
+      --texto: #17212b;
+      --muted: #66757c;
+      --borde: #dfe6e3;
+      --blanco: #ffffff;
+      --sombra: 0 6px 20px rgba(20, 45, 38, .07);
+    }
+
+    body {
+      margin: 0;
+      background: var(--fondo);
+      color: var(--texto);
+      font-family:
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        Roboto,
+        Arial,
+        sans-serif;
+    }
+
+    button,
+    input,
+    select,
+    textarea {
+      font: inherit;
+    }
+
+    button {
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .app {
+      width: 100%;
+      max-width: 650px;
+      min-height: 100vh;
+      margin: 0 auto;
+      background: #fff;
+    }
+
+    .header {
+      background:
+        linear-gradient(
+          135deg,
+          var(--verde),
+          var(--verde2)
+        );
+      color: white;
+      padding:
+        19px 18px 17px;
+      position: sticky;
+      top: 0;
+      z-index: 30;
+      box-shadow:
+        0 4px 15px
+        rgba(0, 0, 0, .12);
+    }
+
+    .header-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .header h1 {
+      margin: 0;
+      font-size: 22px;
+      line-height: 1.1;
+    }
+
+    .header p {
+      margin: 5px 0 0;
+      font-size: 13px;
+      opacity: .9;
+    }
+
+    .status-pill {
+      background:
+        rgba(255,255,255,.18);
+      border:
+        1px solid
+        rgba(255,255,255,.22);
+      border-radius: 999px;
+      padding: 6px 10px;
+      font-size: 11px;
+      white-space: nowrap;
+    }
+
+    .content {
+      padding:
+        15px 13px 45px;
+    }
+
+    .modes {
+      display: grid;
+      grid-template-columns:
+        repeat(3, 1fr);
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+
+    .mode {
+      border:
+        1px solid var(--borde);
+      background: white;
+      border-radius: 15px;
+      min-height: 78px;
+      padding: 10px 5px;
+      font-weight: 750;
+      font-size: 12px;
+      color: #405047;
+      cursor: pointer;
+      box-shadow:
+        0 3px 10px
+        rgba(0,0,0,.03);
+    }
+
+    .mode span {
+      display: block;
+      font-size: 27px;
+      margin-bottom: 5px;
+    }
+
+    .mode.active {
+      background: var(--verde);
+      border-color: var(--verde);
+      color: white;
+      box-shadow:
+        0 6px 16px
+        rgba(18,107,86,.2);
+    }
+
+    .section-title {
+      font-size: 16px;
+      font-weight: 800;
+      margin-bottom: 4px;
+    }
+
+    .section-subtitle {
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 12px;
+      line-height: 1.4;
+    }
+
+    .card {
+      border:
+        1px solid var(--borde);
+      border-radius: 17px;
+      background: white;
+      padding: 15px;
+      margin-bottom: 13px;
+      box-shadow: var(--sombra);
+    }
+
+    .camera {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 220px;
+      border:
+        2px dashed #b6c9c2;
+      border-radius: 16px;
+      overflow: hidden;
+      background: #f5faf8;
+      text-align: center;
+      cursor: pointer;
+      position: relative;
+    }
+
+    .camera-placeholder {
+      color: #52665f;
+      padding: 25px;
+    }
+
+    .camera-placeholder .camera-icon {
+      display: block;
+      font-size: 50px;
+      margin-bottom: 7px;
+    }
+
+    .camera-placeholder strong {
+      display: block;
+      font-size: 16px;
+      margin-bottom: 4px;
+    }
+
+    .camera-placeholder small {
+      color: #78867f;
+    }
+
+    #fotoPreview {
+      display: none;
+      width: 100%;
+      max-height: 390px;
+      object-fit: contain;
+      background: #111;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .btn {
+      border: 0;
+      width: 100%;
+      min-height: 50px;
+      padding: 12px 14px;
+      margin-top: 10px;
+      border-radius: 13px;
+      font-weight: 800;
+      cursor: pointer;
+      transition:
+        transform .08s ease,
+        opacity .15s ease;
+    }
+
+    .btn:active {
+      transform:
+        scale(.99);
+    }
+
+    .btn:disabled {
+      opacity: .45;
+      cursor: not-allowed;
+    }
+
+    .btn-primary {
+      background: var(--verde);
+      color: white;
+    }
+
+    .btn-ai {
+      color: var(--azul);
+      background: var(--azul-claro);
+      border:
+        1px solid #cfe0f5;
+    }
+
+    .btn-light {
+      background: #f1f4f3;
+      color: #34463f;
+      border:
+        1px solid #e0e5e3;
+    }
+
+    .btn-danger {
+      background: var(--rojo);
+      color: white;
+    }
+
+    label.field-label {
+      display: block;
+      margin:
+        12px 0 5px;
+      font-size: 12px;
+      color: #596961;
+      font-weight: 750;
+    }
+
+    input,
+    select,
+    textarea {
+      width: 100%;
+      border:
+        1px solid #d4dfda;
+      border-radius: 11px;
+      background: white;
+      padding: 11px 12px;
+      min-height: 45px;
+      outline: none;
+      color: #17212b;
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      border-color: var(--verde2);
+      box-shadow:
+        0 0 0 3px
+        rgba(13,141,104,.09);
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 74px;
+    }
+
+    .two-columns {
+      display: grid;
+      grid-template-columns:
+        1fr 1fr;
+      gap: 9px;
+    }
+
+    .analysis {
+      display: none;
+      margin-top: 10px;
+      border-radius: 12px;
+      padding: 10px 12px;
+      background: var(--azul-claro);
+      color: #214f7d;
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .loading {
+      display: none;
+      text-align: center;
+      color: var(--muted);
+      padding: 13px 5px 3px;
+      font-size: 13px;
+    }
+
+    .spinner {
+      width: 22px;
+      height: 22px;
+      margin:
+        0 auto 7px;
+      border:
+        3px solid #dce6e2;
+      border-top-color: var(--verde);
+      border-radius: 50%;
+      animation:
+        girar .75s linear infinite;
+    }
+
+    @keyframes girar {
+      to {
+        transform:
+          rotate(360deg);
+      }
+    }
+
+    .match-title {
+      margin:
+        13px 0 6px;
+      font-size: 12px;
+      font-weight: 800;
+      color: #56665f;
+    }
+
+    .match {
+      display: block;
+      width: 100%;
+      text-align: left;
+      border:
+        1px solid #dce5e1;
+      border-radius: 12px;
+      padding: 11px;
+      background: white;
+      margin-top: 7px;
+      cursor: pointer;
+    }
+
+    .match:hover {
+      background: #f5faf8;
+    }
+
+    .match-main {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: start;
+    }
+
+    .match strong {
+      display: block;
+      font-size: 14px;
+      color: #1d2b25;
+    }
+
+    .match small {
+      display: block;
+      margin-top: 3px;
+      color: var(--muted);
+      line-height: 1.4;
+    }
+
+    .stock {
+      background: var(--verde-claro);
+      color: var(--verde);
+      padding: 5px 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .selected-product {
+      display: none;
+      background: var(--verde-claro);
+      border:
+        1px solid #adddcc;
+      padding: 12px;
+      border-radius: 13px;
+      margin-top: 10px;
+      color: #155b48;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .selected-product strong {
+      font-size: 15px;
+    }
+
+    .search-results {
+      margin-top: 7px;
+    }
+
+    .helper {
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.4;
+      margin-top: 6px;
+    }
+
+    .save-zone {
+      position: sticky;
+      bottom: 0;
+      padding:
+        7px 0 10px;
+      background:
+        linear-gradient(
+          transparent,
+          rgba(255,255,255,.95) 20%,
+          rgba(255,255,255,.99)
+        );
+      z-index: 20;
+    }
+
+    .login {
+      position: fixed;
+      z-index: 999;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background:
+        linear-gradient(
+          145deg,
+          #e9f7f2,
+          #f7faf9
+        );
+      padding: 22px;
+    }
+
+    .login-box {
+      width: 100%;
+      max-width: 390px;
+      background: white;
+      padding: 27px 22px;
+      border-radius: 23px;
+      text-align: center;
+      box-shadow:
+        0 18px 45px
+        rgba(0,0,0,.14);
+    }
+
+    .login-icon {
+      font-size: 55px;
+    }
+
+    .login h2 {
+      margin:
+        7px 0 3px;
+      font-size: 25px;
+    }
+
+    .login p {
+      margin:
+        0 0 18px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    #pinInput {
+      text-align: center;
+      font-size: 22px;
+      letter-spacing: 6px;
+    }
+
+    .toast {
+      display: none;
+      position: fixed;
+      z-index: 2000;
+      bottom: 20px;
+      left: 50%;
+      transform:
+        translateX(-50%);
+      width:
+        calc(100% - 28px);
+      max-width: 600px;
+      padding: 13px 15px;
+      border-radius: 13px;
+      background: #18241f;
+      color: white;
+      box-shadow:
+        0 8px 30px
+        rgba(0,0,0,.25);
+      font-size: 13px;
+      line-height: 1.4;
+    }
+
+    .error-page {
+      display: none;
+      padding: 40px 20px;
+      text-align: center;
+      color: var(--rojo);
+    }
+
+    .action-description {
+      font-size: 12px;
+      border-radius: 11px;
+      padding: 9px 11px;
+      margin-bottom: 12px;
+      background: #f4f6f5;
+      color: #596961;
+    }
+
+    @media (max-width: 420px) {
+      .mode {
+        font-size: 11px;
+      }
+
+      .two-columns {
+        grid-template-columns:
+          1fr 1fr;
+      }
+
+      .header h1 {
+        font-size: 20px;
+      }
+    }
+  </style>
+</head>
+
+
+<body>
+
+<div
+  id="errorPage"
+  class="error-page"
+>
+  <h2>⚠️ No se pudo iniciar</h2>
+
+  <p>
+    Esta pantalla debe abrirse desde la
+    Aplicación Web de Apps Script.
+  </p>
+</div>
+
+
+<div
+  id="login"
+  class="login"
+>
+  <div class="login-box">
+
+    <div class="login-icon">
+      📦
+    </div>
+
+    <h2>
+      AdmónPymes
+    </h2>
+
+    <p>
+      Inventario inteligente desde el celular
+    </p>
+
+    <input
+      id="pinInput"
+      type="password"
+      inputmode="numeric"
+      autocomplete="off"
+      maxlength="12"
+      placeholder="PIN"
+    >
+
+    <button
+      class="btn btn-primary"
+      onclick="entrar()"
+    >
+      Entrar
+    </button>
+
+  </div>
+</div>
+
+
+<div class="app">
+
+  <header class="header">
+
+    <div class="header-row">
+
+      <div>
+        <h1>
+          📦 Inventario IA
+        </h1>
+
+        <p>
+          Foto → IA → confirmar → registrar
+        </p>
+      </div>
+
+      <div
+        id="statusApp"
+        class="status-pill"
+      >
+        Conectando...
+      </div>
+
+    </div>
+
+  </header>
+
+
+  <main class="content">
+
+    <div class="modes">
+
+      <button
+        id="modeINICIAL"
+        class="mode active"
+        onclick="cambiarModo('INICIAL')"
+      >
+        <span>📦</span>
+        Inventario inicial
+      </button>
+
+      <button
+        id="modeCOMPRA"
+        class="mode"
+        onclick="cambiarModo('COMPRA')"
+      >
+        <span>🟢</span>
+        Compra
+      </button>
+
+      <button
+        id="modeVENTA"
+        class="mode"
+        onclick="cambiarModo('VENTA')"
+      >
+        <span>🔴</span>
+        Venta
+      </button>
+
+    </div>
+
+
+    <div
+      id="actionDescription"
+      class="action-description"
+    >
+      Registra la mercadería que ya existe
+      cuando comienzas a utilizar el sistema.
+    </div>
+
+
+    <!-- FOTO -->
+    <section class="card">
+
+      <div class="section-title">
+        📸 Fotografiar producto
+      </div>
+
+      <div class="section-subtitle">
+        La IA propondrá qué producto es.
+        Tú confirmas antes de registrarlo.
+      </div>
+
+
+      <label
+        for="fotoInput"
+        class="camera"
+      >
+
+        <div
+          id="cameraPlaceholder"
+          class="camera-placeholder"
+        >
+          <span class="camera-icon">
+            📷
+          </span>
+
+          <strong>
+            Tomar fotografía
+          </strong>
+
+          <small>
+            Apunta al producto, etiqueta,
+            código o número de serie.
+          </small>
+        </div>
+
+        <img
+          id="fotoPreview"
+          alt="Fotografía del producto"
+        >
+
+      </label>
+
+
+      <input
+        id="fotoInput"
+        type="file"
+        accept="image/*"
+        capture="environment"
+        class="hidden"
+        onchange="procesarFoto(event)"
+      >
+
+
+      <button
+        id="btnAnalizar"
+        class="btn btn-ai"
+        onclick="analizarFoto()"
+        disabled
+      >
+        ✨ Identificar producto con IA
+      </button>
+
+
+      <div
+        id="loadingIA"
+        class="loading"
+      >
+        <div class="spinner"></div>
+
+        Analizando producto...
+      </div>
+
+
+      <div
+        id="analysis"
+        class="analysis"
+      ></div>
+
+
+      <div
+        id="coincidencias"
+      ></div>
+
+    </section>
+
+
+    <!-- BUSCAR -->
+    <section class="card">
+
+      <div class="section-title">
+        🔍 Buscar producto existente
+      </div>
+
+      <div class="section-subtitle">
+        También puedes buscarlo sin utilizar
+        la cámara.
+      </div>
+
+      <input
+        id="busqueda"
+        type="search"
+        autocomplete="off"
+        placeholder="Producto, marca, modelo, código..."
+        oninput="buscarConEspera()"
+      >
+
+      <div
+        id="resultadosBusqueda"
+        class="search-results"
+      ></div>
+
+
+      <div
+        id="productoSeleccionado"
+        class="selected-product"
+      ></div>
+
+
+      <button
+        id="btnNuevo"
+        class="btn btn-light hidden"
+        onclick="usarComoNuevo()"
+      >
+        + Registrar como producto nuevo
+      </button>
+
+    </section>
+
+
+    <!-- DATOS -->
+    <section class="card">
+
+      <div class="section-title">
+        ✏️ Confirmar información
+      </div>
+
+      <div class="section-subtitle">
+        Corrige cualquier dato que la IA
+        no haya identificado correctamente.
+      </div>
+
+
+      <label class="field-label">
+        Producto *
+      </label>
+
+      <input
+        id="producto"
+        placeholder="Ej. Alternador, Zapato, Sandía..."
+      >
+
+
+      <div class="two-columns">
+
+        <div>
+          <label class="field-label">
+            Categoría
+          </label>
+
+          <input
+            id="categoria"
+            placeholder="Ej. Repuestos"
+          >
+        </div>
+
+
+        <div>
+          <label class="field-label">
+            Marca
+          </label>
+
+          <input
+            id="marca"
+            placeholder="Ej. Denso"
+          >
+        </div>
+
+      </div>
+
+
+      <label class="field-label">
+        Modelo / Variante
+      </label>
+
+      <input
+        id="modelo"
+        placeholder="Modelo, talla, color, medida..."
+      >
+
+
+      <label class="field-label">
+        Código / Serie
+      </label>
+
+      <input
+        id="codigo"
+        placeholder="Serie, SKU, código de barras, Nº parte..."
+      >
+
+      <div class="helper">
+        Si existe un número visible en la pieza,
+        la IA intentará leerlo. No debe inventarlo.
+      </div>
+
+
+      <div class="two-columns">
+
+        <div>
+          <label class="field-label">
+            Unidad
+          </label>
+
+          <select id="unidad">
+            <option value="Unidad">Unidad</option>
+            <option value="Libra">Libra</option>
+            <option value="Kg">Kg</option>
+            <option value="Caja">Caja</option>
+            <option value="Paquete">Paquete</option>
+            <option value="Metro">Metro</option>
+            <option value="Litro">Litro</option>
+            <option value="Galón">Galón</option>
+            <option value="Otro">Otro</option>
+          </select>
+        </div>
+
+
+        <div>
+          <label class="field-label">
+            Cantidad *
+          </label>
+
+          <input
+            id="cantidad"
+            type="number"
+            inputmode="decimal"
+            min="0"
+            step="any"
+            value="1"
+          >
+        </div>
+
+      </div>
+
+
+      <label class="field-label">
+        Descripción
+      </label>
+
+      <textarea
+        id="descripcion"
+        placeholder="Detalles para identificarlo..."
+      ></textarea>
+
+
+      <div class="two-columns">
+
+        <div id="grupoCosto">
+
+          <label class="field-label">
+            Costo unitario
+          </label>
+
+          <input
+            id="costo"
+            type="number"
+            inputmode="decimal"
+            min="0"
+            step="any"
+            placeholder="0.00"
+          >
+
+        </div>
+
+
+        <div>
+
+          <label class="field-label">
+            Precio venta
+          </label>
+
+          <input
+            id="precio"
+            type="number"
+            inputmode="decimal"
+            min="0"
+            step="any"
+            placeholder="0.00"
+          >
+
+        </div>
+
+      </div>
+
+    </section>
+
+
+    <div class="save-zone">
+
+      <button
+        id="btnGuardar"
+        class="btn btn-primary"
+        onclick="guardarMovimiento()"
+      >
+        📦 Registrar inventario inicial
+      </button>
+
+    </div>
+
+  </main>
+
+</div>
+
+
+<div
+  id="toast"
+  class="toast"
+></div>
+
+
+<script>
+/************************************************************
+ * VARIABLES
+ ************************************************************/
+let APP_PIN = '';
+
+let MODO = 'INICIAL';
+
+let FOTO_DATA = '';
+
+let PRODUCTO_ID = '';
+
+let PRODUCTO_EXISTENCIA = 0;
+
+let timerBusqueda = null;
+
+
+/************************************************************
+ * INICIO
+ ************************************************************/
+window.addEventListener(
+  'load',
+  function () {
+
+    if (
+      typeof google === 'undefined' ||
+      !google.script ||
+      !google.script.run
+    ) {
+
+      document
+        .getElementById('login')
+        .style.display = 'none';
+
+      document
+        .getElementById('errorPage')
+        .style.display = 'block';
+
+      return;
+    }
+
+
+    cambiarModo('INICIAL');
+
+
+    const pinGuardado =
+      localStorage.getItem(
+        'admonpymes_pin'
+      );
+
+
+    if (pinGuardado) {
+
+      APP_PIN =
+        pinGuardado;
+
+      validarPinGuardado();
+
+    } else {
+
+      document
+        .getElementById(
+          'pinInput'
+        )
+        .focus();
+    }
+  }
+);
+
+
+/************************************************************
+ * LOGIN
+ ************************************************************/
+function entrar() {
+
+  const pin =
+    document
+      .getElementById(
+        'pinInput'
+      )
+      .value
+      .trim();
+
+
+  if (!pin) {
+
+    mostrarToast(
+      'Ingresa el PIN.'
+    );
+
+    return;
+  }
+
+
+  google.script.run
+
+    .withSuccessHandler(
+      function (respuesta) {
+
+        APP_PIN =
+          pin;
+
+        localStorage.setItem(
+          'admonpymes_pin',
+          pin
+        );
+
+        document
+          .getElementById('login')
+          .style.display = 'none';
+
+
+        document
+          .getElementById(
+            'statusApp'
+          )
+          .textContent =
+          '● Conectado';
+
+
+        mostrarToast(
+          '✅ Sistema conectado.'
+        );
+      }
+    )
+
+    .withFailureHandler(
+      manejarError
+    )
+
+    .ping(pin);
+}
+
+
+function validarPinGuardado() {
+
+  google.script.run
+
+    .withSuccessHandler(
+      function () {
+
+        document
+          .getElementById('login')
+          .style.display = 'none';
+
+        document
+          .getElementById(
+            'statusApp'
+          )
+          .textContent =
+          '● Conectado';
+      }
+    )
+
+    .withFailureHandler(
+      function () {
+
+        APP_PIN = '';
+
+        localStorage.removeItem(
+          'admonpymes_pin'
+        );
+
+        document
+          .getElementById('login')
+          .style.display = 'flex';
+      }
+    )
+
+    .ping(APP_PIN);
+}
+
+
+/************************************************************
+ * MODOS
+ ************************************************************/
+function cambiarModo(modo) {
+
+  MODO =
+    modo;
+
+
+  [
+    'INICIAL',
+    'COMPRA',
+    'VENTA'
+  ].forEach(
+    function (m) {
+
+      document
+        .getElementById(
+          'mode' + m
+        )
+        .classList
+        .toggle(
+          'active',
+          m === modo
+        );
+    }
+  );
+
+
+  const boton =
+    document.getElementById(
+      'btnGuardar'
+    );
+
+
+  const descripcion =
+    document.getElementById(
+      'actionDescription'
+    );
+
+
+  const grupoCosto =
+    document.getElementById(
+      'grupoCosto'
+    );
+
+
+  if (modo === 'INICIAL') {
+
+    boton.textContent =
+      '📦 Registrar inventario inicial';
+
+    boton.className =
+      'btn btn-primary';
+
+    descripcion.textContent =
+      'Registra la mercadería que ya existe cuando comienzas a utilizar el sistema.';
+
+    grupoCosto.style.display =
+      'block';
+  }
+
+
+  if (modo === 'COMPRA') {
+
+    boton.textContent =
+      '🟢 Registrar compra / entrada';
+
+    boton.className =
+      'btn btn-primary';
+
+    descripcion.textContent =
+      'Registra la mercadería nueva que está entrando al negocio.';
+
+    grupoCosto.style.display =
+      'block';
+  }
+
+
+  if (modo === 'VENTA') {
+
+    boton.textContent =
+      '🔴 Registrar venta / salida';
+
+    boton.className =
+      'btn btn-danger';
+
+    descripcion.textContent =
+      'Identifica o busca un producto existente y registra la cantidad vendida.';
+
+    grupoCosto.style.display =
+      'none';
+  }
+
+
+  limpiarOperacion();
+}
+
+
+/************************************************************
+ * FOTO
+ ************************************************************/
+async function procesarFoto(event) {
+
+  const archivo =
+    event.target.files[0];
+
+
+  if (!archivo) {
+    return;
+  }
+
+
+  try {
+
+    FOTO_DATA =
+      await comprimirImagen(
+        archivo
+      );
+
+
+    const preview =
+      document.getElementById(
+        'fotoPreview'
+      );
+
+
+    preview.src =
+      FOTO_DATA;
+
+    preview.style.display =
+      'block';
+
+
+    document
+      .getElementById(
+        'cameraPlaceholder'
+      )
+      .style.display =
+      'none';
+
+
+    document
+      .getElementById(
+        'btnAnalizar'
+      )
+      .disabled =
+      false;
+
+
+    document
+      .getElementById(
+        'analysis'
+      )
+      .style.display =
+      'none';
+
+
+    document
+      .getElementById(
+        'coincidencias'
+      )
+      .innerHTML =
+      '';
+
+  } catch (error) {
+
+    mostrarToast(
+      '⚠️ No pude procesar la fotografía.'
+    );
+  }
+}
+
+
+/************************************************************
+ * COMPRIMIR FOTO
+ ************************************************************/
+function comprimirImagen(file) {
+
+  return new Promise(
+    function (resolve, reject) {
+
+      const reader =
+        new FileReader();
+
+
+      reader.onload =
+        function (evento) {
+
+          const imagen =
+            new Image();
+
+
+          imagen.onload =
+            function () {
+
+              const MAX =
+                1500;
+
+
+              let ancho =
+                imagen.width;
+
+              let alto =
+                imagen.height;
+
+
+              if (
+                ancho > MAX ||
+                alto > MAX
+              ) {
+
+                const ratio =
+                  Math.min(
+                    MAX / ancho,
+                    MAX / alto
+                  );
+
+
+                ancho =
+                  Math.round(
+                    ancho * ratio
+                  );
+
+                alto =
+                  Math.round(
+                    alto * ratio
+                  );
+              }
+
+
+              const canvas =
+                document.createElement(
+                  'canvas'
+                );
+
+
+              canvas.width =
+                ancho;
+
+              canvas.height =
+                alto;
+
+
+              const ctx =
+                canvas.getContext(
+                  '2d'
+                );
+
+
+              ctx.drawImage(
+                imagen,
+                0,
+                0,
+                ancho,
+                alto
+              );
+
+
+              resolve(
+                canvas.toDataURL(
+                  'image/jpeg',
+                  .80
+                )
+              );
+            };
+
+
+          imagen.onerror =
+            reject;
+
+
+          imagen.src =
+            evento.target.result;
+        };
+
+
+      reader.onerror =
+        reject;
+
+
+      reader.readAsDataURL(
+        file
+      );
+    }
+  );
+}
+
+
+/************************************************************
+ * ANALIZAR FOTO
+ ************************************************************/
+function analizarFoto() {
+
+  if (!FOTO_DATA) {
+
+    mostrarToast(
+      'Primero toma una fotografía.'
+    );
+
+    return;
+  }
+
+
+  const boton =
+    document.getElementById(
+      'btnAnalizar'
+    );
+
+
+  boton.disabled =
+    true;
+
+
+  document
+    .getElementById(
+      'loadingIA'
+    )
+    .style.display =
+    'block';
+
+
+  google.script.run
+
+    .withSuccessHandler(
+      function (respuesta) {
+
+        boton.disabled =
+          false;
+
+
+        document
+          .getElementById(
+            'loadingIA'
+          )
+          .style.display =
+          'none';
+
+
+        aplicarResultadoIA(
+          respuesta
+        );
+      }
+    )
+
+    .withFailureHandler(
+      function (error) {
+
+        boton.disabled =
+          false;
+
+
+        document
+          .getElementById(
+            'loadingIA'
+          )
+          .style.display =
+          'none';
+
+
+        manejarError(
+          error
+        );
+      }
+    )
+
+    .analizarImagen(
+      APP_PIN,
+      FOTO_DATA
+    );
+}
+
+
+/************************************************************
+ * RESULTADO DE IA
+ ************************************************************/
+function aplicarResultadoIA(r) {
+
+  PRODUCTO_ID =
+    '';
+
+  PRODUCTO_EXISTENCIA =
+    0;
+
+
+  setValor(
+    'producto',
+    r.producto
+  );
+
+  setValor(
+    'categoria',
+    r.categoria
+  );
+
+  setValor(
+    'marca',
+    r.marca
+  );
+
+  setValor(
+    'modelo',
+    r.modeloVariante
+  );
+
+  setValor(
+    'codigo',
+    r.codigoSerie
+  );
+
+  setValor(
+    'descripcion',
+    r.descripcion
+  );
+
+
+  seleccionarUnidad(
+    r.unidad || 'Unidad'
+  );
+
+
+  const confianza =
+    Math.round(
+      Number(
+        r.confianza || 0
+      ) *
+      100
+    );
+
+
+  const analysis =
+    document.getElementById(
+      'analysis'
+    );
+
+
+  analysis.innerHTML =
+    '✨ <strong>IA:</strong> producto identificado con aproximadamente ' +
+    confianza +
+    '% de confianza. Revisa los datos antes de guardar.';
+
+
+  analysis.style.display =
+    'block';
+
+
+  ocultarProductoSeleccionado();
+
+
+  mostrarCoincidencias(
+    r.coincidencias || []
+  );
+
+
+  if (
+    MODO !== 'VENTA'
+  ) {
+
+    document
+      .getElementById(
+        'btnNuevo'
+      )
+      .classList
+      .remove('hidden');
+  }
+}
+
+
+/************************************************************
+ * COINCIDENCIAS
+ ************************************************************/
+function mostrarCoincidencias(lista) {
+
+  const contenedor =
+    document.getElementById(
+      'coincidencias'
+    );
+
+
+  contenedor.innerHTML =
+    '';
+
+
+  if (
+    !lista ||
+    lista.length === 0
+  ) {
+
+    contenedor.innerHTML =
+      '<div class="helper" style="margin-top:10px;">' +
+      'No encontré una coincidencia clara en el inventario actual.' +
+      '</div>';
+
+    return;
+  }
+
+
+  const titulo =
+    document.createElement(
+      'div'
+    );
+
+
+  titulo.className =
+    'match-title';
+
+
+  titulo.textContent =
+    '¿Ya es uno de estos productos?';
+
+
+  contenedor.appendChild(
+    titulo
+  );
+
+
+  lista.forEach(
+    function (item) {
+
+      contenedor.appendChild(
+        crearResultadoProducto(
+          item
+        )
+      );
+    }
+  );
+}
+
+
+/************************************************************
+ * BUSQUEDA MANUAL
+ ************************************************************/
+function buscarConEspera() {
+
+  clearTimeout(
+    timerBusqueda
+  );
+
+
+  timerBusqueda =
+    setTimeout(
+      function () {
+
+        const texto =
+          valor('busqueda');
+
+
+        if (
+          texto.length < 2
+        ) {
+
+          document
+            .getElementById(
+              'resultadosBusqueda'
+            )
+            .innerHTML =
+            '';
+
+          return;
+        }
+
+
+        google.script.run
+
+          .withSuccessHandler(
+            mostrarResultadosBusqueda
+          )
+
+          .withFailureHandler(
+            manejarError
+          )
+
+          .buscarProductos(
+            APP_PIN,
+            texto
+          );
+
+      },
+      300
+    );
+}
+
+
+function mostrarResultadosBusqueda(lista) {
+
+  const contenedor =
+    document.getElementById(
+      'resultadosBusqueda'
+    );
+
+
+  contenedor.innerHTML =
+    '';
+
+
+  if (
+    !lista ||
+    lista.length === 0
+  ) {
+
+    contenedor.innerHTML =
+      '<div class="helper">No encontré productos.</div>';
+
+    return;
+  }
+
+
+  lista.forEach(
+    function (item) {
+
+      contenedor.appendChild(
+        crearResultadoProducto(
+          item
+        )
+      );
+    }
+  );
+}
+
+
+/************************************************************
+ * TARJETA PRODUCTO
+ ************************************************************/
+function crearResultadoProducto(item) {
+
+  const boton =
+    document.createElement(
+      'button'
+    );
+
+
+  boton.type =
+    'button';
+
+
+  boton.className =
+    'match';
+
+
+  const detalles =
+    [
+      item.marca,
+      item.modeloVariante,
+      item.codigoSerie
+    ]
+      .filter(Boolean)
+      .join(' · ');
+
+
+  boton.innerHTML =
+    '<div class="match-main">' +
+
+      '<div>' +
+
+        '<strong>' +
+        escaparHtml(
+          item.producto
+        ) +
+        '</strong>' +
+
+        '<small>' +
+        escaparHtml(
+          detalles || item.categoria || ''
+        ) +
+        '</small>' +
+
+      '</div>' +
+
+      '<div class="stock">' +
+      'Stock: ' +
+      escaparHtml(
+        String(
+          item.existencia
+        )
+      ) +
+      '</div>' +
+
+    '</div>';
+
+
+  boton.onclick =
+    function () {
+
+      seleccionarProducto(
+        item
+      );
+    };
+
+
+  return boton;
+}
+
+
+/************************************************************
+ * SELECCIONAR EXISTENTE
+ ************************************************************/
+function seleccionarProducto(item) {
+
+  PRODUCTO_ID =
+    item.id;
+
+
+  PRODUCTO_EXISTENCIA =
+    Number(
+      item.existencia || 0
+    );
+
+
+  setValor(
+    'producto',
+    item.producto
+  );
+
+  setValor(
+    'categoria',
+    item.categoria
+  );
+
+  setValor(
+    'marca',
+    item.marca
+  );
+
+  setValor(
+    'modelo',
+    item.modeloVariante
+  );
+
+  setValor(
+    'codigo',
+    item.codigoSerie
+  );
+
+  setValor(
+    'descripcion',
+    item.descripcion
+  );
+
+  setValor(
+    'costo',
+    item.costo || ''
+  );
+
+  setValor(
+    'precio',
+    item.precio || ''
+  );
+
+
+  seleccionarUnidad(
+    item.unidad || 'Unidad'
+  );
+
+
+  const caja =
+    document.getElementById(
+      'productoSeleccionado'
+    );
+
+
+  caja.innerHTML =
+    '✅ Producto seleccionado<br>' +
+
+    '<strong>' +
+    escaparHtml(
+      item.producto
+    ) +
+    '</strong><br>' +
+
+    'Existencia actual: ' +
+    escaparHtml(
+      String(
+        item.existencia
+      )
+    ) +
+
+    ' &nbsp; · &nbsp; ID: ' +
+    escaparHtml(
+      item.id
+    );
+
+
+  caja.style.display =
+    'block';
+
+
+  document
+    .getElementById(
+      'btnNuevo'
+    )
+    .classList
+    .toggle(
+      'hidden',
+      MODO === 'VENTA'
+    );
+
+
+  document
+    .getElementById(
+      'resultadosBusqueda'
+    )
+    .innerHTML =
+    '';
+
+
+  document
+    .getElementById(
+      'busqueda'
+    )
+    .value =
+    '';
+
+
+  mostrarToast(
+    '✅ Producto existente seleccionado.'
+  );
+}
+
+
+/************************************************************
+ * PRODUCTO NUEVO
+ ************************************************************/
+function usarComoNuevo() {
+
+  PRODUCTO_ID =
+    '';
+
+  PRODUCTO_EXISTENCIA =
+    0;
+
+
+  ocultarProductoSeleccionado();
+
+
+  document
+    .getElementById(
+      'btnNuevo'
+    )
+    .classList
+    .add('hidden');
+
+
+  mostrarToast(
+    'Se registrará como producto nuevo.'
+  );
+}
+
+
+function ocultarProductoSeleccionado() {
+
+  document
+    .getElementById(
+      'productoSeleccionado'
+    )
+    .style.display =
+    'none';
+}
+
+
+/************************************************************
+ * GUARDAR
+ ************************************************************/
+function guardarMovimiento() {
+
+  const producto =
+    valor('producto');
+
+
+  const cantidad =
+    Number(
+      valor('cantidad')
+    );
+
+
+  if (!producto) {
+
+    mostrarToast(
+      '⚠️ Indica el nombre del producto.'
+    );
+
+    return;
+  }
+
+
+  if (
+    !isFinite(cantidad) ||
+    cantidad <= 0
+  ) {
+
+    mostrarToast(
+      '⚠️ La cantidad debe ser mayor que cero.'
+    );
+
+    return;
+  }
+
+
+  if (
+    MODO === 'VENTA' &&
+    !PRODUCTO_ID
+  ) {
+
+    mostrarToast(
+      '⚠️ Para vender debes seleccionar un producto existente.'
+    );
+
+    return;
+  }
+
+
+  if (
+    MODO === 'VENTA' &&
+    cantidad > PRODUCTO_EXISTENCIA
+  ) {
+
+    mostrarToast(
+      '⚠️ Solo hay ' +
+      PRODUCTO_EXISTENCIA +
+      ' disponibles.'
+    );
+
+    return;
+  }
+
+
+  const datos = {
+
+    tipo:
+      MODO,
+
+    idProducto:
+      PRODUCTO_ID,
+
+    producto:
+      producto,
+
+    categoria:
+      valor('categoria'),
+
+    marca:
+      valor('marca'),
+
+    modeloVariante:
+      valor('modelo'),
+
+    codigoSerie:
+      valor('codigo'),
+
+    unidad:
+      valor('unidad') || 'Unidad',
+
+    descripcion:
+      valor('descripcion'),
+
+    cantidad:
+      cantidad,
+
+    costoUnitario:
+      Number(
+        valor('costo')
+      ) || 0,
+
+    precioVenta:
+      Number(
+        valor('precio')
+      ) || 0,
+
+    imagenData:
+      FOTO_DATA
+  };
+
+
+  const boton =
+    document.getElementById(
+      'btnGuardar'
+    );
+
+
+  const textoAnterior =
+    boton.textContent;
+
+
+  boton.disabled =
+    true;
+
+
+  boton.textContent =
+    'Guardando...';
+
+
+  google.script.run
+
+    .withSuccessHandler(
+      function (respuesta) {
+
+        boton.disabled =
+          false;
+
+
+        boton.textContent =
+          textoAnterior;
+
+
+        mostrarToast(
+          '✅ ' +
+          respuesta.mensaje +
+          ' Existencia actual: ' +
+          respuesta.existencia
+        );
+
+
+        limpiarOperacion();
+      }
+    )
+
+    .withFailureHandler(
+      function (error) {
+
+        boton.disabled =
+          false;
+
+
+        boton.textContent =
+          textoAnterior;
+
+
+        manejarError(
+          error
+        );
+      }
+    )
+
+    .guardarMovimiento(
+      APP_PIN,
+      datos
+    );
+}
+
+
+/************************************************************
+ * LIMPIAR
+ ************************************************************/
+function limpiarOperacion() {
+
+  PRODUCTO_ID =
+    '';
+
+  PRODUCTO_EXISTENCIA =
+    0;
+
+  FOTO_DATA =
+    '';
+
+
+  [
+    'producto',
+    'categoria',
+    'marca',
+    'modelo',
+    'codigo',
+    'descripcion',
+    'costo',
+    'precio',
+    'busqueda'
+  ].forEach(
+    function (id) {
+
+      setValor(
+        id,
+        ''
+      );
+    }
+  );
+
+
+  setValor(
+    'cantidad',
+    '1'
+  );
+
+
+  seleccionarUnidad(
+    'Unidad'
+  );
+
+
+  document
+    .getElementById(
+      'fotoInput'
+    )
+    .value =
+    '';
+
+
+  document
+    .getElementById(
+      'fotoPreview'
+    )
+    .src =
+    '';
+
+
+  document
+    .getElementById(
+      'fotoPreview'
+    )
+    .style.display =
+    'none';
+
+
+  document
+    .getElementById(
+      'cameraPlaceholder'
+    )
+    .style.display =
+    'block';
+
+
+  document
+    .getElementById(
+      'btnAnalizar'
+    )
+    .disabled =
+    true;
+
+
+  document
+    .getElementById(
+      'analysis'
+    )
+    .style.display =
+    'none';
+
+
+  document
+    .getElementById(
+      'coincidencias'
+    )
+    .innerHTML =
+    '';
+
+
+  document
+    .getElementById(
+      'resultadosBusqueda'
+    )
+    .innerHTML =
+    '';
+
+
+  document
+    .getElementById(
+      'btnNuevo'
+    )
+    .classList
+    .add('hidden');
+
+
+  ocultarProductoSeleccionado();
+}
+
+
+/************************************************************
+ * UNIDAD
+ ************************************************************/
+function seleccionarUnidad(unidad) {
+
+  const select =
+    document.getElementById(
+      'unidad'
+    );
+
+
+  const buscado =
+    String(
+      unidad || ''
+    )
+      .trim()
+      .toLowerCase();
+
+
+  for (
+    let i = 0;
+    i < select.options.length;
+    i++
+  ) {
+
+    if (
+      select.options[i]
+        .value
+        .toLowerCase()
+        ===
+      buscado
+    ) {
+
+      select.selectedIndex =
+        i;
+
+      return;
+    }
+  }
+
+
+  select.value =
+    'Otro';
+}
+
+
+/************************************************************
+ * UTILIDADES
+ ************************************************************/
+function valor(id) {
+
+  const elemento =
+    document.getElementById(
+      id
+    );
+
+
+  return String(
+    elemento.value || ''
+  ).trim();
+}
+
+
+function setValor(
+  id,
+  valorNuevo
+) {
+
+  document
+    .getElementById(
+      id
+    )
+    .value =
+    valorNuevo == null
+      ? ''
+      : valorNuevo;
+}
+
+
+function manejarError(error) {
+
+  let mensaje =
+    'Error desconocido.';
+
+
+  if (
+    error &&
+    error.message
+  ) {
+
+    mensaje =
+      error.message;
+
+  } else if (error) {
+
+    mensaje =
+      String(error);
+  }
+
+
+  mostrarToast(
+    '⚠️ ' +
+    mensaje
+  );
+}
+
+
+function mostrarToast(texto) {
+
+  const toast =
+    document.getElementById(
+      'toast'
+    );
+
+
+  toast.textContent =
+    texto;
+
+
+  toast.style.display =
+    'block';
+
+
+  clearTimeout(
+    toast.timer
+  );
+
+
+  toast.timer =
+    setTimeout(
+      function () {
+
+        toast.style.display =
+          'none';
+
+      },
+      4200
+    );
+}
+
+
+function escaparHtml(texto) {
+
+  return String(
+    texto || ''
+  )
+    .replace(
+      /&/g,
+      '&amp;'
+    )
+    .replace(
+      /</g,
+      '&lt;'
+    )
+    .replace(
+      />/g,
+      '&gt;'
+    )
+    .replace(
+      /"/g,
+      '&quot;'
+    )
+    .replace(
+      /'/g,
+      '&#039;'
+    );
+}
+</script>
+
+</body>
+</html>
