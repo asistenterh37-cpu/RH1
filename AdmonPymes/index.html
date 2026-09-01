@@ -792,7 +792,7 @@
             </button>
 
 
-            <div
+                        <div
               id="gastosSubmenu"
               class="subMenu"
             >
@@ -811,6 +811,13 @@
               </button>
 
             </div>
+
+
+            <button
+              onclick="abrirEstadoResultados()"
+            >
+              📈 Estado de resultados
+            </button>
 
           </div>
 
@@ -1492,7 +1499,7 @@
     </button>
 
 
-    <div
+        <div
       id="gastosResultado"
       class="reportBox"
     ></div>
@@ -1500,7 +1507,83 @@
   </div>
 
 </div>
-  
+
+
+<!-- ======================================================
+     ESTADO DE RESULTADOS
+======================================================= -->
+<div
+  id="estadoResultadosOverlay"
+  class="overlay"
+>
+
+  <div class="dialog">
+
+    <div class="panelHeader">
+
+      <h2>
+        📈 Estado de resultados
+      </h2>
+
+      <button
+        class="btnCerrarPanel"
+        onclick="cerrarPanel('estadoResultadosOverlay')"
+      >
+        ×
+      </button>
+
+    </div>
+
+
+    <div class="dos">
+
+      <div>
+
+        <label class="campo">
+          Desde
+        </label>
+
+        <input
+          id="erDesde"
+          type="date"
+        >
+
+      </div>
+
+
+      <div>
+
+        <label class="campo">
+          Hasta
+        </label>
+
+        <input
+          id="erHasta"
+          type="date"
+        >
+
+      </div>
+
+    </div>
+
+
+    <button
+      class="btn btnPrimary"
+      onclick="verEstadoResultados()"
+    >
+      👁 Ver
+    </button>
+
+
+    <div
+      id="estadoResultadosResultado"
+      class="reportBox"
+    ></div>
+
+  </div>
+
+</div>
+   
 <!--
   Se muestra cuando el GS detecta
   que probablemente intentamos crear
@@ -2355,9 +2438,31 @@ function seleccionarExistente(item) {
     item.costo || ''
   );
 
+  /**********************************************************
+   * PRECIO
+   *
+   * En VENTA mostramos primero el último precio
+   * real con el que se vendió el producto.
+   **********************************************************/
+  let precioMostrar =
+    item.precio || '';
+
+
+  if (
+    MODO === 'VENTA' &&
+    Number(
+      item.ultimoPrecioVenta || 0
+    ) > 0
+  ) {
+
+    precioMostrar =
+      item.ultimoPrecioVenta;
+  }
+
+
   setValor(
     'precio',
-    item.precio || ''
+    precioMostrar
   );
 
 
@@ -3939,7 +4044,272 @@ function mostrarGastos(lista) {
     '</div>';
 }
 
+/************************************************************
+ * ESTADO DE RESULTADOS
+ ************************************************************/
+function abrirEstadoResultados() {
 
+  cerrarMenu();
+
+
+  document
+    .getElementById(
+      'estadoResultadosOverlay'
+    )
+    .style.display =
+    'block';
+
+
+  const hoy =
+    fechaHoyISO();
+
+
+  setValor(
+    'erDesde',
+    hoy
+  );
+
+
+  setValor(
+    'erHasta',
+    hoy
+  );
+
+
+  document
+    .getElementById(
+      'estadoResultadosResultado'
+    )
+    .innerHTML =
+    '';
+}
+
+
+/************************************************************
+ * CONSULTAR ESTADO DE RESULTADOS
+ ************************************************************/
+function verEstadoResultados() {
+
+  const desde =
+    valor(
+      'erDesde'
+    );
+
+
+  const hasta =
+    valor(
+      'erHasta'
+    );
+
+
+  if (
+    !desde ||
+    !hasta
+  ) {
+
+    toast(
+      'Selecciona Desde y Hasta.'
+    );
+
+    return;
+  }
+
+
+  document
+    .getElementById(
+      'estadoResultadosResultado'
+    )
+    .innerHTML =
+    '<div class="emptyReport">Calculando estado de resultados...</div>';
+
+
+  google.script.run
+
+    .withSuccessHandler(
+      mostrarEstadoResultados
+    )
+
+    .withFailureHandler(
+      errorServidor
+    )
+
+    .consultarEstadoResultados(
+      APP_PIN,
+      desde,
+      hasta
+    );
+}
+
+
+/************************************************************
+ * MOSTRAR ESTADO DE RESULTADOS
+ ************************************************************/
+function mostrarEstadoResultados(r) {
+
+  const cont =
+    document.getElementById(
+      'estadoResultadosResultado'
+    );
+
+
+  let gastosDetalle =
+    '';
+
+
+  (r.gastosPorTipo || []).forEach(
+    function(item) {
+
+      gastosDetalle +=
+
+        '<tr>' +
+
+          '<td style="padding-left:22px;">' +
+            escapeHtml(
+              item.tipo
+            ) +
+          '</td>' +
+
+          '<td class="reportNumber">' +
+            '- ' +
+            formatoDinero(
+              item.valor
+            ) +
+          '</td>' +
+
+        '</tr>';
+    }
+  );
+
+
+  cont.innerHTML =
+
+    '<div style="' +
+      'text-align:center;' +
+      'font-size:12px;' +
+      'color:#66757c;' +
+      'margin-bottom:10px;' +
+    '">' +
+
+      'Período: ' +
+      escapeHtml(
+        r.desde || ''
+      ) +
+      ' al ' +
+      escapeHtml(
+        r.hasta || ''
+      ) +
+
+    '</div>' +
+
+
+    '<div class="reportTableWrap">' +
+
+      '<table class="reportTable" style="min-width:100%;">' +
+
+        '<thead>' +
+
+          '<tr>' +
+
+            '<th>Concepto</th>' +
+
+            '<th>Valor</th>' +
+
+          '</tr>' +
+
+        '</thead>' +
+
+        '<tbody>' +
+
+
+          '<tr>' +
+
+            '<td><strong>Ventas</strong></td>' +
+
+            '<td class="reportNumber">' +
+              formatoDinero(
+                r.ventas
+              ) +
+            '</td>' +
+
+          '</tr>' +
+
+
+          '<tr>' +
+
+            '<td>(-) Costo de ventas</td>' +
+
+            '<td class="reportNumber">' +
+              '- ' +
+              formatoDinero(
+                r.costoVentas
+              ) +
+            '</td>' +
+
+          '</tr>' +
+
+
+          '<tr style="background:#eef7f3;">' +
+
+            '<td><strong>UTILIDAD BRUTA</strong></td>' +
+
+            '<td class="reportNumber">' +
+              formatoDinero(
+                r.utilidadBruta
+              ) +
+            '</td>' +
+
+          '</tr>' +
+
+
+          '<tr>' +
+
+            '<td colspan="2">' +
+              '<strong>GASTOS</strong>' +
+            '</td>' +
+
+          '</tr>' +
+
+
+          gastosDetalle +
+
+
+          '<tr>' +
+
+            '<td><strong>Total gastos</strong></td>' +
+
+            '<td class="reportNumber">' +
+              '- ' +
+              formatoDinero(
+                r.totalGastos
+              ) +
+            '</td>' +
+
+          '</tr>' +
+
+
+          '<tr style="' +
+            'background:#eaf7f2;' +
+            'font-size:14px;' +
+          '">' +
+
+            '<td><strong>UTILIDAD NETA</strong></td>' +
+
+            '<td class="reportNumber" style="font-size:15px;">' +
+              formatoDinero(
+                r.utilidadNeta
+              ) +
+            '</td>' +
+
+          '</tr>' +
+
+
+        '</tbody>' +
+
+      '</table>' +
+
+    '</div>';
+}
+  
 /************************************************************
  * FORMATOS
  ************************************************************/
