@@ -983,21 +983,26 @@
     </p>
 
     <div class="duplicateNotice">
-      Esto evita duplicar inventario por diferencias
-      como “Taladro Makita”, “taladro makita”,
-      “Makita Taladro”, etc.
-    </div>
+  El sistema encontró un producto que podría ser
+  el mismo aunque la descripción sea diferente.
+</div>
 
-    <div
-      id="duplicateCandidates"
-    ></div>
+<div
+  id="duplicateReason"
+  class="duplicateNotice"
+  style="display:none; background:#edf5ff; color:#214f7d;"
+></div>
 
-    <button
-      class="btn btnLight"
-      onclick="confirmarProductoDiferente()"
-    >
-      ➕ Es otro producto, crear nuevo
-    </button>
+<div
+  id="duplicateCandidates"
+></div>
+
+<button
+  class="btn btnLight"
+  onclick="confirmarProductoDiferente()"
+>
+  ➕ Estoy seguro: es otro producto
+</button>
 
     <button
       class="btn btnLight"
@@ -2146,20 +2151,22 @@ function enviarMovimiento(datos) {
          * Encontró posible duplicado.
          */
         if (
-          r.requiresConfirmation
-        ) {
+  r.requiresConfirmation
+) {
 
-          PENDING_DATA =
-            datos;
-
-
-          mostrarDuplicadosServidor(
-            r.candidates || []
-          );
+  PENDING_DATA =
+    datos;
 
 
-          return;
-        }
+  mostrarDuplicadosServidor(
+    r.candidates || [],
+    r.aiReason || '',
+    r.aiConfidence || 0
+  );
+
+
+  return;
+}
 
 
         let mensaje =
@@ -2212,7 +2219,11 @@ function enviarMovimiento(datos) {
 /************************************************************
  * DUPLICADOS DETECTADOS POR SERVIDOR
  ************************************************************/
-function mostrarDuplicadosServidor(lista) {
+function mostrarDuplicadosServidor(
+  lista,
+  motivo,
+  confianza
+) {
 
   const cont =
     document.getElementById(
@@ -2222,6 +2233,44 @@ function mostrarDuplicadosServidor(lista) {
 
   cont.innerHTML =
     '';
+
+
+  const boxMotivo =
+    document.getElementById(
+      'duplicateReason'
+    );
+
+
+  const porcentaje =
+    Math.round(
+      Number(
+        confianza || 0
+      ) * 100
+    );
+
+
+  if (
+    motivo ||
+    porcentaje
+  ) {
+
+    boxMotivo.innerHTML =
+      '🤖 <strong>Coincidencia IA: ' +
+      porcentaje +
+      '%</strong><br>' +
+      escapeHtml(
+        motivo || ''
+      );
+
+
+    boxMotivo.style.display =
+      'block';
+
+  } else {
+
+    boxMotivo.style.display =
+      'none';
+  }
 
 
   lista.forEach(
@@ -2256,7 +2305,6 @@ function mostrarDuplicadosServidor(lista) {
     .style.display =
     'block';
 }
-
 
 function usarDuplicadoServidor(item) {
 
@@ -2295,6 +2343,19 @@ function confirmarProductoDiferente() {
   }
 
 
+  const seguro =
+    confirm(
+      'El sistema encontró un producto parecido.\n\n' +
+      'Si continúas se creará una NUEVA fila de inventario.\n\n' +
+      '¿Estás seguro de que físicamente es un producto diferente?'
+    );
+
+
+  if (!seguro) {
+    return;
+  }
+
+
   const datos =
     Object.assign(
       {},
@@ -2316,7 +2377,6 @@ function confirmarProductoDiferente() {
     datos
   );
 }
-
 
 function cerrarDuplicados() {
 
