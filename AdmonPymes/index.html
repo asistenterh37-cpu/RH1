@@ -463,6 +463,98 @@
         rgba(255,255,255,.96);
     }
 
+/**********************************************************
+ * CARRITO
+ **********************************************************/
+.carritoCard {
+  border: 1px solid #cfe3da;
+  background: #fbfdfc;
+}
+
+.carritoHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.carritoContador {
+  padding: 5px 9px;
+  border-radius: 999px;
+  background: var(--verdeClaro);
+  color: var(--verde);
+  font-size: 11px;
+  font-weight: 850;
+}
+
+.carritoVacio {
+  padding: 13px;
+  border-radius: 11px;
+  background: #f3f6f5;
+  color: var(--muted);
+  font-size: 12px;
+  text-align: center;
+}
+
+.carritoItem {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  padding: 11px 0;
+  border-bottom: 1px solid #e5ece9;
+}
+
+.carritoItem:last-child {
+  border-bottom: 0;
+}
+
+.carritoItem strong {
+  display: block;
+  font-size: 13px;
+}
+
+.carritoItem small {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.carritoSubtotal {
+  margin-top: 4px;
+  font-size: 13px;
+  font-weight: 850;
+  color: var(--verde);
+}
+
+.btnEliminarCarrito {
+  width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: 50%;
+  background: #fff0ee;
+  color: var(--rojo);
+  font-weight: 900;
+}
+
+.carritoTotal {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+  padding: 12px;
+  border-radius: 12px;
+  background: var(--verdeClaro);
+}
+
+.carritoTotal strong {
+  color: var(--verde);
+  font-size: 18px;
+}
+    
     .login {
       position: fixed;
       inset: 0;
@@ -1421,17 +1513,105 @@
     </section>
 
 
-    <div class="saveZone">
+    <!-- ======================================================
+     CARRITO COMPRA / VENTA
+======================================================= -->
+<section
+  id="carritoCard"
+  class="card carritoCard hidden"
+>
 
-      <button
-        id="btnGuardar"
-        class="btn btnPrimary"
-        onclick="guardar()"
+  <div class="carritoHeader">
+
+    <div>
+
+      <div
+        id="carritoTitulo"
+        class="titulo"
       >
-      </button>
+        🛒 Carrito
+      </div>
+
+      <div class="subtitulo">
+        Agrega varios productos y registra toda
+        la operación al finalizar.
+      </div>
 
     </div>
 
+
+    <div
+      id="carritoContador"
+      class="carritoContador"
+    >
+      0
+    </div>
+
+  </div>
+
+
+  <div
+    id="carritoLista"
+  ></div>
+
+
+  <div
+    id="carritoTotalBox"
+    class="carritoTotal"
+  >
+
+    <span>
+      Total
+    </span>
+
+    <strong
+      id="carritoTotal"
+    >
+      L 0.00
+    </strong>
+
+  </div>
+
+
+  <button
+    id="btnFinalizarCarrito"
+    class="btn btnPrimary"
+    onclick="finalizarCarrito()"
+    disabled
+  >
+    ✅ Registrar carrito
+  </button>
+
+
+  <button
+    class="btn btnLight"
+    onclick="vaciarCarrito()"
+  >
+    🗑 Vaciar carrito
+  </button>
+
+</section>
+
+
+<div class="saveZone">
+
+  <button
+    id="btnGuardar"
+    class="btn btnPrimary"
+    onclick="guardar()"
+  >
+  </button>
+
+
+  <button
+    id="btnGuardarSiguiente"
+    class="btn btnAI hidden"
+    onclick="guardarYSiguiente()"
+  >
+    💾📸 Guardar y siguiente
+  </button>
+
+</div>
     </main>
 
 </div>
@@ -2231,12 +2411,30 @@ let FOTO_FACTURA_DATA = '';
 let FOTO_5S_DATA = '';
 
 let PRODUCTO_ID = '';
+
 let PRODUCTO_EXISTENCIA = 0;
 
 let PENDING_DATA = null;
 
+let PENDING_OPTIONS = null;
+
+let PENDING_CART_INDEX = -1;
+
+let PENDING_CART_TIPO = '';
+
 let timerBusqueda = null;
 
+
+/*
+ * Cada modo conserva su propio carrito.
+ */
+let CARRITOS = {
+
+  COMPRA: [],
+
+  VENTA: []
+
+};
 
 /************************************************************
  * INICIO
@@ -2429,6 +2627,12 @@ function cambiarModo(modo) {
     );
 
 
+  const botonSiguiente =
+    document.getElementById(
+      'btnGuardarSiguiente'
+    );
+
+
   const descripcion =
     document.getElementById(
       'descripcionModo'
@@ -2441,6 +2645,15 @@ function cambiarModo(modo) {
     );
 
 
+  const carrito =
+    document.getElementById(
+      'carritoCard'
+    );
+
+
+  /**********************************************************
+   * INVENTARIO INICIAL
+   **********************************************************/
   if (
     modo === 'INICIAL'
   ) {
@@ -2451,44 +2664,98 @@ function cambiarModo(modo) {
     boton.className =
       'btn btnPrimary';
 
+
+    botonSiguiente
+      .classList
+      .remove(
+        'hidden'
+      );
+
+
+    carrito
+      .classList
+      .add(
+        'hidden'
+      );
+
+
     descripcion.textContent =
-      'Registra lo que ya existe. Si el producto ya está en la hoja, se sumará a Inventario Inicial.';
+      'Registra lo que ya existe. Puedes guardar normalmente o usar Guardar y siguiente para levantar inventario más rápido.';
+
 
     costo.style.display =
       'block';
   }
 
 
+  /**********************************************************
+   * COMPRA
+   **********************************************************/
   if (
     modo === 'COMPRA'
   ) {
 
     boton.textContent =
-      '🟢 Registrar compra / entrada';
+      '🛒 Agregar compra al carrito';
 
     boton.className =
       'btn btnPrimary';
 
+
+    botonSiguiente
+      .classList
+      .add(
+        'hidden'
+      );
+
+
+    carrito
+      .classList
+      .remove(
+        'hidden'
+      );
+
+
     descripcion.textContent =
-      'Si el producto ya existe, la compra se acumulará en Entradas y no se creará otra fila.';
+      'Identifica el producto, indica cantidad y costo, y agrégalo al carrito. Puedes registrar varios productos juntos.';
+
 
     costo.style.display =
       'block';
   }
 
 
+  /**********************************************************
+   * VENTA
+   **********************************************************/
   if (
     modo === 'VENTA'
   ) {
 
     boton.textContent =
-      '🔴 Registrar venta / salida';
+      '🛒 Agregar venta al carrito';
 
     boton.className =
       'btn btnDanger';
 
+
+    botonSiguiente
+      .classList
+      .add(
+        'hidden'
+      );
+
+
+    carrito
+      .classList
+      .remove(
+        'hidden'
+      );
+
+
     descripcion.textContent =
-      'Selecciona un producto existente. La cantidad vendida se acumulará en Salidas.';
+      'Fotografía o busca el producto. Si la coincidencia es suficientemente segura, se seleccionará automáticamente. Luego agrégalo al carrito.';
+
 
     costo.style.display =
       'none';
@@ -2496,9 +2763,9 @@ function cambiarModo(modo) {
 
 
   limpiar();
+
+  renderCarrito();
 }
-
-
 /************************************************************
  * FOTO
  ************************************************************/
@@ -2753,6 +3020,168 @@ function analizarFoto() {
     );
 }
 
+/************************************************************
+ * AUTOSELECCIÓN SEGURA EN VENTA
+ ************************************************************/
+function normalizarCodigoCliente_(
+  texto
+) {
+
+  return String(
+    texto || ''
+  )
+    .toUpperCase()
+    .replace(
+      /[^A-Z0-9]/g,
+      ''
+    );
+}
+
+
+function obtenerAutoseleccionVenta_(
+  r
+) {
+
+  if (
+    MODO !== 'VENTA'
+  ) {
+
+    return null;
+  }
+
+
+  const lista =
+    Array.isArray(
+      r.coincidencias
+    )
+      ? r.coincidencias.slice()
+      : [];
+
+
+  if (
+    !lista.length
+  ) {
+
+    return null;
+  }
+
+
+  /**********************************************************
+   * 1. CÓDIGO / SKU / SERIE EXACTO
+   **********************************************************/
+  const codigoIA =
+    normalizarCodigoCliente_(
+      r.codigoSerie
+    );
+
+
+  if (
+    codigoIA
+  ) {
+
+    const exactos =
+      lista.filter(
+        function(item) {
+
+          return (
+            normalizarCodigoCliente_(
+              item.codigoSerie
+            )
+            ===
+            codigoIA
+          );
+        }
+      );
+
+
+    if (
+      exactos.length === 1
+    ) {
+
+      return {
+
+        item:
+          exactos[0],
+
+        motivo:
+          'código exacto'
+      };
+    }
+  }
+
+
+  /**********************************************************
+   * 2. IDENTIDAD MUY FUERTE
+   **********************************************************/
+  lista.sort(
+    function(a,b) {
+
+      return (
+        Number(
+          b.score || 0
+        )
+        -
+        Number(
+          a.score || 0
+        )
+      );
+    }
+  );
+
+
+  const primero =
+    lista[0];
+
+
+  const segundo =
+    lista.length > 1
+      ? lista[1]
+      : null;
+
+
+  const scorePrimero =
+    Number(
+      primero.score || 0
+    );
+
+
+  const scoreSegundo =
+    segundo
+      ? Number(
+          segundo.score || 0
+        )
+      : 0;
+
+
+  const confianza =
+    Number(
+      r.confianza || 0
+    );
+
+
+  if (
+    confianza >= 0.95 &&
+    scorePrimero >= 90 &&
+    (
+      !segundo ||
+      scorePrimero -
+      scoreSegundo >= 25
+    )
+  ) {
+
+    return {
+
+      item:
+        primero,
+
+      motivo:
+        'coincidencia de alta confianza'
+    };
+  }
+
+
+  return null;
+}  
 
 function aplicarIA(r) {
 
@@ -2768,25 +3197,30 @@ function aplicarIA(r) {
     r.producto
   );
 
+
   setValor(
     'categoria',
     r.categoria
   );
+
 
   setValor(
     'marca',
     r.marca
   );
 
+
   setValor(
     'modelo',
     r.modeloVariante
   );
 
+
   setValor(
     'codigo',
     r.codigoSerie
   );
+
 
   setValor(
     'descripcion',
@@ -2813,11 +3247,77 @@ function aplicarIA(r) {
     );
 
 
+  /**********************************************************
+   * INTENTAR AUTOSELECCIÓN EN VENTA
+   **********************************************************/
+  const auto =
+    obtenerAutoseleccionVenta_(
+      r
+    );
+
+
+  if (
+    auto
+  ) {
+
+    seleccionarExistente(
+      auto.item,
+      true
+    );
+
+
+    box.innerHTML =
+
+      '✨ IA: <strong>' +
+      pct +
+      '% de confianza.</strong><br>' +
+
+      '🤖 Producto seleccionado automáticamente por ' +
+
+      '<strong>' +
+      escapeHtml(
+        auto.motivo
+      ) +
+      '</strong>.';
+
+
+    box.style.display =
+      'block';
+
+
+    document
+      .getElementById(
+        'coincidencias'
+      )
+      .innerHTML =
+
+      '<div class="helper">' +
+      'La coincidencia fue suficientemente fuerte. ' +
+      'Revisa cantidad y precio antes de agregar al carrito.' +
+      '</div>';
+
+
+    return;
+  }
+
+
+  /**********************************************************
+   * NO HAY SEGURIDAD SUFICIENTE:
+   * mantiene selección humana.
+   **********************************************************/
   box.innerHTML =
+
     '✨ IA: <strong>' +
     pct +
     '% de confianza.</strong> ' +
-    'El sistema también buscó si ya manejas este artículo.';
+
+    (
+      MODO === 'VENTA'
+
+        ? 'Revisa y selecciona el producto correcto.'
+
+        : 'El sistema también buscó si ya manejas este artículo.'
+    );
 
 
   box.style.display =
@@ -2828,8 +3328,6 @@ function aplicarIA(r) {
     r.coincidencias || []
   );
 }
-
-
 /************************************************************
  * RESULTADOS
  ************************************************************/
@@ -2966,7 +3464,10 @@ function crearTarjeta(item) {
 /************************************************************
  * SELECCIONAR PRODUCTO EXISTENTE
  ************************************************************/
-function seleccionarExistente(item) {
+function seleccionarExistente(
+  item,
+  automatico
+) {
 
   PRODUCTO_ID =
     item.id;
@@ -2983,41 +3484,45 @@ function seleccionarExistente(item) {
     item.producto
   );
 
+
   setValor(
     'categoria',
     item.categoria
   );
+
 
   setValor(
     'marca',
     item.marca
   );
 
+
   setValor(
     'modelo',
     item.modeloVariante
   );
+
 
   setValor(
     'codigo',
     item.codigoSerie
   );
 
+
   setValor(
     'descripcion',
     item.descripcion
   );
+
 
   setValor(
     'costo',
     item.costo || ''
   );
 
+
   /**********************************************************
    * PRECIO
-   *
-   * En VENTA mostramos primero el último precio
-   * real con el que se vendió el producto.
    **********************************************************/
   let precioMostrar =
     item.precio || '';
@@ -3053,12 +3558,19 @@ function seleccionarExistente(item) {
 
 
   box.innerHTML =
-    '✅ Se usará este producto existente<br>' +
+
+    (
+      automatico
+
+        ? '🤖 Producto seleccionado automáticamente<br>'
+
+        : '✅ Se usará este producto existente<br>'
+    ) +
 
     '<strong>' +
-    escapeHtml(
-      item.producto
-    ) +
+      escapeHtml(
+        item.producto
+      ) +
     '</strong><br>' +
 
     'ID: ' +
@@ -3067,6 +3579,7 @@ function seleccionarExistente(item) {
     ) +
 
     ' · Existencia: ' +
+
     escapeHtml(
       String(
         item.existencia
@@ -3102,10 +3615,13 @@ function seleccionarExistente(item) {
 
 
   toast(
-    'Producto existente seleccionado.'
+    automatico
+
+      ? '🤖 Producto identificado automáticamente.'
+
+      : 'Producto existente seleccionado.'
   );
 }
-
 
 function quitarSeleccion() {
 
@@ -3221,7 +3737,10 @@ function buscarConEspera() {
 /************************************************************
  * GUARDAR
  ************************************************************/
-function guardar() {
+/************************************************************
+ * DATOS ACTUALES DEL FORMULARIO
+ ************************************************************/
+function obtenerDatosFormulario() {
 
   const fecha =
     valor(
@@ -3249,7 +3768,7 @@ function guardar() {
       'Indica la fecha de la transacción.'
     );
 
-    return;
+    return null;
   }
 
 
@@ -3259,8 +3778,9 @@ function guardar() {
       'Indica el producto.'
     );
 
-    return;
+    return null;
   }
+
 
   if (
     !isFinite(cantidad) ||
@@ -3271,10 +3791,13 @@ function guardar() {
       'Cantidad inválida.'
     );
 
-    return;
+    return null;
   }
 
 
+  /**********************************************************
+   * VENTA SIEMPRE REQUIERE PRODUCTO EXISTENTE
+   **********************************************************/
   if (
     MODO === 'VENTA' &&
     !PRODUCTO_ID
@@ -3284,11 +3807,61 @@ function guardar() {
       'Para vender selecciona un producto existente.'
     );
 
-    return;
+    return null;
   }
 
 
-    const datos = {
+  /**********************************************************
+   * EVITAR SOBREVENTA INCLUYENDO LO QUE YA ESTÁ
+   * DENTRO DEL CARRITO.
+   **********************************************************/
+  if (
+    MODO === 'VENTA'
+  ) {
+
+    const yaEnCarrito =
+      CARRITOS.VENTA.reduce(
+        function(total,item) {
+
+          if (
+            item.idProducto ===
+            PRODUCTO_ID
+          ) {
+
+            return (
+              total +
+              Number(
+                item.cantidad || 0
+              )
+            );
+          }
+
+
+          return total;
+        },
+        0
+      );
+
+
+    if (
+      yaEnCarrito +
+      cantidad >
+      PRODUCTO_EXISTENCIA
+    ) {
+
+      toast(
+        'Stock insuficiente. Disponible: ' +
+        PRODUCTO_EXISTENCIA +
+        ' · Ya en carrito: ' +
+        yaEnCarrito
+      );
+
+      return null;
+    }
+  }
+
+
+  return {
 
     tipo:
       MODO,
@@ -3303,57 +3876,858 @@ function guardar() {
       producto,
 
     categoria:
-      valor('categoria'),
+      valor(
+        'categoria'
+      ),
 
     marca:
-      valor('marca'),
+      valor(
+        'marca'
+      ),
 
     modeloVariante:
-      valor('modelo'),
+      valor(
+        'modelo'
+      ),
 
     codigoSerie:
-      valor('codigo'),
+      valor(
+        'codigo'
+      ),
 
     unidad:
-      valor('unidad') || 'Unidad',
+      valor(
+        'unidad'
+      ) || 'Unidad',
 
     descripcion:
-      valor('descripcion'),
+      valor(
+        'descripcion'
+      ),
 
     cantidad:
       cantidad,
 
     costoUnitario:
       Number(
-        valor('costo')
+        valor(
+          'costo'
+        )
       ) || 0,
 
     precioVenta:
       Number(
-        valor('precio')
+        valor(
+          'precio'
+        )
       ) || 0,
 
     imagenData:
       FOTO_DATA,
 
-    /*
-     * Normalmente false.
-     * Solo cambia a true cuando el usuario,
-     * después de ver posibles duplicados,
-     * confirma "es otro producto".
-     */
     forceNew:
       false
   };
+}
 
 
-  enviarMovimiento(
+/************************************************************
+ * BOTÓN PRINCIPAL
+ ************************************************************/
+function guardar() {
+
+  const datos =
+    obtenerDatosFormulario();
+
+
+  if (!datos) {
+    return;
+  }
+
+
+  /**********************************************************
+   * INVENTARIO INICIAL:
+   * se registra inmediatamente.
+   **********************************************************/
+  if (
+    MODO === 'INICIAL'
+  ) {
+
+    enviarMovimiento(
+      datos,
+      {
+        siguiente:
+          false
+      }
+    );
+
+    return;
+  }
+
+
+  /**********************************************************
+   * COMPRA / VENTA:
+   * va al carrito.
+   **********************************************************/
+  agregarAlCarrito(
     datos
   );
 }
 
 
-function enviarMovimiento(datos) {
+/************************************************************
+ * GUARDAR Y SIGUIENTE
+ ************************************************************/
+function guardarYSiguiente() {
+
+  if (
+    MODO !== 'INICIAL'
+  ) {
+
+    return;
+  }
+
+
+  const datos =
+    obtenerDatosFormulario();
+
+
+  if (!datos) {
+    return;
+  }
+
+
+  enviarMovimiento(
+    datos,
+    {
+      siguiente:
+        true
+    }
+  );
+}
+
+
+/************************************************************
+ * CARRITO ACTUAL
+ ************************************************************/
+function obtenerCarritoActual() {
+
+  if (
+    MODO !== 'COMPRA' &&
+    MODO !== 'VENTA'
+  ) {
+
+    return [];
+  }
+
+
+  return CARRITOS[
+    MODO
+  ];
+}
+
+
+/************************************************************
+ * CLAVE PARA EVITAR DUPLICAR EL MISMO ARTÍCULO
+ * DENTRO DEL CARRITO
+ ************************************************************/
+function claveItemCarrito_(
+  datos
+) {
+
+  if (
+    datos.idProducto
+  ) {
+
+    return (
+      'ID:' +
+      datos.idProducto
+    );
+  }
+
+
+  const codigo =
+    normalizarCodigoCliente_(
+      datos.codigoSerie
+    );
+
+
+  if (
+    codigo
+  ) {
+
+    return (
+      'COD:' +
+      codigo
+    );
+  }
+
+
+  return (
+
+    'TXT:' +
+
+    [
+      datos.producto,
+      datos.marca,
+      datos.modeloVariante,
+      datos.unidad
+    ]
+      .map(
+        function(x) {
+
+          return String(
+            x || ''
+          )
+            .trim()
+            .toLowerCase();
+        }
+      )
+      .join('|')
+  );
+}
+
+
+/************************************************************
+ * AGREGAR AL CARRITO
+ ************************************************************/
+function agregarAlCarrito(
+  datos
+) {
+
+  const carrito =
+    obtenerCarritoActual();
+
+
+  if (
+    carrito.length >= 20
+  ) {
+
+    toast(
+      'El carrito admite hasta 20 productos por operación.'
+    );
+
+    return;
+  }
+
+
+  /*
+   * En ventas no necesitamos reenviar la fotografía:
+   * el GS nunca guarda una nueva imagen en una venta.
+   */
+  if (
+    MODO === 'VENTA'
+  ) {
+
+    datos.imagenData =
+      '';
+  }
+
+
+  const clave =
+    claveItemCarrito_(
+      datos
+    );
+
+
+  const existente =
+    carrito.find(
+      function(item) {
+
+        return (
+          claveItemCarrito_(
+            item
+          )
+          ===
+          clave
+        );
+      }
+    );
+
+
+  /**********************************************************
+   * SI EL MISMO PRODUCTO YA ESTÁ:
+   * acumulamos cantidad.
+   **********************************************************/
+  if (
+    existente
+  ) {
+
+    const cantidadAnterior =
+      Number(
+        existente.cantidad || 0
+      );
+
+
+    const cantidadNueva =
+      Number(
+        datos.cantidad || 0
+      );
+
+
+    /********************************************************
+     * COMPRA:
+     * si cambió el costo, conservamos costo medio
+     * entre las líneas del propio carrito.
+     ********************************************************/
+    if (
+      MODO === 'COMPRA'
+    ) {
+
+      const costoAnterior =
+        Number(
+          existente.costoUnitario || 0
+        );
+
+
+      const costoNuevo =
+        Number(
+          datos.costoUnitario || 0
+        );
+
+
+      const cantidadTotal =
+        cantidadAnterior +
+        cantidadNueva;
+
+
+      if (
+        cantidadTotal > 0 &&
+        (
+          costoAnterior > 0 ||
+          costoNuevo > 0
+        )
+      ) {
+
+        existente.costoUnitario =
+
+          (
+            (
+              cantidadAnterior *
+              costoAnterior
+            )
+            +
+            (
+              cantidadNueva *
+              costoNuevo
+            )
+          )
+          /
+          cantidadTotal;
+      }
+    }
+
+
+    existente.cantidad =
+      cantidadAnterior +
+      cantidadNueva;
+
+
+    if (
+      Number(
+        datos.precioVenta || 0
+      ) > 0
+    ) {
+
+      existente.precioVenta =
+        Number(
+          datos.precioVenta
+        );
+    }
+
+
+    if (
+      !existente.imagenData &&
+      datos.imagenData
+    ) {
+
+      existente.imagenData =
+        datos.imagenData;
+    }
+
+
+    toast(
+      '🛒 Cantidad acumulada en el carrito.'
+    );
+
+  } else {
+
+    carrito.push(
+      Object.assign(
+        {},
+        datos
+      )
+    );
+
+
+    toast(
+      '🛒 Producto agregado al carrito.'
+    );
+  }
+
+
+  limpiar();
+
+  renderCarrito();
+}
+
+
+/************************************************************
+ * MOSTRAR CARRITO
+ ************************************************************/
+function renderCarrito() {
+
+  const card =
+    document.getElementById(
+      'carritoCard'
+    );
+
+
+  if (
+    MODO !== 'COMPRA' &&
+    MODO !== 'VENTA'
+  ) {
+
+    card
+      .classList
+      .add(
+        'hidden'
+      );
+
+    return;
+  }
+
+
+  card
+    .classList
+    .remove(
+      'hidden'
+    );
+
+
+  const carrito =
+    obtenerCarritoActual();
+
+
+  const lista =
+    document.getElementById(
+      'carritoLista'
+    );
+
+
+  const contador =
+    document.getElementById(
+      'carritoContador'
+    );
+
+
+  const titulo =
+    document.getElementById(
+      'carritoTitulo'
+    );
+
+
+  const boton =
+    document.getElementById(
+      'btnFinalizarCarrito'
+    );
+
+
+  contador.textContent =
+    String(
+      carrito.length
+    );
+
+
+  titulo.textContent =
+
+    MODO === 'COMPRA'
+
+      ? '🛒 Carrito de compra'
+
+      : '🛒 Carrito de venta';
+
+
+  boton.textContent =
+
+    MODO === 'COMPRA'
+
+      ? '✅ Registrar compra completa'
+
+      : '🔴 Registrar venta completa';
+
+
+  boton.className =
+
+    MODO === 'COMPRA'
+
+      ? 'btn btnPrimary'
+
+      : 'btn btnDanger';
+
+
+  boton.disabled =
+    carrito.length === 0;
+
+
+  if (
+    !carrito.length
+  ) {
+
+    lista.innerHTML =
+
+      '<div class="carritoVacio">' +
+        'Todavía no has agregado productos.' +
+      '</div>';
+
+
+    document
+      .getElementById(
+        'carritoTotal'
+      )
+      .textContent =
+      formatoDinero(
+        0
+      );
+
+
+    return;
+  }
+
+
+  let html =
+    '';
+
+
+  let totalGeneral =
+    0;
+
+
+  carrito.forEach(
+    function(item,index) {
+
+      const cantidad =
+        Number(
+          item.cantidad || 0
+        );
+
+
+      const valorUnitario =
+
+        MODO === 'COMPRA'
+
+          ? Number(
+              item.costoUnitario || 0
+            )
+
+          : Number(
+              item.precioVenta || 0
+            );
+
+
+      const subtotal =
+        cantidad *
+        valorUnitario;
+
+
+      totalGeneral +=
+        subtotal;
+
+
+      html +=
+
+        '<div class="carritoItem">' +
+
+          '<div>' +
+
+            '<strong>' +
+              escapeHtml(
+                item.producto || ''
+              ) +
+            '</strong>' +
+
+            '<small>' +
+
+              escapeHtml(
+                String(
+                  cantidad
+                )
+              ) +
+
+              ' × ' +
+
+              formatoDinero(
+                valorUnitario
+              ) +
+
+            '</small>' +
+
+            '<div class="carritoSubtotal">' +
+              formatoDinero(
+                subtotal
+              ) +
+            '</div>' +
+
+          '</div>' +
+
+          '<button ' +
+            'type="button" ' +
+            'class="btnEliminarCarrito" ' +
+            'onclick="quitarDelCarrito(' +
+              index +
+            ')">' +
+            '×' +
+          '</button>' +
+
+        '</div>';
+    }
+  );
+
+
+  lista.innerHTML =
+    html;
+
+
+  document
+    .getElementById(
+      'carritoTotal'
+    )
+    .textContent =
+    formatoDinero(
+      totalGeneral
+    );
+}
+
+
+/************************************************************
+ * QUITAR PRODUCTO DEL CARRITO
+ ************************************************************/
+function quitarDelCarrito(
+  index
+) {
+
+  const carrito =
+    obtenerCarritoActual();
+
+
+  if (
+    index < 0 ||
+    index >= carrito.length
+  ) {
+
+    return;
+  }
+
+
+  carrito.splice(
+    index,
+    1
+  );
+
+
+  renderCarrito();
+}
+
+
+/************************************************************
+ * VACIAR CARRITO
+ ************************************************************/
+function vaciarCarrito() {
+
+  const carrito =
+    obtenerCarritoActual();
+
+
+  if (
+    !carrito.length
+  ) {
+
+    return;
+  }
+
+
+  const seguro =
+    confirm(
+      '¿Vaciar todo el carrito?'
+    );
+
+
+  if (!seguro) {
+    return;
+  }
+
+
+  CARRITOS[
+    MODO
+  ] =
+  [];
+
+
+  renderCarrito();
+
+
+  toast(
+    'Carrito vacío.'
+  );
+}
+
+
+/************************************************************
+ * REGISTRAR CARRITO
+ ************************************************************/
+function finalizarCarrito(
+  tipoForzado
+) {
+
+  const tipo =
+    tipoForzado ||
+    MODO;
+
+
+  if (
+    tipo !== 'COMPRA' &&
+    tipo !== 'VENTA'
+  ) {
+
+    return;
+  }
+
+
+  const carrito =
+    CARRITOS[
+      tipo
+    ];
+
+
+  if (
+    !carrito.length
+  ) {
+
+    toast(
+      'El carrito está vacío.'
+    );
+
+    return;
+  }
+
+
+  const btn =
+    document.getElementById(
+      'btnFinalizarCarrito'
+    );
+
+
+  const texto =
+    btn.textContent;
+
+
+  btn.disabled =
+    true;
+
+
+  btn.textContent =
+    'Registrando...';
+
+
+  google.script.run
+
+    .withSuccessHandler(
+      function(r) {
+
+        btn.disabled =
+          false;
+
+        btn.textContent =
+          texto;
+
+
+        /******************************************************
+         * UN PRODUCTO NECESITA CONFIRMACIÓN
+         ******************************************************/
+        if (
+          r.requiresConfirmation
+        ) {
+
+          PENDING_DATA =
+            r.item;
+
+          PENDING_CART_INDEX =
+            Number(
+              r.index
+            );
+
+          PENDING_CART_TIPO =
+            tipo;
+
+          PENDING_OPTIONS =
+            null;
+
+
+          mostrarDuplicadosServidor(
+            r.candidates || [],
+            r.aiReason || '',
+            r.aiConfidence || 0
+          );
+
+
+          return;
+        }
+
+
+        /******************************************************
+         * TODO EL CARRITO REGISTRADO
+         ******************************************************/
+        CARRITOS[
+          tipo
+        ] =
+        [];
+
+
+        renderCarrito();
+
+        limpiar();
+
+
+        toast(
+
+          '✅ ' +
+          Number(
+            r.cantidad || 0
+          ) +
+          ' producto(s) registrados correctamente.'
+        );
+      }
+    )
+
+    .withFailureHandler(
+      function(e) {
+
+        btn.disabled =
+          false;
+
+        btn.textContent =
+          texto;
+
+        errorServidor(
+          e
+        );
+      }
+    )
+
+    .guardarCarrito(
+      APP_PIN,
+      tipo,
+      carrito
+    );
+}
+function enviarMovimiento(
+  datos,
+  opciones
+) {
+
+  opciones =
+    opciones || {};
+
 
   const btn =
     document.getElementById(
@@ -3361,7 +4735,17 @@ function enviarMovimiento(datos) {
     );
 
 
+  const btnSiguiente =
+    document.getElementById(
+      'btnGuardarSiguiente'
+    );
+
+
   btn.disabled =
+    true;
+
+
+  btnSiguiente.disabled =
     true;
 
 
@@ -3381,34 +4765,48 @@ function enviarMovimiento(datos) {
         btn.disabled =
           false;
 
+
+        btnSiguiente.disabled =
+          false;
+
+
         btn.textContent =
           texto;
 
 
-        /*
-         * El servidor NO creó nada.
-         * Encontró posible duplicado.
-         */
+        /******************************************************
+         * POSIBLE DUPLICADO
+         ******************************************************/
         if (
-  r.requiresConfirmation
-) {
+          r.requiresConfirmation
+        ) {
 
-  PENDING_DATA =
-    datos;
+          PENDING_DATA =
+            datos;
+
+          PENDING_OPTIONS =
+            opciones;
+
+          PENDING_CART_INDEX =
+            -1;
+
+          PENDING_CART_TIPO =
+            '';
 
 
-  mostrarDuplicadosServidor(
-    r.candidates || [],
-    r.aiReason || '',
-    r.aiConfidence || 0
-  );
+          mostrarDuplicadosServidor(
+            r.candidates || [],
+            r.aiReason || '',
+            r.aiConfidence || 0
+          );
 
 
-  return;
-}
+          return;
+        }
 
 
         let mensaje =
+
           '✅ ' +
           r.mensaje +
           ' Existencia: ' +
@@ -3424,12 +4822,58 @@ function enviarMovimiento(datos) {
         }
 
 
+        if (
+          opciones.siguiente
+        ) {
+
+          mensaje +=
+            ' · Listo para el siguiente producto.';
+        }
+
+
         toast(
           mensaje
         );
 
 
         limpiar();
+
+
+        /******************************************************
+         * GUARDAR Y SIGUIENTE
+         ******************************************************/
+        if (
+          opciones.siguiente
+        ) {
+
+          setTimeout(
+            function() {
+
+              const camara =
+                document.getElementById(
+                  'cameraPlaceholder'
+                );
+
+
+              if (
+                camara
+              ) {
+
+                camara.scrollIntoView(
+                  {
+                    behavior:
+                      'smooth',
+
+                    block:
+                      'center'
+                  }
+                );
+              }
+
+            },
+            100
+          );
+        }
       }
     )
 
@@ -3439,8 +4883,14 @@ function enviarMovimiento(datos) {
         btn.disabled =
           false;
 
+
+        btnSiguiente.disabled =
+          false;
+
+
         btn.textContent =
           texto;
+
 
         errorServidor(
           e
@@ -3453,7 +4903,6 @@ function enviarMovimiento(datos) {
       datos
     );
 }
-
 
 /************************************************************
  * DUPLICADOS DETECTADOS POR SERVIDOR
@@ -3545,7 +4994,9 @@ function mostrarDuplicadosServidor(
     'block';
 }
 
-function usarDuplicadoServidor(item) {
+function usarDuplicadoServidor(
+  item
+) {
 
   if (!PENDING_DATA) {
     return;
@@ -3562,15 +5013,65 @@ function usarDuplicadoServidor(item) {
   datos.idProducto =
     item.id;
 
+
   datos.forceNew =
     false;
+
+
+  /**********************************************************
+   * CONFIRMACIÓN DE UN ITEM DEL CARRITO
+   **********************************************************/
+  if (
+    PENDING_CART_INDEX >= 0 &&
+    PENDING_CART_TIPO
+  ) {
+
+    const tipo =
+      PENDING_CART_TIPO;
+
+
+    const index =
+      PENDING_CART_INDEX;
+
+
+    if (
+      CARRITOS[tipo] &&
+      CARRITOS[tipo][index]
+    ) {
+
+      CARRITOS[tipo][index] =
+        datos;
+    }
+
+
+    cerrarDuplicados();
+
+
+    renderCarrito();
+
+
+    finalizarCarrito(
+      tipo
+    );
+
+
+    return;
+  }
+
+
+  /**********************************************************
+   * MOVIMIENTO INDIVIDUAL
+   **********************************************************/
+  const opciones =
+    PENDING_OPTIONS || {};
 
 
   cerrarDuplicados();
 
 
   enviarMovimiento(
-    datos
+    datos,
+    opciones
   );
 }
 
@@ -3584,9 +5085,12 @@ function confirmarProductoDiferente() {
 
   const seguro =
     confirm(
+
       'El sistema encontró un producto parecido.\n\n' +
-      'Si continúas se creará una NUEVA fila de inventario.\n\n' +
-      '¿Estás seguro de que físicamente es un producto diferente?'
+
+      'Si continúas se tratará como un producto diferente.\n\n' +
+
+      '¿Estás seguro?'
     );
 
 
@@ -3605,17 +5109,68 @@ function confirmarProductoDiferente() {
   datos.idProducto =
     '';
 
+
   datos.forceNew =
     true;
+
+
+  /**********************************************************
+   * ITEM DEL CARRITO
+   **********************************************************/
+  if (
+    PENDING_CART_INDEX >= 0 &&
+    PENDING_CART_TIPO
+  ) {
+
+    const tipo =
+      PENDING_CART_TIPO;
+
+
+    const index =
+      PENDING_CART_INDEX;
+
+
+    if (
+      CARRITOS[tipo] &&
+      CARRITOS[tipo][index]
+    ) {
+
+      CARRITOS[tipo][index] =
+        datos;
+    }
+
+
+    cerrarDuplicados();
+
+
+    renderCarrito();
+
+
+    finalizarCarrito(
+      tipo
+    );
+
+
+    return;
+  }
+
+
+  /**********************************************************
+   * MOVIMIENTO INDIVIDUAL
+   **********************************************************/
+  const opciones =
+    PENDING_OPTIONS || {};
 
 
   cerrarDuplicados();
 
 
   enviarMovimiento(
-    datos
+    datos,
+    opciones
   );
 }
+
 
 function cerrarDuplicados() {
 
@@ -3625,9 +5180,24 @@ function cerrarDuplicados() {
     )
     .style.display =
     'none';
+
+
+  PENDING_DATA =
+    null;
+
+
+  PENDING_OPTIONS =
+    null;
+
+
+  PENDING_CART_INDEX =
+    -1;
+
+
+  PENDING_CART_TIPO =
+    '';
 }
-
-
+  
 /************************************************************
  * LIMPIAR
  ************************************************************/
