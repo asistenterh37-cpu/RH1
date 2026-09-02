@@ -203,16 +203,77 @@
       margin-bottom: 4px;
     }
 
-    #fotoPreview {
-      display: none;
-      width: 100%;
-      max-height: 390px;
-      object-fit: contain;
-    }
+    #fotoPreview,
+.cameraPreview {
+  display: none;
+  width: 100%;
+  max-height: 390px;
+  object-fit: contain;
+}
 
     .hidden {
       display: none !important;
     }
+
+    .resultadoIABox {
+  display: none;
+  margin-top: 14px;
+  padding: 14px;
+  border: 1px solid #d7e5df;
+  border-radius: 14px;
+  background: #f8fbfa;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.resultadoIABox h3 {
+  margin: 0 0 10px;
+  color: var(--verde);
+  font-size: 16px;
+}
+
+.resultadoFila {
+  margin-bottom: 7px;
+}
+
+.resultadoEtiqueta {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.resultadoValor {
+  margin-top: 2px;
+  font-weight: 700;
+}
+
+.calificacion5S {
+  margin: 10px 0;
+  font-size: 34px;
+  font-weight: 900;
+  color: var(--verde);
+}
+
+.listaRecomendaciones {
+  margin: 8px 0 0;
+  padding-left: 20px;
+}
+
+.facturaLineas {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--borde);
+}
+
+.facturaLinea {
+  padding: 8px 0;
+  border-bottom: 1px solid #edf1ef;
+}
+
+.facturaLinea:last-child {
+  border-bottom: 0;
+}
 
     .btn {
       width: 100%;
@@ -939,13 +1000,29 @@
             </button>
 
 
-            <button
-              type="button"
-            >
-              🤖 Análisis IA
-            </button>
+          <button
+  type="button"
+>
+  🤖 Análisis IA
+</button>
 
-          </div>
+
+<button
+  type="button"
+  onclick="abrirLeerFactura()"
+>
+  🧾 Leer factura
+</button>
+
+
+<button
+  type="button"
+  onclick="abrirEvaluacion5S()"
+>
+  🧹 Evaluación 5S
+</button>
+
+</div>
 
         </div>
 
@@ -1919,7 +1996,222 @@
 
 </div>
 
+<!-- ======================================================
+     LEER FACTURA
+======================================================= -->
+<div
+  id="facturaOverlay"
+  class="overlay"
+>
 
+  <div class="dialog">
+
+    <div class="panelHeader">
+
+      <h2>
+        🧾 Leer factura
+      </h2>
+
+      <button
+        class="btnCerrarPanel"
+        onclick="cerrarPanel('facturaOverlay')"
+      >
+        ×
+      </button>
+
+    </div>
+
+
+    <div class="subtitulo">
+      Toma una fotografía clara de la factura.
+      La IA leerá los datos y los registrará automáticamente.
+    </div>
+
+
+    <label
+      for="facturaFotoInput"
+      class="camera"
+    >
+
+      <div
+        id="facturaCameraPlaceholder"
+        class="cameraPlaceholder"
+      >
+
+        <span class="cameraIcon">
+          🧾
+        </span>
+
+        <strong>
+          Fotografiar factura
+        </strong>
+
+        <small>
+          Toca aquí para abrir la cámara
+        </small>
+
+      </div>
+
+
+      <img
+        id="facturaFotoPreview"
+        class="cameraPreview"
+        alt="Factura"
+      >
+
+    </label>
+
+
+    <input
+      id="facturaFotoInput"
+      class="hidden"
+      type="file"
+      accept="image/*"
+      capture="environment"
+      onchange="procesarFotoFactura(event)"
+    >
+
+
+    <button
+      id="btnLeerFactura"
+      class="btn btnAI"
+      onclick="leerFacturaIA()"
+      disabled
+    >
+      ✨ Leer y registrar factura
+    </button>
+
+
+    <div
+      id="loadingFactura"
+      class="loading"
+    >
+
+      <div class="spinner"></div>
+
+      Leyendo factura y registrando información...
+
+    </div>
+
+
+    <div
+      id="resultadoFactura"
+      class="resultadoIABox"
+    ></div>
+
+  </div>
+
+</div>
+
+
+<!-- ======================================================
+     EVALUACIÓN 5S
+======================================================= -->
+<div
+  id="evaluacion5SOverlay"
+  class="overlay"
+>
+
+  <div class="dialog">
+
+    <div class="panelHeader">
+
+      <h2>
+        🧹 Evaluación 5S
+      </h2>
+
+      <button
+        class="btnCerrarPanel"
+        onclick="cerrarPanel('evaluacion5SOverlay')"
+      >
+        ×
+      </button>
+
+    </div>
+
+
+    <div class="subtitulo">
+      Toma una fotografía del área, puesto,
+      ambiente, oficina, almacén, taller o espacio
+      que deseas evaluar.
+    </div>
+
+
+    <label
+      for="foto5SInput"
+      class="camera"
+    >
+
+      <div
+        id="camera5SPlaceholder"
+        class="cameraPlaceholder"
+      >
+
+        <span class="cameraIcon">
+          📸
+        </span>
+
+        <strong>
+          Fotografiar espacio
+        </strong>
+
+        <small>
+          Toca aquí para abrir la cámara
+        </small>
+
+      </div>
+
+
+      <img
+        id="foto5SPreview"
+        class="cameraPreview"
+        alt="Área para evaluación 5S"
+      >
+
+    </label>
+
+
+    <input
+      id="foto5SInput"
+      class="hidden"
+      type="file"
+      accept="image/*"
+      capture="environment"
+      onchange="procesarFoto5S(event)"
+    >
+
+
+    <button
+      id="btnEvaluar5S"
+      class="btn btnAI"
+      onclick="evaluar5SIA()"
+      disabled
+    >
+      ✨ Evaluar con IA
+    </button>
+
+
+    <div
+      id="loading5S"
+      class="loading"
+    >
+
+      <div class="spinner"></div>
+
+      Analizando el espacio con metodología 5S...
+
+    </div>
+
+
+    <div
+      id="resultado5S"
+      class="resultadoIABox"
+    ></div>
+
+  </div>
+
+</div>
+  
 <div
   id="toast"
   class="toast"
@@ -1934,8 +2226,11 @@ let MODO = 'INICIAL';
 
 let FOTO_DATA = '';
 
-let PRODUCTO_ID = '';
+let FOTO_FACTURA_DATA = '';
 
+let FOTO_5S_DATA = '';
+
+let PRODUCTO_ID = '';
 let PRODUCTO_EXISTENCIA = 0;
 
 let PENDING_DATA = null;
@@ -3460,6 +3755,672 @@ function limpiar() {
     );
 }
 
+/************************************************************
+ * LEER FACTURA
+ ************************************************************/
+function abrirLeerFactura() {
+
+  cerrarMenu();
+
+  FOTO_FACTURA_DATA = '';
+
+  document
+    .getElementById(
+      'facturaOverlay'
+    )
+    .style.display =
+    'block';
+
+
+  document
+    .getElementById(
+      'facturaFotoInput'
+    )
+    .value =
+    '';
+
+
+  document
+    .getElementById(
+      'facturaFotoPreview'
+    )
+    .style.display =
+    'none';
+
+
+  document
+    .getElementById(
+      'facturaCameraPlaceholder'
+    )
+    .style.display =
+    'block';
+
+
+  document
+    .getElementById(
+      'btnLeerFactura'
+    )
+    .disabled =
+    true;
+
+
+  document
+    .getElementById(
+      'loadingFactura'
+    )
+    .style.display =
+    'none';
+
+
+  const resultado =
+    document.getElementById(
+      'resultadoFactura'
+    );
+
+  resultado.style.display =
+    'none';
+
+  resultado.innerHTML =
+    '';
+}
+
+
+async function procesarFotoFactura(event) {
+
+  const file =
+    event.target.files[0];
+
+
+  if (!file) {
+    return;
+  }
+
+
+  try {
+
+    FOTO_FACTURA_DATA =
+      await comprimirImagen(
+        file
+      );
+
+
+    const preview =
+      document.getElementById(
+        'facturaFotoPreview'
+      );
+
+
+    preview.src =
+      FOTO_FACTURA_DATA;
+
+    preview.style.display =
+      'block';
+
+
+    document
+      .getElementById(
+        'facturaCameraPlaceholder'
+      )
+      .style.display =
+      'none';
+
+
+    document
+      .getElementById(
+        'btnLeerFactura'
+      )
+      .disabled =
+      false;
+
+
+    document
+      .getElementById(
+        'resultadoFactura'
+      )
+      .style.display =
+      'none';
+
+
+  } catch(e) {
+
+    toast(
+      'No pude procesar la fotografía de la factura.'
+    );
+  }
+}
+
+
+function leerFacturaIA() {
+
+  if (!FOTO_FACTURA_DATA) {
+
+    toast(
+      'Primero toma la fotografía de la factura.'
+    );
+
+    return;
+  }
+
+
+  const btn =
+    document.getElementById(
+      'btnLeerFactura'
+    );
+
+
+  btn.disabled =
+    true;
+
+
+  document
+    .getElementById(
+      'loadingFactura'
+    )
+    .style.display =
+    'block';
+
+
+  document
+    .getElementById(
+      'resultadoFactura'
+    )
+    .style.display =
+    'none';
+
+
+  google.script.run
+
+    .withSuccessHandler(
+      function(r) {
+
+        btn.disabled =
+          false;
+
+
+        document
+          .getElementById(
+            'loadingFactura'
+          )
+          .style.display =
+          'none';
+
+
+        mostrarFacturaLeida(
+          r
+        );
+
+
+        toast(
+          '✅ Factura registrada correctamente.'
+        );
+      }
+    )
+
+    .withFailureHandler(
+      function(e) {
+
+        btn.disabled =
+          false;
+
+
+        document
+          .getElementById(
+            'loadingFactura'
+          )
+          .style.display =
+          'none';
+
+
+        errorServidor(
+          e
+        );
+      }
+    )
+
+    .analizarYGuardarFactura(
+      APP_PIN,
+      FOTO_FACTURA_DATA
+    );
+}
+
+
+function mostrarFacturaLeida(r) {
+
+  const cont =
+    document.getElementById(
+      'resultadoFactura'
+    );
+
+
+  const lineas =
+    Array.isArray(r.lineas)
+      ? r.lineas
+      : [];
+
+
+  let detalle =
+    '';
+
+
+  lineas.forEach(
+    function(item) {
+
+      detalle +=
+
+        '<div class="facturaLinea">' +
+
+          '<strong>' +
+            escapeHtml(
+              item.descripcion || ''
+            ) +
+          '</strong><br>' +
+
+          escapeHtml(
+            String(
+              item.cantidad || 0
+            )
+          ) +
+
+          ' × ' +
+
+          formatoDinero(
+            item.valorUnitario || 0
+          ) +
+
+          ' = ' +
+
+          '<strong>' +
+            formatoDinero(
+              item.total || 0
+            ) +
+          '</strong>' +
+
+        '</div>';
+    }
+  );
+
+
+  cont.innerHTML =
+
+    '<h3>✅ Factura registrada</h3>' +
+
+    '<div class="resultadoFila">' +
+      '<div class="resultadoEtiqueta">No. factura</div>' +
+      '<div class="resultadoValor">' +
+        escapeHtml(
+          r.numeroFactura || ''
+        ) +
+      '</div>' +
+    '</div>' +
+
+    '<div class="resultadoFila">' +
+      '<div class="resultadoEtiqueta">Fecha</div>' +
+      '<div class="resultadoValor">' +
+        escapeHtml(
+          r.fecha || ''
+        ) +
+      '</div>' +
+    '</div>' +
+
+    '<div class="resultadoFila">' +
+      '<div class="resultadoEtiqueta">Emisor</div>' +
+      '<div class="resultadoValor">' +
+        escapeHtml(
+          r.emisor || ''
+        ) +
+      '</div>' +
+    '</div>' +
+
+    '<div class="resultadoFila">' +
+      '<div class="resultadoEtiqueta">Concepto</div>' +
+      '<div class="resultadoValor">' +
+        escapeHtml(
+          r.concepto || ''
+        ) +
+      '</div>' +
+    '</div>' +
+
+    '<div class="resultadoFila">' +
+      '<div class="resultadoEtiqueta">Subtotal</div>' +
+      '<div class="resultadoValor">' +
+        formatoDinero(
+          r.subtotal || 0
+        ) +
+      '</div>' +
+    '</div>' +
+
+    '<div class="resultadoFila">' +
+      '<div class="resultadoEtiqueta">15% ISV</div>' +
+      '<div class="resultadoValor">' +
+        formatoDinero(
+          r.isv15 || 0
+        ) +
+      '</div>' +
+    '</div>' +
+
+    '<div class="resultadoFila">' +
+      '<div class="resultadoEtiqueta">Total</div>' +
+      '<div class="resultadoValor">' +
+        formatoDinero(
+          r.totalPagar || 0
+        ) +
+      '</div>' +
+    '</div>' +
+
+    '<div class="facturaLineas">' +
+      '<strong>Detalle de factura</strong>' +
+      detalle +
+    '</div>';
+
+
+  cont.style.display =
+    'block';
+}  
+
+/************************************************************
+ * EVALUACIÓN 5S
+ ************************************************************/
+function abrirEvaluacion5S() {
+
+  cerrarMenu();
+
+  FOTO_5S_DATA = '';
+
+
+  document
+    .getElementById(
+      'evaluacion5SOverlay'
+    )
+    .style.display =
+    'block';
+
+
+  document
+    .getElementById(
+      'foto5SInput'
+    )
+    .value =
+    '';
+
+
+  document
+    .getElementById(
+      'foto5SPreview'
+    )
+    .style.display =
+    'none';
+
+
+  document
+    .getElementById(
+      'camera5SPlaceholder'
+    )
+    .style.display =
+    'block';
+
+
+  document
+    .getElementById(
+      'btnEvaluar5S'
+    )
+    .disabled =
+    true;
+
+
+  document
+    .getElementById(
+      'loading5S'
+    )
+    .style.display =
+    'none';
+
+
+  const resultado =
+    document.getElementById(
+      'resultado5S'
+    );
+
+
+  resultado.style.display =
+    'none';
+
+  resultado.innerHTML =
+    '';
+}
+
+
+async function procesarFoto5S(event) {
+
+  const file =
+    event.target.files[0];
+
+
+  if (!file) {
+    return;
+  }
+
+
+  try {
+
+    FOTO_5S_DATA =
+      await comprimirImagen(
+        file
+      );
+
+
+    const preview =
+      document.getElementById(
+        'foto5SPreview'
+      );
+
+
+    preview.src =
+      FOTO_5S_DATA;
+
+    preview.style.display =
+      'block';
+
+
+    document
+      .getElementById(
+        'camera5SPlaceholder'
+      )
+      .style.display =
+      'none';
+
+
+    document
+      .getElementById(
+        'btnEvaluar5S'
+      )
+      .disabled =
+      false;
+
+
+    document
+      .getElementById(
+        'resultado5S'
+      )
+      .style.display =
+      'none';
+
+
+  } catch(e) {
+
+    toast(
+      'No pude procesar la fotografía.'
+    );
+  }
+}
+
+
+function evaluar5SIA() {
+
+  if (!FOTO_5S_DATA) {
+
+    toast(
+      'Primero toma la fotografía del espacio.'
+    );
+
+    return;
+  }
+
+
+  const btn =
+    document.getElementById(
+      'btnEvaluar5S'
+    );
+
+
+  btn.disabled =
+    true;
+
+
+  document
+    .getElementById(
+      'loading5S'
+    )
+    .style.display =
+    'block';
+
+
+  document
+    .getElementById(
+      'resultado5S'
+    )
+    .style.display =
+    'none';
+
+
+  google.script.run
+
+    .withSuccessHandler(
+      function(r) {
+
+        btn.disabled =
+          false;
+
+
+        document
+          .getElementById(
+            'loading5S'
+          )
+          .style.display =
+          'none';
+
+
+        mostrarEvaluacion5S(
+          r
+        );
+      }
+    )
+
+    .withFailureHandler(
+      function(e) {
+
+        btn.disabled =
+          false;
+
+
+        document
+          .getElementById(
+            'loading5S'
+          )
+          .style.display =
+          'none';
+
+
+        errorServidor(
+          e
+        );
+      }
+    )
+
+    .evaluarImagen5S(
+      APP_PIN,
+      FOTO_5S_DATA
+    );
+}
+
+
+function mostrarEvaluacion5S(r) {
+
+  const cont =
+    document.getElementById(
+      'resultado5S'
+    );
+
+
+  const recomendaciones =
+    Array.isArray(
+      r.recomendaciones
+    )
+      ? r.recomendaciones
+      : [];
+
+
+  let lista =
+    '';
+
+
+  recomendaciones.forEach(
+    function(item) {
+
+      lista +=
+
+        '<li>' +
+          escapeHtml(
+            item
+          ) +
+        '</li>';
+    }
+  );
+
+
+  cont.innerHTML =
+
+    '<h3>📋 Informe 5S</h3>' +
+
+    '<div class="resultadoFila">' +
+
+      '<div class="resultadoEtiqueta">' +
+        'Estatus' +
+      '</div>' +
+
+      '<div class="resultadoValor">' +
+        escapeHtml(
+          r.estatus || ''
+        ) +
+      '</div>' +
+
+    '</div>' +
+
+    '<div class="resultadoEtiqueta">' +
+      'Calificación' +
+    '</div>' +
+
+    '<div class="calificacion5S">' +
+      escapeHtml(
+        String(
+          r.calificacion || 0
+        )
+      ) +
+      '/100' +
+    '</div>' +
+
+    '<div class="resultadoEtiqueta">' +
+      'Recomendaciones' +
+    '</div>' +
+
+    '<ul class="listaRecomendaciones">' +
+      lista +
+    '</ul>';
+
+
+  cont.style.display =
+    'block';
+}  
+  
 /************************************************************
  * MENÚ PRINCIPAL
  ************************************************************/
