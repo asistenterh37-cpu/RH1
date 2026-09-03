@@ -1,1 +1,8307 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <base target="_top">
 
+  <meta charset="UTF-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"
+  >
+
+  <meta name="theme-color" content="#126b56">
+
+  <title>AdmónPymes - Inventario IA</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    :root {
+      --verde: #126b56;
+      --verde2: #0d8d68;
+      --verdeClaro: #eaf7f2;
+      --rojo: #b42318;
+      --azul: #175ea8;
+      --azulClaro: #edf5ff;
+      --fondo: #f4f7f6;
+      --texto: #17212b;
+      --muted: #66757c;
+      --borde: #dfe6e3;
+    }
+
+    body {
+      margin: 0;
+      background: var(--fondo);
+      color: var(--texto);
+      font-family:
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        Roboto,
+        Arial,
+        sans-serif;
+    }
+
+    button,
+    input,
+    select,
+    textarea {
+      font: inherit;
+    }
+
+    button {
+      cursor: pointer;
+    }
+
+    .app {
+      width: 100%;
+      max-width: 650px;
+      min-height: 100vh;
+      margin: 0 auto;
+      background: white;
+    }
+
+    .header {
+      position: sticky;
+      top: 0;
+      z-index: 30;
+      padding: 18px;
+      color: white;
+      background:
+        linear-gradient(
+          135deg,
+          var(--verde),
+          var(--verde2)
+        );
+      box-shadow:
+        0 4px 15px
+        rgba(0,0,0,.12);
+    }
+
+    .headerRow {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .header h1 {
+      margin: 0;
+      font-size: 22px;
+    }
+
+    .header p {
+  margin: 5px 0 0;
+  font-size: 13px;
+  opacity: .9;
+}
+
+
+/**********************************************************
+ * ESTADO DE CONEXIÓN
+ **********************************************************/
+.status {
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  background: rgba(255,255,255,.17);
+}
+
+
+/**********************************************************
+ * CASITA - VOLVER A PANTALLA INICIAL
+ **********************************************************/
+.homeButton {
+  position: fixed;
+
+  top: 12px;
+  left: 50%;
+
+  z-index: 4000;
+
+  transform: translateX(-50%);
+
+  width: 46px;
+  height: 46px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 0;
+
+  border:
+    1px solid
+    rgba(255,255,255,.55);
+
+  border-radius: 50%;
+
+  background:
+    rgba(255,255,255,.18);
+
+  color: white;
+
+  font-size: 23px;
+  line-height: 1;
+
+  box-shadow:
+    0 4px 14px
+    rgba(0,0,0,.18);
+
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+
+  cursor: pointer;
+}
+
+
+.homeButton:hover {
+  background:
+    rgba(255,255,255,.30);
+}
+
+
+.homeButton:active {
+  transform:
+    translateX(-50%)
+    scale(.92);
+}
+
+
+/**********************************************************
+ * CONTENIDO PRINCIPAL
+ **********************************************************/
+.content {
+  padding: 14px 13px 45px;
+}
+
+
+/**********************************************************
+ * INVENTARIO / COMPRA / VENTA
+ **********************************************************/
+.modos {
+  display: grid;
+  grid-template-columns: repeat(3,1fr);
+  gap: 8px;
+  margin-bottom: 12px;
+}
+    .modo {
+      min-height: 78px;
+      border: 1px solid var(--borde);
+      border-radius: 15px;
+      background: white;
+      font-weight: 750;
+      font-size: 12px;
+      color: #405047;
+      padding: 9px 4px;
+    }
+
+    .modo span {
+      display: block;
+      margin-bottom: 4px;
+      font-size: 28px;
+    }
+
+    .modo.active {
+      background: var(--verde);
+      border-color: var(--verde);
+      color: white;
+    }
+
+    .descripcionModo {
+      padding: 10px 12px;
+      margin-bottom: 12px;
+      border-radius: 11px;
+      background: #f3f6f5;
+      color: #596961;
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    .card {
+      padding: 15px;
+      margin-bottom: 13px;
+      border: 1px solid var(--borde);
+      border-radius: 17px;
+      background: white;
+      box-shadow:
+        0 5px 18px
+        rgba(20,45,38,.06);
+    }
+
+    .titulo {
+      margin-bottom: 4px;
+      font-size: 16px;
+      font-weight: 800;
+    }
+
+    .subtitulo {
+      margin-bottom: 12px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    .camera {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 210px;
+      overflow: hidden;
+      border: 2px dashed #b6c9c2;
+      border-radius: 16px;
+      background: #f5faf8;
+      text-align: center;
+      cursor: pointer;
+    }
+
+    .cameraPlaceholder {
+      padding: 24px;
+      color: #52665f;
+    }
+
+    .cameraIcon {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 50px;
+    }
+
+    .cameraPlaceholder strong {
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    #fotoPreview,
+.cameraPreview {
+  display: none;
+  width: 100%;
+  max-height: 390px;
+  object-fit: contain;
+}
+
+    .hidden {
+      display: none !important;
+    }
+
+    .resultadoIABox {
+  display: none;
+  margin-top: 14px;
+  padding: 14px;
+  border: 1px solid #d7e5df;
+  border-radius: 14px;
+  background: #f8fbfa;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.resultadoIABox h3 {
+  margin: 0 0 10px;
+  color: var(--verde);
+  font-size: 16px;
+}
+
+.resultadoFila {
+  margin-bottom: 7px;
+}
+
+.resultadoEtiqueta {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.resultadoValor {
+  margin-top: 2px;
+  font-weight: 700;
+}
+
+.calificacion5S {
+  margin: 10px 0;
+  font-size: 34px;
+  font-weight: 900;
+  color: var(--verde);
+}
+
+.listaRecomendaciones {
+  margin: 8px 0 0;
+  padding-left: 20px;
+}
+
+.facturaLineas {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--borde);
+}
+
+.facturaLinea {
+  padding: 8px 0;
+  border-bottom: 1px solid #edf1ef;
+}
+
+.facturaLinea:last-child {
+  border-bottom: 0;
+}
+
+    .btn {
+      width: 100%;
+      min-height: 50px;
+      margin-top: 10px;
+      padding: 11px 14px;
+      border: 0;
+      border-radius: 13px;
+      font-weight: 800;
+    }
+
+    .btn:disabled {
+      opacity: .45;
+    }
+
+    .btnPrimary {
+      background: var(--verde);
+      color: white;
+    }
+
+    .btnAI {
+      border: 1px solid #cfe0f5;
+      background: var(--azulClaro);
+      color: var(--azul);
+    }
+
+    .btnDanger {
+      background: var(--rojo);
+      color: white;
+    }
+
+    .btnLight {
+      border: 1px solid #dfe6e3;
+      background: #f1f4f3;
+      color: #34463f;
+    }
+
+    label.campo {
+      display: block;
+      margin: 12px 0 5px;
+      color: #596961;
+      font-size: 12px;
+      font-weight: 750;
+    }
+
+    input,
+    select,
+    textarea {
+      width: 100%;
+      min-height: 45px;
+      padding: 10px 12px;
+      border: 1px solid #d4dfda;
+      border-radius: 11px;
+      outline: none;
+      background: white;
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      border-color: var(--verde2);
+      box-shadow:
+        0 0 0 3px
+        rgba(13,141,104,.09);
+    }
+
+    textarea {
+      min-height: 74px;
+      resize: vertical;
+    }
+
+    .dos {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 9px;
+    }
+
+    .loading {
+      display: none;
+      padding: 13px 5px 3px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .spinner {
+      width: 22px;
+      height: 22px;
+      margin: 0 auto 7px;
+      border: 3px solid #dce6e2;
+      border-top-color: var(--verde);
+      border-radius: 50%;
+      animation: giro .75s linear infinite;
+    }
+
+    @keyframes giro {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .analisis {
+      display: none;
+      margin-top: 10px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      background: var(--azulClaro);
+      color: #214f7d;
+      font-size: 12px;
+    }
+
+    .productoSeleccionado {
+      display: none;
+      margin-top: 10px;
+      padding: 12px;
+      border: 1px solid #adddcc;
+      border-radius: 13px;
+      background: var(--verdeClaro);
+      color: #155b48;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .productoSeleccionado strong {
+      font-size: 15px;
+    }
+
+    .matchTitle {
+      margin: 13px 0 6px;
+      color: #56665f;
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .match {
+      width: 100%;
+      margin-top: 7px;
+      padding: 11px;
+      border: 1px solid #dce5e1;
+      border-radius: 12px;
+      background: white;
+      text-align: left;
+    }
+
+    .matchRow {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .match strong {
+      display: block;
+      font-size: 14px;
+    }
+
+    .match small {
+      display: block;
+      margin-top: 3px;
+      color: var(--muted);
+      line-height: 1.4;
+    }
+
+    .stock {
+      flex-shrink: 0;
+      padding: 5px 8px;
+      border-radius: 999px;
+      background: var(--verdeClaro);
+      color: var(--verde);
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    .helper {
+      margin-top: 7px;
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.4;
+    }
+
+    .saveZone {
+      position: sticky;
+      bottom: 0;
+      z-index: 20;
+      padding: 7px 0 10px;
+      background:
+        rgba(255,255,255,.96);
+    }
+
+/**********************************************************
+ * CARRITO
+ **********************************************************/
+.carritoCard {
+  border: 1px solid #cfe3da;
+  background: #fbfdfc;
+}
+
+.carritoHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.carritoContador {
+  padding: 5px 9px;
+  border-radius: 999px;
+  background: var(--verdeClaro);
+  color: var(--verde);
+  font-size: 11px;
+  font-weight: 850;
+}
+
+.carritoVacio {
+  padding: 13px;
+  border-radius: 11px;
+  background: #f3f6f5;
+  color: var(--muted);
+  font-size: 12px;
+  text-align: center;
+}
+
+.carritoItem {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  padding: 11px 0;
+  border-bottom: 1px solid #e5ece9;
+}
+
+.carritoItem:last-child {
+  border-bottom: 0;
+}
+
+.carritoItem strong {
+  display: block;
+  font-size: 13px;
+}
+
+.carritoItem small {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.carritoSubtotal {
+  margin-top: 4px;
+  font-size: 13px;
+  font-weight: 850;
+  color: var(--verde);
+}
+
+.btnEliminarCarrito {
+  width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: 50%;
+  background: #fff0ee;
+  color: var(--rojo);
+  font-weight: 900;
+}
+
+.carritoTotal {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+  padding: 12px;
+  border-radius: 12px;
+  background: var(--verdeClaro);
+}
+
+.carritoTotal strong {
+  color: var(--verde);
+  font-size: 18px;
+}
+    
+    .login {
+  position: fixed;
+  inset: 0;
+  z-index: 5000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 22px;
+      background:
+        linear-gradient(
+          145deg,
+          #e9f7f2,
+          #f7faf9
+        );
+    }
+
+    .loginBox {
+      width: 100%;
+      max-width: 390px;
+      padding: 27px 22px;
+      border-radius: 23px;
+      background: white;
+      text-align: center;
+      box-shadow:
+        0 18px 45px
+        rgba(0,0,0,.14);
+    }
+
+    .loginIcon {
+      font-size: 55px;
+    }
+
+    .loginBox h2 {
+      margin: 7px 0 3px;
+      font-size: 25px;
+    }
+
+    .loginBox p {
+      margin: 0 0 18px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    #pinInput {
+      text-align: center;
+      font-size: 22px;
+      letter-spacing: 6px;
+    }
+
+    .toast {
+      display: none;
+      position: fixed;
+      left: 50%;
+      bottom: 20px;
+      z-index: 3000;
+      transform: translateX(-50%);
+      width: calc(100% - 28px);
+      max-width: 600px;
+      padding: 13px 15px;
+      border-radius: 13px;
+      background: #18241f;
+      color: white;
+      box-shadow:
+        0 8px 30px
+        rgba(0,0,0,.25);
+      font-size: 13px;
+    }
+
+    /*
+     * PANEL IMPORTANTE:
+     * servidor encontró posible duplicado.
+     */
+    .overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 2500;
+      padding: 18px;
+      overflow-y: auto;
+      background: rgba(15,27,22,.62);
+    }
+
+    .dialog {
+      width: 100%;
+      max-width: 540px;
+      margin: 40px auto;
+      padding: 20px;
+      border-radius: 20px;
+      background: white;
+      box-shadow:
+        0 20px 50px
+        rgba(0,0,0,.25);
+    }
+
+    .dialog h2 {
+      margin: 0 0 7px;
+      font-size: 20px;
+    }
+
+    .dialog p {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+        .duplicateNotice {
+      padding: 11px;
+      margin: 10px 0;
+      border-radius: 11px;
+      background: #fff8e6;
+      color: #705500;
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+
+    /**********************************************************
+     * MENÚ SUPERIOR
+     **********************************************************/
+    .headerLeft {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 7px;
+      flex-shrink: 0;
+    }
+
+    .headerTitle {
+      flex: 1;
+      min-width: 0;
+      text-align: right;
+    }
+
+    .headerTitle h1 {
+      margin: 0;
+    }
+
+    .headerTitle p {
+      margin: 5px 0 0;
+    }
+
+    .menuWrap {
+      position: relative;
+    }
+
+    .menuButton {
+      border: 1px solid rgba(255,255,255,.28);
+      background: rgba(255,255,255,.16);
+      color: white;
+      padding: 7px 11px;
+      border-radius: 10px;
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .menuDropdown {
+      display: none;
+      position: absolute;
+      top: calc(100% + 7px);
+      left: 0;
+      z-index: 500;
+      min-width: 205px;
+      padding: 7px;
+      border-radius: 13px;
+      background: white;
+      box-shadow:
+        0 12px 35px
+        rgba(0,0,0,.22);
+    }
+
+    .menuDropdown.open {
+      display: block;
+    }
+
+    .menuDropdown > button,
+    .subMenu button {
+      width: 100%;
+      border: 0;
+      background: white;
+      color: #24362f;
+      text-align: left;
+      padding: 11px 10px;
+      border-radius: 9px;
+      font-size: 13px;
+      font-weight: 750;
+    }
+
+    .menuDropdown > button:hover,
+    .subMenu button:hover {
+      background: #eef7f3;
+    }
+
+    .subMenu {
+      display: none;
+      margin-top: 3px;
+      padding: 4px 4px 4px 12px;
+      border-left: 3px solid #cde8dd;
+    }
+
+    .subMenu.open {
+      display: block;
+    }
+
+
+    /**********************************************************
+     * PANELES MOVIMIENTOS / GASTOS
+     **********************************************************/
+    .panelHeader {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .panelHeader h2 {
+      margin: 0;
+    }
+
+    .btnCerrarPanel {
+      width: 38px;
+      height: 38px;
+      border: 0;
+      border-radius: 50%;
+      background: #f0f3f2;
+      color: #394a43;
+      font-size: 20px;
+      font-weight: 800;
+    }
+
+    .reportBox {
+      margin-top: 14px;
+    }
+
+        .reportTableWrap {
+      display: block;
+
+      width: 100%;
+      max-width: 100%;
+
+      overflow-x: scroll;
+      overflow-y: hidden;
+
+      -webkit-overflow-scrolling: touch;
+
+      touch-action: pan-x pan-y;
+
+      overscroll-behavior-x: contain;
+
+      border: 1px solid var(--borde);
+      border-radius: 13px;
+
+      scrollbar-width: thin;
+
+      padding-bottom: 4px;
+    }
+
+
+    .reportTable {
+      width: max-content;
+
+      min-width: 720px;
+
+      border-collapse: collapse;
+
+      background: white;
+    }
+
+    .reportTable th {
+      background: #eef7f3;
+      color: #345247;
+      padding: 10px 9px;
+      border-bottom: 1px solid #dce6e2;
+      font-size: 11px;
+      text-align: left;
+      white-space: nowrap;
+    }
+
+    .reportTable td {
+      padding: 11px 9px;
+      border-bottom: 1px solid #edf1ef;
+      font-size: 12px;
+      vertical-align: top;
+    }
+
+    .reportTable tr:last-child td {
+      border-bottom: 0;
+    }
+
+    .reportNumber {
+      font-weight: 800;
+      color: var(--verde);
+      white-space: nowrap;
+    }
+
+    .emptyReport {
+      padding: 15px;
+      border-radius: 11px;
+      background: #f4f6f5;
+      color: var(--muted);
+      text-align: center;
+      font-size: 12px;
+    }
+
+        .campoReadonly {
+      background: #f3f5f4 !important;
+      color: #53635c;
+      font-weight: 750;
+    }
+
+
+    /**********************************************************
+     * DASHBOARD
+     **********************************************************/
+    .dashboardPeriodo {
+      margin: -5px 0 15px;
+      color: var(--muted);
+      font-size: 12px;
+      text-align: center;
+    }
+
+
+    .dashboardGrid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 11px;
+    }
+
+
+    .dashboardCard {
+      min-width: 0;
+      min-height: 122px;
+
+      padding: 15px 12px;
+
+      border: 1px solid var(--borde);
+      border-radius: 17px;
+
+      background: white;
+
+      box-shadow:
+        0 5px 16px
+        rgba(20,45,38,.07);
+    }
+
+
+    .dashboardIcon {
+      margin-bottom: 9px;
+      font-size: 28px;
+    }
+
+
+    .dashboardLabel {
+      color: #61716a;
+      font-size: 11px;
+      font-weight: 750;
+      text-transform: uppercase;
+      letter-spacing: .3px;
+    }
+
+
+    .dashboardValor {
+      margin-top: 7px;
+
+      color: #1d3028;
+
+      font-size: 20px;
+      font-weight: 850;
+
+      line-height: 1.15;
+
+      word-break: break-word;
+    }
+
+
+    .dashboardDetalle {
+      margin-top: 5px;
+      color: var(--muted);
+      font-size: 10px;
+      line-height: 1.3;
+    }
+
+
+    .dashboardVentas {
+      border-top: 4px solid #0d8d68;
+    }
+
+
+    .dashboardInventario {
+      border-top: 4px solid #175ea8;
+    }
+
+
+    .dashboardCompras {
+      border-top: 4px solid #d69200;
+    }
+
+
+    .dashboardGastos {
+      border-top: 4px solid #b42318;
+    }
+
+    /**********************************************************
+ * ANÁLISIS IA
+ **********************************************************/
+.analisisIAIntro {
+  padding: 12px;
+  margin-bottom: 12px;
+  border-radius: 13px;
+  background: var(--azulClaro);
+  color: #214f7d;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.analisisIAEjemplos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-bottom: 12px;
+}
+
+.chipIA {
+  width: auto;
+  min-height: 0;
+  padding: 7px 10px;
+  border: 1px solid #cfe0f5;
+  border-radius: 999px;
+  background: white;
+  color: var(--azul);
+  font-size: 11px;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.analisisIAChat {
+  max-height: 420px;
+  overflow-y: auto;
+  margin-bottom: 12px;
+  padding: 10px;
+  border: 1px solid var(--borde);
+  border-radius: 14px;
+  background: #f7f9f8;
+}
+
+.analisisIABienvenida {
+  padding: 13px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.mensajeIA {
+  max-width: 92%;
+  margin-bottom: 10px;
+  padding: 11px 12px;
+  border-radius: 13px;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.mensajeUsuarioIA {
+  margin-left: auto;
+  background: var(--verdeClaro);
+  color: #174f40;
+}
+
+.mensajeAsistenteIA {
+  margin-right: auto;
+  border: 1px solid #d8e4ef;
+  background: white;
+  color: #263b4d;
+}
+
+.mensajeIATitulo {
+  margin-bottom: 5px;
+  font-size: 11px;
+  font-weight: 850;
+}
+
+.mensajeIA small {
+  display: block;
+  margin-top: 7px;
+  color: var(--muted);
+  font-size: 10px;
+}
+
+#analisisIAConsulta {
+  min-height: 90px;
+}
+
+    @media(max-width:420px) {
+
+      .modo {
+        font-size: 11px;
+      }
+
+      .header {
+        padding: 13px;
+      }
+
+      .headerTitle h1 {
+        font-size: 18px;
+      }
+
+      .headerTitle p {
+        font-size: 11px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+<div id="login" class="login">
+
+  <div class="loginBox">
+
+    <div class="loginIcon">📦</div>
+
+    <h2>AdmónPymes</h2>
+
+    <p>Inventario inteligente desde el celular</p>
+
+    <input
+      id="pinInput"
+      type="password"
+      inputmode="numeric"
+      autocomplete="off"
+      placeholder="PIN"
+    >
+
+    <button
+      class="btn btnPrimary"
+      onclick="entrar()"
+    >
+      Entrar
+    </button>
+
+    </div>
+</div>
+
+
+<!-- ======================================================
+ BOTÓN GLOBAL DE INICIO
+======================================================= -->
+<button
+  id="btnInicio"
+  type="button"
+  class="homeButton"
+  onclick="irInicio()"
+  title="Ir al inicio"
+  aria-label="Ir al inicio"
+>
+  🏠
+</button>
+
+
+<div class="app">
+  <header class="header">
+
+    <div class="headerRow">
+
+      <!-- IZQUIERDA -->
+      <div class="headerLeft">
+
+        <div
+          id="estado"
+          class="status"
+        >
+          Conectando...
+        </div>
+
+
+        <div class="menuWrap">
+
+          <button
+            class="menuButton"
+            onclick="toggleMenu(event)"
+          >
+            ☰ Menú
+          </button>
+
+
+          <div
+            id="menuDropdown"
+            class="menuDropdown"
+          >
+
+                     <button
+              onclick="abrirDashboard()"
+            >
+              📱 Dashboard
+            </button>
+
+
+            <button
+              onclick="abrirMovimientos()"
+            >
+              📊 Movimientos
+            </button>
+
+
+            <button
+              onclick="toggleGastosSubmenu(event)"
+            >
+              💸 Gastos ▾
+            </button>
+
+
+                        <div
+              id="gastosSubmenu"
+              class="subMenu"
+            >
+
+              <button
+                onclick="abrirRegistrarGasto()"
+              >
+                ➕ Registrar
+              </button>
+
+
+              <button
+                onclick="abrirVerGastos()"
+              >
+                👁 Ver
+              </button>
+
+            </div>
+
+
+                       <button
+              onclick="abrirEstadoResultados()"
+            >
+              📈 Estado de resultados
+            </button>
+
+
+     <button
+  type="button"
+  onclick="abrirAnalisisIA()"
+>
+  🤖 Análisis IA
+</button>
+
+
+<button
+  type="button"
+  onclick="abrirLeerFactura()"
+>
+  🧾 Leer factura
+</button>
+
+
+<button
+  type="button"
+  onclick="abrirEvaluacion5S()"
+>
+  🧹 Evaluación 5S
+</button>
+
+</div>
+
+        </div>
+
+      </div>
+
+
+      <!-- DERECHA -->
+      <div class="headerTitle">
+
+        <h1>
+          📦 Inventario IA
+        </h1>
+
+        <p>
+          Foto → identificar → comprobar → registrar
+        </p>
+
+      </div>
+
+    </div>
+
+  </header>
+
+  <main class="content">
+
+    <div class="modos">
+
+      <button
+        id="modoINICIAL"
+        class="modo active"
+        onclick="cambiarModo('INICIAL')"
+      >
+        <span>📦</span>
+        Inventario inicial
+      </button>
+
+      <button
+        id="modoCOMPRA"
+        class="modo"
+        onclick="cambiarModo('COMPRA')"
+      >
+        <span>🟢</span>
+        Compra
+      </button>
+
+      <button
+        id="modoVENTA"
+        class="modo"
+        onclick="cambiarModo('VENTA')"
+      >
+        <span>🔴</span>
+        Venta
+      </button>
+
+    </div>
+
+
+    <div
+      id="descripcionModo"
+      class="descripcionModo"
+    ></div>
+
+
+    <section class="card">
+
+      <div class="titulo">
+        📸 Fotografiar
+      </div>
+
+      <div class="subtitulo">
+        Fotografía el producto y, si existe,
+        procura incluir etiqueta, código o número visible.
+      </div>
+
+      <label
+        for="fotoInput"
+        class="camera"
+      >
+
+        <div
+          id="cameraPlaceholder"
+          class="cameraPlaceholder"
+        >
+
+          <span class="cameraIcon">📷</span>
+
+          <strong>
+            Tomar fotografía
+          </strong>
+
+          <small>
+            Toca aquí para abrir la cámara
+          </small>
+
+        </div>
+
+        <img
+          id="fotoPreview"
+          alt="Producto"
+        >
+
+      </label>
+
+
+      <input
+        id="fotoInput"
+        class="hidden"
+        type="file"
+        accept="image/*"
+        capture="environment"
+        onchange="procesarFoto(event)"
+      >
+
+
+      <button
+        id="btnAnalizar"
+        class="btn btnAI"
+        onclick="analizarFoto()"
+        disabled
+      >
+        ✨ Identificar con IA
+      </button>
+
+
+      <div
+        id="loadingIA"
+        class="loading"
+      >
+        <div class="spinner"></div>
+
+        Identificando y buscando coincidencias...
+      </div>
+
+
+      <div
+        id="analisis"
+        class="analisis"
+      ></div>
+
+
+      <div
+        id="coincidencias"
+      ></div>
+
+    </section>
+
+
+    <section class="card">
+
+      <div class="titulo">
+        🔍 Buscar en inventario
+      </div>
+
+      <div class="subtitulo">
+        Puedes seleccionar manualmente
+        un artículo que ya exista.
+      </div>
+
+      <input
+        id="busqueda"
+        type="search"
+        autocomplete="off"
+        placeholder="Producto, marca, modelo o código..."
+        oninput="buscarConEspera()"
+      >
+
+      <div id="resultadosBusqueda"></div>
+
+
+      <div
+        id="productoSeleccionado"
+        class="productoSeleccionado"
+      ></div>
+
+
+      <button
+        id="btnQuitarSeleccion"
+        class="btn btnLight hidden"
+        onclick="quitarSeleccion()"
+      >
+        Usar como producto nuevo
+      </button>
+
+    </section>
+
+
+    <section class="card">
+
+      <div class="titulo">
+        ✏️ Confirmar producto
+      </div>
+
+         <div class="subtitulo">
+        La IA propone. Tú confirmas.
+      </div>
+
+
+      <label class="campo">
+        Fecha de transacción *
+      </label>
+
+      <input
+        id="fechaMovimiento"
+        type="date"
+        required
+      >
+
+      <div class="helper">
+        Por defecto se muestra la fecha de hoy,
+        pero puedes cambiarla antes de registrar.
+      </div>
+
+
+      <label class="campo">
+        Producto *
+      </label>
+
+      <input
+        id="producto"
+        placeholder="Ej. Alternador, Zapato, Sandía..."
+      >
+
+
+      <div class="dos">
+
+        <div>
+
+          <label class="campo">
+            Categoría
+          </label>
+
+          <input
+            id="categoria"
+            placeholder="Ej. Repuestos"
+          >
+
+        </div>
+
+
+        <div>
+
+          <label class="campo">
+            Marca
+          </label>
+
+          <input
+            id="marca"
+            placeholder="Ej. Denso"
+          >
+
+        </div>
+
+      </div>
+
+
+      <label class="campo">
+        Modelo / Variante
+      </label>
+
+      <input
+        id="modelo"
+        placeholder="Modelo, talla, color, medida..."
+      >
+
+
+      <label class="campo">
+        Código / Serie
+      </label>
+
+      <input
+        id="codigo"
+        placeholder="SKU, código de barras, serie, Nº parte..."
+      >
+
+
+      <div class="dos">
+
+        <div>
+
+          <label class="campo">
+            Unidad
+          </label>
+
+          <select id="unidad">
+
+            <option value="Unidad">
+              Unidad
+            </option>
+
+            <option value="Libra">
+              Libra
+            </option>
+
+            <option value="Kg">
+              Kg
+            </option>
+
+            <option value="Caja">
+              Caja
+            </option>
+
+            <option value="Paquete">
+              Paquete
+            </option>
+
+            <option value="Metro">
+              Metro
+            </option>
+
+            <option value="Litro">
+              Litro
+            </option>
+
+            <option value="Galón">
+              Galón
+            </option>
+
+            <option value="Otro">
+              Otro
+            </option>
+
+          </select>
+
+        </div>
+
+
+        <div>
+
+          <label class="campo">
+            Cantidad *
+          </label>
+
+          <input
+            id="cantidad"
+            type="number"
+            inputmode="decimal"
+            min="0"
+            step="any"
+            value="1"
+          >
+
+        </div>
+
+      </div>
+
+
+      <label class="campo">
+        Descripción
+      </label>
+
+      <textarea
+        id="descripcion"
+        placeholder="Detalles adicionales..."
+      ></textarea>
+
+
+      <div class="dos">
+
+        <div id="grupoCosto">
+
+          <label class="campo">
+            Costo unitario
+          </label>
+
+          <input
+            id="costo"
+            type="number"
+            inputmode="decimal"
+            min="0"
+            step="any"
+            placeholder="0.00"
+          >
+
+        </div>
+
+
+        <div>
+
+          <label class="campo">
+            Precio venta
+          </label>
+
+          <input
+            id="precio"
+            type="number"
+            inputmode="decimal"
+            min="0"
+            step="any"
+            placeholder="0.00"
+          >
+
+        </div>
+
+      </div>
+
+    </section>
+
+
+    <!-- ======================================================
+     CARRITO COMPRA / VENTA
+======================================================= -->
+<section
+  id="carritoCard"
+  class="card carritoCard hidden"
+>
+
+  <div class="carritoHeader">
+
+    <div>
+
+      <div
+        id="carritoTitulo"
+        class="titulo"
+      >
+        🛒 Carrito
+      </div>
+
+      <div class="subtitulo">
+        Agrega varios productos y registra toda
+        la operación al finalizar.
+      </div>
+
+    </div>
+
+
+    <div
+      id="carritoContador"
+      class="carritoContador"
+    >
+      0
+    </div>
+
+  </div>
+
+
+  <div
+    id="carritoLista"
+  ></div>
+
+
+  <div
+    id="carritoTotalBox"
+    class="carritoTotal"
+  >
+
+    <span>
+      Total
+    </span>
+
+    <strong
+      id="carritoTotal"
+    >
+      L 0.00
+    </strong>
+
+  </div>
+
+
+  <button
+    id="btnFinalizarCarrito"
+    class="btn btnPrimary"
+    onclick="finalizarCarrito()"
+    disabled
+  >
+    ✅ Registrar carrito
+  </button>
+
+
+  <button
+    class="btn btnLight"
+    onclick="vaciarCarrito()"
+  >
+    🗑 Vaciar carrito
+  </button>
+
+</section>
+
+
+<div class="saveZone">
+
+  <button
+    id="btnGuardar"
+    class="btn btnPrimary"
+    onclick="guardar()"
+  >
+  </button>
+
+
+  <button
+    id="btnGuardarSiguiente"
+    class="btn btnAI hidden"
+    onclick="guardarYSiguiente()"
+  >
+    💾📸 Guardar y siguiente
+  </button>
+
+</div>
+    </main>
+
+</div>
+
+
+<!-- ======================================================
+     DASHBOARD
+======================================================= -->
+<div
+  id="dashboardOverlay"
+  class="overlay"
+>
+
+  <div class="dialog">
+
+    <div class="panelHeader">
+
+      <h2>
+        📱 Dashboard
+      </h2>
+
+      <button
+        class="btnCerrarPanel"
+        onclick="cerrarPanel('dashboardOverlay')"
+      >
+        ×
+      </button>
+
+    </div>
+
+
+    <div
+      id="dashboardPeriodo"
+      class="dashboardPeriodo"
+    >
+      Mes actual
+    </div>
+
+
+    <div class="dashboardGrid">
+
+
+      <!-- VENTAS -->
+      <div class="dashboardCard dashboardVentas">
+
+        <div class="dashboardIcon">
+          💰
+        </div>
+
+        <div class="dashboardLabel">
+          Ventas
+        </div>
+
+        <div
+          id="dashVentas"
+          class="dashboardValor"
+        >
+          L 0.00
+        </div>
+
+        <div class="dashboardDetalle">
+          Ventas del mes
+        </div>
+
+      </div>
+
+
+      <!-- INVENTARIO -->
+      <div class="dashboardCard dashboardInventario">
+
+        <div class="dashboardIcon">
+          📦
+        </div>
+
+        <div class="dashboardLabel">
+          Inventario
+        </div>
+
+        <div
+          id="dashInventario"
+          class="dashboardValor"
+        >
+          L 0.00
+        </div>
+
+        <div class="dashboardDetalle">
+          Valor actual al costo
+        </div>
+
+      </div>
+
+
+      <!-- COMPRAS -->
+      <div class="dashboardCard dashboardCompras">
+
+        <div class="dashboardIcon">
+          🛒
+        </div>
+
+        <div class="dashboardLabel">
+          Compras
+        </div>
+
+        <div
+          id="dashCompras"
+          class="dashboardValor"
+        >
+          L 0.00
+        </div>
+
+        <div class="dashboardDetalle">
+          Compras del mes
+        </div>
+
+      </div>
+
+
+      <!-- GASTOS -->
+      <div class="dashboardCard dashboardGastos">
+
+        <div class="dashboardIcon">
+          💸
+        </div>
+
+        <div class="dashboardLabel">
+          Gastos
+        </div>
+
+        <div
+          id="dashGastos"
+          class="dashboardValor"
+        >
+          L 0.00
+        </div>
+
+        <div class="dashboardDetalle">
+          Gastos del mes
+        </div>
+
+      </div>
+
+
+    </div>
+
+
+    <button
+      class="btn btnLight"
+      onclick="cargarDashboard()"
+      style="margin-top:15px;"
+    >
+      🔄 Actualizar
+    </button>
+
+  </div>
+
+</div>
+
+
+<!-- ======================================================
+     MOVIMIENTOS
+======================================================= -->
+<div
+  id="movimientosOverlay"
+  class="overlay"
+>
+
+  <div class="dialog">
+
+    <div class="panelHeader">
+
+      <h2>
+        📊 Movimientos
+      </h2>
+
+      <button
+        class="btnCerrarPanel"
+        onclick="cerrarPanel('movimientosOverlay')"
+      >
+        ×
+      </button>
+
+    </div>
+
+
+    <label class="campo">
+      Producto
+    </label>
+
+    <select id="movProducto">
+
+      <option value="">
+        Seleccionar
+      </option>
+
+    </select>
+
+
+    <div class="dos">
+
+      <div>
+
+        <label class="campo">
+          Desde
+        </label>
+
+        <input
+          id="movDesde"
+          type="date"
+        >
+
+      </div>
+
+
+      <div>
+
+        <label class="campo">
+          Hasta
+        </label>
+
+        <input
+          id="movHasta"
+          type="date"
+        >
+
+      </div>
+
+    </div>
+
+
+    <button
+      class="btn btnPrimary"
+      onclick="verMovimientos()"
+    >
+      👁 Ver
+    </button>
+
+
+    <div
+      id="movimientosResultado"
+      class="reportBox"
+    ></div>
+
+  </div>
+
+</div>
+
+
+
+<!-- ======================================================
+     GASTOS - REGISTRAR
+======================================================= -->
+<div
+  id="gastoRegistrarOverlay"
+  class="overlay"
+>
+
+  <div class="dialog">
+
+    <div class="panelHeader">
+
+      <h2>
+        💸 Registrar gasto
+      </h2>
+
+      <button
+        class="btnCerrarPanel"
+        onclick="cerrarPanel('gastoRegistrarOverlay')"
+      >
+        ×
+      </button>
+
+    </div>
+
+
+    <div class="dos">
+
+      <div>
+
+        <label class="campo">
+          No
+        </label>
+
+        <input
+          id="gastoNo"
+          class="campoReadonly"
+          readonly
+        >
+
+      </div>
+
+
+      <div>
+
+        <label class="campo">
+          Fecha
+        </label>
+
+        <input
+          id="gastoFecha"
+          type="date"
+        >
+
+      </div>
+
+    </div>
+
+
+    <label class="campo">
+      Tipo
+    </label>
+
+    <select id="gastoTipo">
+
+      <option value="">
+        Seleccionar
+      </option>
+
+    </select>
+
+
+    <label class="campo">
+      Descripción
+    </label>
+
+    <textarea
+      id="gastoDescripcion"
+      placeholder="Ej. Pago factura energía eléctrica..."
+    ></textarea>
+
+
+    <label class="campo">
+      Valor
+    </label>
+
+    <input
+      id="gastoValor"
+      type="number"
+      inputmode="decimal"
+      step="0.01"
+      min="0"
+      placeholder="0.00"
+    >
+
+
+    <button
+      id="btnGuardarGasto"
+      class="btn btnPrimary"
+      onclick="guardarGasto()"
+    >
+      💾 Guardar
+    </button>
+
+  </div>
+
+</div>
+
+
+
+<!-- ======================================================
+     GASTOS - VER
+======================================================= -->
+<div
+  id="gastoVerOverlay"
+  class="overlay"
+>
+
+  <div class="dialog">
+
+    <div class="panelHeader">
+
+      <h2>
+        👁 Ver gastos
+      </h2>
+
+      <button
+        class="btnCerrarPanel"
+        onclick="cerrarPanel('gastoVerOverlay')"
+      >
+        ×
+      </button>
+
+    </div>
+
+
+    <div class="dos">
+
+      <div>
+
+        <label class="campo">
+          Desde
+        </label>
+
+        <input
+          id="gastoDesde"
+          type="date"
+        >
+
+      </div>
+
+
+      <div>
+
+        <label class="campo">
+          Hasta
+        </label>
+
+        <input
+          id="gastoHasta"
+          type="date"
+        >
+
+      </div>
+
+    </div>
+
+
+    <button
+      class="btn btnPrimary"
+      onclick="verGastos()"
+    >
+      👁 Ver
+    </button>
+
+
+        <div
+      id="gastosResultado"
+      class="reportBox"
+    ></div>
+
+  </div>
+
+</div>
+
+
+<!-- ======================================================
+     ESTADO DE RESULTADOS
+======================================================= -->
+<div
+  id="estadoResultadosOverlay"
+  class="overlay"
+>
+
+  <div class="dialog">
+
+    <div class="panelHeader">
+
+      <h2>
+        📈 Estado de resultados
+      </h2>
+
+      <button
+        class="btnCerrarPanel"
+        onclick="cerrarPanel('estadoResultadosOverlay')"
+      >
+        ×
+      </button>
+
+    </div>
+
+
+    <div class="dos">
+
+      <div>
+
+        <label class="campo">
+          Desde
+        </label>
+
+        <input
+          id="erDesde"
+          type="date"
+        >
+
+      </div>
+
+
+      <div>
+
+        <label class="campo">
+          Hasta
+        </label>
+
+        <input
+          id="erHasta"
+          type="date"
+        >
+
+      </div>
+
+    </div>
+
+
+    <button
+      class="btn btnPrimary"
+      onclick="verEstadoResultados()"
+    >
+      👁 Ver
+    </button>
+
+
+    <div
+      id="estadoResultadosResultado"
+      class="reportBox"
+    ></div>
+
+  </div>
+
+</div>
+
+  <!-- ======================================================
+  ANÁLISIS IA
+======================================================= -->
+<div
+  id="analisisIAOverlay"
+  class="overlay"
+>
+  <div
+    class="dialog"
+    style="max-width:650px;"
+  >
+
+    <div class="panelHeader">
+
+      <h2>
+        🤖 Análisis IA
+      </h2>
+
+      <button
+        class="btnCerrarPanel"
+        onclick="cerrarPanel('analisisIAOverlay')"
+      >
+        ×
+      </button>
+
+    </div>
+
+
+    <div class="analisisIAIntro">
+
+      Consulta directamente la información real de
+      AdmónPymes.
+
+      <br><br>
+
+      Puedes preguntar sobre inventarios, compras,
+      ventas, gastos, costos, costo de ventas,
+      utilidades, períodos, movimientos,
+      comparaciones, variaciones y proyecciones.
+
+    </div>
+
+
+    <div class="analisisIAEjemplos">
+
+      <button
+        type="button"
+        class="chipIA"
+        onclick="usarPreguntaIA('¿Cuánto vendí este mes y cuál fue mi utilidad neta?')"
+      >
+        💰 Ventas y utilidad
+      </button>
+
+      <button
+        type="button"
+        class="chipIA"
+        onclick="usarPreguntaIA('Compara este mes contra el mes pasado y explícame las principales variaciones.')"
+      >
+        📊 Comparar meses
+      </button>
+
+      <button
+        type="button"
+        class="chipIA"
+        onclick="usarPreguntaIA('¿Qué productos representan mayor valor en mi inventario actual?')"
+      >
+        📦 Analizar inventario
+      </button>
+
+      <button
+        type="button"
+        class="chipIA"
+        onclick="usarPreguntaIA('Proyecta mis ventas del próximo mes usando el historial disponible.')"
+      >
+        🔮 Proyectar ventas
+      </button>
+
+    </div>
+
+
+    <div
+      id="analisisIAChat"
+      class="analisisIAChat"
+    >
+
+      <div class="analisisIABienvenida">
+
+        Pregúntame sobre inventario, compras,
+        ventas, gastos, costos, utilidades,
+        períodos, variaciones o proyecciones.
+
+      </div>
+
+    </div>
+
+
+    <label class="campo">
+      Tu consulta
+    </label>
+
+    <textarea
+      id="analisisIAConsulta"
+      placeholder="Ej. Compara mis ventas de agosto contra julio y explícame por qué cambió la utilidad..."
+      onkeydown="teclaAnalisisIA(event)"
+    ></textarea>
+
+
+    <div class="helper">
+      Ctrl + Enter para consultar desde una computadora.
+    </div>
+
+
+    <button
+      id="btnAnalisisIA"
+      type="button"
+      class="btn btnAI"
+      onclick="enviarConsultaAnalisisIA()"
+    >
+      ✨ Analizar con IA
+    </button>
+
+
+    <div
+      id="loadingAnalisisIA"
+      class="loading"
+    >
+
+      <div class="spinner"></div>
+
+      Analizando inventario, movimientos,
+      compras, ventas, gastos y resultados...
+
+    </div>
+
+
+    <button
+      type="button"
+      class="btn btnLight"
+      onclick="limpiarAnalisisIA()"
+    >
+      🗑 Limpiar conversación
+    </button>
+
+  </div>
+</div>
+<!--
+  Se muestra cuando el GS detecta
+  que probablemente intentamos crear
+  un artículo que ya existe.
+-->
+<div
+  id="duplicateOverlay"
+  class="overlay"
+>
+
+  <div class="dialog">
+
+    <h2>
+      ⚠️ Este producto podría existir
+    </h2>
+
+    <p>
+      Antes de crear otra fila,
+      selecciona el producto existente
+      si se trata del mismo artículo.
+    </p>
+
+    <div class="duplicateNotice">
+  El sistema encontró un producto que podría ser
+  el mismo aunque la descripción sea diferente.
+</div>
+
+<div
+  id="duplicateReason"
+  class="duplicateNotice"
+  style="display:none; background:#edf5ff; color:#214f7d;"
+></div>
+
+<div
+  id="duplicateCandidates"
+></div>
+
+<button
+  class="btn btnLight"
+  onclick="confirmarProductoDiferente()"
+>
+  ➕ Estoy seguro: es otro producto
+</button>
+
+    <button
+      class="btn btnLight"
+      onclick="cerrarDuplicados()"
+    >
+      Cancelar
+    </button>
+
+  </div>
+
+</div>
+
+<!-- ======================================================
+     LEER FACTURA
+======================================================= -->
+<div
+  id="facturaOverlay"
+  class="overlay"
+>
+
+  <div class="dialog">
+
+    <div class="panelHeader">
+
+      <h2>
+        🧾 Leer factura
+      </h2>
+
+      <button
+        class="btnCerrarPanel"
+        onclick="cerrarPanel('facturaOverlay')"
+      >
+        ×
+      </button>
+
+    </div>
+
+
+    <div class="subtitulo">
+      Toma una fotografía clara de la factura.
+      La IA leerá los datos y los registrará automáticamente.
+    </div>
+
+
+    <label
+      for="facturaFotoInput"
+      class="camera"
+    >
+
+      <div
+        id="facturaCameraPlaceholder"
+        class="cameraPlaceholder"
+      >
+
+        <span class="cameraIcon">
+          🧾
+        </span>
+
+        <strong>
+          Fotografiar factura
+        </strong>
+
+        <small>
+          Toca aquí para abrir la cámara
+        </small>
+
+      </div>
+
+
+      <img
+        id="facturaFotoPreview"
+        class="cameraPreview"
+        alt="Factura"
+      >
+
+    </label>
+
+
+    <input
+      id="facturaFotoInput"
+      class="hidden"
+      type="file"
+      accept="image/*"
+      capture="environment"
+      onchange="procesarFotoFactura(event)"
+    >
+
+
+    <button
+      id="btnLeerFactura"
+      class="btn btnAI"
+      onclick="leerFacturaIA()"
+      disabled
+    >
+      ✨ Leer y registrar factura
+    </button>
+
+
+    <div
+      id="loadingFactura"
+      class="loading"
+    >
+
+      <div class="spinner"></div>
+
+      Leyendo factura y registrando información...
+
+    </div>
+
+
+    <div
+      id="resultadoFactura"
+      class="resultadoIABox"
+    ></div>
+
+  </div>
+
+</div>
+
+
+<!-- ======================================================
+     EVALUACIÓN 5S
+======================================================= -->
+<div
+  id="evaluacion5SOverlay"
+  class="overlay"
+>
+
+  <div class="dialog">
+
+    <div class="panelHeader">
+
+      <h2>
+        🧹 Evaluación 5S
+      </h2>
+
+      <button
+        class="btnCerrarPanel"
+        onclick="cerrarPanel('evaluacion5SOverlay')"
+      >
+        ×
+      </button>
+
+    </div>
+
+
+    <div class="subtitulo">
+      Toma una fotografía del área, puesto,
+      ambiente, oficina, almacén, taller o espacio
+      que deseas evaluar.
+    </div>
+
+
+    <label
+      for="foto5SInput"
+      class="camera"
+    >
+
+      <div
+        id="camera5SPlaceholder"
+        class="cameraPlaceholder"
+      >
+
+        <span class="cameraIcon">
+          📸
+        </span>
+
+        <strong>
+          Fotografiar espacio
+        </strong>
+
+        <small>
+          Toca aquí para abrir la cámara
+        </small>
+
+      </div>
+
+
+      <img
+        id="foto5SPreview"
+        class="cameraPreview"
+        alt="Área para evaluación 5S"
+      >
+
+    </label>
+
+
+    <input
+      id="foto5SInput"
+      class="hidden"
+      type="file"
+      accept="image/*"
+      capture="environment"
+      onchange="procesarFoto5S(event)"
+    >
+
+
+    <button
+      id="btnEvaluar5S"
+      class="btn btnAI"
+      onclick="evaluar5SIA()"
+      disabled
+    >
+      ✨ Evaluar con IA
+    </button>
+
+
+    <div
+      id="loading5S"
+      class="loading"
+    >
+
+      <div class="spinner"></div>
+
+      Analizando el espacio con metodología 5S...
+
+    </div>
+
+
+    <div
+      id="resultado5S"
+      class="resultadoIABox"
+    ></div>
+
+  </div>
+
+</div>
+  
+<div
+  id="toast"
+  class="toast"
+></div>
+
+
+<script>
+
+let APP_PIN = '';
+
+let MODO = 'INICIAL';
+
+let FOTO_DATA = '';
+
+let FOTO_FACTURA_DATA = '';
+
+let FOTO_5S_DATA = '';
+
+let PRODUCTO_ID = '';
+
+let PRODUCTO_EXISTENCIA = 0;
+
+let PENDING_DATA = null;
+
+let PENDING_OPTIONS = null;
+
+let PENDING_CART_INDEX = -1;
+
+let PENDING_CART_TIPO = '';
+
+let timerBusqueda = null;
+
+
+/*
+ * Cada modo conserva su propio carrito.
+ */
+let CARRITOS = {
+
+  COMPRA: [],
+
+  VENTA: []
+
+};
+
+/************************************************************
+ * HISTORIAL DE ANÁLISIS IA
+ ************************************************************/
+let HISTORIAL_ANALISIS_IA = [];
+  
+/************************************************************
+ * INICIO
+ ************************************************************/
+window.addEventListener(
+  'load',
+  function() {
+
+    if (
+      typeof google === 'undefined' ||
+      !google.script ||
+      !google.script.run
+    ) {
+
+      alert(
+        'Debes abrir el sistema desde el enlace /exec de Apps Script.'
+      );
+
+      return;
+    }
+
+
+    cambiarModo(
+      'INICIAL'
+    );
+
+
+    const pin =
+      localStorage.getItem(
+        'admonpymes_pin'
+      );
+
+
+    if (pin) {
+
+      APP_PIN =
+        pin;
+
+      validarPinGuardado();
+
+    } else {
+
+      document
+        .getElementById(
+          'pinInput'
+        )
+        .focus();
+    }
+  }
+);
+
+
+/************************************************************
+ * LOGIN
+ ************************************************************/
+function entrar() {
+
+  const pin =
+    valor(
+      'pinInput'
+    );
+
+
+  if (!pin) {
+
+    toast(
+      'Ingresa el PIN.'
+    );
+
+    return;
+  }
+
+
+  google.script.run
+
+    .withSuccessHandler(
+      function() {
+
+        APP_PIN =
+          pin;
+
+
+        localStorage.setItem(
+          'admonpymes_pin',
+          pin
+        );
+
+
+        document
+          .getElementById(
+            'login'
+          )
+          .style.display =
+          'none';
+
+
+        document
+          .getElementById(
+            'estado'
+          )
+          .textContent =
+          '● Conectado';
+      }
+    )
+
+    .withFailureHandler(
+      errorServidor
+    )
+
+    .ping(
+      pin
+    );
+}
+
+
+function validarPinGuardado() {
+
+  google.script.run
+
+    .withSuccessHandler(
+      function() {
+
+        document
+          .getElementById(
+            'login'
+          )
+          .style.display =
+          'none';
+
+
+        document
+          .getElementById(
+            'estado'
+          )
+          .textContent =
+          '● Conectado';
+      }
+    )
+
+    .withFailureHandler(
+      function() {
+
+        APP_PIN =
+          '';
+
+        localStorage.removeItem(
+          'admonpymes_pin'
+        );
+      }
+    )
+
+    .ping(
+      APP_PIN
+    );
+}
+
+
+/************************************************************
+ * MODOS
+ ************************************************************/
+function cambiarModo(modo) {
+
+  MODO =
+    modo;
+
+
+  [
+    'INICIAL',
+    'COMPRA',
+    'VENTA'
+  ].forEach(
+    function(x) {
+
+      document
+        .getElementById(
+          'modo' + x
+        )
+        .classList
+        .toggle(
+          'active',
+          x === modo
+        );
+    }
+  );
+
+
+  const boton =
+    document.getElementById(
+      'btnGuardar'
+    );
+
+
+  const botonSiguiente =
+    document.getElementById(
+      'btnGuardarSiguiente'
+    );
+
+
+  const descripcion =
+    document.getElementById(
+      'descripcionModo'
+    );
+
+
+  const costo =
+    document.getElementById(
+      'grupoCosto'
+    );
+
+
+  const carrito =
+    document.getElementById(
+      'carritoCard'
+    );
+
+
+  /**********************************************************
+   * INVENTARIO INICIAL
+   **********************************************************/
+  if (
+    modo === 'INICIAL'
+  ) {
+
+    boton.textContent =
+      '📦 Registrar inventario inicial';
+
+    boton.className =
+      'btn btnPrimary';
+
+
+    botonSiguiente
+      .classList
+      .remove(
+        'hidden'
+      );
+
+
+    carrito
+      .classList
+      .add(
+        'hidden'
+      );
+
+
+    descripcion.textContent =
+      'Registra lo que ya existe. Puedes guardar normalmente o usar Guardar y siguiente para levantar inventario más rápido.';
+
+
+    costo.style.display =
+      'block';
+  }
+
+
+  /**********************************************************
+   * COMPRA
+   **********************************************************/
+  if (
+    modo === 'COMPRA'
+  ) {
+
+    boton.textContent =
+      '🛒 Agregar compra al carrito';
+
+    boton.className =
+      'btn btnPrimary';
+
+
+    botonSiguiente
+      .classList
+      .add(
+        'hidden'
+      );
+
+
+    carrito
+      .classList
+      .remove(
+        'hidden'
+      );
+
+
+    descripcion.textContent =
+      'Identifica el producto, indica cantidad y costo, y agrégalo al carrito. Puedes registrar varios productos juntos.';
+
+
+    costo.style.display =
+      'block';
+  }
+
+
+  /**********************************************************
+   * VENTA
+   **********************************************************/
+  if (
+    modo === 'VENTA'
+  ) {
+
+    boton.textContent =
+      '🛒 Agregar venta al carrito';
+
+    boton.className =
+      'btn btnDanger';
+
+
+    botonSiguiente
+      .classList
+      .add(
+        'hidden'
+      );
+
+
+    carrito
+      .classList
+      .remove(
+        'hidden'
+      );
+
+
+    descripcion.textContent =
+      'Fotografía o busca el producto. Si la coincidencia es suficientemente segura, se seleccionará automáticamente. Luego agrégalo al carrito.';
+
+
+    costo.style.display =
+      'none';
+  }
+
+
+  limpiar();
+
+  renderCarrito();
+}
+/************************************************************
+ * FOTO
+ ************************************************************/
+async function procesarFoto(event) {
+
+  const file =
+    event.target.files[0];
+
+
+  if (!file) {
+    return;
+  }
+
+
+  try {
+
+    FOTO_DATA =
+      await comprimirImagen(
+        file
+      );
+
+
+    const preview =
+      document.getElementById(
+        'fotoPreview'
+      );
+
+
+    preview.src =
+      FOTO_DATA;
+
+    preview.style.display =
+      'block';
+
+
+    document
+      .getElementById(
+        'cameraPlaceholder'
+      )
+      .style.display =
+      'none';
+
+
+    document
+      .getElementById(
+        'btnAnalizar'
+      )
+      .disabled =
+      false;
+
+  } catch(e) {
+
+    toast(
+      'No pude procesar la foto.'
+    );
+  }
+}
+
+
+function comprimirImagen(file) {
+
+  return new Promise(
+    function(resolve,reject) {
+
+      const reader =
+        new FileReader();
+
+
+      reader.onload =
+        function(e) {
+
+          const img =
+            new Image();
+
+
+          img.onload =
+            function() {
+
+              const MAX =
+                1500;
+
+
+              let w =
+                img.width;
+
+              let h =
+                img.height;
+
+
+              if (
+                w > MAX ||
+                h > MAX
+              ) {
+
+                const factor =
+                  Math.min(
+                    MAX / w,
+                    MAX / h
+                  );
+
+
+                w =
+                  Math.round(
+                    w * factor
+                  );
+
+                h =
+                  Math.round(
+                    h * factor
+                  );
+              }
+
+
+              const canvas =
+                document.createElement(
+                  'canvas'
+                );
+
+
+              canvas.width =
+                w;
+
+              canvas.height =
+                h;
+
+
+              const ctx =
+                canvas.getContext(
+                  '2d'
+                );
+
+
+              ctx.drawImage(
+                img,
+                0,
+                0,
+                w,
+                h
+              );
+
+
+              resolve(
+                canvas.toDataURL(
+                  'image/jpeg',
+                  .80
+                )
+              );
+            };
+
+
+          img.onerror =
+            reject;
+
+
+          img.src =
+            e.target.result;
+        };
+
+
+      reader.onerror =
+        reject;
+
+
+      reader.readAsDataURL(
+        file
+      );
+    }
+  );
+}
+
+
+/************************************************************
+ * IA
+ ************************************************************/
+function analizarFoto() {
+
+  if (!FOTO_DATA) {
+
+    toast(
+      'Primero toma la fotografía.'
+    );
+
+    return;
+  }
+
+
+  const btn =
+    document.getElementById(
+      'btnAnalizar'
+    );
+
+
+  btn.disabled =
+    true;
+
+
+  document
+    .getElementById(
+      'loadingIA'
+    )
+    .style.display =
+    'block';
+
+
+  google.script.run
+
+    .withSuccessHandler(
+      function(r) {
+
+        btn.disabled =
+          false;
+
+
+        document
+          .getElementById(
+            'loadingIA'
+          )
+          .style.display =
+          'none';
+
+
+        aplicarIA(
+          r
+        );
+      }
+    )
+
+    .withFailureHandler(
+      function(e) {
+
+        btn.disabled =
+          false;
+
+
+        document
+          .getElementById(
+            'loadingIA'
+          )
+          .style.display =
+          'none';
+
+
+        errorServidor(
+          e
+        );
+      }
+    )
+
+    .analizarImagen(
+      APP_PIN,
+      FOTO_DATA
+    );
+}
+
+/************************************************************
+ * AUTOSELECCIÓN SEGURA EN VENTA
+ ************************************************************/
+function normalizarCodigoCliente_(
+  texto
+) {
+
+  return String(
+    texto || ''
+  )
+    .toUpperCase()
+    .replace(
+      /[^A-Z0-9]/g,
+      ''
+    );
+}
+
+
+function obtenerAutoseleccionVenta_(
+  r
+) {
+
+  if (
+    MODO !== 'VENTA'
+  ) {
+
+    return null;
+  }
+
+
+  const lista =
+    Array.isArray(
+      r.coincidencias
+    )
+      ? r.coincidencias.slice()
+      : [];
+
+
+  if (
+    !lista.length
+  ) {
+
+    return null;
+  }
+
+
+  /**********************************************************
+   * 1. CÓDIGO / SKU / SERIE EXACTO
+   **********************************************************/
+  const codigoIA =
+    normalizarCodigoCliente_(
+      r.codigoSerie
+    );
+
+
+  if (
+    codigoIA
+  ) {
+
+    const exactos =
+      lista.filter(
+        function(item) {
+
+          return (
+            normalizarCodigoCliente_(
+              item.codigoSerie
+            )
+            ===
+            codigoIA
+          );
+        }
+      );
+
+
+    if (
+      exactos.length === 1
+    ) {
+
+      return {
+
+        item:
+          exactos[0],
+
+        motivo:
+          'código exacto'
+      };
+    }
+  }
+
+
+  /**********************************************************
+   * 2. IDENTIDAD MUY FUERTE
+   **********************************************************/
+  lista.sort(
+    function(a,b) {
+
+      return (
+        Number(
+          b.score || 0
+        )
+        -
+        Number(
+          a.score || 0
+        )
+      );
+    }
+  );
+
+
+  const primero =
+    lista[0];
+
+
+  const segundo =
+    lista.length > 1
+      ? lista[1]
+      : null;
+
+
+  const scorePrimero =
+    Number(
+      primero.score || 0
+    );
+
+
+  const scoreSegundo =
+    segundo
+      ? Number(
+          segundo.score || 0
+        )
+      : 0;
+
+
+  const confianza =
+    Number(
+      r.confianza || 0
+    );
+
+
+  if (
+    confianza >= 0.95 &&
+    scorePrimero >= 90 &&
+    (
+      !segundo ||
+      scorePrimero -
+      scoreSegundo >= 25
+    )
+  ) {
+
+    return {
+
+      item:
+        primero,
+
+      motivo:
+        'coincidencia de alta confianza'
+    };
+  }
+
+
+  return null;
+}  
+
+function aplicarIA(r) {
+
+  PRODUCTO_ID =
+    '';
+
+  PRODUCTO_EXISTENCIA =
+    0;
+
+
+  setValor(
+    'producto',
+    r.producto
+  );
+
+
+  setValor(
+    'categoria',
+    r.categoria
+  );
+
+
+  setValor(
+    'marca',
+    r.marca
+  );
+
+
+  setValor(
+    'modelo',
+    r.modeloVariante
+  );
+
+
+  setValor(
+    'codigo',
+    r.codigoSerie
+  );
+
+
+  setValor(
+  'descripcion',
+  r.descripcion
+);
+
+seleccionarUnidad(
+  r.unidad
+);
+
+
+/**********************************************************
+ * CANTIDAD DETECTADA POR IA
+ *
+ * La IA propone la cantidad visible.
+ * El campo sigue siendo completamente editable.
+ **********************************************************/
+const cantidadIA =
+  Math.max(
+    1,
+    Math.round(
+      Number(
+        r.cantidadDetectada
+      ) || 1
+    )
+  );
+
+
+setValor(
+  'cantidad',
+  cantidadIA
+);
+
+
+const pct =
+    Math.round(
+      Number(
+        r.confianza || 0
+      ) * 100
+    );
+
+
+  const box =
+    document.getElementById(
+      'analisis'
+    );
+
+
+  /**********************************************************
+   * INTENTAR AUTOSELECCIÓN EN VENTA
+   **********************************************************/
+  const auto =
+    obtenerAutoseleccionVenta_(
+      r
+    );
+
+
+  if (
+    auto
+  ) {
+
+    seleccionarExistente(
+      auto.item,
+      true
+    );
+
+
+  box.innerHTML =
+  '✨ IA: <strong>' +
+  pct +
+  '% de confianza.</strong><br>' +
+
+  '🔢 Cantidad visible detectada: <strong>' +
+  escapeHtml(
+    String(
+      cantidadIA
+    )
+  ) +
+  '</strong> ' +
+  '<span style="opacity:.75">(editable)</span><br>' +
+
+  '🤖 Producto seleccionado automáticamente por ' +
+  '<strong>' +
+  escapeHtml(
+    auto.motivo
+  ) +
+  '</strong>.';
+
+
+    box.style.display =
+      'block';
+
+
+    document
+      .getElementById(
+        'coincidencias'
+      )
+      .innerHTML =
+
+      '<div class="helper">' +
+      'La coincidencia fue suficientemente fuerte. ' +
+      'Revisa cantidad y precio antes de agregar al carrito.' +
+      '</div>';
+
+
+    return;
+  }
+
+
+  /**********************************************************
+   * NO HAY SEGURIDAD SUFICIENTE:
+   * mantiene selección humana.
+   **********************************************************/
+ box.innerHTML =
+  '✨ IA: <strong>' +
+  pct +
+  '% de confianza.</strong><br>' +
+
+  '🔢 Cantidad visible detectada: <strong>' +
+  escapeHtml(
+    String(
+      cantidadIA
+    )
+  ) +
+  '</strong> ' +
+  '<span style="opacity:.75">(editable)</span><br>' +
+
+  (
+    MODO === 'VENTA'
+    ? 'Revisa y selecciona el producto correcto.'
+    : 'El sistema también buscó si ya manejas este artículo.'
+  );
+
+
+  box.style.display =
+    'block';
+
+
+  mostrarCoincidencias(
+    r.coincidencias || []
+  );
+}
+/************************************************************
+ * RESULTADOS
+ ************************************************************/
+function mostrarCoincidencias(lista) {
+
+  const cont =
+    document.getElementById(
+      'coincidencias'
+    );
+
+
+  cont.innerHTML =
+    '';
+
+
+if (
+  !lista ||
+  !lista.length
+) {
+
+  cont.innerHTML =
+
+    '<div class="helper">' +
+
+      '✅ No encontré productos iguales o similares ' +
+      'a este artículo dentro del inventario.' +
+
+    '</div>';
+
+
+  return;
+}
+
+
+  const title =
+    document.createElement(
+      'div'
+    );
+
+
+  title.className =
+    'matchTitle';
+
+
+title.textContent =
+  'Productos iguales o similares ya existentes';
+
+  cont.appendChild(
+    title
+  );
+
+
+  lista.forEach(
+    function(item) {
+
+      cont.appendChild(
+        crearTarjeta(
+          item
+        )
+      );
+    }
+  );
+}
+
+
+function crearTarjeta(item) {
+
+  const btn =
+    document.createElement(
+      'button'
+    );
+
+
+  btn.type =
+    'button';
+
+
+  btn.className =
+    'match';
+
+
+  const detalle =
+    [
+      item.marca,
+      item.modeloVariante,
+      item.codigoSerie
+    ]
+      .filter(Boolean)
+      .join(' · ');
+
+
+  btn.innerHTML =
+    '<div class="matchRow">' +
+
+      '<div>' +
+
+        '<strong>' +
+        escapeHtml(
+          item.producto
+        ) +
+        '</strong>' +
+
+        '<small>' +
+        escapeHtml(
+          detalle ||
+          item.categoria ||
+          ''
+        ) +
+        '</small>' +
+
+      '</div>' +
+
+      '<div class="stock">' +
+      'Stock: ' +
+      escapeHtml(
+        String(
+          item.existencia
+        )
+      ) +
+      '</div>' +
+
+    '</div>';
+
+
+  btn.onclick =
+    function() {
+
+      seleccionarExistente(
+        item
+      );
+    };
+
+
+  return btn;
+}
+
+
+/************************************************************
+ * SELECCIONAR PRODUCTO EXISTENTE
+ ************************************************************/
+function seleccionarExistente(
+  item,
+  automatico
+) {
+
+  PRODUCTO_ID =
+    item.id;
+
+
+  PRODUCTO_EXISTENCIA =
+    Number(
+      item.existencia || 0
+    );
+
+
+  setValor(
+    'producto',
+    item.producto
+  );
+
+
+  setValor(
+    'categoria',
+    item.categoria
+  );
+
+
+  setValor(
+    'marca',
+    item.marca
+  );
+
+
+  setValor(
+    'modelo',
+    item.modeloVariante
+  );
+
+
+  setValor(
+    'codigo',
+    item.codigoSerie
+  );
+
+
+  setValor(
+    'descripcion',
+    item.descripcion
+  );
+
+
+  setValor(
+    'costo',
+    item.costo || ''
+  );
+
+
+  /**********************************************************
+   * PRECIO
+   **********************************************************/
+  let precioMostrar =
+    item.precio || '';
+
+
+  if (
+    MODO === 'VENTA' &&
+    Number(
+      item.ultimoPrecioVenta || 0
+    ) > 0
+  ) {
+
+    precioMostrar =
+      item.ultimoPrecioVenta;
+  }
+
+
+  setValor(
+    'precio',
+    precioMostrar
+  );
+
+
+  seleccionarUnidad(
+    item.unidad
+  );
+
+
+  const box =
+    document.getElementById(
+      'productoSeleccionado'
+    );
+
+
+  box.innerHTML =
+
+    (
+      automatico
+
+        ? '🤖 Producto seleccionado automáticamente<br>'
+
+        : '✅ Se usará este producto existente<br>'
+    ) +
+
+    '<strong>' +
+      escapeHtml(
+        item.producto
+      ) +
+    '</strong><br>' +
+
+    'ID: ' +
+    escapeHtml(
+      item.id
+    ) +
+
+    ' · Existencia: ' +
+
+    escapeHtml(
+      String(
+        item.existencia
+      )
+    );
+
+
+  box.style.display =
+    'block';
+
+
+  if (
+    MODO !== 'VENTA'
+  ) {
+
+    document
+      .getElementById(
+        'btnQuitarSeleccion'
+      )
+      .classList
+      .remove(
+        'hidden'
+      );
+  }
+
+
+  document
+    .getElementById(
+      'resultadosBusqueda'
+    )
+    .innerHTML =
+    '';
+
+
+  toast(
+    automatico
+
+      ? '🤖 Producto identificado automáticamente.'
+
+      : 'Producto existente seleccionado.'
+  );
+}
+
+function quitarSeleccion() {
+
+  PRODUCTO_ID =
+    '';
+
+  PRODUCTO_EXISTENCIA =
+    0;
+
+
+  document
+    .getElementById(
+      'productoSeleccionado'
+    )
+    .style.display =
+    'none';
+
+
+  document
+    .getElementById(
+      'btnQuitarSeleccion'
+    )
+    .classList
+    .add(
+      'hidden'
+    );
+
+
+  toast(
+    'Se verificará nuevamente antes de crear.'
+  );
+}
+
+
+/************************************************************
+ * BUSCAR MANUAL
+ ************************************************************/
+function buscarConEspera() {
+
+  clearTimeout(
+    timerBusqueda
+  );
+
+
+  timerBusqueda =
+    setTimeout(
+      function() {
+
+        const q =
+          valor(
+            'busqueda'
+          );
+
+
+        if (
+          q.length < 2
+        ) {
+
+          document
+            .getElementById(
+              'resultadosBusqueda'
+            )
+            .innerHTML =
+            '';
+
+          return;
+        }
+
+
+        google.script.run
+
+          .withSuccessHandler(
+            function(lista) {
+
+              const cont =
+                document.getElementById(
+                  'resultadosBusqueda'
+                );
+
+
+              cont.innerHTML =
+                '';
+
+
+              lista.forEach(
+                function(item) {
+
+                  cont.appendChild(
+                    crearTarjeta(
+                      item
+                    )
+                  );
+                }
+              );
+            }
+          )
+
+          .withFailureHandler(
+            errorServidor
+          )
+
+          .buscarProductos(
+            APP_PIN,
+            q
+          );
+
+      },
+      300
+    );
+}
+
+
+/************************************************************
+ * GUARDAR
+ ************************************************************/
+/************************************************************
+ * DATOS ACTUALES DEL FORMULARIO
+ ************************************************************/
+function obtenerDatosFormulario() {
+
+  const fecha =
+    valor(
+      'fechaMovimiento'
+    );
+
+
+  const producto =
+    valor(
+      'producto'
+    );
+
+
+  const cantidad =
+    Number(
+      valor(
+        'cantidad'
+      )
+    );
+
+
+  if (!fecha) {
+
+    toast(
+      'Indica la fecha de la transacción.'
+    );
+
+    return null;
+  }
+
+
+  if (!producto) {
+
+    toast(
+      'Indica el producto.'
+    );
+
+    return null;
+  }
+
+
+  if (
+    !isFinite(cantidad) ||
+    cantidad <= 0
+  ) {
+
+    toast(
+      'Cantidad inválida.'
+    );
+
+    return null;
+  }
+
+
+  /**********************************************************
+   * VENTA SIEMPRE REQUIERE PRODUCTO EXISTENTE
+   **********************************************************/
+  if (
+    MODO === 'VENTA' &&
+    !PRODUCTO_ID
+  ) {
+
+    toast(
+      'Para vender selecciona un producto existente.'
+    );
+
+    return null;
+  }
+
+
+  /**********************************************************
+   * EVITAR SOBREVENTA INCLUYENDO LO QUE YA ESTÁ
+   * DENTRO DEL CARRITO.
+   **********************************************************/
+  if (
+    MODO === 'VENTA'
+  ) {
+
+    const yaEnCarrito =
+      CARRITOS.VENTA.reduce(
+        function(total,item) {
+
+          if (
+            item.idProducto ===
+            PRODUCTO_ID
+          ) {
+
+            return (
+              total +
+              Number(
+                item.cantidad || 0
+              )
+            );
+          }
+
+
+          return total;
+        },
+        0
+      );
+
+
+    if (
+      yaEnCarrito +
+      cantidad >
+      PRODUCTO_EXISTENCIA
+    ) {
+
+      toast(
+        'Stock insuficiente. Disponible: ' +
+        PRODUCTO_EXISTENCIA +
+        ' · Ya en carrito: ' +
+        yaEnCarrito
+      );
+
+      return null;
+    }
+  }
+
+
+  return {
+
+    tipo:
+      MODO,
+
+    fecha:
+      fecha,
+
+    idProducto:
+      PRODUCTO_ID,
+
+    producto:
+      producto,
+
+    categoria:
+      valor(
+        'categoria'
+      ),
+
+    marca:
+      valor(
+        'marca'
+      ),
+
+    modeloVariante:
+      valor(
+        'modelo'
+      ),
+
+    codigoSerie:
+      valor(
+        'codigo'
+      ),
+
+    unidad:
+      valor(
+        'unidad'
+      ) || 'Unidad',
+
+    descripcion:
+      valor(
+        'descripcion'
+      ),
+
+    cantidad:
+      cantidad,
+
+    costoUnitario:
+      Number(
+        valor(
+          'costo'
+        )
+      ) || 0,
+
+    precioVenta:
+      Number(
+        valor(
+          'precio'
+        )
+      ) || 0,
+
+    imagenData:
+      FOTO_DATA,
+
+    forceNew:
+      false
+  };
+}
+
+
+/************************************************************
+ * BOTÓN PRINCIPAL
+ ************************************************************/
+function guardar() {
+
+  const datos =
+    obtenerDatosFormulario();
+
+
+  if (!datos) {
+    return;
+  }
+
+
+  /**********************************************************
+   * INVENTARIO INICIAL:
+   * se registra inmediatamente.
+   **********************************************************/
+  if (
+    MODO === 'INICIAL'
+  ) {
+
+    enviarMovimiento(
+      datos,
+      {
+        siguiente:
+          false
+      }
+    );
+
+    return;
+  }
+
+
+  /**********************************************************
+   * COMPRA / VENTA:
+   * va al carrito.
+   **********************************************************/
+  agregarAlCarrito(
+    datos
+  );
+}
+
+
+/************************************************************
+ * GUARDAR Y SIGUIENTE
+ ************************************************************/
+function guardarYSiguiente() {
+
+  if (
+    MODO !== 'INICIAL'
+  ) {
+
+    return;
+  }
+
+
+  const datos =
+    obtenerDatosFormulario();
+
+
+  if (!datos) {
+    return;
+  }
+
+
+  enviarMovimiento(
+    datos,
+    {
+      siguiente:
+        true
+    }
+  );
+}
+
+
+/************************************************************
+ * CARRITO ACTUAL
+ ************************************************************/
+function obtenerCarritoActual() {
+
+  if (
+    MODO !== 'COMPRA' &&
+    MODO !== 'VENTA'
+  ) {
+
+    return [];
+  }
+
+
+  return CARRITOS[
+    MODO
+  ];
+}
+
+
+/************************************************************
+ * CLAVE PARA EVITAR DUPLICAR EL MISMO ARTÍCULO
+ * DENTRO DEL CARRITO
+ ************************************************************/
+function claveItemCarrito_(
+  datos
+) {
+
+  if (
+    datos.idProducto
+  ) {
+
+    return (
+      'ID:' +
+      datos.idProducto
+    );
+  }
+
+
+  const codigo =
+    normalizarCodigoCliente_(
+      datos.codigoSerie
+    );
+
+
+  if (
+    codigo
+  ) {
+
+    return (
+      'COD:' +
+      codigo
+    );
+  }
+
+
+  return (
+
+    'TXT:' +
+
+    [
+      datos.producto,
+      datos.marca,
+      datos.modeloVariante,
+      datos.unidad
+    ]
+      .map(
+        function(x) {
+
+          return String(
+            x || ''
+          )
+            .trim()
+            .toLowerCase();
+        }
+      )
+      .join('|')
+  );
+}
+
+
+/************************************************************
+ * AGREGAR AL CARRITO
+ ************************************************************/
+function agregarAlCarrito(
+  datos
+) {
+
+  const carrito =
+    obtenerCarritoActual();
+
+
+  if (
+    carrito.length >= 20
+  ) {
+
+    toast(
+      'El carrito admite hasta 20 productos por operación.'
+    );
+
+    return;
+  }
+
+
+  /*
+   * En ventas no necesitamos reenviar la fotografía:
+   * el GS nunca guarda una nueva imagen en una venta.
+   */
+  if (
+    MODO === 'VENTA'
+  ) {
+
+    datos.imagenData =
+      '';
+  }
+
+
+  const clave =
+    claveItemCarrito_(
+      datos
+    );
+
+
+  const existente =
+    carrito.find(
+      function(item) {
+
+        return (
+          claveItemCarrito_(
+            item
+          )
+          ===
+          clave
+        );
+      }
+    );
+
+
+  /**********************************************************
+   * SI EL MISMO PRODUCTO YA ESTÁ:
+   * acumulamos cantidad.
+   **********************************************************/
+  if (
+    existente
+  ) {
+
+    const cantidadAnterior =
+      Number(
+        existente.cantidad || 0
+      );
+
+
+    const cantidadNueva =
+      Number(
+        datos.cantidad || 0
+      );
+
+
+    /********************************************************
+     * COMPRA:
+     * si cambió el costo, conservamos costo medio
+     * entre las líneas del propio carrito.
+     ********************************************************/
+    if (
+      MODO === 'COMPRA'
+    ) {
+
+      const costoAnterior =
+        Number(
+          existente.costoUnitario || 0
+        );
+
+
+      const costoNuevo =
+        Number(
+          datos.costoUnitario || 0
+        );
+
+
+      const cantidadTotal =
+        cantidadAnterior +
+        cantidadNueva;
+
+
+      if (
+        cantidadTotal > 0 &&
+        (
+          costoAnterior > 0 ||
+          costoNuevo > 0
+        )
+      ) {
+
+        existente.costoUnitario =
+
+          (
+            (
+              cantidadAnterior *
+              costoAnterior
+            )
+            +
+            (
+              cantidadNueva *
+              costoNuevo
+            )
+          )
+          /
+          cantidadTotal;
+      }
+    }
+
+
+    existente.cantidad =
+      cantidadAnterior +
+      cantidadNueva;
+
+
+    if (
+      Number(
+        datos.precioVenta || 0
+      ) > 0
+    ) {
+
+      existente.precioVenta =
+        Number(
+          datos.precioVenta
+        );
+    }
+
+
+    if (
+      !existente.imagenData &&
+      datos.imagenData
+    ) {
+
+      existente.imagenData =
+        datos.imagenData;
+    }
+
+
+    toast(
+      '🛒 Cantidad acumulada en el carrito.'
+    );
+
+  } else {
+
+    carrito.push(
+      Object.assign(
+        {},
+        datos
+      )
+    );
+
+
+    toast(
+      '🛒 Producto agregado al carrito.'
+    );
+  }
+
+
+  limpiar();
+
+  renderCarrito();
+}
+
+
+/************************************************************
+ * MOSTRAR CARRITO
+ ************************************************************/
+function renderCarrito() {
+
+  const card =
+    document.getElementById(
+      'carritoCard'
+    );
+
+
+  if (
+    MODO !== 'COMPRA' &&
+    MODO !== 'VENTA'
+  ) {
+
+    card
+      .classList
+      .add(
+        'hidden'
+      );
+
+    return;
+  }
+
+
+  card
+    .classList
+    .remove(
+      'hidden'
+    );
+
+
+  const carrito =
+    obtenerCarritoActual();
+
+
+  const lista =
+    document.getElementById(
+      'carritoLista'
+    );
+
+
+  const contador =
+    document.getElementById(
+      'carritoContador'
+    );
+
+
+  const titulo =
+    document.getElementById(
+      'carritoTitulo'
+    );
+
+
+  const boton =
+    document.getElementById(
+      'btnFinalizarCarrito'
+    );
+
+
+  contador.textContent =
+    String(
+      carrito.length
+    );
+
+
+  titulo.textContent =
+
+    MODO === 'COMPRA'
+
+      ? '🛒 Carrito de compra'
+
+      : '🛒 Carrito de venta';
+
+
+  boton.textContent =
+
+    MODO === 'COMPRA'
+
+      ? '✅ Registrar compra completa'
+
+      : '🔴 Registrar venta completa';
+
+
+  boton.className =
+
+    MODO === 'COMPRA'
+
+      ? 'btn btnPrimary'
+
+      : 'btn btnDanger';
+
+
+  boton.disabled =
+    carrito.length === 0;
+
+
+  if (
+    !carrito.length
+  ) {
+
+    lista.innerHTML =
+
+      '<div class="carritoVacio">' +
+        'Todavía no has agregado productos.' +
+      '</div>';
+
+
+    document
+      .getElementById(
+        'carritoTotal'
+      )
+      .textContent =
+      formatoDinero(
+        0
+      );
+
+
+    return;
+  }
+
+
+  let html =
+    '';
+
+
+  let totalGeneral =
+    0;
+
+
+  carrito.forEach(
+    function(item,index) {
+
+      const cantidad =
+        Number(
+          item.cantidad || 0
+        );
+
+
+      const valorUnitario =
+
+        MODO === 'COMPRA'
+
+          ? Number(
+              item.costoUnitario || 0
+            )
+
+          : Number(
+              item.precioVenta || 0
+            );
+
+
+      const subtotal =
+        cantidad *
+        valorUnitario;
+
+
+      totalGeneral +=
+        subtotal;
+
+
+      html +=
+
+        '<div class="carritoItem">' +
+
+          '<div>' +
+
+            '<strong>' +
+              escapeHtml(
+                item.producto || ''
+              ) +
+            '</strong>' +
+
+            '<small>' +
+
+              escapeHtml(
+                String(
+                  cantidad
+                )
+              ) +
+
+              ' × ' +
+
+              formatoDinero(
+                valorUnitario
+              ) +
+
+            '</small>' +
+
+            '<div class="carritoSubtotal">' +
+              formatoDinero(
+                subtotal
+              ) +
+            '</div>' +
+
+          '</div>' +
+
+          '<button ' +
+            'type="button" ' +
+            'class="btnEliminarCarrito" ' +
+            'onclick="quitarDelCarrito(' +
+              index +
+            ')">' +
+            '×' +
+          '</button>' +
+
+        '</div>';
+    }
+  );
+
+
+  lista.innerHTML =
+    html;
+
+
+  document
+    .getElementById(
+      'carritoTotal'
+    )
+    .textContent =
+    formatoDinero(
+      totalGeneral
+    );
+}
+
+
+/************************************************************
+ * QUITAR PRODUCTO DEL CARRITO
+ ************************************************************/
+function quitarDelCarrito(
+  index
+) {
+
+  const carrito =
+    obtenerCarritoActual();
+
+
+  if (
+    index < 0 ||
+    index >= carrito.length
+  ) {
+
+    return;
+  }
+
+
+  carrito.splice(
+    index,
+    1
+  );
+
+
+  renderCarrito();
+}
+
+
+/************************************************************
+ * VACIAR CARRITO
+ ************************************************************/
+function vaciarCarrito() {
+
+  const carrito =
+    obtenerCarritoActual();
+
+
+  if (
+    !carrito.length
+  ) {
+
+    return;
+  }
+
+
+  const seguro =
+    confirm(
+      '¿Vaciar todo el carrito?'
+    );
+
+
+  if (!seguro) {
+    return;
+  }
+
+
+  CARRITOS[
+    MODO
+  ] =
+  [];
+
+
+  renderCarrito();
+
+
+  toast(
+    'Carrito vacío.'
+  );
+}
+
+
+/************************************************************
+ * REGISTRAR CARRITO
+ ************************************************************/
+function finalizarCarrito(
+  tipoForzado
+) {
+
+  const tipo =
+    tipoForzado ||
+    MODO;
+
+
+  if (
+    tipo !== 'COMPRA' &&
+    tipo !== 'VENTA'
+  ) {
+
+    return;
+  }
+
+
+  const carrito =
+    CARRITOS[
+      tipo
+    ];
+
+
+  if (
+    !carrito.length
+  ) {
+
+    toast(
+      'El carrito está vacío.'
+    );
+
+    return;
+  }
+
+
+  const btn =
+    document.getElementById(
+      'btnFinalizarCarrito'
+    );
+
+
+  const texto =
+    btn.textContent;
+
+
+  btn.disabled =
+    true;
+
+
+  btn.textContent =
+    'Registrando...';
+
+
+  google.script.run
+
+    .withSuccessHandler(
+      function(r) {
+
+        btn.disabled =
+          false;
+
+        btn.textContent =
+          texto;
+
+
+        /******************************************************
+         * UN PRODUCTO NECESITA CONFIRMACIÓN
+         ******************************************************/
+        if (
+          r.requiresConfirmation
+        ) {
+
+          PENDING_DATA =
+            r.item;
+
+          PENDING_CART_INDEX =
+            Number(
+              r.index
+            );
+
+          PENDING_CART_TIPO =
+            tipo;
+
+          PENDING_OPTIONS =
+            null;
+
+
+          mostrarDuplicadosServidor(
+            r.candidates || [],
+            r.aiReason || '',
+            r.aiConfidence || 0
+          );
+
+
+          return;
+        }
+
+
+        /******************************************************
+         * TODO EL CARRITO REGISTRADO
+         ******************************************************/
+        CARRITOS[
+          tipo
+        ] =
+        [];
+
+
+        renderCarrito();
+
+        limpiar();
+
+
+        toast(
+
+          '✅ ' +
+          Number(
+            r.cantidad || 0
+          ) +
+          ' producto(s) registrados correctamente.'
+        );
+      }
+    )
+
+    .withFailureHandler(
+      function(e) {
+
+        btn.disabled =
+          false;
+
+        btn.textContent =
+          texto;
+
+        errorServidor(
+          e
+        );
+      }
+    )
+
+    .guardarCarrito(
+      APP_PIN,
+      tipo,
+      carrito
+    );
+}
+function enviarMovimiento(
+  datos,
+  opciones
+) {
+
+  opciones =
+    opciones || {};
+
+
+  const btn =
+    document.getElementById(
+      'btnGuardar'
+    );
+
+
+  const btnSiguiente =
+    document.getElementById(
+      'btnGuardarSiguiente'
+    );
+
+
+  btn.disabled =
+    true;
+
+
+  btnSiguiente.disabled =
+    true;
+
+
+  const texto =
+    btn.textContent;
+
+
+  btn.textContent =
+    'Verificando...';
+
+
+  google.script.run
+
+    .withSuccessHandler(
+      function(r) {
+
+        btn.disabled =
+          false;
+
+
+        btnSiguiente.disabled =
+          false;
+
+
+        btn.textContent =
+          texto;
+
+
+        /******************************************************
+         * POSIBLE DUPLICADO
+         ******************************************************/
+        if (
+          r.requiresConfirmation
+        ) {
+
+          PENDING_DATA =
+            datos;
+
+          PENDING_OPTIONS =
+            opciones;
+
+          PENDING_CART_INDEX =
+            -1;
+
+          PENDING_CART_TIPO =
+            '';
+
+
+          mostrarDuplicadosServidor(
+            r.candidates || [],
+            r.aiReason || '',
+            r.aiConfidence || 0
+          );
+
+
+          return;
+        }
+
+
+        let mensaje =
+
+          '✅ ' +
+          r.mensaje +
+          ' Existencia: ' +
+          r.existencia;
+
+
+        if (
+          r.autoMatched
+        ) {
+
+          mensaje +=
+            ' · Se encontró y utilizó automáticamente el producto existente.';
+        }
+
+
+        if (
+          opciones.siguiente
+        ) {
+
+          mensaje +=
+            ' · Listo para el siguiente producto.';
+        }
+
+
+        toast(
+          mensaje
+        );
+
+
+        limpiar();
+
+
+        /******************************************************
+         * GUARDAR Y SIGUIENTE
+         ******************************************************/
+        if (
+          opciones.siguiente
+        ) {
+
+          setTimeout(
+            function() {
+
+              const camara =
+                document.getElementById(
+                  'cameraPlaceholder'
+                );
+
+
+              if (
+                camara
+              ) {
+
+                camara.scrollIntoView(
+                  {
+                    behavior:
+                      'smooth',
+
+                    block:
+                      'center'
+                  }
+                );
+              }
+
+            },
+            100
+          );
+        }
+      }
+    )
+
+    .withFailureHandler(
+      function(e) {
+
+        btn.disabled =
+          false;
+
+
+        btnSiguiente.disabled =
+          false;
+
+
+        btn.textContent =
+          texto;
+
+
+        errorServidor(
+          e
+        );
+      }
+    )
+
+    .guardarMovimiento(
+      APP_PIN,
+      datos
+    );
+}
+
+/************************************************************
+ * DUPLICADOS DETECTADOS POR SERVIDOR
+ ************************************************************/
+function mostrarDuplicadosServidor(
+  lista,
+  motivo,
+  confianza
+) {
+
+  const cont =
+    document.getElementById(
+      'duplicateCandidates'
+    );
+
+
+  cont.innerHTML =
+    '';
+
+
+  const boxMotivo =
+    document.getElementById(
+      'duplicateReason'
+    );
+
+
+  const porcentaje =
+    Math.round(
+      Number(
+        confianza || 0
+      ) * 100
+    );
+
+
+  if (
+    motivo ||
+    porcentaje
+  ) {
+
+    boxMotivo.innerHTML =
+      '🤖 <strong>Coincidencia IA: ' +
+      porcentaje +
+      '%</strong><br>' +
+      escapeHtml(
+        motivo || ''
+      );
+
+
+    boxMotivo.style.display =
+      'block';
+
+  } else {
+
+    boxMotivo.style.display =
+      'none';
+  }
+
+
+  lista.forEach(
+    function(item) {
+
+      const btn =
+        crearTarjeta(
+          item
+        );
+
+
+      btn.onclick =
+        function() {
+
+          usarDuplicadoServidor(
+            item
+          );
+        };
+
+
+      cont.appendChild(
+        btn
+      );
+    }
+  );
+
+
+  document
+    .getElementById(
+      'duplicateOverlay'
+    )
+    .style.display =
+    'block';
+}
+
+function usarDuplicadoServidor(
+  item
+) {
+
+  if (!PENDING_DATA) {
+    return;
+  }
+
+
+  const datos =
+    Object.assign(
+      {},
+      PENDING_DATA
+    );
+
+
+  datos.idProducto =
+    item.id;
+
+
+  datos.forceNew =
+    false;
+
+
+  /**********************************************************
+   * CONFIRMACIÓN DE UN ITEM DEL CARRITO
+   **********************************************************/
+  if (
+    PENDING_CART_INDEX >= 0 &&
+    PENDING_CART_TIPO
+  ) {
+
+    const tipo =
+      PENDING_CART_TIPO;
+
+
+    const index =
+      PENDING_CART_INDEX;
+
+
+    if (
+      CARRITOS[tipo] &&
+      CARRITOS[tipo][index]
+    ) {
+
+      CARRITOS[tipo][index] =
+        datos;
+    }
+
+
+    cerrarDuplicados();
+
+
+    renderCarrito();
+
+
+    finalizarCarrito(
+      tipo
+    );
+
+
+    return;
+  }
+
+
+  /**********************************************************
+   * MOVIMIENTO INDIVIDUAL
+   **********************************************************/
+  const opciones =
+    PENDING_OPTIONS || {};
+
+
+  cerrarDuplicados();
+
+
+  enviarMovimiento(
+    datos,
+    opciones
+  );
+}
+
+
+function confirmarProductoDiferente() {
+
+  if (!PENDING_DATA) {
+    return;
+  }
+
+
+  const seguro =
+    confirm(
+
+      'El sistema encontró un producto parecido.\n\n' +
+
+      'Si continúas se tratará como un producto diferente.\n\n' +
+
+      '¿Estás seguro?'
+    );
+
+
+  if (!seguro) {
+    return;
+  }
+
+
+  const datos =
+    Object.assign(
+      {},
+      PENDING_DATA
+    );
+
+
+  datos.idProducto =
+    '';
+
+
+  datos.forceNew =
+    true;
+
+
+  /**********************************************************
+   * ITEM DEL CARRITO
+   **********************************************************/
+  if (
+    PENDING_CART_INDEX >= 0 &&
+    PENDING_CART_TIPO
+  ) {
+
+    const tipo =
+      PENDING_CART_TIPO;
+
+
+    const index =
+      PENDING_CART_INDEX;
+
+
+    if (
+      CARRITOS[tipo] &&
+      CARRITOS[tipo][index]
+    ) {
+
+      CARRITOS[tipo][index] =
+        datos;
+    }
+
+
+    cerrarDuplicados();
+
+
+    renderCarrito();
+
+
+    finalizarCarrito(
+      tipo
+    );
+
+
+    return;
+  }
+
+
+  /**********************************************************
+   * MOVIMIENTO INDIVIDUAL
+   **********************************************************/
+  const opciones =
+    PENDING_OPTIONS || {};
+
+
+  cerrarDuplicados();
+
+
+  enviarMovimiento(
+    datos,
+    opciones
+  );
+}
+
+
+function cerrarDuplicados() {
+
+  document
+    .getElementById(
+      'duplicateOverlay'
+    )
+    .style.display =
+    'none';
+
+
+  PENDING_DATA =
+    null;
+
+
+  PENDING_OPTIONS =
+    null;
+
+
+  PENDING_CART_INDEX =
+    -1;
+
+
+  PENDING_CART_TIPO =
+    '';
+}
+  
+/************************************************************
+ * LIMPIAR
+ ************************************************************/
+function limpiar() {
+
+  FOTO_DATA =
+    '';
+
+  PRODUCTO_ID =
+    '';
+
+  PRODUCTO_EXISTENCIA =
+    0;
+
+  PENDING_DATA =
+    null;
+
+
+  [
+    'producto',
+    'categoria',
+    'marca',
+    'modelo',
+    'codigo',
+    'descripcion',
+    'costo',
+    'precio',
+    'busqueda'
+  ].forEach(
+    function(id) {
+
+      setValor(
+        id,
+        ''
+      );
+    }
+  );
+
+
+    setValor(
+    'cantidad',
+    '1'
+  );
+
+
+  ponerFechaHoy();
+
+
+  seleccionarUnidad(
+    'Unidad'
+  );
+
+
+  document
+    .getElementById(
+      'fotoInput'
+    )
+    .value =
+    '';
+
+
+  document
+    .getElementById(
+      'fotoPreview'
+    )
+    .style.display =
+    'none';
+
+
+  document
+    .getElementById(
+      'cameraPlaceholder'
+    )
+    .style.display =
+    'block';
+
+
+  document
+    .getElementById(
+      'btnAnalizar'
+    )
+    .disabled =
+    true;
+
+
+  document
+    .getElementById(
+      'analisis'
+    )
+    .style.display =
+    'none';
+
+
+  document
+    .getElementById(
+      'coincidencias'
+    )
+    .innerHTML =
+    '';
+
+
+  document
+    .getElementById(
+      'resultadosBusqueda'
+    )
+    .innerHTML =
+    '';
+
+
+  document
+    .getElementById(
+      'productoSeleccionado'
+    )
+    .style.display =
+    'none';
+
+
+  document
+    .getElementById(
+      'btnQuitarSeleccion'
+    )
+    .classList
+    .add(
+      'hidden'
+    );
+}
+
+/************************************************************
+ * LEER FACTURA
+ ************************************************************/
+function abrirLeerFactura() {
+
+  cerrarMenu();
+
+  FOTO_FACTURA_DATA = '';
+
+  document
+    .getElementById(
+      'facturaOverlay'
+    )
+    .style.display =
+    'block';
+
+
+  document
+    .getElementById(
+      'facturaFotoInput'
+    )
+    .value =
+    '';
+
+
+  document
+    .getElementById(
+      'facturaFotoPreview'
+    )
+    .style.display =
+    'none';
+
+
+  document
+    .getElementById(
+      'facturaCameraPlaceholder'
+    )
+    .style.display =
+    'block';
+
+
+  document
+    .getElementById(
+      'btnLeerFactura'
+    )
+    .disabled =
+    true;
+
+
+  document
+    .getElementById(
+      'loadingFactura'
+    )
+    .style.display =
+    'none';
+
+
+  const resultado =
+    document.getElementById(
+      'resultadoFactura'
+    );
+
+  resultado.style.display =
+    'none';
+
+  resultado.innerHTML =
+    '';
+}
+
+
+async function procesarFotoFactura(event) {
+
+  const file =
+    event.target.files[0];
+
+
+  if (!file) {
+    return;
+  }
+
+
+  try {
+
+    FOTO_FACTURA_DATA =
+      await comprimirImagen(
+        file
+      );
+
+
+    const preview =
+      document.getElementById(
+        'facturaFotoPreview'
+      );
+
+
+    preview.src =
+      FOTO_FACTURA_DATA;
+
+    preview.style.display =
+      'block';
+
+
+    document
+      .getElementById(
+        'facturaCameraPlaceholder'
+      )
+      .style.display =
+      'none';
+
+
+    document
+      .getElementById(
+        'btnLeerFactura'
+      )
+      .disabled =
+      false;
+
+
+    document
+      .getElementById(
+        'resultadoFactura'
+      )
+      .style.display =
+      'none';
+
+
+  } catch(e) {
+
+    toast(
+      'No pude procesar la fotografía de la factura.'
+    );
+  }
+}
+
+
+function leerFacturaIA() {
+
+  if (!FOTO_FACTURA_DATA) {
+
+    toast(
+      'Primero toma la fotografía de la factura.'
+    );
+
+    return;
+  }
+
+
+  const btn =
+    document.getElementById(
+      'btnLeerFactura'
+    );
+
+
+  btn.disabled =
+    true;
+
+
+  document
+    .getElementById(
+      'loadingFactura'
+    )
+    .style.display =
+    'block';
+
+
+  document
+    .getElementById(
+      'resultadoFactura'
+    )
+    .style.display =
+    'none';
+
+
+  google.script.run
+
+    .withSuccessHandler(
+      function(r) {
+
+        btn.disabled =
+          false;
+
+
+        document
+          .getElementById(
+            'loadingFactura'
+          )
+          .style.display =
+          'none';
+
+
+        mostrarFacturaLeida(
+          r
+        );
+
+
+        toast(
+          '✅ Factura registrada correctamente.'
+        );
+      }
+    )
+
+    .withFailureHandler(
+      function(e) {
+
+        btn.disabled =
+          false;
+
+
+        document
+          .getElementById(
+            'loadingFactura'
+          )
+          .style.display =
+          'none';
+
+
+        errorServidor(
+          e
+        );
+      }
+    )
+
+    .analizarYGuardarFactura(
+      APP_PIN,
+      FOTO_FACTURA_DATA
+    );
+}
+
+
+function mostrarFacturaLeida(r) {
+
+  const cont =
+    document.getElementById(
+      'resultadoFactura'
+    );
+
+
+  const lineas =
+    Array.isArray(r.lineas)
+      ? r.lineas
+      : [];
+
+
+  let detalle =
+    '';
+
+
+  lineas.forEach(
+    function(item) {
+
+      detalle +=
+
+        '<div class="facturaLinea">' +
+
+          '<strong>' +
+            escapeHtml(
+              item.descripcion || ''
+            ) +
+          '</strong><br>' +
+
+          escapeHtml(
+            String(
+              item.cantidad || 0
+            )
+          ) +
+
+          ' × ' +
+
+          formatoDinero(
+            item.valorUnitario || 0
+          ) +
+
+          ' = ' +
+
+          '<strong>' +
+            formatoDinero(
+              item.total || 0
+            ) +
+          '</strong>' +
+
+        '</div>';
+    }
+  );
+
+
+  cont.innerHTML =
+
+    '<h3>✅ Factura registrada</h3>' +
+
+    '<div class="resultadoFila">' +
+      '<div class="resultadoEtiqueta">No. factura</div>' +
+      '<div class="resultadoValor">' +
+        escapeHtml(
+          r.numeroFactura || ''
+        ) +
+      '</div>' +
+    '</div>' +
+
+    '<div class="resultadoFila">' +
+      '<div class="resultadoEtiqueta">Fecha</div>' +
+      '<div class="resultadoValor">' +
+        escapeHtml(
+          r.fecha || ''
+        ) +
+      '</div>' +
+    '</div>' +
+
+    '<div class="resultadoFila">' +
+      '<div class="resultadoEtiqueta">Emisor</div>' +
+      '<div class="resultadoValor">' +
+        escapeHtml(
+          r.emisor || ''
+        ) +
+      '</div>' +
+    '</div>' +
+
+    '<div class="resultadoFila">' +
+      '<div class="resultadoEtiqueta">Concepto</div>' +
+      '<div class="resultadoValor">' +
+        escapeHtml(
+          r.concepto || ''
+        ) +
+      '</div>' +
+    '</div>' +
+
+    '<div class="resultadoFila">' +
+      '<div class="resultadoEtiqueta">Subtotal</div>' +
+      '<div class="resultadoValor">' +
+        formatoDinero(
+          r.subtotal || 0
+        ) +
+      '</div>' +
+    '</div>' +
+
+    '<div class="resultadoFila">' +
+      '<div class="resultadoEtiqueta">15% ISV</div>' +
+      '<div class="resultadoValor">' +
+        formatoDinero(
+          r.isv15 || 0
+        ) +
+      '</div>' +
+    '</div>' +
+
+    '<div class="resultadoFila">' +
+      '<div class="resultadoEtiqueta">Total</div>' +
+      '<div class="resultadoValor">' +
+        formatoDinero(
+          r.totalPagar || 0
+        ) +
+      '</div>' +
+    '</div>' +
+
+    '<div class="facturaLineas">' +
+      '<strong>Detalle de factura</strong>' +
+      detalle +
+    '</div>';
+
+
+  cont.style.display =
+    'block';
+}  
+
+/************************************************************
+ * EVALUACIÓN 5S
+ ************************************************************/
+function abrirEvaluacion5S() {
+
+  cerrarMenu();
+
+  FOTO_5S_DATA = '';
+
+
+  document
+    .getElementById(
+      'evaluacion5SOverlay'
+    )
+    .style.display =
+    'block';
+
+
+  document
+    .getElementById(
+      'foto5SInput'
+    )
+    .value =
+    '';
+
+
+  document
+    .getElementById(
+      'foto5SPreview'
+    )
+    .style.display =
+    'none';
+
+
+  document
+    .getElementById(
+      'camera5SPlaceholder'
+    )
+    .style.display =
+    'block';
+
+
+  document
+    .getElementById(
+      'btnEvaluar5S'
+    )
+    .disabled =
+    true;
+
+
+  document
+    .getElementById(
+      'loading5S'
+    )
+    .style.display =
+    'none';
+
+
+  const resultado =
+    document.getElementById(
+      'resultado5S'
+    );
+
+
+  resultado.style.display =
+    'none';
+
+  resultado.innerHTML =
+    '';
+}
+
+
+async function procesarFoto5S(event) {
+
+  const file =
+    event.target.files[0];
+
+
+  if (!file) {
+    return;
+  }
+
+
+  try {
+
+    FOTO_5S_DATA =
+      await comprimirImagen(
+        file
+      );
+
+
+    const preview =
+      document.getElementById(
+        'foto5SPreview'
+      );
+
+
+    preview.src =
+      FOTO_5S_DATA;
+
+    preview.style.display =
+      'block';
+
+
+    document
+      .getElementById(
+        'camera5SPlaceholder'
+      )
+      .style.display =
+      'none';
+
+
+    document
+      .getElementById(
+        'btnEvaluar5S'
+      )
+      .disabled =
+      false;
+
+
+    document
+      .getElementById(
+        'resultado5S'
+      )
+      .style.display =
+      'none';
+
+
+  } catch(e) {
+
+    toast(
+      'No pude procesar la fotografía.'
+    );
+  }
+}
+
+
+function evaluar5SIA() {
+
+  if (!FOTO_5S_DATA) {
+
+    toast(
+      'Primero toma la fotografía del espacio.'
+    );
+
+    return;
+  }
+
+
+  const btn =
+    document.getElementById(
+      'btnEvaluar5S'
+    );
+
+
+  btn.disabled =
+    true;
+
+
+  document
+    .getElementById(
+      'loading5S'
+    )
+    .style.display =
+    'block';
+
+
+  document
+    .getElementById(
+      'resultado5S'
+    )
+    .style.display =
+    'none';
+
+
+  google.script.run
+
+    .withSuccessHandler(
+      function(r) {
+
+        btn.disabled =
+          false;
+
+
+        document
+          .getElementById(
+            'loading5S'
+          )
+          .style.display =
+          'none';
+
+
+        mostrarEvaluacion5S(
+          r
+        );
+      }
+    )
+
+    .withFailureHandler(
+      function(e) {
+
+        btn.disabled =
+          false;
+
+
+        document
+          .getElementById(
+            'loading5S'
+          )
+          .style.display =
+          'none';
+
+
+        errorServidor(
+          e
+        );
+      }
+    )
+
+    .evaluarImagen5S(
+      APP_PIN,
+      FOTO_5S_DATA
+    );
+}
+
+
+function mostrarEvaluacion5S(r) {
+
+  const cont =
+    document.getElementById(
+      'resultado5S'
+    );
+
+
+  const recomendaciones =
+    Array.isArray(
+      r.recomendaciones
+    )
+      ? r.recomendaciones
+      : [];
+
+
+  let lista =
+    '';
+
+
+  recomendaciones.forEach(
+    function(item) {
+
+      lista +=
+
+        '<li>' +
+          escapeHtml(
+            item
+          ) +
+        '</li>';
+    }
+  );
+
+
+  cont.innerHTML =
+
+    '<h3>📋 Informe 5S</h3>' +
+
+    '<div class="resultadoFila">' +
+
+      '<div class="resultadoEtiqueta">' +
+        'Estatus' +
+      '</div>' +
+
+      '<div class="resultadoValor">' +
+        escapeHtml(
+          r.estatus || ''
+        ) +
+      '</div>' +
+
+    '</div>' +
+
+    '<div class="resultadoEtiqueta">' +
+      'Calificación' +
+    '</div>' +
+
+    '<div class="calificacion5S">' +
+      escapeHtml(
+        String(
+          r.calificacion || 0
+        )
+      ) +
+      '/100' +
+    '</div>' +
+
+    '<div class="resultadoEtiqueta">' +
+      'Recomendaciones' +
+    '</div>' +
+
+    '<ul class="listaRecomendaciones">' +
+      lista +
+    '</ul>';
+
+
+  cont.style.display =
+    'block';
+}  
+  
+/************************************************************
+ * MENÚ PRINCIPAL
+ ************************************************************/
+function toggleMenu(event) {
+
+  if (event) {
+    event.stopPropagation();
+  }
+
+
+  document
+    .getElementById(
+      'menuDropdown'
+    )
+    .classList
+    .toggle(
+      'open'
+    );
+}
+
+
+function cerrarMenu() {
+
+  document
+    .getElementById(
+      'menuDropdown'
+    )
+    .classList
+    .remove(
+      'open'
+    );
+
+
+  document
+    .getElementById(
+      'gastosSubmenu'
+    )
+    .classList
+    .remove(
+      'open'
+    );
+}
+
+
+function toggleGastosSubmenu(event) {
+
+  if (event) {
+    event.stopPropagation();
+  }
+
+
+  document
+    .getElementById(
+      'gastosSubmenu'
+    )
+    .classList
+    .toggle(
+      'open'
+    );
+}
+
+
+document.addEventListener(
+  'click',
+  function(event) {
+
+    if (
+      !event.target.closest(
+        '.menuWrap'
+      )
+    ) {
+
+      cerrarMenu();
+    }
+  }
+);
+
+
+/************************************************************
+ * CERRAR PANELES
+ ************************************************************/
+function cerrarPanel(id) {
+
+  document
+    .getElementById(
+      id
+    )
+    .style.display =
+    'none';
+}
+
+
+/************************************************************
+ * IR A PANTALLA INICIAL
+ ************************************************************/
+function irInicio() {
+
+  /**********************************************************
+   * CERRAR MENÚ
+   **********************************************************/
+  cerrarMenu();
+
+
+  /**********************************************************
+   * CERRAR CUALQUIER PANEL / VENTANA ABIERTA
+   *
+   * Dashboard
+   * Movimientos
+   * Gastos
+   * Estado de resultados
+   * Análisis IA
+   * Leer factura
+   * Evaluación 5S
+   * Duplicados
+   * etc.
+   **********************************************************/
+  document
+    .querySelectorAll(
+      '.overlay'
+    )
+    .forEach(
+      function(panel) {
+
+        panel.style.display =
+          'none';
+      }
+    );
+
+
+  /**********************************************************
+   * CANCELAR CUALQUIER OPERACIÓN PENDIENTE
+   * DE CONFIRMACIÓN.
+   **********************************************************/
+  PENDING_DATA =
+    null;
+
+  PENDING_OPTIONS =
+    null;
+
+  PENDING_CART_INDEX =
+    -1;
+
+  PENDING_CART_TIPO =
+    '';
+
+
+  /**********************************************************
+   * REGRESAR AL MODO INICIAL
+   **********************************************************/
+  cambiarModo(
+    'INICIAL'
+  );
+
+
+  /**********************************************************
+   * SUBIR AL INICIO DE LA PANTALLA
+   **********************************************************/
+  try {
+
+    window.scrollTo({
+      top:
+        0,
+
+      left:
+        0,
+
+      behavior:
+        'smooth'
+    });
+
+  } catch(e) {
+
+    document.documentElement.scrollTop =
+      0;
+
+    document.body.scrollTop =
+      0;
+  }
+}
+
+
+/************************************************************
+ * FECHA HOY YYYY-MM-DD
+ ************************************************************/
+function fechaHoyISO() {
+
+  const hoy =
+    new Date();
+
+
+  const yyyy =
+    hoy.getFullYear();
+
+
+  const mm =
+    String(
+      hoy.getMonth() + 1
+    ).padStart(
+      2,
+      '0'
+    );
+
+
+  const dd =
+    String(
+      hoy.getDate()
+    ).padStart(
+      2,
+      '0'
+    );
+
+
+  return (
+    yyyy +
+    '-' +
+    mm +
+    '-' +
+    dd
+  );
+}
+
+/************************************************************
+ * DASHBOARD
+ ************************************************************/
+function abrirDashboard() {
+
+  cerrarMenu();
+
+
+  document
+    .getElementById(
+      'dashboardOverlay'
+    )
+    .style.display =
+    'block';
+
+
+  cargarDashboard();
+}
+
+
+/************************************************************
+ * CARGAR DASHBOARD
+ ************************************************************/
+function cargarDashboard() {
+
+  document
+    .getElementById(
+      'dashboardPeriodo'
+    )
+    .textContent =
+    'Calculando mes actual...';
+
+
+  document
+    .getElementById(
+      'dashVentas'
+    )
+    .textContent =
+    '...';
+
+
+  document
+    .getElementById(
+      'dashInventario'
+    )
+    .textContent =
+    '...';
+
+
+  document
+    .getElementById(
+      'dashCompras'
+    )
+    .textContent =
+    '...';
+
+
+  document
+    .getElementById(
+      'dashGastos'
+    )
+    .textContent =
+    '...';
+
+
+  google.script.run
+
+    .withSuccessHandler(
+      mostrarDashboard
+    )
+
+    .withFailureHandler(
+      errorServidor
+    )
+
+    .consultarDashboard(
+      APP_PIN
+    );
+}
+
+
+/************************************************************
+ * MOSTRAR DASHBOARD
+ ************************************************************/
+function mostrarDashboard(r) {
+
+  document
+    .getElementById(
+      'dashboardPeriodo'
+    )
+    .textContent =
+    r.periodo || 'Mes actual';
+
+
+  document
+    .getElementById(
+      'dashVentas'
+    )
+    .textContent =
+    formatoDinero(
+      r.ventas
+    );
+
+
+  document
+    .getElementById(
+      'dashInventario'
+    )
+    .textContent =
+    formatoDinero(
+      r.inventario
+    );
+
+
+  document
+    .getElementById(
+      'dashCompras'
+    )
+    .textContent =
+    formatoDinero(
+      r.compras
+    );
+
+
+  document
+    .getElementById(
+      'dashGastos'
+    )
+    .textContent =
+    formatoDinero(
+      r.gastos
+    );
+}
+/************************************************************
+ * MOVIMIENTOS
+ ************************************************************/
+function abrirMovimientos() {
+
+  cerrarMenu();
+
+
+  document
+    .getElementById(
+      'movimientosOverlay'
+    )
+    .style.display =
+    'block';
+
+
+  const hoy =
+    fechaHoyISO();
+
+
+  setValor(
+    'movDesde',
+    hoy
+  );
+
+
+  setValor(
+    'movHasta',
+    hoy
+  );
+
+
+  document
+    .getElementById(
+      'movimientosResultado'
+    )
+    .innerHTML =
+    '';
+
+
+  const select =
+    document.getElementById(
+      'movProducto'
+    );
+
+
+  select.innerHTML =
+    '<option value="">Cargando productos...</option>';
+
+
+  google.script.run
+
+    .withSuccessHandler(
+      cargarProductosMovimientos
+    )
+
+    .withFailureHandler(
+      errorServidor
+    )
+
+    .obtenerProductosMovimientos(
+      APP_PIN
+    );
+}
+
+
+function cargarProductosMovimientos(lista) {
+
+  const select =
+    document.getElementById(
+      'movProducto'
+    );
+
+
+  select.innerHTML =
+    '';
+
+
+  const inicial =
+    document.createElement(
+      'option'
+    );
+
+
+  inicial.value =
+    '';
+
+
+  inicial.textContent =
+    'Seleccionar';
+
+
+  select.appendChild(
+    inicial
+  );
+
+
+  (lista || []).forEach(
+    function(item) {
+
+      const opcion =
+        document.createElement(
+          'option'
+        );
+
+
+      opcion.value =
+        item.id;
+
+
+      opcion.textContent =
+        item.producto +
+        ' — ' +
+        item.id;
+
+
+      select.appendChild(
+        opcion
+      );
+    }
+  );
+}
+
+
+function verMovimientos() {
+
+  const idProducto =
+    valor(
+      'movProducto'
+    );
+
+
+  const desde =
+    valor(
+      'movDesde'
+    );
+
+
+  const hasta =
+    valor(
+      'movHasta'
+    );
+
+
+  if (!idProducto) {
+
+    toast(
+      'Selecciona un producto.'
+    );
+
+    return;
+  }
+
+
+  if (
+    !desde ||
+    !hasta
+  ) {
+
+    toast(
+      'Selecciona Desde y Hasta.'
+    );
+
+    return;
+  }
+
+
+  document
+    .getElementById(
+      'movimientosResultado'
+    )
+    .innerHTML =
+    '<div class="emptyReport">Consultando movimientos...</div>';
+
+
+  google.script.run
+
+    .withSuccessHandler(
+      mostrarMovimientos
+    )
+
+    .withFailureHandler(
+      errorServidor
+    )
+
+    .consultarMovimientos(
+      APP_PIN,
+      idProducto,
+      desde,
+      hasta
+    );
+}
+
+
+function mostrarMovimientos(r) {
+
+  const cont =
+    document.getElementById(
+      'movimientosResultado'
+    );
+
+
+  cont.innerHTML =
+    '<div class="reportTableWrap">' +
+
+      '<table class="reportTable">' +
+
+        '<thead>' +
+
+          '<tr>' +
+
+            '<th>Producto</th>' +
+
+            '<th>Inventario Inicial</th>' +
+
+            '<th>Compras</th>' +
+
+            '<th>Ventas</th>' +
+
+            '<th>Existencia Actual</th>' +
+
+          '</tr>' +
+
+        '</thead>' +
+
+        '<tbody>' +
+
+          '<tr>' +
+
+            '<td><strong>' +
+              escapeHtml(
+                r.producto || ''
+              ) +
+            '</strong></td>' +
+
+            '<td class="reportNumber">' +
+              formatoCantidad(
+                r.inventarioInicial
+              ) +
+            '</td>' +
+
+            '<td class="reportNumber">' +
+              formatoCantidad(
+                r.compras
+              ) +
+            '</td>' +
+
+            '<td class="reportNumber">' +
+              formatoCantidad(
+                r.ventas
+              ) +
+            '</td>' +
+
+            '<td class="reportNumber">' +
+              formatoCantidad(
+                r.existenciaActual
+              ) +
+            '</td>' +
+
+          '</tr>' +
+
+        '</tbody>' +
+
+      '</table>' +
+
+    '</div>';
+}
+
+
+/************************************************************
+ * GASTOS - REGISTRAR
+ ************************************************************/
+function abrirRegistrarGasto() {
+
+  cerrarMenu();
+
+
+  document
+    .getElementById(
+      'gastoRegistrarOverlay'
+    )
+    .style.display =
+    'block';
+
+
+  setValor(
+    'gastoFecha',
+    fechaHoyISO()
+  );
+
+
+  setValor(
+    'gastoDescripcion',
+    ''
+  );
+
+
+  setValor(
+    'gastoValor',
+    ''
+  );
+
+
+  setValor(
+    'gastoNo',
+    '...'
+  );
+
+
+  const select =
+    document.getElementById(
+      'gastoTipo'
+    );
+
+
+  select.innerHTML =
+    '<option value="">Cargando...</option>';
+
+
+  google.script.run
+
+    .withSuccessHandler(
+      cargarDatosGastos
+    )
+
+    .withFailureHandler(
+      errorServidor
+    )
+
+    .obtenerDatosGastos(
+      APP_PIN
+    );
+}
+
+
+function cargarDatosGastos(r) {
+
+  setValor(
+    'gastoNo',
+    r.siguienteNo
+  );
+
+
+  const select =
+    document.getElementById(
+      'gastoTipo'
+    );
+
+
+  select.innerHTML =
+    '';
+
+
+  const opcionInicial =
+    document.createElement(
+      'option'
+    );
+
+
+  opcionInicial.value =
+    '';
+
+
+  opcionInicial.textContent =
+    'Seleccionar';
+
+
+  select.appendChild(
+    opcionInicial
+  );
+
+
+  (r.tipos || []).forEach(
+    function(tipo) {
+
+      const opcion =
+        document.createElement(
+          'option'
+        );
+
+
+      opcion.value =
+        tipo;
+
+
+      opcion.textContent =
+        tipo;
+
+
+      select.appendChild(
+        opcion
+      );
+    }
+  );
+}
+
+
+function guardarGasto() {
+
+  const fecha =
+    valor(
+      'gastoFecha'
+    );
+
+
+  const tipo =
+    valor(
+      'gastoTipo'
+    );
+
+
+  const descripcion =
+    valor(
+      'gastoDescripcion'
+    );
+
+
+  const valorGasto =
+    Number(
+      valor(
+        'gastoValor'
+      )
+    );
+
+
+  if (!fecha) {
+
+    toast(
+      'Selecciona la fecha.'
+    );
+
+    return;
+  }
+
+
+  if (!tipo) {
+
+    toast(
+      'Selecciona el tipo de gasto.'
+    );
+
+    return;
+  }
+
+
+  if (
+    !isFinite(
+      valorGasto
+    ) ||
+    valorGasto <= 0
+  ) {
+
+    toast(
+      'Ingresa un valor mayor que cero.'
+    );
+
+    return;
+  }
+
+
+  const boton =
+    document.getElementById(
+      'btnGuardarGasto'
+    );
+
+
+  boton.disabled =
+    true;
+
+
+  boton.textContent =
+    'Guardando...';
+
+
+  google.script.run
+
+    .withSuccessHandler(
+      function(r) {
+
+        boton.disabled =
+          false;
+
+
+        boton.textContent =
+          '💾 Guardar';
+
+
+        toast(
+          '✅ Gasto No. ' +
+          r.no +
+          ' registrado.'
+        );
+
+
+        setValor(
+          'gastoNo',
+          r.siguienteNo
+        );
+
+
+        setValor(
+          'gastoDescripcion',
+          ''
+        );
+
+
+        setValor(
+          'gastoValor',
+          ''
+        );
+      }
+    )
+
+    .withFailureHandler(
+      function(error) {
+
+        boton.disabled =
+          false;
+
+
+        boton.textContent =
+          '💾 Guardar';
+
+
+        errorServidor(
+          error
+        );
+      }
+    )
+
+    .registrarGasto(
+      APP_PIN,
+      {
+
+        fecha:
+          fecha,
+
+        tipo:
+          tipo,
+
+        descripcion:
+          descripcion,
+
+        valor:
+          valorGasto
+      }
+    );
+}
+
+
+/************************************************************
+ * GASTOS - VER
+ ************************************************************/
+function abrirVerGastos() {
+
+  cerrarMenu();
+
+
+  document
+    .getElementById(
+      'gastoVerOverlay'
+    )
+    .style.display =
+    'block';
+
+
+  const hoy =
+    fechaHoyISO();
+
+
+  setValor(
+    'gastoDesde',
+    hoy
+  );
+
+
+  setValor(
+    'gastoHasta',
+    hoy
+  );
+
+
+  document
+    .getElementById(
+      'gastosResultado'
+    )
+    .innerHTML =
+    '';
+}
+
+
+function verGastos() {
+
+  const desde =
+    valor(
+      'gastoDesde'
+    );
+
+
+  const hasta =
+    valor(
+      'gastoHasta'
+    );
+
+
+  if (
+    !desde ||
+    !hasta
+  ) {
+
+    toast(
+      'Selecciona Desde y Hasta.'
+    );
+
+    return;
+  }
+
+
+  document
+    .getElementById(
+      'gastosResultado'
+    )
+    .innerHTML =
+    '<div class="emptyReport">Consultando gastos...</div>';
+
+
+  google.script.run
+
+    .withSuccessHandler(
+      mostrarGastos
+    )
+
+    .withFailureHandler(
+      errorServidor
+    )
+
+    .consultarGastos(
+      APP_PIN,
+      desde,
+      hasta
+    );
+}
+
+
+function mostrarGastos(lista) {
+
+  const cont =
+    document.getElementById(
+      'gastosResultado'
+    );
+
+
+  if (
+    !lista ||
+    !lista.length
+  ) {
+
+    cont.innerHTML =
+      '<div class="emptyReport">' +
+      'No hay gastos en el período seleccionado.' +
+      '</div>';
+
+    return;
+  }
+
+
+  let filas =
+    '';
+
+
+  lista.forEach(
+    function(item) {
+
+      filas +=
+
+        '<tr>' +
+
+          '<td>' +
+            escapeHtml(
+              item.fecha
+            ) +
+          '</td>' +
+
+          '<td>' +
+            escapeHtml(
+              item.tipo
+            ) +
+          '</td>' +
+
+          '<td class="reportNumber">' +
+            formatoDinero(
+              item.valor
+            ) +
+          '</td>' +
+
+        '</tr>';
+    }
+  );
+
+
+  cont.innerHTML =
+
+    '<div class="reportTableWrap">' +
+
+      '<table class="reportTable">' +
+
+        '<thead>' +
+
+          '<tr>' +
+
+            '<th>Fecha</th>' +
+
+            '<th>Tipo</th>' +
+
+            '<th>Valor</th>' +
+
+          '</tr>' +
+
+        '</thead>' +
+
+        '<tbody>' +
+
+          filas +
+
+        '</tbody>' +
+
+      '</table>' +
+
+    '</div>';
+}
+
+/************************************************************
+ * ESTADO DE RESULTADOS
+ ************************************************************/
+function abrirEstadoResultados() {
+
+  cerrarMenu();
+
+
+  document
+    .getElementById(
+      'estadoResultadosOverlay'
+    )
+    .style.display =
+    'block';
+
+
+  const hoy =
+    fechaHoyISO();
+
+
+  setValor(
+    'erDesde',
+    hoy
+  );
+
+
+  setValor(
+    'erHasta',
+    hoy
+  );
+
+
+  document
+    .getElementById(
+      'estadoResultadosResultado'
+    )
+    .innerHTML =
+    '';
+}
+
+
+/************************************************************
+ * CONSULTAR ESTADO DE RESULTADOS
+ ************************************************************/
+function verEstadoResultados() {
+
+  const desde =
+    valor(
+      'erDesde'
+    );
+
+
+  const hasta =
+    valor(
+      'erHasta'
+    );
+
+
+  if (
+    !desde ||
+    !hasta
+  ) {
+
+    toast(
+      'Selecciona Desde y Hasta.'
+    );
+
+    return;
+  }
+
+
+  document
+    .getElementById(
+      'estadoResultadosResultado'
+    )
+    .innerHTML =
+    '<div class="emptyReport">Calculando estado de resultados...</div>';
+
+
+  google.script.run
+
+    .withSuccessHandler(
+      mostrarEstadoResultados
+    )
+
+    .withFailureHandler(
+      errorServidor
+    )
+
+    .consultarEstadoResultados(
+      APP_PIN,
+      desde,
+      hasta
+    );
+}
+
+
+/************************************************************
+ * MOSTRAR ESTADO DE RESULTADOS
+ ************************************************************/
+function mostrarEstadoResultados(r) {
+
+  const cont =
+    document.getElementById(
+      'estadoResultadosResultado'
+    );
+
+
+  let gastosDetalle =
+    '';
+
+
+  (r.gastosPorTipo || []).forEach(
+    function(item) {
+
+      gastosDetalle +=
+
+        '<tr>' +
+
+          '<td style="padding-left:22px;">' +
+            escapeHtml(
+              item.tipo
+            ) +
+          '</td>' +
+
+          '<td class="reportNumber">' +
+            '- ' +
+            formatoDinero(
+              item.valor
+            ) +
+          '</td>' +
+
+        '</tr>';
+    }
+  );
+
+
+  cont.innerHTML =
+
+    '<div style="' +
+      'text-align:center;' +
+      'font-size:12px;' +
+      'color:#66757c;' +
+      'margin-bottom:10px;' +
+    '">' +
+
+      'Período: ' +
+      escapeHtml(
+        r.desde || ''
+      ) +
+      ' al ' +
+      escapeHtml(
+        r.hasta || ''
+      ) +
+
+    '</div>' +
+
+
+    '<div class="reportTableWrap">' +
+
+      '<table class="reportTable" style="min-width:100%;">' +
+
+        '<thead>' +
+
+          '<tr>' +
+
+            '<th>Concepto</th>' +
+
+            '<th>Valor</th>' +
+
+          '</tr>' +
+
+        '</thead>' +
+
+        '<tbody>' +
+
+
+          '<tr>' +
+
+            '<td><strong>Ventas</strong></td>' +
+
+            '<td class="reportNumber">' +
+              formatoDinero(
+                r.ventas
+              ) +
+            '</td>' +
+
+          '</tr>' +
+
+
+          '<tr>' +
+
+            '<td>(-) Costo de ventas</td>' +
+
+            '<td class="reportNumber">' +
+              '- ' +
+              formatoDinero(
+                r.costoVentas
+              ) +
+            '</td>' +
+
+          '</tr>' +
+
+
+          '<tr style="background:#eef7f3;">' +
+
+            '<td><strong>UTILIDAD BRUTA</strong></td>' +
+
+            '<td class="reportNumber">' +
+              formatoDinero(
+                r.utilidadBruta
+              ) +
+            '</td>' +
+
+          '</tr>' +
+
+
+          '<tr>' +
+
+            '<td colspan="2">' +
+              '<strong>GASTOS</strong>' +
+            '</td>' +
+
+          '</tr>' +
+
+
+          gastosDetalle +
+
+
+          '<tr>' +
+
+            '<td><strong>Total gastos</strong></td>' +
+
+            '<td class="reportNumber">' +
+              '- ' +
+              formatoDinero(
+                r.totalGastos
+              ) +
+            '</td>' +
+
+          '</tr>' +
+
+
+          '<tr style="' +
+            'background:#eaf7f2;' +
+            'font-size:14px;' +
+          '">' +
+
+            '<td><strong>UTILIDAD NETA</strong></td>' +
+
+            '<td class="reportNumber" style="font-size:15px;">' +
+              formatoDinero(
+                r.utilidadNeta
+              ) +
+            '</td>' +
+
+          '</tr>' +
+
+
+        '</tbody>' +
+
+      '</table>' +
+
+    '</div>';
+}
+
+/************************************************************
+ * ==========================================================
+ * ANÁLISIS IA
+ * ==========================================================
+ ************************************************************/
+
+/************************************************************
+ * ABRIR
+ ************************************************************/
+function abrirAnalisisIA() {
+
+  cerrarMenu();
+
+  document
+    .getElementById(
+      'analisisIAOverlay'
+    )
+    .style.display =
+    'block';
+
+
+  setTimeout(
+    function() {
+
+      document
+        .getElementById(
+          'analisisIAConsulta'
+        )
+        .focus();
+
+    },
+    100
+  );
+}
+
+
+/************************************************************
+ * PREGUNTAS DE EJEMPLO
+ ************************************************************/
+function usarPreguntaIA(
+  pregunta
+) {
+
+  setValor(
+    'analisisIAConsulta',
+    pregunta
+  );
+
+
+  document
+    .getElementById(
+      'analisisIAConsulta'
+    )
+    .focus();
+}
+
+
+/************************************************************
+ * CTRL + ENTER
+ ************************************************************/
+function teclaAnalisisIA(
+  event
+) {
+
+  if (
+    event.key === 'Enter' &&
+    (
+      event.ctrlKey ||
+      event.metaKey
+    )
+  ) {
+
+    event.preventDefault();
+
+    enviarConsultaAnalisisIA();
+  }
+}
+
+
+/************************************************************
+ * ENVIAR CONSULTA
+ ************************************************************/
+function enviarConsultaAnalisisIA() {
+
+  const consulta =
+    valor(
+      'analisisIAConsulta'
+    );
+
+
+  if (!consulta) {
+
+    toast(
+      'Escribe una pregunta para Análisis IA.'
+    );
+
+    return;
+  }
+
+
+  if (
+    consulta.length > 2500
+  ) {
+
+    toast(
+      'La consulta es demasiado larga.'
+    );
+
+    return;
+  }
+
+
+  const btn =
+    document.getElementById(
+      'btnAnalisisIA'
+    );
+
+
+  const loading =
+    document.getElementById(
+      'loadingAnalisisIA'
+    );
+
+
+  /*
+   * Mandamos solamente las últimas
+   * conversaciones necesarias.
+   */
+  const historialEnviar =
+    HISTORIAL_ANALISIS_IA
+      .slice(
+        -6
+      );
+
+
+  agregarMensajeAnalisisIA(
+    'usuario',
+    consulta
+  );
+
+
+  setValor(
+    'analisisIAConsulta',
+    ''
+  );
+
+
+  btn.disabled =
+    true;
+
+
+  loading.style.display =
+    'block';
+
+
+  google.script.run
+
+    .withSuccessHandler(
+      function(r) {
+
+        btn.disabled =
+          false;
+
+
+        loading.style.display =
+          'none';
+
+
+        const respuesta =
+          r &&
+          r.respuesta
+
+          ? String(
+              r.respuesta
+            )
+
+          : 'No se recibió respuesta del análisis.';
+
+
+        HISTORIAL_ANALISIS_IA.push({
+          pregunta:
+            consulta,
+
+          respuesta:
+            respuesta
+        });
+
+
+        /*
+         * Conservamos hasta 8 intercambios
+         * en el navegador.
+         */
+        HISTORIAL_ANALISIS_IA =
+          HISTORIAL_ANALISIS_IA
+            .slice(
+              -8
+            );
+
+
+        agregarMensajeAnalisisIA(
+          'asistente',
+          respuesta,
+          r &&
+          r.fechaAnalisis
+
+            ? r.fechaAnalisis
+
+            : ''
+        );
+      }
+    )
+
+
+    .withFailureHandler(
+      function(e) {
+
+        btn.disabled =
+          false;
+
+
+        loading.style.display =
+          'none';
+
+
+        const mensaje =
+          e &&
+          e.message
+
+          ? e.message
+
+          : 'No fue posible completar el análisis.';
+
+
+        agregarMensajeAnalisisIA(
+          'asistente',
+          '⚠️ ' +
+          mensaje
+        );
+
+
+        errorServidor(
+          e
+        );
+      }
+    )
+
+
+    .consultarAnalisisIA(
+      APP_PIN,
+      consulta,
+      historialEnviar
+    );
+}
+
+
+/************************************************************
+ * AGREGAR MENSAJE AL CHAT
+ ************************************************************/
+function agregarMensajeAnalisisIA(
+  tipo,
+  texto,
+  fecha
+) {
+
+  const chat =
+    document.getElementById(
+      'analisisIAChat'
+    );
+
+
+  const div =
+    document.createElement(
+      'div'
+    );
+
+
+  div.className =
+    'mensajeIA ' +
+    (
+      tipo === 'usuario'
+
+      ? 'mensajeUsuarioIA'
+
+      : 'mensajeAsistenteIA'
+    );
+
+
+  const titulo =
+    tipo === 'usuario'
+
+    ? 'Tú'
+
+    : '🤖 Analista IA';
+
+
+  div.innerHTML =
+
+    '<div class="mensajeIATitulo">' +
+
+      escapeHtml(
+        titulo
+      ) +
+
+    '</div>' +
+
+    '<div>' +
+
+      formatearRespuestaAnalisisIA(
+        texto
+      ) +
+
+    '</div>' +
+
+    (
+      fecha
+
+      ? (
+          '<small>' +
+          escapeHtml(
+            fecha
+          ) +
+          '</small>'
+        )
+
+      : ''
+    );
+
+
+  chat.appendChild(
+    div
+  );
+
+
+  chat.scrollTop =
+    chat.scrollHeight;
+}
+
+
+/************************************************************
+ * FORMATEAR RESPUESTA
+ ************************************************************/
+function formatearRespuestaAnalisisIA(
+  texto
+) {
+
+  return escapeHtml(
+    texto
+  )
+
+  .replace(
+    /\*\*(.*?)\*\*/g,
+    '<strong>$1</strong>'
+  )
+
+  .replace(
+    /\n/g,
+    '<br>'
+  );
+}
+
+
+/************************************************************
+ * LIMPIAR CHAT
+ ************************************************************/
+function limpiarAnalisisIA() {
+
+  HISTORIAL_ANALISIS_IA =
+    [];
+
+
+  setValor(
+    'analisisIAConsulta',
+    ''
+  );
+
+
+  document
+    .getElementById(
+      'analisisIAChat'
+    )
+    .innerHTML =
+
+      '<div class="analisisIABienvenida">' +
+
+        'Pregúntame sobre inventario, compras, ventas, gastos, ' +
+        'costos, utilidades, períodos, variaciones o proyecciones.' +
+
+      '</div>';
+
+
+  toast(
+    'Conversación de Análisis IA limpiada.'
+  );
+}
+  
+/************************************************************
+ * FORMATOS
+ ************************************************************/
+function formatoCantidad(valorNumero) {
+
+  return Number(
+    valorNumero || 0
+  ).toLocaleString(
+    'es-HN',
+    {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }
+  );
+}
+
+
+function formatoDinero(valorNumero) {
+
+  return (
+    'L ' +
+    Number(
+      valorNumero || 0
+    ).toLocaleString(
+      'es-HN',
+      {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      }
+    )
+  );
+}  
+
+/************************************************************
+ * UTILIDADES
+ ************************************************************/
+function ponerFechaHoy() {
+
+  const hoy =
+    new Date();
+
+
+  const yyyy =
+    hoy.getFullYear();
+
+
+  const mm =
+    String(
+      hoy.getMonth() + 1
+    ).padStart(
+      2,
+      '0'
+    );
+
+
+  const dd =
+    String(
+      hoy.getDate()
+    ).padStart(
+      2,
+      '0'
+    );
+
+
+  setValor(
+    'fechaMovimiento',
+    yyyy +
+    '-' +
+    mm +
+    '-' +
+    dd
+  );
+}
+  
+function seleccionarUnidad(unidad) {
+
+  const select =
+    document.getElementById(
+      'unidad'
+    );
+
+
+  const buscado =
+    String(
+      unidad || ''
+    )
+      .toLowerCase();
+
+
+  for (
+    let i = 0;
+    i < select.options.length;
+    i++
+  ) {
+
+    if (
+      select.options[i]
+        .value
+        .toLowerCase()
+      === buscado
+    ) {
+
+      select.selectedIndex =
+        i;
+
+      return;
+    }
+  }
+
+
+  select.value =
+    'Otro';
+}
+
+
+function valor(id) {
+
+  return String(
+    document
+      .getElementById(id)
+      .value || ''
+  ).trim();
+}
+
+
+function setValor(
+  id,
+  valorNuevo
+) {
+
+  document
+    .getElementById(id)
+    .value =
+    valorNuevo == null
+      ? ''
+      : valorNuevo;
+}
+
+
+function errorServidor(error) {
+
+  const mensaje =
+    error &&
+    error.message
+      ? error.message
+      : String(error);
+
+
+  toast(
+    '⚠️ ' +
+    mensaje
+  );
+}
+
+
+function toast(texto) {
+
+  const box =
+    document.getElementById(
+      'toast'
+    );
+
+
+  box.textContent =
+    texto;
+
+
+  box.style.display =
+    'block';
+
+
+  clearTimeout(
+    box.timer
+  );
+
+
+  box.timer =
+    setTimeout(
+      function() {
+
+        box.style.display =
+          'none';
+
+      },
+      4500
+    );
+}
+
+
+function escapeHtml(texto) {
+
+  return String(
+    texto || ''
+  )
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;')
+    .replace(/'/g,'&#039;');
+}
+
+</script>
+
+</body>
+</html>
