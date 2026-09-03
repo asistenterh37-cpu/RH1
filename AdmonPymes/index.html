@@ -1115,10 +1115,6 @@
 }
 
 #analisisIAConsulta {
-  min-height: 90px;
-}
-
-    @media(max-width:420px) {
 
       .modo {
         font-size: 11px;
@@ -1351,7 +1347,126 @@
       class="descripcionModo"
     ></div>
 
+<!-- ======================================================
+ PERFIL DEL NEGOCIO
+======================================================= -->
+<section class="card perfilNegocioCard">
 
+  <div class="titulo">
+    🏪 Perfil del negocio
+  </div>
+
+  <div class="subtitulo">
+    La IA utilizará este contexto para actuar como
+    especialista en tu tipo de negocio y reconocer mejor
+    piezas, artículos, presentaciones, modelos y productos.
+  </div>
+
+
+  <label class="campo">
+    Tipo de negocio
+  </label>
+
+  <input
+    id="tipoNegocio"
+    placeholder="Ej. Repuestos automotrices, ferretería, zapatería..."
+  >
+
+
+  <label class="campo">
+    Especialidad
+  </label>
+
+  <input
+    id="especialidadNegocio"
+    placeholder="Ej. Toyota y Honda, tornillería industrial, celulares..."
+  >
+
+
+  <button
+    type="button"
+    class="btn btnAI"
+    onclick="guardarPerfilNegocio_()"
+  >
+    💾 Guardar perfil
+  </button>
+
+
+  <div
+    id="perfilNegocioEstado"
+    class="perfilNegocioEstado"
+  >
+    Puedes cambiar este perfil cuando utilices el sistema
+    en otro tipo de negocio.
+  </div>
+
+</section>
+
+
+<!-- ======================================================
+ MODO DE CAPTURA PARA INVENTARIO INICIAL
+======================================================= -->
+<section
+  id="capturaInicialCard"
+  class="card"
+>
+
+  <div class="titulo">
+    📦 ¿Qué quieres fotografiar?
+  </div>
+
+  <div class="subtitulo">
+    Puedes identificar un artículo específico o levantar
+    varios artículos diferentes de un estante.
+  </div>
+
+
+  <div class="capturaModoGrid">
+
+    <button
+      id="capturaUNO"
+      type="button"
+      class="modoCapturaBtn active"
+      onclick="cambiarModoCaptura('UNO')"
+    >
+      <span>🎯</span>
+      Un artículo
+      <br>
+      <small>Selecciona solamente el producto que te interesa.</small>
+    </button>
+
+
+    <button
+      id="capturaVARIOS"
+      type="button"
+      class="modoCapturaBtn"
+      onclick="cambiarModoCaptura('VARIOS')"
+    >
+      <span>🧺</span>
+      Estante / varios
+      <br>
+      <small>Detecta varios productos diferentes en una fotografía.</small>
+    </button>
+
+  </div>
+
+
+  <label class="campo">
+    Tramo / ubicación del levantamiento
+  </label>
+
+  <input
+    id="ubicacionLevantamiento"
+    placeholder="Ej. Estante A · Nivel 2 · Pasillo derecho..."
+  >
+
+  <div class="helper">
+    Úsalo para organizar el levantamiento por secciones
+    y saber qué área estás fotografiando.
+  </div>
+
+</section>
+    
     <section class="card">
 
       <div class="titulo">
@@ -1363,10 +1478,11 @@
         procura incluir etiqueta, código o número visible.
       </div>
 
-      <label
-        for="fotoInput"
-        class="camera"
-      >
+    <label
+  id="cameraLabel"
+  for="fotoInput"
+  class="camera"
+>
 
         <div
           id="cameraPlaceholder"
@@ -1392,6 +1508,67 @@
 
       </label>
 
+      <!-- ======================================================
+ SELECCIONAR PRODUCTO DENTRO DE LA FOTO
+======================================================= -->
+<div
+  id="recorteBox"
+  class="recorteBox hidden"
+>
+
+  <canvas
+    id="recorteCanvas"
+    onpointerdown="iniciarRecorte_(event)"
+    onpointermove="moverRecorte_(event)"
+    onpointerup="terminarRecorte_(event)"
+    onpointercancel="terminarRecorte_(event)"
+  ></canvas>
+
+
+  <div class="recorteAyuda">
+
+    🎯 Arrastra el dedo sobre la fotografía y encierra
+    únicamente el producto que quieres identificar.
+
+    <br>
+
+    Todo lo que quede fuera del recuadro será ignorado
+    por la IA.
+
+  </div>
+
+
+  <div class="recorteAcciones">
+
+    <button
+      type="button"
+      class="btn btnLight"
+      onclick="reiniciarRecorte_()"
+    >
+      🎯 Recentrar
+    </button>
+
+
+    <button
+      type="button"
+      class="btn btnLight"
+      onclick="usarFotoCompleta_()"
+    >
+      🖼 Foto completa
+    </button>
+
+  </div>
+
+
+  <button
+    type="button"
+    class="btn btnLight"
+    onclick="tomarOtraFoto_()"
+  >
+    📷 Tomar otra fotografía
+  </button>
+
+</div>
 
       <input
         id="fotoInput"
@@ -1433,6 +1610,46 @@
         id="coincidencias"
       ></div>
 
+<!-- ======================================================
+ PRODUCTOS DETECTADOS EN ESTANTE
+======================================================= -->
+<div
+  id="multiResultado"
+  class="multiResultado hidden"
+>
+
+  <div class="multiHeader">
+
+    <strong>
+      🧺 Productos encontrados
+    </strong>
+
+    <span
+      id="multiContador"
+      class="multiContador"
+    >
+      0
+    </span>
+
+  </div>
+
+
+  <div
+    id="multiLista"
+  ></div>
+
+
+  <button
+    id="btnAgregarMulti"
+    type="button"
+    class="btn btnPrimary"
+    onclick="agregarTodosDetectadosAlLevantamiento()"
+  >
+    ➕ Agregar seleccionados al levantamiento
+  </button>
+
+</div>
+      
     </section>
 
 
@@ -2725,36 +2942,61 @@ let MODO = 'INICIAL';
 
 let FOTO_DATA = '';
 
-let FOTO_FACTURA_DATA = '';
+/*
+ * Foto completa comprimida.
+ */
+let FOTO_ORIGINAL_DATA = '';
 
+/*
+ * Foto que realmente corresponde al producto.
+ * Cuando existe recorte, aquí guardamos el recorte.
+ */
+let FOTO_PRODUCTO_DATA = '';
+
+let FOTO_FACTURA_DATA = '';
 let FOTO_5S_DATA = '';
 
 let PRODUCTO_ID = '';
-
 let PRODUCTO_EXISTENCIA = 0;
 
 let PENDING_DATA = null;
-
 let PENDING_OPTIONS = null;
-
 let PENDING_CART_INDEX = -1;
-
 let PENDING_CART_TIPO = '';
 
 let timerBusqueda = null;
 
 
-/*
- * Cada modo conserva su propio carrito.
- */
+/************************************************************
+ * CAPTURA DE INVENTARIO
+ ************************************************************/
+let MODO_CAPTURA = 'UNO';
+
+let PRODUCTOS_MULTI = [];
+
+let IMG_RECORTE = null;
+
+let RECORTE = null;
+
+let RECORTE_DIBUJANDO = false;
+
+let RECORTE_INICIO = {
+  x: 0,
+  y: 0
+};
+
+
+/************************************************************
+ * CADA MODO CONSERVA SU PROPIO CARRITO
+ ************************************************************/
 let CARRITOS = {
+
+  INICIAL: [],
 
   COMPRA: [],
 
   VENTA: []
-
 };
-
 /************************************************************
  * HISTORIAL DE ANÁLISIS IA
  ************************************************************/
@@ -2781,12 +3023,13 @@ window.addEventListener(
     }
 
 
-    cambiarModo(
-      'INICIAL'
-    );
+  cargarPerfilNegocio_();
 
+cambiarModo(
+  'INICIAL'
+);
 
-    const pin =
+const pin =
       localStorage.getItem(
         'admonpymes_pin'
       );
@@ -2929,7 +3172,8 @@ function cambiarModo(modo) {
     'INICIAL',
     'COMPRA',
     'VENTA'
-  ].forEach(
+  ]
+  .forEach(
     function(x) {
 
       document
@@ -2975,6 +3219,12 @@ function cambiarModo(modo) {
     );
 
 
+  const capturaInicial =
+    document.getElementById(
+      'capturaInicialCard'
+    );
+
+
   /**********************************************************
    * INVENTARIO INICIAL
    **********************************************************/
@@ -2983,7 +3233,8 @@ function cambiarModo(modo) {
   ) {
 
     boton.textContent =
-      '📦 Registrar inventario inicial';
+      '➕ Agregar al levantamiento';
+
 
     boton.className =
       'btn btnPrimary';
@@ -2996,15 +3247,27 @@ function cambiarModo(modo) {
       );
 
 
+    botonSiguiente.textContent =
+      '➕📸 Agregar y siguiente';
+
+
     carrito
       .classList
-      .add(
+      .remove(
+        'hidden'
+      );
+
+
+    capturaInicial
+      .classList
+      .remove(
         'hidden'
       );
 
 
     descripcion.textContent =
-      'Registra lo que ya existe. Puedes guardar normalmente o usar Guardar y siguiente para levantar inventario más rápido.';
+      'Levanta el inventario por productos o por estantes. ' +
+      'Los artículos se acumulan y puedes registrarlos todos al finalizar.';
 
 
     costo.style.display =
@@ -3022,6 +3285,7 @@ function cambiarModo(modo) {
     boton.textContent =
       '🛒 Agregar compra al carrito';
 
+
     boton.className =
       'btn btnPrimary';
 
@@ -3040,8 +3304,16 @@ function cambiarModo(modo) {
       );
 
 
+    capturaInicial
+      .classList
+      .add(
+        'hidden'
+      );
+
+
     descripcion.textContent =
-      'Identifica el producto, indica cantidad y costo, y agrégalo al carrito. Puedes registrar varios productos juntos.';
+      'Identifica el producto, indica cantidad y costo, ' +
+      'y agrégalo al carrito.';
 
 
     costo.style.display =
@@ -3058,6 +3330,7 @@ function cambiarModo(modo) {
 
     boton.textContent =
       '🛒 Agregar venta al carrito';
+
 
     boton.className =
       'btn btnDanger';
@@ -3077,8 +3350,17 @@ function cambiarModo(modo) {
       );
 
 
+    capturaInicial
+      .classList
+      .add(
+        'hidden'
+      );
+
+
     descripcion.textContent =
-      'Fotografía o busca el producto. Si la coincidencia es suficientemente segura, se seleccionará automáticamente. Luego agrégalo al carrito.';
+      'Fotografía o busca el producto. ' +
+      'Si la coincidencia es suficientemente segura, ' +
+      'se seleccionará automáticamente.';
 
 
     costo.style.display =
@@ -3089,8 +3371,267 @@ function cambiarModo(modo) {
   limpiar();
 
   renderCarrito();
+
+  actualizarModoCapturaUI_();
 }
+
 /************************************************************
+ * ==========================================================
+ * PERFIL DEL NEGOCIO
+ * ==========================================================
+ ************************************************************/
+function cargarPerfilNegocio_() {
+
+  const tipo =
+    localStorage.getItem(
+      'admonpymes_tipo_negocio'
+    ) || '';
+
+
+  const especialidad =
+    localStorage.getItem(
+      'admonpymes_especialidad_negocio'
+    ) || '';
+
+
+  setValor(
+    'tipoNegocio',
+    tipo
+  );
+
+
+  setValor(
+    'especialidadNegocio',
+    especialidad
+  );
+
+
+  actualizarEstadoPerfilNegocio_();
+}
+
+
+function guardarPerfilNegocio_(
+  silencioso
+) {
+
+  const tipo =
+    valor(
+      'tipoNegocio'
+    );
+
+
+  const especialidad =
+    valor(
+      'especialidadNegocio'
+    );
+
+
+  localStorage.setItem(
+    'admonpymes_tipo_negocio',
+    tipo
+  );
+
+
+  localStorage.setItem(
+    'admonpymes_especialidad_negocio',
+    especialidad
+  );
+
+
+  actualizarEstadoPerfilNegocio_();
+
+
+  if (!silencioso) {
+
+    toast(
+      tipo
+      ? '🏪 Perfil del negocio guardado.'
+      : 'Perfil genérico guardado.'
+    );
+  }
+}
+
+
+function actualizarEstadoPerfilNegocio_() {
+
+  const box =
+    document.getElementById(
+      'perfilNegocioEstado'
+    );
+
+
+  if (!box) {
+    return;
+  }
+
+
+  const tipo =
+    valor(
+      'tipoNegocio'
+    );
+
+
+  const especialidad =
+    valor(
+      'especialidadNegocio'
+    );
+
+
+  if (!tipo) {
+
+    box.textContent =
+      'La IA está trabajando en modo genérico. ' +
+      'Indica el tipo de negocio para especializar el reconocimiento.';
+
+    return;
+  }
+
+
+  box.textContent =
+    '🤖 IA especializada en: ' +
+    tipo +
+    (
+      especialidad
+      ? ' · ' + especialidad
+      : ''
+    );
+}
+
+
+function obtenerPerfilNegocio_() {
+
+  return {
+
+    tipoNegocio:
+      valor(
+        'tipoNegocio'
+      ),
+
+    especialidad:
+      valor(
+        'especialidadNegocio'
+      )
+  };
+}
+
+
+/************************************************************
+ * ==========================================================
+ * MODO DE CAPTURA
+ * ==========================================================
+ ************************************************************/
+function cambiarModoCaptura(
+  modo
+) {
+
+  if (
+    MODO !== 'INICIAL'
+  ) {
+    return;
+  }
+
+
+  MODO_CAPTURA =
+    modo === 'VARIOS'
+    ? 'VARIOS'
+    : 'UNO';
+
+
+  PRODUCTOS_MULTI =
+    [];
+
+
+  const multi =
+    document.getElementById(
+      'multiResultado'
+    );
+
+
+  if (multi) {
+
+    multi.classList.add(
+      'hidden'
+    );
+  }
+
+
+  actualizarModoCapturaUI_();
+
+
+  if (
+    FOTO_DATA
+  ) {
+
+    prepararVisualFoto_();
+  }
+}
+
+
+function actualizarModoCapturaUI_() {
+
+  const uno =
+    document.getElementById(
+      'capturaUNO'
+    );
+
+
+  const varios =
+    document.getElementById(
+      'capturaVARIOS'
+    );
+
+
+  if (
+    uno &&
+    varios
+  ) {
+
+    uno.classList.toggle(
+      'active',
+      MODO_CAPTURA === 'UNO'
+    );
+
+
+    varios.classList.toggle(
+      'active',
+      MODO_CAPTURA === 'VARIOS'
+    );
+  }
+
+
+  actualizarTextoAnalizar_();
+}
+
+
+function actualizarTextoAnalizar_() {
+
+  const btn =
+    document.getElementById(
+      'btnAnalizar'
+    );
+
+
+  if (!btn) {
+    return;
+  }
+
+
+  if (
+    MODO === 'INICIAL' &&
+    MODO_CAPTURA === 'VARIOS'
+  ) {
+
+    btn.textContent =
+      '✨ Identificar todos los productos';
+
+  } else {
+
+    btn.textContent =
+      '✨ Identificar con IA';
+  }
+}
+  
+  /************************************************************
  * FOTO
  ************************************************************/
 async function procesarFoto(event) {
@@ -3106,31 +3647,67 @@ async function procesarFoto(event) {
 
   try {
 
-    FOTO_DATA =
+    const foto =
       await comprimirImagen(
         file
       );
 
 
-    const preview =
+    FOTO_DATA =
+      foto;
+
+
+    FOTO_ORIGINAL_DATA =
+      foto;
+
+
+    FOTO_PRODUCTO_DATA =
+      '';
+
+
+    PRODUCTOS_MULTI =
+      [];
+
+
+    RECORTE =
+      null;
+
+
+    IMG_RECORTE =
+      null;
+
+
+    const multi =
       document.getElementById(
-        'fotoPreview'
+        'multiResultado'
       );
 
 
-    preview.src =
-      FOTO_DATA;
+    if (multi) {
 
-    preview.style.display =
-      'block';
+      multi.classList.add(
+        'hidden'
+      );
+    }
 
 
     document
       .getElementById(
-        'cameraPlaceholder'
+        'coincidencias'
+      )
+      .innerHTML =
+      '';
+
+
+    document
+      .getElementById(
+        'analisis'
       )
       .style.display =
       'none';
+
+
+    prepararVisualFoto_();
 
 
     document
@@ -3140,6 +3717,7 @@ async function procesarFoto(event) {
       .disabled =
       false;
 
+
   } catch(e) {
 
     toast(
@@ -3148,7 +3726,766 @@ async function procesarFoto(event) {
   }
 }
 
+/************************************************************
+ * PREPARAR FOTO SEGÚN MODO
+ ************************************************************/
+function prepararVisualFoto_() {
 
+  const cameraLabel =
+    document.getElementById(
+      'cameraLabel'
+    );
+
+
+  const preview =
+    document.getElementById(
+      'fotoPreview'
+    );
+
+
+  const placeholder =
+    document.getElementById(
+      'cameraPlaceholder'
+    );
+
+
+  const recorteBox =
+    document.getElementById(
+      'recorteBox'
+    );
+
+
+  const esMultiple =
+    (
+      MODO === 'INICIAL' &&
+      MODO_CAPTURA === 'VARIOS'
+    );
+
+
+  /**********************************************************
+   * ESTANTE / VARIOS
+   *
+   * Se utiliza la fotografía completa.
+   **********************************************************/
+  if (
+    esMultiple
+  ) {
+
+    recorteBox.classList.add(
+      'hidden'
+    );
+
+
+    cameraLabel.classList.remove(
+      'hidden'
+    );
+
+
+    preview.src =
+      FOTO_DATA;
+
+
+    preview.style.display =
+      'block';
+
+
+    placeholder.style.display =
+      'none';
+
+
+    return;
+  }
+
+
+  /**********************************************************
+   * UN PRODUCTO
+   *
+   * Mostramos selector táctil.
+   **********************************************************/
+  cameraLabel.classList.add(
+    'hidden'
+  );
+
+
+  recorteBox.classList.remove(
+    'hidden'
+  );
+
+
+  cargarImagenRecorte_();
+}
+
+
+/************************************************************
+ * CARGAR FOTO EN CANVAS
+ ************************************************************/
+function cargarImagenRecorte_() {
+
+  if (!FOTO_DATA) {
+    return;
+  }
+
+
+  const img =
+    new Image();
+
+
+  img.onload =
+    function() {
+
+      IMG_RECORTE =
+        img;
+
+
+      const canvas =
+        document.getElementById(
+          'recorteCanvas'
+        );
+
+
+      const MAX =
+        1000;
+
+
+      let w =
+        img.naturalWidth;
+
+
+      let h =
+        img.naturalHeight;
+
+
+      if (
+        w > MAX
+      ) {
+
+        const factor =
+          MAX / w;
+
+
+        w =
+          MAX;
+
+
+        h =
+          Math.round(
+            h * factor
+          );
+      }
+
+
+      canvas.width =
+        Math.max(
+          1,
+          Math.round(
+            w
+          )
+        );
+
+
+      canvas.height =
+        Math.max(
+          1,
+          Math.round(
+            h
+          )
+        );
+
+
+      establecerRecorteInicial_();
+
+      dibujarSelector_();
+    };
+
+
+  img.src =
+    FOTO_DATA;
+}
+
+
+/************************************************************
+ * RECORTE INICIAL CENTRADO
+ ************************************************************/
+function establecerRecorteInicial_() {
+
+  const canvas =
+    document.getElementById(
+      'recorteCanvas'
+    );
+
+
+  RECORTE = {
+
+    x:
+      canvas.width *
+      .18,
+
+    y:
+      canvas.height *
+      .18,
+
+    w:
+      canvas.width *
+      .64,
+
+    h:
+      canvas.height *
+      .64
+  };
+}
+
+
+/************************************************************
+ * POSICIÓN DEL DEDO / MOUSE
+ ************************************************************/
+function puntoCanvas_(
+  event
+) {
+
+  const canvas =
+    document.getElementById(
+      'recorteCanvas'
+    );
+
+
+  const rect =
+    canvas.getBoundingClientRect();
+
+
+  return {
+
+    x:
+      Math.max(
+        0,
+        Math.min(
+          canvas.width,
+          (
+            event.clientX -
+            rect.left
+          ) *
+          (
+            canvas.width /
+            rect.width
+          )
+        )
+      ),
+
+    y:
+      Math.max(
+        0,
+        Math.min(
+          canvas.height,
+          (
+            event.clientY -
+            rect.top
+          ) *
+          (
+            canvas.height /
+            rect.height
+          )
+        )
+      )
+  };
+}
+
+
+/************************************************************
+ * COMENZAR RECORTE
+ ************************************************************/
+function iniciarRecorte_(
+  event
+) {
+
+  event.preventDefault();
+
+
+  const canvas =
+    document.getElementById(
+      'recorteCanvas'
+    );
+
+
+  const punto =
+    puntoCanvas_(
+      event
+    );
+
+
+  RECORTE_DIBUJANDO =
+    true;
+
+
+  RECORTE_INICIO = {
+
+    x:
+      punto.x,
+
+    y:
+      punto.y
+  };
+
+
+  RECORTE = {
+
+    x:
+      punto.x,
+
+    y:
+      punto.y,
+
+    w:
+      1,
+
+    h:
+      1
+  };
+
+
+  try {
+
+    canvas.setPointerCapture(
+      event.pointerId
+    );
+
+  } catch(e) {}
+
+
+  dibujarSelector_();
+}
+
+
+/************************************************************
+ * MOVER RECORTE
+ ************************************************************/
+function moverRecorte_(
+  event
+) {
+
+  if (
+    !RECORTE_DIBUJANDO
+  ) {
+    return;
+  }
+
+
+  event.preventDefault();
+
+
+  const punto =
+    puntoCanvas_(
+      event
+    );
+
+
+  const x1 =
+    Math.min(
+      RECORTE_INICIO.x,
+      punto.x
+    );
+
+
+  const y1 =
+    Math.min(
+      RECORTE_INICIO.y,
+      punto.y
+    );
+
+
+  const x2 =
+    Math.max(
+      RECORTE_INICIO.x,
+      punto.x
+    );
+
+
+  const y2 =
+    Math.max(
+      RECORTE_INICIO.y,
+      punto.y
+    );
+
+
+  RECORTE = {
+
+    x:
+      x1,
+
+    y:
+      y1,
+
+    w:
+      x2 - x1,
+
+    h:
+      y2 - y1
+  };
+
+
+  dibujarSelector_();
+}
+
+
+/************************************************************
+ * TERMINAR RECORTE
+ ************************************************************/
+function terminarRecorte_(
+  event
+) {
+
+  if (
+    !RECORTE_DIBUJANDO
+  ) {
+    return;
+  }
+
+
+  RECORTE_DIBUJANDO =
+    false;
+
+
+  if (
+    !RECORTE ||
+    RECORTE.w < 20 ||
+    RECORTE.h < 20
+  ) {
+
+    establecerRecorteInicial_();
+  }
+
+
+  dibujarSelector_();
+}
+
+
+/************************************************************
+ * DIBUJAR FOTO + ÁREA SELECCIONADA
+ ************************************************************/
+function dibujarSelector_() {
+
+  if (
+    !IMG_RECORTE
+  ) {
+    return;
+  }
+
+
+  const canvas =
+    document.getElementById(
+      'recorteCanvas'
+    );
+
+
+  const ctx =
+    canvas.getContext(
+      '2d'
+    );
+
+
+  ctx.clearRect(
+    0,
+    0,
+    canvas.width,
+    canvas.height
+  );
+
+
+  ctx.drawImage(
+    IMG_RECORTE,
+    0,
+    0,
+    canvas.width,
+    canvas.height
+  );
+
+
+  if (!RECORTE) {
+
+    return;
+  }
+
+
+  const x =
+    RECORTE.x;
+
+
+  const y =
+    RECORTE.y;
+
+
+  const w =
+    RECORTE.w;
+
+
+  const h =
+    RECORTE.h;
+
+
+  /**********************************************************
+   * OSCURECER LO QUE LA IA IGNORARÁ
+   **********************************************************/
+  ctx.fillStyle =
+    'rgba(0,0,0,.48)';
+
+
+  ctx.fillRect(
+    0,
+    0,
+    canvas.width,
+    y
+  );
+
+
+  ctx.fillRect(
+    0,
+    y + h,
+    canvas.width,
+    canvas.height -
+    (
+      y + h
+    )
+  );
+
+
+  ctx.fillRect(
+    0,
+    y,
+    x,
+    h
+  );
+
+
+  ctx.fillRect(
+    x + w,
+    y,
+    canvas.width -
+    (
+      x + w
+    ),
+    h
+  );
+
+
+  /**********************************************************
+   * BORDE DEL PRODUCTO SELECCIONADO
+   **********************************************************/
+  ctx.strokeStyle =
+    '#ffffff';
+
+
+  ctx.lineWidth =
+    Math.max(
+      2,
+      canvas.width /
+      250
+    );
+
+
+  ctx.strokeRect(
+    x,
+    y,
+    w,
+    h
+  );
+
+
+  ctx.strokeStyle =
+    '#0d8d68';
+
+
+  ctx.lineWidth =
+    Math.max(
+      1,
+      canvas.width /
+      500
+    );
+
+
+  ctx.strokeRect(
+    x + 2,
+    y + 2,
+    Math.max(
+      1,
+      w - 4
+    ),
+    Math.max(
+      1,
+      h - 4
+    )
+  );
+}
+
+
+/************************************************************
+ * VOLVER A RECORTE CENTRAL
+ ************************************************************/
+function reiniciarRecorte_() {
+
+  if (!IMG_RECORTE) {
+    return;
+  }
+
+
+  establecerRecorteInicial_();
+
+  dibujarSelector_();
+}
+
+
+/************************************************************
+ * ANALIZAR FOTO COMPLETA
+ ************************************************************/
+function usarFotoCompleta_() {
+
+  RECORTE =
+    null;
+
+
+  dibujarSelector_();
+
+
+  toast(
+    'La IA analizará la fotografía completa.'
+  );
+}
+
+
+/************************************************************
+ * TOMAR NUEVA FOTO
+ ************************************************************/
+function tomarOtraFoto_() {
+
+  document
+    .getElementById(
+      'fotoInput'
+    )
+    .click();
+}
+
+
+/************************************************************
+ * OBTENER FOTO QUE REALMENTE RECIBIRÁ LA IA
+ ************************************************************/
+function obtenerFotoParaAnalisis_() {
+
+  const esMultiple =
+    (
+      MODO === 'INICIAL' &&
+      MODO_CAPTURA === 'VARIOS'
+    );
+
+
+  if (
+    esMultiple ||
+    !RECORTE ||
+    !IMG_RECORTE
+  ) {
+
+    return FOTO_DATA;
+  }
+
+
+  const canvasVista =
+    document.getElementById(
+      'recorteCanvas'
+    );
+
+
+  const escalaX =
+    IMG_RECORTE.naturalWidth /
+    canvasVista.width;
+
+
+  const escalaY =
+    IMG_RECORTE.naturalHeight /
+    canvasVista.height;
+
+
+  const sx =
+    Math.max(
+      0,
+      Math.round(
+        RECORTE.x *
+        escalaX
+      )
+    );
+
+
+  const sy =
+    Math.max(
+      0,
+      Math.round(
+        RECORTE.y *
+        escalaY
+      )
+    );
+
+
+  const sw =
+    Math.max(
+      1,
+      Math.min(
+        IMG_RECORTE.naturalWidth -
+        sx,
+        Math.round(
+          RECORTE.w *
+          escalaX
+        )
+      )
+    );
+
+
+  const sh =
+    Math.max(
+      1,
+      Math.min(
+        IMG_RECORTE.naturalHeight -
+        sy,
+        Math.round(
+          RECORTE.h *
+          escalaY
+        )
+      )
+    );
+
+
+  const canvas =
+    document.createElement(
+      'canvas'
+    );
+
+
+  canvas.width =
+    sw;
+
+
+  canvas.height =
+    sh;
+
+
+  const ctx =
+    canvas.getContext(
+      '2d'
+    );
+
+
+  ctx.drawImage(
+    IMG_RECORTE,
+    sx,
+    sy,
+    sw,
+    sh,
+    0,
+    0,
+    sw,
+    sh
+  );
+
+
+  return canvas.toDataURL(
+    'image/jpeg',
+    .88
+  );
+}  
 function comprimirImagen(file) {
 
   return new Promise(
@@ -3276,9 +4613,45 @@ function analizarFoto() {
   }
 
 
+  guardarPerfilNegocio_(
+    true
+  );
+
+
+  const perfil =
+    obtenerPerfilNegocio_();
+
+
+  const fotoAnalisis =
+    obtenerFotoParaAnalisis_();
+
+
+  const esMultiple =
+    (
+      MODO === 'INICIAL' &&
+      MODO_CAPTURA === 'VARIOS'
+    );
+
+
+  /**********************************************************
+   * PARA PRODUCTO INDIVIDUAL:
+   * guardamos exactamente el recorte utilizado por IA.
+   **********************************************************/
+  FOTO_PRODUCTO_DATA =
+    esMultiple
+    ? ''
+    : fotoAnalisis;
+
+
   const btn =
     document.getElementById(
       'btnAnalizar'
+    );
+
+
+  const loading =
+    document.getElementById(
+      'loadingIA'
     );
 
 
@@ -3286,65 +4659,751 @@ function analizarFoto() {
     true;
 
 
-  document
-    .getElementById(
-      'loadingIA'
-    )
-    .style.display =
+  loading.style.display =
     'block';
 
 
-  google.script.run
+  loading.innerHTML =
 
-    .withSuccessHandler(
-      function(r) {
+    '<div class="spinner"></div>' +
 
-        btn.disabled =
-          false;
+    (
+      esMultiple
 
+      ? 'Identificando todos los productos visibles...'
 
-        document
-          .getElementById(
-            'loadingIA'
-          )
-          .style.display =
-          'none';
-
-
-        aplicarIA(
-          r
-        );
-      }
-    )
-
-    .withFailureHandler(
-      function(e) {
-
-        btn.disabled =
-          false;
-
-
-        document
-          .getElementById(
-            'loadingIA'
-          )
-          .style.display =
-          'none';
-
-
-        errorServidor(
-          e
-        );
-      }
-    )
-
-    .analizarImagen(
-      APP_PIN,
-      FOTO_DATA
+      : 'Identificando el producto seleccionado...'
     );
+
+
+  const llamada =
+    google.script.run
+
+      .withSuccessHandler(
+        function(r) {
+
+          btn.disabled =
+            false;
+
+
+          loading.style.display =
+            'none';
+
+
+          if (
+            esMultiple
+          ) {
+
+            mostrarResultadoMultiple(
+              r
+            );
+
+          } else {
+
+            aplicarIA(
+              r
+            );
+          }
+        }
+      )
+
+
+      .withFailureHandler(
+        function(e) {
+
+          btn.disabled =
+            false;
+
+
+          loading.style.display =
+            'none';
+
+
+          errorServidor(
+            e
+          );
+        }
+      );
+
+
+  if (
+    esMultiple
+  ) {
+
+    llamada
+      .analizarImagenMultiple(
+        APP_PIN,
+        fotoAnalisis,
+        perfil
+      );
+
+  } else {
+
+    llamada
+      .analizarImagen(
+        APP_PIN,
+        fotoAnalisis,
+        perfil
+      );
+  }
 }
 
+ /************************************************************
+ * ==========================================================
+ * VARIOS PRODUCTOS / ESTANTE
+ * ==========================================================
+ ************************************************************/
+function mostrarResultadoMultiple(
+  r
+) {
+
+  PRODUCTOS_MULTI =
+    (
+      r &&
+      Array.isArray(
+        r.productos
+      )
+    )
+
+    ? r.productos
+
+    : [];
+
+
+  const cont =
+    document.getElementById(
+      'multiResultado'
+    );
+
+
+  const lista =
+    document.getElementById(
+      'multiLista'
+    );
+
+
+  const contador =
+    document.getElementById(
+      'multiContador'
+    );
+
+
+  const analisis =
+    document.getElementById(
+      'analisis'
+    );
+
+
+  document
+    .getElementById(
+      'coincidencias'
+    )
+    .innerHTML =
+    '';
+
+
+  if (
+    !PRODUCTOS_MULTI.length
+  ) {
+
+    cont.classList.remove(
+      'hidden'
+    );
+
+
+    lista.innerHTML =
+      '<div class="carritoVacio">' +
+      'No pude identificar productos con suficiente claridad. ' +
+      'Acércate un poco más al estante y toma otra fotografía.' +
+      '</div>';
+
+
+    contador.textContent =
+      '0';
+
+
+    return;
+  }
+
+
+  contador.textContent =
+    String(
+      PRODUCTOS_MULTI.length
+    );
+
+
+  analisis.style.display =
+    'block';
+
+
+  analisis.innerHTML =
+    '✨ IA detectó <strong>' +
+    PRODUCTOS_MULTI.length +
+    '</strong> producto(s) diferente(s). ' +
+    'Revisa cantidades y datos antes de agregarlos.';
+
+
+  let html =
+    '';
+
+
+  PRODUCTOS_MULTI
+    .forEach(
+      function(item,index) {
+
+        const confianza =
+          Math.round(
+            Number(
+              item.confianza || 0
+            ) *
+            100
+          );
+
+
+        html +=
+
+          '<div class="multiItem">' +
+
+
+            '<div class="multiTop">' +
+
+              '<strong>' +
+                'Artículo ' +
+                (
+                  index + 1
+                ) +
+              '</strong>' +
+
+              '<span class="multiConfianza">' +
+                escapeHtml(
+                  String(
+                    confianza
+                  )
+                ) +
+                '% IA' +
+              '</span>' +
+
+            '</div>' +
+
+
+            '<label class="multiCheck">' +
+
+              '<input ' +
+                'id="multi_usar_' +
+                index +
+                '" ' +
+                'type="checkbox" ' +
+                'checked' +
+              '>' +
+
+              'Incluir en el levantamiento' +
+
+            '</label>' +
+
+
+            '<div class="multiGrid">' +
+
+
+              '<div class="multiCampo multiCampoFull">' +
+
+                '<label>Producto</label>' +
+
+                '<input ' +
+                  'id="multi_producto_' +
+                  index +
+                  '" ' +
+                  'value="' +
+                  escapeHtml(
+                    item.producto || ''
+                  ) +
+                '">' +
+
+              '</div>' +
+
+
+              '<div class="multiCampo">' +
+
+                '<label>Categoría</label>' +
+
+                '<input ' +
+                  'id="multi_categoria_' +
+                  index +
+                  '" ' +
+                  'value="' +
+                  escapeHtml(
+                    item.categoria || ''
+                  ) +
+                '">' +
+
+              '</div>' +
+
+
+              '<div class="multiCampo">' +
+
+                '<label>Marca</label>' +
+
+                '<input ' +
+                  'id="multi_marca_' +
+                  index +
+                  '" ' +
+                  'value="' +
+                  escapeHtml(
+                    item.marca || ''
+                  ) +
+                '">' +
+
+              '</div>' +
+
+
+              '<div class="multiCampo">' +
+
+                '<label>Modelo / Variante</label>' +
+
+                '<input ' +
+                  'id="multi_modelo_' +
+                  index +
+                  '" ' +
+                  'value="' +
+                  escapeHtml(
+                    item.modeloVariante || ''
+                  ) +
+                '">' +
+
+              '</div>' +
+
+
+              '<div class="multiCampo">' +
+
+                '<label>Código / Serie</label>' +
+
+                '<input ' +
+                  'id="multi_codigo_' +
+                  index +
+                  '" ' +
+                  'value="' +
+                  escapeHtml(
+                    item.codigoSerie || ''
+                  ) +
+                '">' +
+
+              '</div>' +
+
+
+              '<div class="multiCampo">' +
+
+                '<label>Unidad</label>' +
+
+                '<input ' +
+                  'id="multi_unidad_' +
+                  index +
+                  '" ' +
+                  'value="' +
+                  escapeHtml(
+                    item.unidad || 'Unidad'
+                  ) +
+                '">' +
+
+              '</div>' +
+
+
+              '<div class="multiCampo">' +
+
+                '<label>Cantidad visible</label>' +
+
+                '<input ' +
+                  'id="multi_cantidad_' +
+                  index +
+                  '" ' +
+                  'type="number" ' +
+                  'min="0.01" ' +
+                  'step="any" ' +
+                  'value="' +
+                  escapeHtml(
+                    String(
+                      Number(
+                        item.cantidadDetectada || 1
+                      )
+                    )
+                  ) +
+                '">' +
+
+              '</div>' +
+
+
+              '<div class="multiCampo">' +
+
+                '<label>Costo unitario</label>' +
+
+                '<input ' +
+                  'id="multi_costo_' +
+                  index +
+                  '" ' +
+                  'type="number" ' +
+                  'min="0" ' +
+                  'step="any" ' +
+                  'placeholder="0.00"' +
+                '>' +
+
+              '</div>' +
+
+
+              '<div class="multiCampo">' +
+
+                '<label>Precio venta</label>' +
+
+                '<input ' +
+                  'id="multi_precio_' +
+                  index +
+                  '" ' +
+                  'type="number" ' +
+                  'min="0" ' +
+                  'step="any" ' +
+                  'placeholder="0.00"' +
+                '>' +
+
+              '</div>' +
+
+
+              '<div class="multiCampo multiCampoFull">' +
+
+                '<label>Descripción</label>' +
+
+                '<textarea ' +
+                  'id="multi_descripcion_' +
+                  index +
+                '">' +
+
+                  escapeHtml(
+                    item.descripcion || ''
+                  ) +
+
+                '</textarea>' +
+
+              '</div>' +
+
+
+            '</div>' +
+
+          '</div>';
+      }
+    );
+
+
+  lista.innerHTML =
+    html;
+
+
+  cont.classList.remove(
+    'hidden'
+  );
+
+
+  setTimeout(
+    function() {
+
+      cont.scrollIntoView({
+        behavior:
+          'smooth',
+
+        block:
+          'start'
+      });
+
+    },
+    100
+  );
+}
+
+
 /************************************************************
+ * LEER UNA LÍNEA MULTIPLE
+ ************************************************************/
+function leerProductoMultiple_(
+  index
+) {
+
+  const incluir =
+    document
+      .getElementById(
+        'multi_usar_' +
+        index
+      );
+
+
+  if (
+    !incluir ||
+    !incluir.checked
+  ) {
+
+    return null;
+  }
+
+
+  const producto =
+    valor(
+      'multi_producto_' +
+      index
+    );
+
+
+  const cantidad =
+    Number(
+      valor(
+        'multi_cantidad_' +
+        index
+      )
+    );
+
+
+  if (!producto) {
+
+    throw new Error(
+      'Falta el nombre del artículo ' +
+      (
+        index + 1
+      ) +
+      '.'
+    );
+  }
+
+
+  if (
+    !cantidad ||
+    cantidad <= 0
+  ) {
+
+    throw new Error(
+      'Cantidad inválida en el artículo ' +
+      (
+        index + 1
+      ) +
+      '.'
+    );
+  }
+
+
+  return {
+
+    tipo:
+      'INICIAL',
+
+    fecha:
+      valor(
+        'fechaMovimiento'
+      ) ||
+      fechaHoyISO(),
+
+    idProducto:
+      '',
+
+    producto:
+      producto,
+
+    categoria:
+      valor(
+        'multi_categoria_' +
+        index
+      ),
+
+    marca:
+      valor(
+        'multi_marca_' +
+        index
+      ),
+
+    modeloVariante:
+      valor(
+        'multi_modelo_' +
+        index
+      ),
+
+    codigoSerie:
+      valor(
+        'multi_codigo_' +
+        index
+      ),
+
+    unidad:
+      valor(
+        'multi_unidad_' +
+        index
+      ) ||
+      'Unidad',
+
+    descripcion:
+      valor(
+        'multi_descripcion_' +
+        index
+      ),
+
+    cantidad:
+      cantidad,
+
+    costoUnitario:
+      Number(
+        valor(
+          'multi_costo_' +
+          index
+        )
+      ) || 0,
+
+    precioVenta:
+      Number(
+        valor(
+          'multi_precio_' +
+          index
+        )
+      ) || 0,
+
+
+    /*
+     * Una foto de estante contiene varios productos.
+     * No la guardamos como foto principal de cada artículo.
+     */
+    imagenData:
+      '',
+
+
+    ubicacionLevantamiento:
+      valor(
+        'ubicacionLevantamiento'
+      ),
+
+
+    forceNew:
+      false
+  };
+}
+
+
+/************************************************************
+ * AGREGAR TODOS LOS DETECTADOS
+ ************************************************************/
+function agregarTodosDetectadosAlLevantamiento() {
+
+  if (
+    MODO !== 'INICIAL'
+  ) {
+    return;
+  }
+
+
+  const seleccionados =
+    [];
+
+
+  try {
+
+    PRODUCTOS_MULTI
+      .forEach(
+        function(item,index) {
+
+          const datos =
+            leerProductoMultiple_(
+              index
+            );
+
+
+          if (datos) {
+
+            seleccionados.push(
+              datos
+            );
+          }
+        }
+      );
+
+
+  } catch(e) {
+
+    toast(
+      '⚠️ ' +
+      e.message
+    );
+
+    return;
+  }
+
+
+  if (
+    !seleccionados.length
+  ) {
+
+    toast(
+      'Selecciona por lo menos un producto.'
+    );
+
+    return;
+  }
+
+
+  const carrito =
+    CARRITOS.INICIAL;
+
+
+  if (
+    carrito.length +
+    seleccionados.length >
+    60
+  ) {
+
+    toast(
+      'El levantamiento admite hasta 60 productos antes de registrar. ' +
+      'Registra este tramo y continúa con el siguiente.'
+    );
+
+    return;
+  }
+
+
+  seleccionados
+    .forEach(
+      function(datos) {
+
+        agregarItemCarrito_(
+          carrito,
+          datos
+        );
+      }
+    );
+
+
+  const cantidad =
+    seleccionados.length;
+
+
+  limpiar();
+
+  renderCarrito();
+
+
+  toast(
+    '✅ ' +
+    cantidad +
+    ' producto(s) agregados al levantamiento.'
+  );
+
+
+  setTimeout(
+    function() {
+
+      document
+        .getElementById(
+          'carritoCard'
+        )
+        .scrollIntoView({
+          behavior:
+            'smooth',
+
+          block:
+            'start'
+        });
+
+    },
+    100
+  );
+} 
+  /************************************************************
  * AUTOSELECCIÓN SEGURA EN VENTA
  ************************************************************/
 function normalizarCodigoCliente_(
@@ -4285,11 +6344,19 @@ function obtenerDatosFormulario() {
         )
       ) || 0,
 
-    imagenData:
-      FOTO_DATA,
+  imagenData:
+  FOTO_PRODUCTO_DATA ||
+  FOTO_DATA,
 
-    forceNew:
-      false
+ubicacionLevantamiento:
+  MODO === 'INICIAL'
+  ? valor(
+      'ubicacionLevantamiento'
+    )
+  : '',
+
+forceNew:
+  false
   };
 }
 
@@ -4308,30 +6375,6 @@ function guardar() {
   }
 
 
-  /**********************************************************
-   * INVENTARIO INICIAL:
-   * se registra inmediatamente.
-   **********************************************************/
-  if (
-    MODO === 'INICIAL'
-  ) {
-
-    enviarMovimiento(
-      datos,
-      {
-        siguiente:
-          false
-      }
-    );
-
-    return;
-  }
-
-
-  /**********************************************************
-   * COMPRA / VENTA:
-   * va al carrito.
-   **********************************************************/
   agregarAlCarrito(
     datos
   );
@@ -4339,14 +6382,13 @@ function guardar() {
 
 
 /************************************************************
- * GUARDAR Y SIGUIENTE
+ * AGREGAR Y SIGUIENTE
  ************************************************************/
 function guardarYSiguiente() {
 
   if (
     MODO !== 'INICIAL'
   ) {
-
     return;
   }
 
@@ -4360,24 +6402,45 @@ function guardarYSiguiente() {
   }
 
 
-  enviarMovimiento(
-    datos,
-    {
-      siguiente:
-        true
-    }
+  const agregado =
+    agregarAlCarrito(
+      datos
+    );
+
+
+  if (!agregado) {
+    return;
+  }
+
+
+  setTimeout(
+    function() {
+
+      document
+        .getElementById(
+          'cameraPlaceholder'
+        )
+        .scrollIntoView({
+          behavior:
+            'smooth',
+
+          block:
+            'center'
+        });
+
+    },
+    100
   );
 }
-
-
 /************************************************************
  * CARRITO ACTUAL
  ************************************************************/
 function obtenerCarritoActual() {
 
   if (
-    MODO !== 'COMPRA' &&
-    MODO !== 'VENTA'
+    !CARRITOS[
+      MODO
+    ]
   ) {
 
     return [];
@@ -4388,7 +6451,6 @@ function obtenerCarritoActual() {
     MODO
   ];
 }
-
 
 /************************************************************
  * CLAVE PARA EVITAR DUPLICAR EL MISMO ARTÍCULO
@@ -4450,42 +6512,13 @@ function claveItemCarrito_(
   );
 }
 
-
 /************************************************************
- * AGREGAR AL CARRITO
+ * AGREGAR ITEM SIN LIMPIAR PANTALLA
  ************************************************************/
-function agregarAlCarrito(
+function agregarItemCarrito_(
+  carrito,
   datos
 ) {
-
-  const carrito =
-    obtenerCarritoActual();
-
-
-  if (
-    carrito.length >= 20
-  ) {
-
-    toast(
-      'El carrito admite hasta 20 productos por operación.'
-    );
-
-    return;
-  }
-
-
-  /*
-   * En ventas no necesitamos reenviar la fotografía:
-   * el GS nunca guarda una nueva imagen en una venta.
-   */
-  if (
-    MODO === 'VENTA'
-  ) {
-
-    datos.imagenData =
-      '';
-  }
-
 
   const clave =
     claveItemCarrito_(
@@ -4508,10 +6541,6 @@ function agregarAlCarrito(
     );
 
 
-  /**********************************************************
-   * SI EL MISMO PRODUCTO YA ESTÁ:
-   * acumulamos cantidad.
-   **********************************************************/
   if (
     existente
   ) {
@@ -4530,11 +6559,10 @@ function agregarAlCarrito(
 
     /********************************************************
      * COMPRA:
-     * si cambió el costo, conservamos costo medio
-     * entre las líneas del propio carrito.
+     * costo medio dentro del mismo carrito.
      ********************************************************/
     if (
-      MODO === 'COMPRA'
+      datos.tipo === 'COMPRA'
     ) {
 
       const costoAnterior =
@@ -4600,6 +6628,20 @@ function agregarAlCarrito(
 
 
     if (
+      Number(
+        datos.costoUnitario || 0
+      ) > 0 &&
+      datos.tipo === 'INICIAL'
+    ) {
+
+      existente.costoUnitario =
+        Number(
+          datos.costoUnitario
+        );
+    }
+
+
+    if (
       !existente.imagenData &&
       datos.imagenData
     ) {
@@ -4609,22 +6651,131 @@ function agregarAlCarrito(
     }
 
 
+    if (
+      datos.ubicacionLevantamiento
+    ) {
+
+      existente.ubicacionLevantamiento =
+        datos.ubicacionLevantamiento;
+    }
+
+
+    return {
+      nuevo:
+        false
+    };
+  }
+
+
+  carrito.push(
+    Object.assign(
+      {},
+      datos
+    )
+  );
+
+
+  return {
+    nuevo:
+      true
+  };
+}
+
+
+/************************************************************
+ * AGREGAR AL CARRITO DESDE FORMULARIO
+ ************************************************************/
+function agregarAlCarrito(
+  datos
+) {
+
+  const carrito =
+    obtenerCarritoActual();
+
+
+  if (!carrito) {
+    return false;
+  }
+
+
+  const limite =
+    MODO === 'INICIAL'
+    ? 60
+    : 20;
+
+
+  const clave =
+    claveItemCarrito_(
+      datos
+    );
+
+
+  const yaExiste =
+    carrito.some(
+      function(item) {
+
+        return (
+          claveItemCarrito_(
+            item
+          )
+          ===
+          clave
+        );
+      }
+    );
+
+
+  if (
+    !yaExiste &&
+    carrito.length >= limite
+  ) {
+
     toast(
-      '🛒 Cantidad acumulada en el carrito.'
+      MODO === 'INICIAL'
+      ? 'El levantamiento admite hasta 60 productos. Registra el tramo actual.'
+      : 'El carrito admite hasta 20 productos por operación.'
+    );
+
+    return false;
+  }
+
+
+  /**********************************************************
+   * VENTA:
+   * no necesitamos guardar foto nueva.
+   **********************************************************/
+  if (
+    MODO === 'VENTA'
+  ) {
+
+    datos.imagenData =
+      '';
+  }
+
+
+  const resultado =
+    agregarItemCarrito_(
+      carrito,
+      datos
+    );
+
+
+  if (
+    MODO === 'INICIAL'
+  ) {
+
+    toast(
+      resultado.nuevo
+      ? '📋 Producto agregado al levantamiento.'
+      : '📋 Cantidad acumulada en el levantamiento.'
     );
 
   } else {
 
-    carrito.push(
-      Object.assign(
-        {},
-        datos
-      )
-    );
-
-
     toast(
-      '🛒 Producto agregado al carrito.'
+      resultado.nuevo
+      ? '🛒 Producto agregado al carrito.'
+      : '🛒 Cantidad acumulada en el carrito.'
     );
   }
 
@@ -4632,9 +6783,11 @@ function agregarAlCarrito(
   limpiar();
 
   renderCarrito();
+
+
+  return true;
 }
-
-
+  
 /************************************************************
  * MOSTRAR CARRITO
  ************************************************************/
@@ -4647,25 +6800,27 @@ function renderCarrito() {
 
 
   if (
-    MODO !== 'COMPRA' &&
-    MODO !== 'VENTA'
+    [
+      'INICIAL',
+      'COMPRA',
+      'VENTA'
+    ]
+    .indexOf(
+      MODO
+    ) === -1
   ) {
 
-    card
-      .classList
-      .add(
-        'hidden'
-      );
+    card.classList.add(
+      'hidden'
+    );
 
     return;
   }
 
 
-  card
-    .classList
-    .remove(
-      'hidden'
-    );
+  card.classList.remove(
+    'hidden'
+  );
 
 
   const carrito =
@@ -4702,31 +6857,55 @@ function renderCarrito() {
     );
 
 
-  titulo.textContent =
+  if (
+    MODO === 'INICIAL'
+  ) {
 
+    titulo.textContent =
+      '📋 Levantamiento de inventario';
+
+
+    boton.textContent =
+      '✅ Registrar inventario completo';
+
+
+    boton.className =
+      'btn btnPrimary';
+  }
+
+
+  if (
     MODO === 'COMPRA'
+  ) {
 
-      ? '🛒 Carrito de compra'
-
-      : '🛒 Carrito de venta';
-
-
-  boton.textContent =
-
-    MODO === 'COMPRA'
-
-      ? '✅ Registrar compra completa'
-
-      : '🔴 Registrar venta completa';
+    titulo.textContent =
+      '🛒 Carrito de compra';
 
 
-  boton.className =
+    boton.textContent =
+      '✅ Registrar compra completa';
 
-    MODO === 'COMPRA'
 
-      ? 'btn btnPrimary'
+    boton.className =
+      'btn btnPrimary';
+  }
 
-      : 'btn btnDanger';
+
+  if (
+    MODO === 'VENTA'
+  ) {
+
+    titulo.textContent =
+      '🛒 Carrito de venta';
+
+
+    boton.textContent =
+      '🔴 Registrar venta completa';
+
+
+    boton.className =
+      'btn btnDanger';
+  }
 
 
   boton.disabled =
@@ -4738,9 +6917,14 @@ function renderCarrito() {
   ) {
 
     lista.innerHTML =
-
       '<div class="carritoVacio">' +
-        'Todavía no has agregado productos.' +
+
+      (
+        MODO === 'INICIAL'
+        ? 'Todavía no has agregado productos al levantamiento.'
+        : 'Todavía no has agregado productos.'
+      ) +
+
       '</div>';
 
 
@@ -4776,16 +6960,15 @@ function renderCarrito() {
 
 
       const valorUnitario =
+        MODO === 'VENTA'
 
-        MODO === 'COMPRA'
+        ? Number(
+            item.precioVenta || 0
+          )
 
-          ? Number(
-              item.costoUnitario || 0
-            )
-
-          : Number(
-              item.precioVenta || 0
-            );
+        : Number(
+            item.costoUnitario || 0
+          );
 
 
       const subtotal =
@@ -4795,6 +6978,19 @@ function renderCarrito() {
 
       totalGeneral +=
         subtotal;
+
+
+      const ubicacion =
+        item.ubicacionLevantamiento
+
+        ? (
+            '<br>📍 ' +
+            escapeHtml(
+              item.ubicacionLevantamiento
+            )
+          )
+
+        : '';
 
 
       html +=
@@ -4823,23 +7019,30 @@ function renderCarrito() {
                 valorUnitario
               ) +
 
+              ubicacion +
+
             '</small>' +
 
             '<div class="carritoSubtotal">' +
+
               formatoDinero(
                 subtotal
               ) +
+
             '</div>' +
 
           '</div>' +
+
 
           '<button ' +
             'type="button" ' +
             'class="btnEliminarCarrito" ' +
             'onclick="quitarDelCarrito(' +
-              index +
+            index +
             ')">' +
+
             '×' +
+
           '</button>' +
 
         '</div>';
@@ -4860,7 +7063,6 @@ function renderCarrito() {
       totalGeneral
     );
 }
-
 
 /************************************************************
  * QUITAR PRODUCTO DEL CARRITO
@@ -4947,13 +7149,19 @@ function finalizarCarrito(
     MODO;
 
 
-  if (
-    tipo !== 'COMPRA' &&
-    tipo !== 'VENTA'
-  ) {
+if (
+  [
+    'INICIAL',
+    'COMPRA',
+    'VENTA'
+  ]
+  .indexOf(
+    tipo
+  ) === -1
+) {
 
-    return;
-  }
+  return;
+}
 
 
   const carrito =
@@ -5569,11 +7777,38 @@ function limpiar() {
   FOTO_DATA =
     '';
 
+
+  FOTO_ORIGINAL_DATA =
+    '';
+
+
+  FOTO_PRODUCTO_DATA =
+    '';
+
+
+  IMG_RECORTE =
+    null;
+
+
+  RECORTE =
+    null;
+
+
+  RECORTE_DIBUJANDO =
+    false;
+
+
+  PRODUCTOS_MULTI =
+    [];
+
+
   PRODUCTO_ID =
     '';
 
+
   PRODUCTO_EXISTENCIA =
     0;
+
 
   PENDING_DATA =
     null;
@@ -5589,7 +7824,8 @@ function limpiar() {
     'costo',
     'precio',
     'busqueda'
-  ].forEach(
+  ]
+  .forEach(
     function(id) {
 
       setValor(
@@ -5600,7 +7836,7 @@ function limpiar() {
   );
 
 
-    setValor(
+  setValor(
     'cantidad',
     '1'
   );
@@ -5622,11 +7858,17 @@ function limpiar() {
     '';
 
 
-  document
-    .getElementById(
+  const preview =
+    document.getElementById(
       'fotoPreview'
-    )
-    .style.display =
+    );
+
+
+  preview.src =
+    '';
+
+
+  preview.style.display =
     'none';
 
 
@@ -5640,18 +7882,44 @@ function limpiar() {
 
   document
     .getElementById(
+      'cameraLabel'
+    )
+    .classList
+    .remove(
+      'hidden'
+    );
+
+
+  document
+    .getElementById(
+      'recorteBox'
+    )
+    .classList
+    .add(
+      'hidden'
+    );
+
+
+  document
+    .getElementById(
       'btnAnalizar'
     )
     .disabled =
     true;
 
 
-  document
-    .getElementById(
+  const analisis =
+    document.getElementById(
       'analisis'
-    )
-    .style.display =
+    );
+
+
+  analisis.style.display =
     'none';
+
+
+  analisis.innerHTML =
+    '';
 
 
   document
@@ -5686,8 +7954,38 @@ function limpiar() {
     .add(
       'hidden'
     );
-}
 
+
+  const multi =
+    document.getElementById(
+      'multiResultado'
+    );
+
+
+  multi.classList.add(
+    'hidden'
+  );
+
+
+  document
+    .getElementById(
+      'multiLista'
+    )
+    .innerHTML =
+    '';
+
+
+  document
+    .getElementById(
+      'multiContador'
+    )
+    .textContent =
+    '0';
+
+
+  actualizarTextoAnalizar_();
+}
+  
 /************************************************************
  * LEER FACTURA
  ************************************************************/
