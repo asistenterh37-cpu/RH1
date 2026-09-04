@@ -1662,6 +1662,48 @@ overflow-y: hidden;
     middle;
 }
 
+/**********************************************************
+ * RADIO - CIRCULITO DE COINCIDENCIA
+ **********************************************************/
+.multiFloatRadioCelda {
+  width: 42px;
+  min-width: 42px;
+  text-align: center;
+}
+
+.multiFloatRadio {
+  display: inline-block !important;
+
+  width: 18px !important;
+  min-width: 18px !important;
+
+  height: 18px !important;
+  min-height: 18px !important;
+
+  margin: 0 !important;
+  padding: 0 !important;
+
+  accent-color: var(--verde);
+
+  cursor: pointer;
+}
+
+.multiFloatOpcion {
+  cursor: pointer;
+}
+
+.multiFloatOpcion:hover td {
+  background: #f3faf7;
+}
+
+.multiFloatNuevoFila td {
+  background: #f4f8ff;
+}
+
+.multiFloatNuevoTexto {
+  font-weight: 850;
+  color: var(--azul);
+}    
 
 .multiFloatTable tr:last-child td {
 
@@ -2573,10 +2615,8 @@ overflow-y: hidden;
 
 </section>
 
-
-
 <!-- ======================================================
- UN PRODUCTO - CONFIRMACIÓN HORIZONTAL
+ UN PRODUCTO - DATOS IDENTIFICADOS POR IA
 ======================================================= -->
 <section
   id="confirmarProductoCard"
@@ -2584,20 +2624,14 @@ overflow-y: hidden;
 >
 
   <div class="titulo">
-
-    ✏️ Confirmar producto
-
+    ✨ Producto identificado
   </div>
-
 
   <div class="subtitulo">
-
-    La IA propone los datos.
-
-    Revisa o corrige antes de registrar.
-
+    La IA llena los campos.
+    Toca o posiciónate sobre Producto
+    para revisar coincidencias.
   </div>
-
 
   <div class="horizontalHint">
 
@@ -2616,95 +2650,52 @@ overflow-y: hidden;
 
     <table class="confirmarTable">
 
-
       <thead>
 
         <tr>
 
-
-          <th class="colBuscar">
-
-            Buscar en<br>
-            inventario
-
-          </th>
-
-
           <th class="colFecha">
-
-            Fecha de<br>
-            transacción
-
+            Fecha
           </th>
-
 
           <th class="colProducto">
-
-            Producto *
-
+            Producto
           </th>
-
 
           <th class="colCategoria">
-
             Categoría
-
           </th>
-
 
           <th class="colMarca">
-
             Marca
-
           </th>
-
 
           <th class="colModelo">
-
             Modelo / Variante
-
           </th>
-
 
           <th class="colCodigo">
-
             Código / Serie
-
           </th>
-
 
           <th class="colUnidad">
-
             Unidad
-
           </th>
-
 
           <th class="colCantidad">
-
-            Cantidad *
-
+            Cantidad
           </th>
-
 
           <th
             id="grupoCostoHeader"
             class="colCosto"
           >
-
-            Costo<br>
-            unitario
-
+            Costo Unitario
           </th>
-
 
           <th class="colPrecio">
-
-            Precio<br>
-            venta
-
+            Precio Venta
           </th>
-
 
         </tr>
 
@@ -2714,21 +2705,6 @@ overflow-y: hidden;
       <tbody>
 
         <tr>
-
-
-          <!-- BUSCAR -->
-          <td class="colBuscar">
-
-            <input
-              id="busqueda"
-              type="search"
-              autocomplete="off"
-              placeholder="Producto, marca..."
-              oninput="buscarConEspera()"
-            >
-
-          </td>
-
 
           <!-- FECHA -->
           <td class="colFecha">
@@ -2743,11 +2719,17 @@ overflow-y: hidden;
 
 
           <!-- PRODUCTO -->
-          <td class="colProducto">
+          <td
+            class="colProducto"
+            onmouseenter="mostrarCoincidenciasFlotantesUno_()"
+            onclick="mostrarCoincidenciasFlotantesUno_()"
+          >
 
             <input
               id="producto"
-              placeholder="Nombre del producto..."
+              placeholder="Producto identificado..."
+              onfocus="mostrarCoincidenciasFlotantesUno_()"
+              onclick="event.stopPropagation(); mostrarCoincidenciasFlotantesUno_();"
             >
 
           </td>
@@ -2802,23 +2784,41 @@ overflow-y: hidden;
 
             <select id="unidad">
 
-              <option value="Unidad">Unidad</option>
+              <option value="Unidad">
+                Unidad
+              </option>
 
-              <option value="Libra">Libra</option>
+              <option value="Libra">
+                Libra
+              </option>
 
-              <option value="Kg">Kg</option>
+              <option value="Kg">
+                Kg
+              </option>
 
-              <option value="Caja">Caja</option>
+              <option value="Caja">
+                Caja
+              </option>
 
-              <option value="Paquete">Paquete</option>
+              <option value="Paquete">
+                Paquete
+              </option>
 
-              <option value="Metro">Metro</option>
+              <option value="Metro">
+                Metro
+              </option>
 
-              <option value="Litro">Litro</option>
+              <option value="Litro">
+                Litro
+              </option>
 
-              <option value="Galón">Galón</option>
+              <option value="Galón">
+                Galón
+              </option>
 
-              <option value="Otro">Otro</option>
+              <option value="Otro">
+                Otro
+              </option>
 
             </select>
 
@@ -2832,7 +2832,7 @@ overflow-y: hidden;
               id="cantidad"
               type="number"
               inputmode="decimal"
-              min="0"
+              min="0.01"
               step="any"
               value="1"
             >
@@ -2872,7 +2872,6 @@ overflow-y: hidden;
 
           </td>
 
-
         </tr>
 
       </tbody>
@@ -2896,36 +2895,39 @@ overflow-y: hidden;
 
 
   <!-- ====================================================
-   BÚSQUEDA / PRODUCTO EXISTENTE
-  ===================================================== -->
-  <div class="busquedaHorizontalResultados">
+       ELEMENTOS ANTIGUOS:
+       se conservan ocultos para no romper otras funciones
+       ==================================================== -->
 
+  <div class="hidden">
+
+    <input
+      id="busqueda"
+      type="search"
+    >
 
     <div
       id="resultadosBusqueda"
     ></div>
-
 
     <div
       id="productoSeleccionado"
       class="productoSeleccionado"
     ></div>
 
-
     <button
       id="btnQuitarSeleccion"
+      type="button"
       class="btn btnLight hidden"
       onclick="quitarSeleccion()"
     >
-
       Usar como producto nuevo
-
     </button>
-
 
   </div>
 
 </section>
+ 
 <div class="saveZone">
 
   <button
@@ -3916,7 +3918,17 @@ let PRODUCTO_ID =
 
 let PRODUCTO_EXISTENCIA =
   0;
+/************************************************************
+ * ESTADO DE IDENTIFICACIÓN DE UN PRODUCTO
+ ************************************************************/
+let PRODUCTO_IA_ORIGINAL =
+  null;
 
+let PRODUCTO_COINCIDENCIAS =
+  [];
+
+let PRODUCTO_DECISION =
+  '';
 
 let PENDING_DATA =
   null;
@@ -5072,68 +5084,222 @@ function obtenerAutoseleccionVenta_(
  * APLICAR RESULTADO DE UN SOLO PRODUCTO
  * ==========================================================
  ************************************************************/
+/************************************************************
+ * ==========================================================
+ * APLICAR IA - UN PRODUCTO
+ *
+ * Primero mostramos EXACTAMENTE lo leído por IA.
+ *
+ * Las coincidencias se guardan para mostrarlas
+ * al posicionarse sobre Producto.
+ * ==========================================================
+ ************************************************************/
 function aplicarIA(r) {
 
   PRODUCTO_ID =
     '';
 
-
   PRODUCTO_EXISTENCIA =
     0;
 
+  PRODUCTO_COINCIDENCIAS =
+    Array.isArray(
+      r.coincidencias
+    )
+    ? r.coincidencias.slice()
+    : [];
 
+
+  /**********************************************************
+   * GUARDAR LECTURA ORIGINAL DE IA
+   **********************************************************/
+  PRODUCTO_IA_ORIGINAL = {
+
+    producto:
+      r.producto || '',
+
+    categoria:
+      r.categoria || '',
+
+    marca:
+      r.marca || '',
+
+    modeloVariante:
+      r.modeloVariante || '',
+
+    codigoSerie:
+      r.codigoSerie || '',
+
+    unidad:
+      r.unidad || 'Unidad',
+
+    cantidadDetectada:
+      Math.max(
+        1,
+        Math.round(
+          Number(
+            r.cantidadDetectada || 1
+          )
+        )
+      )
+  };
+
+
+  /**********************************************************
+   * MOSTRAR LECTURA DE IA
+   **********************************************************/
   setValor(
     'producto',
-    r.producto
+    PRODUCTO_IA_ORIGINAL.producto
   );
-
 
   setValor(
     'categoria',
-    r.categoria
+    PRODUCTO_IA_ORIGINAL.categoria
   );
-
 
   setValor(
     'marca',
-    r.marca
+    PRODUCTO_IA_ORIGINAL.marca
   );
-
 
   setValor(
     'modelo',
-    r.modeloVariante
+    PRODUCTO_IA_ORIGINAL.modeloVariante
   );
-
 
   setValor(
     'codigo',
-    r.codigoSerie
+    PRODUCTO_IA_ORIGINAL.codigoSerie
   );
-
 
   seleccionarUnidad(
-    r.unidad
+    PRODUCTO_IA_ORIGINAL.unidad
   );
-
-
-  const cantidadIA =
-    Math.max(
-      1,
-      Math.round(
-        Number(
-          r.cantidadDetectada
-        ) || 1
-      )
-    );
-
 
   setValor(
     'cantidad',
-    cantidadIA
+    PRODUCTO_IA_ORIGINAL.cantidadDetectada
   );
 
 
+  /**********************************************************
+   * COSTO / PRECIO
+   *
+   * La fotografía de producto no los inventa.
+   **********************************************************/
+  setValor(
+    'costo',
+    ''
+  );
+
+  setValor(
+    'precio',
+    ''
+  );
+
+
+  /**********************************************************
+   * DECISIÓN INICIAL
+   **********************************************************/
+  PRODUCTO_DECISION =
+    'REVISAR';
+
+
+  /**********************************************************
+   * SI NO EXISTE NINGUNA COINCIDENCIA,
+   * INVENTARIO / COMPRA:
+   *
+   * lo consideramos nuevo.
+   **********************************************************/
+  if (
+    MODO !== 'VENTA' &&
+    !PRODUCTO_COINCIDENCIAS.length
+  ) {
+
+    PRODUCTO_DECISION =
+      'NUEVO';
+  }
+
+
+  /**********************************************************
+   * VENTA:
+   *
+   * Si existe una coincidencia extremadamente segura,
+   * podemos dejar el radio preseleccionado,
+   * PERO conservamos en pantalla la lectura de IA.
+   **********************************************************/
+  const auto =
+    obtenerAutoseleccionVenta_(
+      r
+    );
+
+
+  if (auto) {
+
+    PRODUCTO_ID =
+      auto.item.id;
+
+    PRODUCTO_EXISTENCIA =
+      Number(
+        auto.item.existencia || 0
+      );
+
+    PRODUCTO_DECISION =
+      'EXISTENTE';
+
+
+    /******************************************************
+     * COSTO DEL INVENTARIO
+     ******************************************************/
+    if (
+      Number(
+        auto.item.costo || 0
+      ) > 0
+    ) {
+
+      setValor(
+        'costo',
+        auto.item.costo
+      );
+    }
+
+
+    /******************************************************
+     * PRECIO DEL INVENTARIO
+     ******************************************************/
+    let precio =
+      Number(
+        auto.item.precio || 0
+      );
+
+
+    if (
+      Number(
+        auto.item.ultimoPrecioVenta || 0
+      ) > 0
+    ) {
+
+      precio =
+        Number(
+          auto.item.ultimoPrecioVenta
+        );
+    }
+
+
+    if (precio > 0) {
+
+      setValor(
+        'precio',
+        precio
+      );
+    }
+  }
+
+
+  /**********************************************************
+   * MENSAJE
+   **********************************************************/
   const pct =
     Math.round(
       Number(
@@ -5149,102 +5315,76 @@ function aplicarIA(r) {
     );
 
 
-  const auto =
-    obtenerAutoseleccionVenta_(
-      r
-    );
+  let mensaje =
 
+    '✨ IA: <strong>' +
 
-  if (auto) {
+    pct +
 
-    seleccionarExistente(
-      auto.item,
-      true
-    );
+    '% de confianza.</strong><br>' +
 
+    '🔢 Cantidad visible: <strong>' +
 
-    box.innerHTML =
-
-      '✨ IA: <strong>' +
-      pct +
-      '% de confianza.</strong><br>' +
-
-      '🔢 Cantidad visible: <strong>' +
-      escapeHtml(
-        String(
-          cantidadIA
-        )
-      ) +
-      '</strong> ' +
-
-      '<span style="opacity:.75">(editable)</span><br>' +
-
-      '🤖 Producto seleccionado automáticamente por ' +
-
-      '<strong>' +
-      escapeHtml(
-        auto.motivo
-      ) +
-      '</strong>.';
-
-
-    box.style.display =
-      'block';
-
-
-    document
-      .getElementById(
-        'coincidencias'
+    escapeHtml(
+      String(
+        PRODUCTO_IA_ORIGINAL.cantidadDetectada
       )
-      .innerHTML =
+    ) +
 
-      '<div class="helper">' +
+    '</strong> ' +
 
-      'La coincidencia fue suficientemente fuerte. ' +
-      'Revisa cantidad y precio antes de registrar.' +
-
-      '</div>';
+    '<span style="opacity:.75">(editable)</span>';
 
 
-    return;
+  if (
+    PRODUCTO_COINCIDENCIAS.length
+  ) {
+
+    mensaje +=
+
+      '<br>🔎 Encontré <strong>' +
+
+      PRODUCTO_COINCIDENCIAS.length +
+
+      '</strong> posible(s) coincidencia(s).' +
+
+      '<br>👉 Toca o posiciónate sobre <strong>Producto</strong> para revisarlas.';
+
+  } else if (
+    MODO !== 'VENTA'
+  ) {
+
+    mensaje +=
+
+      '<br>🆕 No encontré coincidencias. ' +
+      'Se propone como producto nuevo.';
+
+  } else {
+
+    mensaje +=
+
+      '<br>⚠️ No encontré un producto existente para esta venta.';
   }
 
 
   box.innerHTML =
-
-    '✨ IA: <strong>' +
-    pct +
-    '% de confianza.</strong><br>' +
-
-    '🔢 Cantidad visible: <strong>' +
-    escapeHtml(
-      String(
-        cantidadIA
-      )
-    ) +
-    '</strong> ' +
-
-    '<span style="opacity:.75">(editable)</span><br>' +
-
-    (
-      MODO === 'VENTA'
-
-      ? 'Revisa y selecciona el producto correcto.'
-
-      : 'El sistema también buscó si ya manejas este artículo.'
-    );
-
+    mensaje;
 
   box.style.display =
     'block';
 
 
-  mostrarCoincidencias(
-    r.coincidencias || []
-  );
+  /**********************************************************
+   * YA NO MOSTRAMOS TARJETAS DEBAJO
+   **********************************************************/
+  document
+    .getElementById(
+      'coincidencias'
+    )
+    .innerHTML =
+    '';
 }
-
-
+  
 /************************************************************
  * ==========================================================
  * MOSTRAR VARIOS PRODUCTOS
@@ -5377,16 +5517,19 @@ function aplicarIA(r) {
  * aparecen las coincidencias en tabla flotante.
  * ==========================================================
  ************************************************************/
-function mostrarResultadoMultiple(
-  r
-) {
+/************************************************************
+ * ==========================================================
+ * MOSTRAR VARIOS PRODUCTOS
+ *
+ * SIEMPRE MOSTRAR PRIMERO LA LECTURA DE IA.
+ *
+ * Las coincidencias solamente cambian la fila
+ * cuando el usuario selecciona una.
+ * ==========================================================
+ ************************************************************/
+function mostrarResultadoMultiple(r) {
 
-  /**********************************************************
-   * VALIDAR NOMBRE REAL
-   **********************************************************/
-  function esProductoReal_(
-    valorProducto
-  ) {
+  function esProductoReal_(valorProducto) {
 
     const producto =
       String(
@@ -5398,28 +5541,21 @@ function mostrarResultadoMultiple(
         ' '
       );
 
-
     if (!producto) {
-
       return false;
     }
-
 
     const normalizado =
       producto
         .toLowerCase()
-        .normalize(
-          'NFD'
-        )
+        .normalize('NFD')
         .replace(
           /[\u0300-\u036f]/g,
           ''
         )
         .trim();
 
-
     const noProductos = [
-
       'sin producto',
       'sin productos',
       'vacio',
@@ -5439,16 +5575,13 @@ function mostrarResultadoMultiple(
       'articulo desconocido'
     ];
 
-
     if (
       noProductos.indexOf(
         normalizado
       ) !== -1
     ) {
-
       return false;
     }
-
 
     return (
       normalizado
@@ -5461,9 +5594,6 @@ function mostrarResultadoMultiple(
   }
 
 
-  /**********************************************************
-   * RESPUESTA IA
-   **********************************************************/
   const listaOriginal =
     (
       r &&
@@ -5471,23 +5601,15 @@ function mostrarResultadoMultiple(
         r.productos
       )
     )
-
     ? r.productos.slice(
         0,
         10
       )
-
     : [];
 
 
   /**********************************************************
-   * SOLO PRODUCTOS REALES
-   *
-   * Y SOLO:
-   *
-   * EXISTENTE
-   * REVISAR
-   * NUEVO
+   * SOLAMENTE PRODUCTOS REALES
    **********************************************************/
   const listaUtil =
     listaOriginal.filter(
@@ -5499,32 +5621,20 @@ function mostrarResultadoMultiple(
             item.producto
           )
         ) {
-
           return false;
         }
 
-
         return (
-
-          item.estado ===
-          'EXISTENTE'
-
-          ||
-
-          item.estado ===
-          'REVISAR'
-
-          ||
-
-          item.estado ===
-          'NUEVO'
+          item.estado === 'EXISTENTE' ||
+          item.estado === 'REVISAR' ||
+          item.estado === 'NUEVO'
         );
       }
     );
 
 
   /**********************************************************
-   * NORMALIZAR
+   * PREPARAR ESTADO INTERNO
    **********************************************************/
   PRODUCTOS_MULTI =
     listaUtil.map(
@@ -5571,14 +5681,14 @@ function mostrarResultadoMultiple(
             item.codigoSerie || '',
 
           unidad:
-            item.unidad ||
-            'Unidad'
+            item.unidad || 'Unidad'
         };
 
 
         /******************************************************
-         * SI YA FUE RECONOCIDO
-         * OBTENER FICHA REAL
+         * SI GS LA MARCÓ EXISTENTE,
+         * guardamos la coincidencia,
+         * PERO NO reemplazamos todavía la lectura de IA.
          ******************************************************/
         if (
           copia.estado ===
@@ -5605,12 +5715,10 @@ function mostrarResultadoMultiple(
             copia.idProducto =
               candidato.id;
 
-
             copia.existencia =
               Number(
                 candidato.existencia || 0
               );
-
 
             copia._candidatoExistente =
               candidato;
@@ -5623,46 +5731,36 @@ function mostrarResultadoMultiple(
     );
 
 
-  /**********************************************************
-   * ELEMENTOS
-   **********************************************************/
   const cont =
     document.getElementById(
       'multiResultado'
     );
-
 
   const caja =
     document.getElementById(
       'multiLista'
     );
 
-
   const contador =
     document.getElementById(
       'multiContador'
     );
-
 
   const resumen =
     document.getElementById(
       'resumenMulti'
     );
 
-
   const analisis =
     document.getElementById(
       'analisis'
     );
 
-
   const titulo =
     cont
-
     ? cont.querySelector(
         '.multiHeader strong'
       )
-
     : null;
 
 
@@ -5675,7 +5773,7 @@ function mostrarResultadoMultiple(
 
 
   /**********************************************************
-   * NADA VÁLIDO
+   * NINGÚN PRODUCTO
    **********************************************************/
   if (
     !PRODUCTOS_MULTI.length
@@ -5684,14 +5782,11 @@ function mostrarResultadoMultiple(
     caja.innerHTML =
       '';
 
-
     contador.textContent =
       '0';
 
-
     resumen.innerHTML =
       '';
-
 
     cont
       .classList
@@ -5699,41 +5794,28 @@ function mostrarResultadoMultiple(
         'hidden'
       );
 
-
     analisis.innerHTML =
-
-      '⚠️ La IA no identificó productos ' +
-      'válidos con suficiente claridad.';
-
+      '⚠️ La IA no identificó productos válidos con suficiente claridad.';
 
     analisis.style.display =
       'block';
 
-
     actualizarVistaIdentificacion_();
 
-
     actualizarBotonGuardarMulti_();
-
 
     return;
   }
 
 
-  /**********************************************************
-   * CONTADORES
-   **********************************************************/
   let existentes =
     0;
-
 
   let revisar =
     0;
 
-
   let nuevos =
     0;
-
 
   let unidades =
     0;
@@ -5752,30 +5834,24 @@ function mostrarResultadoMultiple(
           )
         );
 
-
       if (
         item.estado ===
         'EXISTENTE'
       ) {
-
         existentes++;
       }
-
 
       if (
         item.estado ===
         'REVISAR'
       ) {
-
         revisar++;
       }
-
 
       if (
         item.estado ===
         'NUEVO'
       ) {
-
         nuevos++;
       }
     }
@@ -5783,71 +5859,45 @@ function mostrarResultadoMultiple(
 
 
   /**********************************************************
-   * RESUMEN
+   * MENSAJE
    **********************************************************/
-  let mensaje =
+  analisis.innerHTML =
 
     '✨ IA identificó <strong>' +
 
     PRODUCTOS_MULTI.length +
 
-    '</strong> producto(s) · ' +
-
-    '<strong>' +
+    '</strong> producto(s) · <strong>' +
 
     unidades +
 
-    '</strong> unidades visibles.';
+    '</strong> unidades visibles.' +
 
+    (
+      existentes > 0
+      ? '<br>✅ ' +
+        existentes +
+        ' existente(s).'
+      : ''
+    ) +
 
-  if (
-    existentes > 0
-  ) {
+    (
+      revisar > 0
+      ? '<br>⚠️ ' +
+        revisar +
+        ' con coincidencias por revisar.'
+      : ''
+    ) +
 
-    mensaje +=
+    (
+      nuevos > 0
+      ? '<br>🆕 ' +
+        nuevos +
+        ' producto(s) nuevo(s).'
+      : ''
+    ) +
 
-      '<br>✅ ' +
-      existentes +
-      ' existente(s).';
-  }
-
-
-  if (
-    revisar > 0
-  ) {
-
-    mensaje +=
-
-      '<br>⚠️ ' +
-      revisar +
-      ' con coincidencias por revisar.';
-  }
-
-
-  if (
-    nuevos > 0
-  ) {
-
-    mensaje +=
-
-      '<br>🆕 ' +
-      nuevos +
-      ' producto(s) nuevo(s).';
-  }
-
-
-  mensaje +=
-
-    '<br><span style="opacity:.78">' +
-
-    'Toca o posiciónate sobre una fila ' +
-    'para revisar sus coincidencias.' +
-
-    '</span>';
-
-
-  analisis.innerHTML =
-    mensaje;
+    '<br>👉 Toca o posiciónate sobre <strong>Producto</strong> en cada fila para revisar coincidencias.';
 
 
   analisis.style.display =
@@ -5875,8 +5925,7 @@ function mostrarResultadoMultiple(
 
 
   const mostrarCosto =
-    MODO !==
-    'VENTA';
+    MODO !== 'VENTA';
 
 
   let filas =
@@ -5889,27 +5938,17 @@ function mostrarResultadoMultiple(
   PRODUCTOS_MULTI.forEach(
     function(item,index) {
 
-      const candidato =
-        item._candidatoExistente ||
-        null;
-
-
-      const base =
-        candidato ||
-        item;
-
-
+      /******************************************************
+       * SIEMPRE DATOS DESCRIPTIVOS DE IA
+       ******************************************************/
       const nombreProducto =
         String(
-          base.producto ||
-          item.producto ||
-          ''
+          item.producto || ''
         )
         .trim();
 
 
       if (!nombreProducto) {
-
         return;
       }
 
@@ -5925,28 +5964,44 @@ function mostrarResultadoMultiple(
         );
 
 
+      /******************************************************
+       * COSTO / PRECIO:
+       *
+       * solamente si ya existe una coincidencia
+       * suficientemente segura.
+       ******************************************************/
+      const candidato =
+        item._candidatoExistente ||
+        null;
+
+
       const costo =
-        Number(
-          base.costo || 0
-        );
+        candidato
+        ? Number(
+            candidato.costo || 0
+          )
+        : 0;
 
 
       let precio =
-        Number(
-          base.precio || 0
-        );
+        candidato
+        ? Number(
+            candidato.precio || 0
+          )
+        : 0;
 
 
       if (
         MODO === 'VENTA' &&
+        candidato &&
         Number(
-          base.ultimoPrecioVenta || 0
+          candidato.ultimoPrecioVenta || 0
         ) > 0
       ) {
 
         precio =
           Number(
-            base.ultimoPrecioVenta
+            candidato.ultimoPrecioVenta
           );
       }
 
@@ -5985,28 +6040,14 @@ function mostrarResultadoMultiple(
 
           'class="multiFilaInteractiva ' +
           clase +
-          '" ' +
-
-          'tabindex="0" ' +
-
-          'onmouseenter="mostrarCoincidenciasFlotantesMulti_(' +
-          index +
-          ')" ' +
-
-          'onclick="mostrarCoincidenciasFlotantesMulti_(' +
-          index +
-          ')" ' +
-
-          'onfocusin="mostrarCoincidenciasFlotantesMulti_(' +
-          index +
-          ')"' +
+          '"' +
 
         '>' +
 
 
-        /******************************************************
+        /****************************************************
          * FECHA
-         ******************************************************/
+         ****************************************************/
         '<td class="colFecha">' +
 
           '<input ' +
@@ -6028,10 +6069,24 @@ function mostrarResultadoMultiple(
         '</td>' +
 
 
-        /******************************************************
+        /****************************************************
          * PRODUCTO
-         ******************************************************/
-        '<td class="colProducto">' +
+         *
+         * SOLO AQUÍ ABRIMOS LAS COINCIDENCIAS.
+         ****************************************************/
+        '<td ' +
+
+          'class="colProducto" ' +
+
+          'onmouseenter="mostrarCoincidenciasFlotantesMulti_(' +
+          index +
+          ')" ' +
+
+          'onclick="mostrarCoincidenciasFlotantesMulti_(' +
+          index +
+          ')"' +
+
+        '>' +
 
           '<input ' +
 
@@ -6043,16 +6098,24 @@ function mostrarResultadoMultiple(
             escapeHtml(
               nombreProducto
             ) +
-            '"' +
+            '" ' +
+
+            'onfocus="mostrarCoincidenciasFlotantesMulti_(' +
+            index +
+            ')" ' +
+
+            'onclick="event.stopPropagation(); mostrarCoincidenciasFlotantesMulti_(' +
+            index +
+            ');"' +
 
           '>' +
 
         '</td>' +
 
 
-        /******************************************************
+        /****************************************************
          * CATEGORÍA
-         ******************************************************/
+         ****************************************************/
         '<td class="colCategoria">' +
 
           '<input ' +
@@ -6063,7 +6126,7 @@ function mostrarResultadoMultiple(
 
             'value="' +
             escapeHtml(
-              base.categoria || ''
+              item.categoria || ''
             ) +
             '"' +
 
@@ -6072,9 +6135,9 @@ function mostrarResultadoMultiple(
         '</td>' +
 
 
-        /******************************************************
+        /****************************************************
          * MARCA
-         ******************************************************/
+         ****************************************************/
         '<td class="colMarca">' +
 
           '<input ' +
@@ -6085,7 +6148,7 @@ function mostrarResultadoMultiple(
 
             'value="' +
             escapeHtml(
-              base.marca || ''
+              item.marca || ''
             ) +
             '"' +
 
@@ -6094,9 +6157,9 @@ function mostrarResultadoMultiple(
         '</td>' +
 
 
-        /******************************************************
+        /****************************************************
          * MODELO
-         ******************************************************/
+         ****************************************************/
         '<td class="colModelo">' +
 
           '<input ' +
@@ -6107,7 +6170,7 @@ function mostrarResultadoMultiple(
 
             'value="' +
             escapeHtml(
-              base.modeloVariante || ''
+              item.modeloVariante || ''
             ) +
             '"' +
 
@@ -6116,9 +6179,9 @@ function mostrarResultadoMultiple(
         '</td>' +
 
 
-        /******************************************************
+        /****************************************************
          * CÓDIGO
-         ******************************************************/
+         ****************************************************/
         '<td class="colCodigo">' +
 
           '<input ' +
@@ -6129,7 +6192,7 @@ function mostrarResultadoMultiple(
 
             'value="' +
             escapeHtml(
-              base.codigoSerie || ''
+              item.codigoSerie || ''
             ) +
             '"' +
 
@@ -6138,9 +6201,9 @@ function mostrarResultadoMultiple(
         '</td>' +
 
 
-        /******************************************************
+        /****************************************************
          * UNIDAD
-         ******************************************************/
+         ****************************************************/
         '<td class="colUnidad">' +
 
           '<select ' +
@@ -6152,7 +6215,7 @@ function mostrarResultadoMultiple(
           '>' +
 
             construirOpcionesUnidadMulti_(
-              base.unidad ||
+              item.unidad ||
               'Unidad'
             ) +
 
@@ -6161,9 +6224,9 @@ function mostrarResultadoMultiple(
         '</td>' +
 
 
-        /******************************************************
+        /****************************************************
          * CANTIDAD
-         ******************************************************/
+         ****************************************************/
         '<td class="colCantidad">' +
 
           '<input ' +
@@ -6191,9 +6254,9 @@ function mostrarResultadoMultiple(
         '</td>' +
 
 
-        /******************************************************
+        /****************************************************
          * COSTO
-         ******************************************************/
+         ****************************************************/
         (
           mostrarCosto
 
@@ -6219,9 +6282,7 @@ function mostrarResultadoMultiple(
 
                   (
                     costo > 0
-
                     ? costo
-
                     : ''
                   ) +
 
@@ -6236,9 +6297,9 @@ function mostrarResultadoMultiple(
         ) +
 
 
-        /******************************************************
+        /****************************************************
          * PRECIO
-         ******************************************************/
+         ****************************************************/
         '<td class="colPrecio">' +
 
           '<input ' +
@@ -6259,9 +6320,7 @@ function mostrarResultadoMultiple(
 
             (
               precio > 0
-
               ? precio
-
               : ''
             ) +
 
@@ -6286,82 +6345,43 @@ function mostrarResultadoMultiple(
 
       '<table class="multiTable">' +
 
-
         '<thead>' +
 
           '<tr>' +
 
+            '<th class="colFecha">Fecha</th>' +
 
-            '<th class="colFecha">' +
-              'Fecha' +
-            '</th>' +
+            '<th class="colProducto">Producto</th>' +
 
+            '<th class="colCategoria">Categoría</th>' +
 
-            '<th class="colProducto">' +
-              'Producto' +
-            '</th>' +
+            '<th class="colMarca">Marca</th>' +
 
+            '<th class="colModelo">Modelo / Variante</th>' +
 
-            '<th class="colCategoria">' +
-              'Categoría' +
-            '</th>' +
+            '<th class="colCodigo">Código / Serie</th>' +
 
+            '<th class="colUnidad">Unidad</th>' +
 
-            '<th class="colMarca">' +
-              'Marca' +
-            '</th>' +
-
-
-            '<th class="colModelo">' +
-              'Modelo / Variante' +
-            '</th>' +
-
-
-            '<th class="colCodigo">' +
-              'Código / Serie' +
-            '</th>' +
-
-
-            '<th class="colUnidad">' +
-              'Unidad' +
-            '</th>' +
-
-
-            '<th class="colCantidad">' +
-              'Cantidad' +
-            '</th>' +
-
+            '<th class="colCantidad">Cantidad</th>' +
 
             (
               mostrarCosto
-
-              ? (
-
-                  '<th class="colCosto">' +
-                    'Costo Unitario' +
-                  '</th>'
-                )
-
+              ? '<th class="colCosto">Costo Unitario</th>'
               : ''
             ) +
 
-
-            '<th class="colPrecio">' +
-              'Precio Venta' +
-            '</th>' +
-
+            '<th class="colPrecio">Precio Venta</th>' +
 
           '</tr>' +
 
         '</thead>' +
-
 
         '<tbody>' +
 
           filas +
 
         '</tbody>' +
-
 
       '</table>' +
 
@@ -6376,7 +6396,6 @@ function mostrarResultadoMultiple(
 
 
   actualizarResumenMulti_();
-
 
   actualizarVistaIdentificacion_();
 
@@ -6397,7 +6416,7 @@ function mostrarResultadoMultiple(
     100
   );
 }
- 
+  
 /************************************************************
  * ==========================================================
  * UNIDADES
@@ -6485,6 +6504,13 @@ function construirOpcionesUnidadMulti_(
  * CREAR PANEL FLOTANTE
  * ==========================================================
  ************************************************************/
+/************************************************************
+ * ==========================================================
+ * PANEL FLOTANTE COMPARTIDO
+ *
+ * UNO Y VARIOS
+ * ==========================================================
+ ************************************************************/
 function asegurarPanelCoincidenciasMulti_() {
 
   let panel =
@@ -6494,7 +6520,6 @@ function asegurarPanelCoincidenciasMulti_() {
 
 
   if (panel) {
-
     return panel;
   }
 
@@ -6523,14 +6548,529 @@ function asegurarPanelCoincidenciasMulti_() {
 
 
 /************************************************************
+ * CERRAR
+ ************************************************************/
+function cerrarCoincidenciasFlotantesMulti_() {
+
+  const panel =
+    document.getElementById(
+      'multiCoincidenciaFlotante'
+    );
+
+
+  if (!panel) {
+    return;
+  }
+
+
+  panel
+    .classList
+    .remove(
+      'visible'
+    );
+}
+
+
+/************************************************************
  * ==========================================================
- * MOSTRAR COINCIDENCIAS DE UNA FILA
- *
- * COMPUTADORA:
- * pasar / posicionarse
- *
- * CELULAR:
- * tocar fila
+ * UN PRODUCTO
+ * ==========================================================
+ ************************************************************/
+function mostrarCoincidenciasFlotantesUno_() {
+
+  if (
+    !PRODUCTO_IA_ORIGINAL
+  ) {
+    return;
+  }
+
+
+  const panel =
+    asegurarPanelCoincidenciasMulti_();
+
+
+  const candidatos =
+    PRODUCTO_COINCIDENCIAS
+      .slice()
+      .sort(
+        function(a,b) {
+
+          return (
+            Number(
+              b.score || 0
+            )
+            -
+            Number(
+              a.score || 0
+            )
+          );
+        }
+      );
+
+
+  let filas =
+    '';
+
+
+  candidatos.forEach(
+    function(candidato) {
+
+      const seleccionado =
+        String(
+          PRODUCTO_ID || ''
+        )
+        ===
+        String(
+          candidato.id || ''
+        );
+
+
+      const detalle =
+        [
+          candidato.marca,
+          candidato.modeloVariante
+        ]
+        .filter(Boolean)
+        .join(
+          ' · '
+        );
+
+
+      const idCodificado =
+        encodeURIComponent(
+          String(
+            candidato.id || ''
+          )
+        );
+
+
+      filas +=
+
+        '<tr class="multiFloatOpcion">' +
+
+
+          '<td class="multiFloatRadioCelda">' +
+
+            '<input ' +
+
+              'class="multiFloatRadio" ' +
+
+              'type="radio" ' +
+
+              'name="coincidencia_uno" ' +
+
+              (
+                seleccionado
+                ? 'checked '
+                : ''
+              ) +
+
+              'onchange="seleccionarCoincidenciaFlotanteUno_(' +
+
+                'decodeURIComponent(\'' +
+
+                idCodificado +
+
+                '\')' +
+
+              ')"' +
+
+            '>' +
+
+          '</td>' +
+
+
+          '<td class="multiFloatProducto">' +
+
+            escapeHtml(
+              candidato.producto || ''
+            ) +
+
+          '</td>' +
+
+
+          '<td class="multiFloatDetalle">' +
+
+            escapeHtml(
+              detalle || ''
+            ) +
+
+          '</td>' +
+
+
+          '<td>' +
+
+            escapeHtml(
+              candidato.codigoSerie || ''
+            ) +
+
+          '</td>' +
+
+
+          '<td class="multiFloatStock">' +
+
+            escapeHtml(
+              String(
+                candidato.existencia || 0
+              )
+            ) +
+
+          '</td>' +
+
+
+        '</tr>';
+    }
+  );
+
+
+  /**********************************************************
+   * PRODUCTO NUEVO
+   **********************************************************/
+  if (
+    MODO !== 'VENTA'
+  ) {
+
+    filas +=
+
+      '<tr class="multiFloatOpcion multiFloatNuevoFila">' +
+
+
+        '<td class="multiFloatRadioCelda">' +
+
+          '<input ' +
+
+            'class="multiFloatRadio" ' +
+
+            'type="radio" ' +
+
+            'name="coincidencia_uno" ' +
+
+            (
+              PRODUCTO_DECISION ===
+              'NUEVO'
+
+              ? 'checked '
+
+              : ''
+            ) +
+
+            'onchange="seleccionarNuevoFlotanteUno_()"' +
+
+          '>' +
+
+        '</td>' +
+
+
+        '<td ' +
+
+          'class="multiFloatNuevoTexto" ' +
+
+          'colspan="4"' +
+
+        '>' +
+
+          '🆕 Es un producto nuevo' +
+
+        '</td>' +
+
+
+      '</tr>';
+  }
+
+
+  let contenidoTabla =
+    '';
+
+
+  if (
+    filas
+  ) {
+
+    contenidoTabla =
+
+      '<div class="multiFloatTableWrap">' +
+
+        '<table class="multiFloatTable">' +
+
+          '<thead>' +
+
+            '<tr>' +
+
+              '<th></th>' +
+
+              '<th>Producto</th>' +
+
+              '<th>Marca / Modelo</th>' +
+
+              '<th>Código</th>' +
+
+              '<th>Stock</th>' +
+
+            '</tr>' +
+
+          '</thead>' +
+
+          '<tbody>' +
+
+            filas +
+
+          '</tbody>' +
+
+        '</table>' +
+
+      '</div>';
+
+  } else {
+
+    contenidoTabla =
+
+      '<div class="multiFloatSinCoincidencias">' +
+
+        'No encontré productos coincidentes en inventario.' +
+
+      '</div>';
+  }
+
+
+  panel.innerHTML =
+
+    '<div class="multiFloatHeader">' +
+
+      '<div>' +
+
+        '<strong>' +
+
+          escapeHtml(
+            PRODUCTO_IA_ORIGINAL.producto || ''
+          ) +
+
+        '</strong>' +
+
+        '<small>' +
+
+          'Selecciona el circulito correspondiente' +
+
+        '</small>' +
+
+      '</div>' +
+
+      '<button ' +
+
+        'type="button" ' +
+
+        'class="multiFloatCerrar" ' +
+
+        'onclick="cerrarCoincidenciasFlotantesMulti_()"' +
+
+      '>' +
+
+        '×' +
+
+      '</button>' +
+
+    '</div>' +
+
+    '<div class="multiFloatContenido">' +
+
+      '<div class="multiFloatAyuda">' +
+
+        'Productos del inventario que podrían corresponder a la lectura de IA.' +
+
+      '</div>' +
+
+      contenidoTabla +
+
+      (
+        MODO === 'VENTA' &&
+        !candidatos.length
+
+        ? (
+            '<div class="multiFloatAyuda" style="margin-top:10px">' +
+
+              'En Venta debe seleccionarse un producto existente.' +
+
+            '</div>'
+          )
+
+        : ''
+      ) +
+
+    '</div>';
+
+
+  panel
+    .classList
+    .add(
+      'visible'
+    );
+}
+
+
+/************************************************************
+ * SELECCIONAR COINCIDENCIA - UNO
+ ************************************************************/
+function seleccionarCoincidenciaFlotanteUno_(
+  id
+) {
+
+  const candidato =
+    PRODUCTO_COINCIDENCIAS
+      .find(
+        function(x) {
+
+          return (
+            String(
+              x.id || ''
+            )
+            ===
+            String(
+              id || ''
+            )
+          );
+        }
+      );
+
+
+  if (!candidato) {
+
+    toast(
+      'No pude recuperar esa coincidencia.'
+    );
+
+    return;
+  }
+
+
+  PRODUCTO_DECISION =
+    'EXISTENTE';
+
+
+  seleccionarExistente(
+    candidato,
+    false
+  );
+
+
+  cerrarCoincidenciasFlotantesMulti_();
+
+
+  toast(
+    '✅ Producto existente seleccionado.'
+  );
+}
+
+
+/************************************************************
+ * PRODUCTO NUEVO - UNO
+ ************************************************************/
+function seleccionarNuevoFlotanteUno_() {
+
+  if (
+    MODO === 'VENTA'
+  ) {
+
+    toast(
+      'En Venta debes seleccionar un producto existente.'
+    );
+
+    return;
+  }
+
+
+  if (
+    !PRODUCTO_IA_ORIGINAL
+  ) {
+    return;
+  }
+
+
+  PRODUCTO_ID =
+    '';
+
+  PRODUCTO_EXISTENCIA =
+    0;
+
+  PRODUCTO_DECISION =
+    'NUEVO';
+
+
+  /**********************************************************
+   * RESTAURAR LECTURA IA
+   **********************************************************/
+  setValor(
+    'producto',
+    PRODUCTO_IA_ORIGINAL.producto
+  );
+
+  setValor(
+    'categoria',
+    PRODUCTO_IA_ORIGINAL.categoria
+  );
+
+  setValor(
+    'marca',
+    PRODUCTO_IA_ORIGINAL.marca
+  );
+
+  setValor(
+    'modelo',
+    PRODUCTO_IA_ORIGINAL.modeloVariante
+  );
+
+  setValor(
+    'codigo',
+    PRODUCTO_IA_ORIGINAL.codigoSerie
+  );
+
+  seleccionarUnidad(
+    PRODUCTO_IA_ORIGINAL.unidad
+  );
+
+
+  /**********************************************************
+   * COSTO / PRECIO NO VIENEN DE IA
+   **********************************************************/
+  setValor(
+    'costo',
+    ''
+  );
+
+  setValor(
+    'precio',
+    ''
+  );
+
+
+  document
+    .getElementById(
+      'productoSeleccionado'
+    )
+    .style.display =
+    'none';
+
+
+  document
+    .getElementById(
+      'btnQuitarSeleccion'
+    )
+    .classList
+    .add(
+      'hidden'
+    );
+
+
+  cerrarCoincidenciasFlotantesMulti_();
+
+
+  toast(
+    '🆕 Se registrará como producto nuevo.'
+  );
+}
+
+
+/************************************************************
+ * ==========================================================
+ * VARIOS PRODUCTOS
  * ==========================================================
  ************************************************************/
 function mostrarCoincidenciasFlotantesMulti_(
@@ -6544,7 +7084,6 @@ function mostrarCoincidenciasFlotantesMulti_(
 
 
   if (!item) {
-
     return;
   }
 
@@ -6578,34 +7117,237 @@ function mostrarCoincidenciasFlotantesMulti_(
     : [];
 
 
+  let filas =
+    '';
+
+
+  candidatos.forEach(
+    function(candidato) {
+
+      const seleccionado =
+        String(
+          item.idProducto || ''
+        )
+        ===
+        String(
+          candidato.id || ''
+        );
+
+
+      const detalle =
+        [
+          candidato.marca,
+          candidato.modeloVariante
+        ]
+        .filter(Boolean)
+        .join(
+          ' · '
+        );
+
+
+      const idCodificado =
+        encodeURIComponent(
+          String(
+            candidato.id || ''
+          )
+        );
+
+
+      filas +=
+
+        '<tr class="multiFloatOpcion">' +
+
+
+          '<td class="multiFloatRadioCelda">' +
+
+            '<input ' +
+
+              'class="multiFloatRadio" ' +
+
+              'type="radio" ' +
+
+              'name="coincidencia_multi_' +
+              index +
+              '" ' +
+
+              (
+                seleccionado
+                ? 'checked '
+                : ''
+              ) +
+
+              'onchange="seleccionarCoincidenciaFlotanteMulti_(' +
+
+                index +
+
+                ',decodeURIComponent(\'' +
+
+                idCodificado +
+
+                '\')' +
+
+              ')"' +
+
+            '>' +
+
+          '</td>' +
+
+
+          '<td class="multiFloatProducto">' +
+
+            escapeHtml(
+              candidato.producto || ''
+            ) +
+
+          '</td>' +
+
+
+          '<td class="multiFloatDetalle">' +
+
+            escapeHtml(
+              detalle || ''
+            ) +
+
+          '</td>' +
+
+
+          '<td>' +
+
+            escapeHtml(
+              candidato.codigoSerie || ''
+            ) +
+
+          '</td>' +
+
+
+          '<td class="multiFloatStock">' +
+
+            escapeHtml(
+              String(
+                candidato.existencia || 0
+              )
+            ) +
+
+          '</td>' +
+
+
+        '</tr>';
+    }
+  );
+
+
   /**********************************************************
-   * TITULO
+   * PRODUCTO NUEVO
    **********************************************************/
-  let estadoTexto =
-    '⚠️ Revisar coincidencias';
-
-
   if (
-    item.estado ===
-    'EXISTENTE'
+    MODO !== 'VENTA'
   ) {
 
-    estadoTexto =
-      '✅ Producto existente';
+    filas +=
+
+      '<tr class="multiFloatOpcion multiFloatNuevoFila">' +
+
+
+        '<td class="multiFloatRadioCelda">' +
+
+          '<input ' +
+
+            'class="multiFloatRadio" ' +
+
+            'type="radio" ' +
+
+            'name="coincidencia_multi_' +
+            index +
+            '" ' +
+
+            (
+              item.estado === 'NUEVO' &&
+              !item.idProducto
+
+              ? 'checked '
+
+              : ''
+            ) +
+
+            'onchange="seleccionarNuevoFlotanteMulti_(' +
+            index +
+            ')"' +
+
+          '>' +
+
+        '</td>' +
+
+
+        '<td ' +
+
+          'class="multiFloatNuevoTexto" ' +
+
+          'colspan="4"' +
+
+        '>' +
+
+          '🆕 Es un producto nuevo' +
+
+        '</td>' +
+
+
+      '</tr>';
   }
 
 
-  if (
-    item.estado ===
-    'NUEVO'
-  ) {
+  let contenidoTabla =
+    '';
 
-    estadoTexto =
-      '🆕 Producto nuevo';
+
+  if (filas) {
+
+    contenidoTabla =
+
+      '<div class="multiFloatTableWrap">' +
+
+        '<table class="multiFloatTable">' +
+
+          '<thead>' +
+
+            '<tr>' +
+
+              '<th></th>' +
+
+              '<th>Producto</th>' +
+
+              '<th>Marca / Modelo</th>' +
+
+              '<th>Código</th>' +
+
+              '<th>Stock</th>' +
+
+            '</tr>' +
+
+          '</thead>' +
+
+          '<tbody>' +
+
+            filas +
+
+          '</tbody>' +
+
+        '</table>' +
+
+      '</div>';
+
+  } else {
+
+    contenidoTabla =
+
+      '<div class="multiFloatSinCoincidencias">' +
+
+        'No encontré productos coincidentes en inventario.' +
+
+      '</div>';
   }
 
 
-  let html =
+  panel.innerHTML =
 
     '<div class="multiFloatHeader">' +
 
@@ -6621,16 +7363,11 @@ function mostrarCoincidenciasFlotantesMulti_(
 
         '<small>' +
 
-          escapeHtml(
-            estadoTexto
-          ) +
-
-          ' · selecciona solamente si deseas cambiar la coincidencia' +
+          'Selecciona el circulito correspondiente' +
 
         '</small>' +
 
       '</div>' +
-
 
       '<button ' +
 
@@ -6648,247 +7385,32 @@ function mostrarCoincidenciasFlotantesMulti_(
 
     '</div>' +
 
-
     '<div class="multiFloatContenido">' +
-
 
       '<div class="multiFloatAyuda">' +
 
-        'Estos son los productos del inventario ' +
-        'que más se parecen al artículo identificado por IA.' +
+        'Productos del inventario que podrían corresponder a esta lectura.' +
 
-      '</div>';
+      '</div>' +
 
+      contenidoTabla +
 
-  /**********************************************************
-   * EXISTEN COINCIDENCIAS
-   **********************************************************/
-  if (
-    candidatos.length
-  ) {
+      (
+        MODO === 'VENTA' &&
+        !candidatos.length
 
-    html +=
+        ? (
+            '<div class="multiFloatAyuda" style="margin-top:10px">' +
 
-      '<div class="multiFloatTableWrap">' +
+              'En Venta debes seleccionar un producto existente.' +
 
-        '<table class="multiFloatTable">' +
+            '</div>'
+          )
 
-
-          '<thead>' +
-
-            '<tr>' +
-
-              '<th>Producto</th>' +
-
-              '<th>Marca / Modelo</th>' +
-
-              '<th>Código</th>' +
-
-              '<th>Stock</th>' +
-
-              '<th></th>' +
-
-            '</tr>' +
-
-          '</thead>' +
-
-
-          '<tbody>';
-
-
-    candidatos.forEach(
-      function(candidato) {
-
-        const seleccionado =
-          String(
-            item.idProducto || ''
-          ) ===
-          String(
-            candidato.id || ''
-          );
-
-
-        const detalle =
-          [
-            candidato.marca,
-            candidato.modeloVariante
-          ]
-          .filter(Boolean)
-          .join(
-            ' · '
-          );
-
-
-        const idCodificado =
-          encodeURIComponent(
-            String(
-              candidato.id || ''
-            )
-          );
-
-
-        html +=
-
-          '<tr>' +
-
-
-            '<td class="multiFloatProducto">' +
-
-              escapeHtml(
-                candidato.producto || ''
-              ) +
-
-            '</td>' +
-
-
-            '<td class="multiFloatDetalle">' +
-
-              escapeHtml(
-                detalle || ''
-              ) +
-
-            '</td>' +
-
-
-            '<td>' +
-
-              escapeHtml(
-                candidato.codigoSerie || ''
-              ) +
-
-            '</td>' +
-
-
-            '<td class="multiFloatStock">' +
-
-              escapeHtml(
-                String(
-                  candidato.existencia || 0
-                )
-              ) +
-
-            '</td>' +
-
-
-            '<td>' +
-
-              '<button ' +
-
-                'type="button" ' +
-
-                'class="multiFloatSeleccion ' +
-
-                (
-                  seleccionado
-
-                  ? 'seleccionado'
-
-                  : ''
-                ) +
-
-                '" ' +
-
-                'onclick="seleccionarCoincidenciaFlotanteMulti_(' +
-
-                  index +
-
-                  ',decodeURIComponent(\'' +
-
-                  idCodificado +
-
-                  '\'))"' +
-
-              '>' +
-
-                (
-                  seleccionado
-
-                  ? '✓ Seleccionado'
-
-                  : 'Seleccionar'
-                ) +
-
-              '</button>' +
-
-            '</td>' +
-
-
-          '</tr>';
-      }
-    );
-
-
-    html +=
-
-          '</tbody>' +
-
-        '</table>' +
-
-      '</div>';
-
-  } else {
-
-    /********************************************************
-     * SIN COINCIDENCIAS
-     ********************************************************/
-    html +=
-
-      '<div class="multiFloatSinCoincidencias">' +
-
-        'No encontré productos coincidentes ' +
-        'en el inventario.' +
-
-      '</div>';
-  }
-
-
-  /**********************************************************
-   * PRODUCTO NUEVO
-   *
-   * EN VENTA NO SE PERMITE.
-   **********************************************************/
-  if (
-    MODO !== 'VENTA'
-  ) {
-
-    html +=
-
-      '<button ' +
-
-        'type="button" ' +
-
-        'class="multiFloatNuevo" ' +
-
-        'onclick="seleccionarNuevoFlotanteMulti_(' +
-        index +
-        ')"' +
-
-      '>' +
-
-        '🆕 Es un producto nuevo' +
-
-      '</button>';
-
-  } else {
-
-    html +=
-
-      '<div class="multiFloatAyuda" style="margin-top:10px">' +
-
-        'En Venta debes seleccionar un producto ' +
-        'que ya exista en el inventario.' +
-
-      '</div>';
-  }
-
-
-  html +=
+        : ''
+      ) +
 
     '</div>';
-
-
-  panel.innerHTML =
-    html;
 
 
   panel
@@ -6900,34 +7422,7 @@ function mostrarCoincidenciasFlotantesMulti_(
 
 
 /************************************************************
- * CERRAR TABLA FLOTANTE
- ************************************************************/
-function cerrarCoincidenciasFlotantesMulti_() {
-
-  const panel =
-    document.getElementById(
-      'multiCoincidenciaFlotante'
-    );
-
-
-  if (!panel) {
-
-    return;
-  }
-
-
-  panel
-    .classList
-    .remove(
-      'visible'
-    );
-}
-
-
-/************************************************************
- * ==========================================================
- * SELECCIONAR PRODUCTO EXISTENTE
- * ==========================================================
+ * SELECCIONAR EXISTENTE - VARIOS
  ************************************************************/
 function seleccionarCoincidenciaFlotanteMulti_(
   index,
@@ -6941,7 +7436,6 @@ function seleccionarCoincidenciaFlotanteMulti_(
 
 
   if (!item) {
-
     return;
   }
 
@@ -6976,33 +7470,30 @@ function seleccionarCoincidenciaFlotanteMulti_(
   }
 
 
-  /**********************************************************
-   * MARCAR COMO EXISTENTE
-   **********************************************************/
   item.idProducto =
     candidato.id;
 
-
   item.idSugerido =
     candidato.id;
-
 
   item.existencia =
     Number(
       candidato.existencia || 0
     );
 
-
   item.estado =
     'EXISTENTE';
-
 
   item._candidatoExistente =
     candidato;
 
 
   /**********************************************************
-   * LLENAR ESA MISMA FILA
+   * AHORA SÍ:
+   *
+   * el usuario escogió la coincidencia,
+   * por lo que llenamos la fila
+   * con la ficha real del inventario.
    **********************************************************/
   setValor(
     'multi_producto_' +
@@ -7010,13 +7501,11 @@ function seleccionarCoincidenciaFlotanteMulti_(
     candidato.producto
   );
 
-
   setValor(
     'multi_categoria_' +
     index,
     candidato.categoria
   );
-
 
   setValor(
     'multi_marca_' +
@@ -7024,13 +7513,11 @@ function seleccionarCoincidenciaFlotanteMulti_(
     candidato.marca
   );
 
-
   setValor(
     'multi_modelo_' +
     index,
     candidato.modeloVariante
   );
-
 
   setValor(
     'multi_codigo_' +
@@ -7054,9 +7541,6 @@ function seleccionarCoincidenciaFlotanteMulti_(
   }
 
 
-  /**********************************************************
-   * COSTO
-   **********************************************************/
   const costo =
     document.getElementById(
       'multi_costo_' +
@@ -7077,9 +7561,6 @@ function seleccionarCoincidenciaFlotanteMulti_(
   }
 
 
-  /**********************************************************
-   * PRECIO
-   **********************************************************/
   let precio =
     Number(
       candidato.precio || 0
@@ -7105,9 +7586,7 @@ function seleccionarCoincidenciaFlotanteMulti_(
     index,
 
     precio > 0
-
     ? precio
-
     : ''
   );
 
@@ -7116,9 +7595,7 @@ function seleccionarCoincidenciaFlotanteMulti_(
     index
   );
 
-
   actualizarResumenMulti_();
-
 
   cerrarCoincidenciasFlotantesMulti_();
 
@@ -7130,9 +7607,7 @@ function seleccionarCoincidenciaFlotanteMulti_(
 
 
 /************************************************************
- * ==========================================================
- * CONFIRMAR QUE ES PRODUCTO NUEVO
- * ==========================================================
+ * PRODUCTO NUEVO - VARIOS
  ************************************************************/
 function seleccionarNuevoFlotanteMulti_(
   index
@@ -7143,7 +7618,7 @@ function seleccionarNuevoFlotanteMulti_(
   ) {
 
     toast(
-      'En Venta no puedes crear un producto nuevo.'
+      'En Venta debes seleccionar un producto existente.'
     );
 
     return;
@@ -7157,7 +7632,6 @@ function seleccionarNuevoFlotanteMulti_(
 
 
   if (!item) {
-
     return;
   }
 
@@ -7165,24 +7639,48 @@ function seleccionarNuevoFlotanteMulti_(
   item.idProducto =
     '';
 
-
   item.idSugerido =
     '';
 
-
   item.estado =
     'NUEVO';
-
 
   item._candidatoExistente =
     null;
 
 
   /**********************************************************
-   * RESTAURAR LO QUE IDENTIFICÓ IA
+   * VOLVER A DATOS IA
    **********************************************************/
   restaurarOriginalMulti_(
     index
+  );
+
+
+  /**********************************************************
+   * COSTO / PRECIO:
+   *
+   * evitar arrastrar los valores
+   * de un producto existente.
+   **********************************************************/
+  const costo =
+    document.getElementById(
+      'multi_costo_' +
+      index
+    );
+
+
+  if (costo) {
+
+    costo.value =
+      '';
+  }
+
+
+  setValor(
+    'multi_precio_' +
+    index,
+    ''
   );
 
 
@@ -7190,9 +7688,7 @@ function seleccionarNuevoFlotanteMulti_(
     index
   );
 
-
   actualizarResumenMulti_();
-
 
   cerrarCoincidenciasFlotantesMulti_();
 
@@ -7201,8 +7697,7 @@ function seleccionarNuevoFlotanteMulti_(
     '🆕 Se registrará como producto nuevo.'
   );
 }
-
-
+  
 /************************************************************
  * RESTAURAR INFORMACIÓN ORIGINAL DE IA
  ************************************************************/
@@ -7881,6 +8376,9 @@ function buscarConEspera() {
 /************************************************************
  * DATOS ACTUALES DEL FORMULARIO
  ************************************************************/
+/************************************************************
+ * DATOS ACTUALES DEL FORMULARIO
+ ************************************************************/
 function obtenerDatosFormulario() {
 
   const fecha =
@@ -7924,7 +8422,9 @@ function obtenerDatosFormulario() {
 
 
   if (
-    !isFinite(cantidad) ||
+    !isFinite(
+      cantidad
+    ) ||
     cantidad <= 0
   ) {
 
@@ -7937,7 +8437,31 @@ function obtenerDatosFormulario() {
 
 
   /**********************************************************
-   * VENTA SIEMPRE REQUIERE PRODUCTO EXISTENTE
+   * SI HAY COINCIDENCIAS Y AÚN NO DECIDIÓ
+   **********************************************************/
+  if (
+    PRODUCTO_IA_ORIGINAL &&
+    !PRODUCTO_ID &&
+    PRODUCTO_DECISION ===
+    'REVISAR'
+  ) {
+
+    toast(
+      '⚠️ Selecciona una coincidencia o indica que es producto nuevo.'
+    );
+
+
+    mostrarCoincidenciasFlotantesUno_();
+
+
+    return null;
+  }
+
+
+  /**********************************************************
+   * VENTA:
+   *
+   * siempre producto existente
    **********************************************************/
   if (
     MODO === 'VENTA' &&
@@ -7948,13 +8472,21 @@ function obtenerDatosFormulario() {
       'Para vender selecciona un producto existente.'
     );
 
+
+    if (
+      PRODUCTO_IA_ORIGINAL
+    ) {
+
+      mostrarCoincidenciasFlotantesUno_();
+    }
+
+
     return null;
   }
 
 
   /**********************************************************
-   * EVITAR SOBREVENTA INCLUYENDO LO QUE YA ESTÁ
-   * DENTRO DEL CARRITO.
+   * STOCK
    **********************************************************/
   if (
     MODO === 'VENTA'
@@ -7977,7 +8509,6 @@ function obtenerDatosFormulario() {
             );
           }
 
-
           return total;
         },
         0
@@ -7991,9 +8522,13 @@ function obtenerDatosFormulario() {
     ) {
 
       toast(
+
         'Stock insuficiente. Disponible: ' +
+
         PRODUCTO_EXISTENCIA +
+
         ' · Ya en carrito: ' +
+
         yaEnCarrito
       );
 
@@ -8007,42 +8542,53 @@ function obtenerDatosFormulario() {
     tipo:
       MODO,
 
+
     fecha:
       fecha,
+
 
     idProducto:
       PRODUCTO_ID,
 
+
     producto:
       producto,
+
 
     categoria:
       valor(
         'categoria'
       ),
 
+
     marca:
       valor(
         'marca'
       ),
+
 
     modeloVariante:
       valor(
         'modelo'
       ),
 
+
     codigoSerie:
       valor(
         'codigo'
       ),
 
-  unidad:
-  valor(
-    'unidad'
-  ) || 'Unidad',
 
-cantidad:
-  cantidad,
+    unidad:
+      valor(
+        'unidad'
+      ) ||
+      'Unidad',
+
+
+    cantidad:
+      cantidad,
+
 
     costoUnitario:
       Number(
@@ -8051,6 +8597,7 @@ cantidad:
         )
       ) || 0,
 
+
     precioVenta:
       Number(
         valor(
@@ -8058,15 +8605,27 @@ cantidad:
         )
       ) || 0,
 
+
     imagenData:
       FOTO_DATA,
 
+
+    /********************************************************
+     * SI EL USUARIO MARCÓ
+     * "ES PRODUCTO NUEVO"
+     *
+     * no queremos que el servidor
+     * lo vuelva a unir automáticamente.
+     ********************************************************/
     forceNew:
-      false
+      (
+        PRODUCTO_DECISION ===
+        'NUEVO' &&
+        MODO !== 'VENTA'
+      )
   };
 }
-
-
+  
 /************************************************************
  * BOTÓN PRINCIPAL
  ************************************************************/
@@ -9933,6 +10492,16 @@ function limpiar() {
   PRODUCTOS_MULTI =
     [];
 
+ PRODUCTO_IA_ORIGINAL =
+  null;
+
+PRODUCTO_COINCIDENCIAS =
+  [];
+
+PRODUCTO_DECISION =
+  '';
+
+cerrarCoincidenciasFlotantesMulti_(); 
 
   [
     'producto',
