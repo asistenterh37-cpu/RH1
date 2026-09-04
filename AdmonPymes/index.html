@@ -5765,6 +5765,10 @@ function enviarMovimiento(
     );
 
 
+  const textoOriginal =
+    btn.textContent;
+
+
   btn.disabled =
     true;
 
@@ -5773,16 +5777,16 @@ function enviarMovimiento(
     true;
 
 
-  const texto =
-    btn.textContent;
-
-
   btn.textContent =
-    'Verificando...';
+    'Guardando en Google...';
 
 
   google.script.run
 
+
+    /**********************************************************
+     * ÉXITO
+     **********************************************************/
     .withSuccessHandler(
       function(r) {
 
@@ -5795,11 +5799,21 @@ function enviarMovimiento(
 
 
         btn.textContent =
-          texto;
+          textoOriginal;
+
+
+        if (!r) {
+
+          toast(
+            '⚠️ El servidor no devolvió respuesta.'
+          );
+
+          return;
+        }
 
 
         /******************************************************
-         * POSIBLE DUPLICADO
+         * DUPLICADO
          ******************************************************/
         if (
           r.requiresConfirmation
@@ -5808,19 +5822,25 @@ function enviarMovimiento(
           PENDING_DATA =
             datos;
 
+
           PENDING_OPTIONS =
             opciones;
 
+
           PENDING_CART_INDEX =
             -1;
+
 
           PENDING_CART_TIPO =
             '';
 
 
           mostrarDuplicadosServidor(
+
             r.candidates || [],
+
             r.aiReason || '',
+
             r.aiConfidence || 0
           );
 
@@ -5829,11 +5849,41 @@ function enviarMovimiento(
         }
 
 
+        /******************************************************
+         * VERIFICACIÓN REAL DEL GUARDADO
+         ******************************************************/
+        if (
+          r.ok !== true
+        ) {
+
+          toast(
+            '⚠️ El servidor no confirmó el registro.'
+          );
+
+          return;
+        }
+
+
+        if (
+          !r.filaGuardada
+        ) {
+
+          toast(
+            '⚠️ El servidor respondió, pero no confirmó la fila guardada.'
+          );
+
+          return;
+        }
+
+
         let mensaje =
 
-          '✅ ' +
-          r.mensaje +
-          ' Existencia: ' +
+          '✅ Guardado correctamente en Base · Fila ' +
+
+          r.filaGuardada +
+
+          ' · Existencia: ' +
+
           r.existencia;
 
 
@@ -5842,7 +5892,7 @@ function enviarMovimiento(
         ) {
 
           mensaje +=
-            ' · Se encontró y utilizó automáticamente el producto existente.';
+            ' · Producto existente reconocido.';
         }
 
 
@@ -5860,12 +5910,12 @@ function enviarMovimiento(
         );
 
 
+        /******************************************************
+         * LIMPIAR SOLO DESPUÉS DE CONFIRMAR GUARDADO
+         ******************************************************/
         limpiar();
 
 
-        /******************************************************
-         * GUARDAR Y SIGUIENTE
-         ******************************************************/
         if (
           opciones.siguiente
         ) {
@@ -5879,9 +5929,7 @@ function enviarMovimiento(
                 );
 
 
-              if (
-                camara
-              ) {
+              if (camara) {
 
                 camara.scrollIntoView(
                   {
@@ -5901,6 +5949,10 @@ function enviarMovimiento(
       }
     )
 
+
+    /**********************************************************
+     * ERROR
+     **********************************************************/
     .withFailureHandler(
       function(e) {
 
@@ -5913,22 +5965,32 @@ function enviarMovimiento(
 
 
         btn.textContent =
-          texto;
+          textoOriginal;
 
 
-        errorServidor(
-          e
+        const mensaje =
+          e &&
+          e.message
+
+          ? e.message
+
+          : String(e);
+
+
+        toast(
+          '❌ NO SE GUARDÓ: ' +
+          mensaje
         );
       }
     )
+
 
     .guardarMovimiento(
       APP_PIN,
       datos
     );
 }
-
-/************************************************************
+  /************************************************************
  * DUPLICADOS DETECTADOS POR SERVIDOR
  ************************************************************/
 function mostrarDuplicadosServidor(
