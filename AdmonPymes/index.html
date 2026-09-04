@@ -4779,6 +4779,25 @@ function aplicarIA(r) {
  * MOSTRAR VARIOS PRODUCTOS
  * ==========================================================
  ************************************************************/
+/************************************************************
+ * ==========================================================
+ * MOSTRAR VARIOS PRODUCTOS
+ *
+ * IMPORTANTE:
+ *
+ * NO mostramos productos que la IA + inventario
+ * ya reconocieron automáticamente.
+ *
+ * Solamente mostramos:
+ *
+ * - REVISAR
+ * - NUEVO
+ * - NO_EXISTE en Venta
+ *
+ * Los EXISTENTE permanecen en PRODUCTOS_MULTI
+ * y se registrarán automáticamente.
+ * ==========================================================
+ ************************************************************/
 function mostrarResultadoMultiple(
   r
 ) {
@@ -4799,6 +4818,12 @@ function mostrarResultadoMultiple(
     : [];
 
 
+  /**********************************************************
+   * CONSERVAMOS TODOS LOS PRODUCTOS.
+   *
+   * Aunque una fila no sea visible,
+   * el producto sigue aquí para registrarlo.
+   **********************************************************/
   PRODUCTOS_MULTI =
     lista.map(
       function(item) {
@@ -4837,6 +4862,44 @@ function mostrarResultadoMultiple(
         };
 
 
+        /******************************************************
+         * SI FUE RECONOCIDO AUTOMÁTICAMENTE,
+         * guardamos también sus datos del catálogo.
+         ******************************************************/
+        if (
+          copia.estado ===
+          'EXISTENTE'
+        ) {
+
+          const candidato =
+            (
+              copia.coincidencias || []
+            )
+            .find(
+              function(x) {
+
+                return (
+                  x.id ===
+                  copia.idSugerido
+                );
+              }
+            );
+
+
+          if (candidato) {
+
+            copia.idProducto =
+              candidato.id;
+
+
+            copia.existencia =
+              Number(
+                candidato.existencia || 0
+              );
+          }
+        }
+
+
         return copia;
       }
     );
@@ -4854,6 +4917,32 @@ function mostrarResultadoMultiple(
     );
 
 
+  const contador =
+    document.getElementById(
+      'multiContador'
+    );
+
+
+  const resumen =
+    document.getElementById(
+      'resumenMulti'
+    );
+
+
+  const analisis =
+    document.getElementById(
+      'analisis'
+    );
+
+
+  const titulo =
+    cont
+      ? cont.querySelector(
+          '.multiHeader strong'
+        )
+      : null;
+
+
   document
     .getElementById(
       'coincidencias'
@@ -4862,43 +4951,280 @@ function mostrarResultadoMultiple(
     '';
 
 
+  /**********************************************************
+   * NO IDENTIFICÓ NADA
+   **********************************************************/
   if (
     !PRODUCTOS_MULTI.length
   ) {
 
     cont
       .classList
-      .remove(
+      .add(
         'hidden'
       );
-
-
-    document
-      .getElementById(
-        'multiContador'
-      )
-      .textContent =
-      '0';
-
-
-    document
-      .getElementById(
-        'resumenMulti'
-      )
-      .innerHTML =
-
-      'No pude identificar productos con suficiente claridad. ' +
-      'Acércate un poco más y toma otra fotografía.';
 
 
     caja.innerHTML =
       '';
 
 
+    contador.textContent =
+      '0';
+
+
+    resumen.innerHTML =
+      '';
+
+
+    analisis.innerHTML =
+
+      '⚠️ No pude identificar productos ' +
+      'con suficiente claridad.<br>' +
+
+      'Acércate un poco más y toma otra fotografía.';
+
+
+    analisis.style.display =
+      'block';
+
+
     actualizarVistaIdentificacion_();
 
     return;
   }
+
+
+  /**********************************************************
+   * =========================================================
+   * CLASIFICAR
+   * =========================================================
+   **********************************************************/
+  const pendientes =
+    [];
+
+
+  let automaticos =
+    0;
+
+
+  let nuevos =
+    0;
+
+
+  let revisar =
+    0;
+
+
+  let unidadesTotales =
+    0;
+
+
+  PRODUCTOS_MULTI.forEach(
+    function(item,index) {
+
+      unidadesTotales +=
+        Math.max(
+          1,
+          Math.round(
+            Number(
+              item.cantidadDetectada || 1
+            )
+          )
+        );
+
+
+      /******************************************************
+       * EXISTENTE:
+       *
+       * ya fue reconocido con suficiente seguridad.
+       *
+       * NO LO MOSTRAMOS.
+       ******************************************************/
+      if (
+        item.estado ===
+        'EXISTENTE'
+      ) {
+
+        automaticos++;
+
+        return;
+      }
+
+
+      /******************************************************
+       * NUEVO:
+       *
+       * sí necesita que el usuario vea/revise los datos.
+       ******************************************************/
+      if (
+        item.estado ===
+        'NUEVO'
+      ) {
+
+        nuevos++;
+
+
+        pendientes.push({
+          item:
+            item,
+
+          index:
+            index
+        });
+
+
+        return;
+      }
+
+
+      /******************************************************
+       * REVISAR / NO EXISTE:
+       *
+       * necesita intervención.
+       ******************************************************/
+      revisar++;
+
+
+      pendientes.push({
+        item:
+          item,
+
+        index:
+          index
+      });
+    }
+  );
+
+
+  /**********************************************************
+   * RESUMEN GENERAL DE IA
+   **********************************************************/
+  analisis.innerHTML =
+
+    '✨ IA identificó <strong>' +
+
+    PRODUCTOS_MULTI.length +
+
+    '</strong> producto(s) diferente(s) · ' +
+
+    '<strong>' +
+
+    unidadesTotales +
+
+    '</strong> unidades visibles.<br>' +
+
+
+    (
+      automaticos > 0
+
+      ? (
+          '✅ <strong>' +
+          automaticos +
+          '</strong> reconocido(s) automáticamente.'
+        )
+
+      : ''
+    ) +
+
+
+    (
+      nuevos > 0
+
+      ? (
+          (
+            automaticos > 0
+            ? '<br>'
+            : ''
+          ) +
+
+          '🆕 <strong>' +
+          nuevos +
+          '</strong> producto(s) nuevo(s).'
+        )
+
+      : ''
+    ) +
+
+
+    (
+      revisar > 0
+
+      ? (
+          (
+            automaticos > 0 ||
+            nuevos > 0
+            ? '<br>'
+            : ''
+          ) +
+
+          '⚠️ <strong>' +
+          revisar +
+          '</strong> requiere(n) revisar coincidencia.'
+        )
+
+      : ''
+    );
+
+
+  analisis.style.display =
+    'block';
+
+
+  /**********************************************************
+   * =========================================================
+   * SI NO HAY NADA QUE REVISAR:
+   *
+   * NO MOSTRAMOS TABLA.
+   * =========================================================
+   **********************************************************/
+  if (
+    !pendientes.length
+  ) {
+
+    caja.innerHTML =
+      '';
+
+
+    contador.textContent =
+      '0';
+
+
+    resumen.innerHTML =
+      '';
+
+
+    cont
+      .classList
+      .add(
+        'hidden'
+      );
+
+
+    actualizarVistaIdentificacion_();
+
+    actualizarBotonGuardarMulti_();
+
+
+    return;
+  }
+
+
+  /**********************************************************
+   * SOLO SI EXISTE ALGO QUE REVISAR
+   * MOSTRAMOS LA TABLA.
+   **********************************************************/
+  if (titulo) {
+
+    titulo.textContent =
+      '⚠️ Productos que requieren atención';
+  }
+
+
+  contador.textContent =
+    String(
+      pendientes.length
+    );
 
 
   const fecha =
@@ -4917,61 +5243,33 @@ function mostrarResultadoMultiple(
     '';
 
 
-  PRODUCTOS_MULTI.forEach(
-    function(item,index) {
+  /**********************************************************
+   * =========================================================
+   * SOLO RECORREMOS PENDIENTES
+   * =========================================================
+   **********************************************************/
+  pendientes.forEach(
+    function(registro) {
 
-      const sugerida =
-        (
-          item.coincidencias || []
-        )
-        .find(
-          function(candidato) {
-
-            return (
-              candidato.id ===
-              item.idSugerido
-            );
-          }
-        ) ||
-        null;
+      const item =
+        registro.item;
 
 
+      const index =
+        registro.index;
+
+
+      /******************************************************
+       * La IA es la base para NUEVO / REVISAR.
+       ******************************************************/
       const base =
-        sugerida ||
         item;
-
-
-      if (sugerida) {
-
-        item.idProducto =
-          sugerida.id;
-
-
-        item.existencia =
-          Number(
-            sugerida.existencia || 0
-          );
-      }
 
 
       let precio =
         Number(
           base.precio || 0
         );
-
-
-      if (
-        MODO === 'VENTA' &&
-        Number(
-          base.ultimoPrecioVenta || 0
-        ) > 0
-      ) {
-
-        precio =
-          Number(
-            base.ultimoPrecioVenta
-          );
-      }
 
 
       const costo =
@@ -4993,62 +5291,69 @@ function mostrarResultadoMultiple(
 
       const clase =
 
-        item.estado === 'EXISTENTE'
+        item.estado === 'NUEVO'
 
-        ? 'filaMultiOk'
+        ? 'filaMultiNuevo'
 
-        : item.estado === 'NUEVO'
+        : item.estado === 'NO_EXISTE'
 
-          ? 'filaMultiNuevo'
+          ? 'filaMultiError'
 
-          : item.estado === 'NO_EXISTE'
-
-            ? 'filaMultiError'
-
-            : 'filaMultiRevision';
+          : 'filaMultiRevision';
 
 
       filas +=
 
         '<tr ' +
+
           'id="multi_fila_' +
           index +
           '" ' +
+
           'class="' +
           clase +
           '"' +
+
         '>' +
 
 
-        /******************************************************
+        /****************************************************
          * INCLUIR
-         ******************************************************/
+         ****************************************************/
         '<td class="multiCheckCelda colIncluir">' +
 
           '<input ' +
+
             'id="multi_usar_' +
             index +
             '" ' +
+
             'type="checkbox" ' +
+
             'checked ' +
+
             'onchange="actualizarResumenMulti_()"' +
+
           '>' +
 
         '</td>' +
 
 
-        /******************************************************
-         * ESTADO / CONFIRMACIÓN
-         ******************************************************/
+        /****************************************************
+         * ESTADO / CONFIRMAR
+         ****************************************************/
         '<td class="colEstado">' +
 
           '<select ' +
+
             'id="multi_estado_' +
             index +
             '" ' +
+
             'onchange="cambiarCoincidenciaMulti_(' +
             index +
             ')"' +
+
           '>' +
 
             construirSelectorEstadoMulti_(
@@ -5060,129 +5365,151 @@ function mostrarResultadoMultiple(
         '</td>' +
 
 
-        /******************************************************
+        /****************************************************
          * FECHA
-         ******************************************************/
+         ****************************************************/
         '<td class="colFecha">' +
 
           '<input ' +
+
             'id="multi_fecha_' +
             index +
             '" ' +
+
             'type="date" ' +
+
             'value="' +
             escapeHtml(
               fecha
             ) +
             '"' +
+
           '>' +
 
         '</td>' +
 
 
-        /******************************************************
+        /****************************************************
          * PRODUCTO
-         ******************************************************/
+         ****************************************************/
         '<td class="colProducto">' +
 
           '<input ' +
+
             'id="multi_producto_' +
             index +
             '" ' +
+
             'value="' +
             escapeHtml(
               base.producto || ''
             ) +
             '"' +
+
           '>' +
 
         '</td>' +
 
 
-        /******************************************************
+        /****************************************************
          * CATEGORÍA
-         ******************************************************/
+         ****************************************************/
         '<td class="colCategoria">' +
 
           '<input ' +
+
             'id="multi_categoria_' +
             index +
             '" ' +
+
             'value="' +
             escapeHtml(
               base.categoria || ''
             ) +
             '"' +
+
           '>' +
 
         '</td>' +
 
 
-        /******************************************************
+        /****************************************************
          * MARCA
-         ******************************************************/
+         ****************************************************/
         '<td class="colMarca">' +
 
           '<input ' +
+
             'id="multi_marca_' +
             index +
             '" ' +
+
             'value="' +
             escapeHtml(
               base.marca || ''
             ) +
             '"' +
+
           '>' +
 
         '</td>' +
 
 
-        /******************************************************
+        /****************************************************
          * MODELO
-         ******************************************************/
+         ****************************************************/
         '<td class="colModelo">' +
 
           '<input ' +
+
             'id="multi_modelo_' +
             index +
             '" ' +
+
             'value="' +
             escapeHtml(
               base.modeloVariante || ''
             ) +
             '"' +
+
           '>' +
 
         '</td>' +
 
 
-        /******************************************************
+        /****************************************************
          * CÓDIGO
-         ******************************************************/
+         ****************************************************/
         '<td class="colCodigo">' +
 
           '<input ' +
+
             'id="multi_codigo_' +
             index +
             '" ' +
+
             'value="' +
             escapeHtml(
               base.codigoSerie || ''
             ) +
             '"' +
+
           '>' +
 
         '</td>' +
 
 
-        /******************************************************
+        /****************************************************
          * UNIDAD
-         ******************************************************/
+         ****************************************************/
         '<td class="colUnidad">' +
 
           '<select ' +
+
             'id="multi_unidad_' +
             index +
+            '"' +
+
           '>' +
 
             construirOpcionesUnidadMulti_(
@@ -5195,52 +5522,70 @@ function mostrarResultadoMultiple(
         '</td>' +
 
 
-        /******************************************************
+        /****************************************************
          * CANTIDAD
-         ******************************************************/
+         ****************************************************/
         '<td class="colCantidad">' +
 
           '<input ' +
+
             'id="multi_cantidad_' +
             index +
             '" ' +
+
             'type="number" ' +
+
             'inputmode="decimal" ' +
+
             'min="0.01" ' +
+
             'step="any" ' +
+
             'value="' +
             cantidad +
             '" ' +
+
             'oninput="actualizarResumenMulti_()"' +
+
           '>' +
 
         '</td>' +
 
 
-        /******************************************************
+        /****************************************************
          * COSTO
-         ******************************************************/
+         ****************************************************/
         (
           mostrarCosto
 
           ? (
+
               '<td class="colCosto">' +
 
                 '<input ' +
+
                   'id="multi_costo_' +
                   index +
                   '" ' +
+
                   'type="number" ' +
+
                   'inputmode="decimal" ' +
+
                   'min="0" ' +
+
                   'step="any" ' +
+
                   'value="' +
+
                   (
                     costo > 0
                     ? costo
                     : ''
                   ) +
+
                   '"' +
+
                 '>' +
 
               '</td>'
@@ -5250,26 +5595,35 @@ function mostrarResultadoMultiple(
         ) +
 
 
-        /******************************************************
+        /****************************************************
          * PRECIO
-         ******************************************************/
+         ****************************************************/
         '<td class="colPrecio">' +
 
           '<input ' +
+
             'id="multi_precio_' +
             index +
             '" ' +
+
             'type="number" ' +
+
             'inputmode="decimal" ' +
+
             'min="0" ' +
+
             'step="any" ' +
+
             'value="' +
+
             (
               precio > 0
               ? precio
               : ''
             ) +
+
             '"' +
+
           '>' +
 
         '</td>' +
@@ -5280,55 +5634,70 @@ function mostrarResultadoMultiple(
   );
 
 
+  /**********************************************************
+   * TABLA
+   **********************************************************/
   caja.innerHTML =
 
     '<div class="multiTableWrap">' +
 
       '<table class="multiTable">' +
 
+
         '<thead>' +
 
           '<tr>' +
+
 
             '<th class="colIncluir">' +
               'Incluir' +
             '</th>' +
 
+
             '<th class="colEstado">' +
               'Estado / Confirmar' +
             '</th>' +
+
 
             '<th class="colFecha">' +
               'Fecha' +
             '</th>' +
 
+
             '<th class="colProducto">' +
               'Producto' +
             '</th>' +
+
 
             '<th class="colCategoria">' +
               'Categoría' +
             '</th>' +
 
+
             '<th class="colMarca">' +
               'Marca' +
             '</th>' +
+
 
             '<th class="colModelo">' +
               'Modelo / Variante' +
             '</th>' +
 
+
             '<th class="colCodigo">' +
               'Código / Serie' +
             '</th>' +
+
 
             '<th class="colUnidad">' +
               'Unidad' +
             '</th>' +
 
+
             '<th class="colCantidad">' +
               'Cantidad' +
             '</th>' +
+
 
             (
               mostrarCosto
@@ -5342,9 +5711,11 @@ function mostrarResultadoMultiple(
               : ''
             ) +
 
+
             '<th class="colPrecio">' +
               'Precio venta' +
             '</th>' +
+
 
           '</tr>' +
 
@@ -5363,6 +5734,9 @@ function mostrarResultadoMultiple(
     '</div>';
 
 
+  /**********************************************************
+   * MOSTRAR SOLAMENTE PORQUE EXISTEN PENDIENTES
+   **********************************************************/
   cont
     .classList
     .remove(
@@ -5391,8 +5765,6 @@ function mostrarResultadoMultiple(
     100
   );
 }
-
-
 /************************************************************
  * SELECTOR DE COINCIDENCIA
  ************************************************************/
@@ -6072,6 +6444,13 @@ function actualizarClaseFilaMulti_(
 /************************************************************
  * RESUMEN
  ************************************************************/
+/************************************************************
+ * ==========================================================
+ * RESUMEN DE VARIOS
+ *
+ * Los EXISTENTE pueden estar ocultos.
+ * ==========================================================
+ ************************************************************/
 function actualizarResumenMulti_() {
 
   const box =
@@ -6095,15 +6474,11 @@ function actualizarResumenMulti_() {
   }
 
 
-  let incluidos =
+  let automaticos =
     0;
 
 
-  let unidades =
-    0;
-
-
-  let listos =
+  let nuevos =
     0;
 
 
@@ -6111,9 +6486,21 @@ function actualizarResumenMulti_() {
     0;
 
 
+  let excluidos =
+    0;
+
+
+  let unidades =
+    0;
+
+
   PRODUCTOS_MULTI.forEach(
     function(item,index) {
 
+      /******************************************************
+       * SI HAY CHECK,
+       * ESTA ES UNA FILA VISIBLE.
+       ******************************************************/
       const check =
         document.getElementById(
           'multi_usar_' +
@@ -6126,13 +6513,18 @@ function actualizarResumenMulti_() {
         !check.checked
       ) {
 
+        excluidos++;
+
         return;
       }
 
 
-      incluidos++;
-
-
+      /******************************************************
+       * CANTIDAD:
+       *
+       * visible -> valor editado
+       * oculta  -> cantidad IA
+       ******************************************************/
       const inputCantidad =
         document.getElementById(
           'multi_cantidad_' +
@@ -6143,52 +6535,127 @@ function actualizarResumenMulti_() {
       unidades +=
         Number(
           inputCantidad
+
           ? inputCantidad.value
+
           : item.cantidadDetectada || 0
         ) || 0;
 
 
+      /******************************************************
+       * CLASIFICACIÓN ACTUAL
+       ******************************************************/
       if (
-        item.estado === 'EXISTENTE' ||
-        item.estado === 'NUEVO'
+        item.estado ===
+        'EXISTENTE'
       ) {
 
-        listos++;
+        automaticos++;
 
-      } else {
-
-        revisar++;
+        return;
       }
+
+
+      if (
+        item.estado ===
+        'NUEVO'
+      ) {
+
+        nuevos++;
+
+        return;
+      }
+
+
+      revisar++;
     }
   );
 
 
+  const pendientes =
+    nuevos +
+    revisar;
+
+
+  /**********************************************************
+   * EL CONTADOR ES SOLAMENTE LO QUE
+   * NECESITA ATENCIÓN.
+   **********************************************************/
   contador.textContent =
     String(
-      incluidos
+      pendientes
     );
 
 
   box.innerHTML =
 
-    '✨ <strong>' +
-    incluidos +
-    '</strong> producto(s) seleccionado(s) · ' +
+    (
+      automaticos > 0
 
-    '<strong>' +
-    unidades +
-    '</strong> unidades visibles · ' +
+      ? (
+          '✅ <strong>' +
+          automaticos +
+          '</strong> reconocido(s) automáticamente'
+        )
 
-    '✅ ' +
-    listos +
-    ' listo(s)' +
+      : ''
+    ) +
+
+
+    (
+      nuevos > 0
+
+      ? (
+          (
+            automaticos > 0
+            ? ' · '
+            : ''
+          ) +
+
+          '🆕 <strong>' +
+          nuevos +
+          '</strong> nuevo(s)'
+        )
+
+      : ''
+    ) +
+
 
     (
       revisar > 0
 
-      ? ' · ⚠ ' +
-        revisar +
-        ' por revisar'
+      ? (
+          (
+            automaticos > 0 ||
+            nuevos > 0
+            ? ' · '
+            : ''
+          ) +
+
+          '⚠️ <strong>' +
+          revisar +
+          '</strong> por revisar'
+        )
+
+      : ''
+    ) +
+
+
+    '<br>' +
+
+    '🔢 <strong>' +
+    unidades +
+    '</strong> unidades seleccionadas' +
+
+
+    (
+      excluidos > 0
+
+      ? (
+          ' · ' +
+          excluidos +
+          ' excluido(s)'
+        )
 
       : ''
     );
@@ -6870,6 +7337,19 @@ function valorMulti_(
 /************************************************************
  * PREPARAR VARIOS PRODUCTOS
  ************************************************************/
+/************************************************************
+ * ==========================================================
+ * PREPARAR VARIOS PRODUCTOS
+ *
+ * SOPORTA:
+ *
+ * 1. EXISTENTES AUTOMÁTICOS SIN FILA VISIBLE.
+ *
+ * 2. NUEVOS CON FILA VISIBLE.
+ *
+ * 3. REVISAR CON FILA VISIBLE.
+ * ==========================================================
+ ************************************************************/
 function obtenerDatosMultiples_() {
 
   if (
@@ -6888,12 +7368,192 @@ function obtenerDatosMultiples_() {
     [];
 
 
+  const fechaGeneral =
+    valor(
+      'fechaMovimiento'
+    ) ||
+    fechaHoyISO();
+
+
+  /**********************************************************
+   * RECORRER TODOS,
+   * INCLUSO LOS QUE NO ESTÁN VISIBLES.
+   **********************************************************/
   for (
     let index = 0;
     index < PRODUCTOS_MULTI.length;
     index++
   ) {
 
+    const item =
+      PRODUCTOS_MULTI[
+        index
+      ];
+
+
+    const fila =
+      document.getElementById(
+        'multi_fila_' +
+        index
+      );
+
+
+    /**********************************************************
+     * =========================================================
+     * CASO 1
+     *
+     * NO EXISTE FILA EN PANTALLA.
+     *
+     * Significa que fue reconocido automáticamente
+     * como producto EXISTENTE.
+     * =========================================================
+     **********************************************************/
+    if (!fila) {
+
+      if (
+        item.estado !==
+        'EXISTENTE'
+      ) {
+
+        toast(
+          '⚠️ Hay un producto pendiente que no pude mostrar correctamente.'
+        );
+
+        return null;
+      }
+
+
+      const candidato =
+        (
+          item.coincidencias || []
+        )
+        .find(
+          function(x) {
+
+            return (
+              x.id ===
+              item.idSugerido
+            );
+          }
+        );
+
+
+      if (!candidato) {
+
+        toast(
+          '⚠️ No pude recuperar el producto existente reconocido automáticamente.'
+        );
+
+        return null;
+      }
+
+
+      /******************************************************
+       * PRECIO EXISTENTE
+       ******************************************************/
+      let precio =
+        Number(
+          candidato.precio || 0
+        );
+
+
+      if (
+        MODO === 'VENTA' &&
+        Number(
+          candidato.ultimoPrecioVenta || 0
+        ) > 0
+      ) {
+
+        precio =
+          Number(
+            candidato.ultimoPrecioVenta
+          );
+      }
+
+
+      /******************************************************
+       * AGREGAR DIRECTAMENTE.
+       ******************************************************/
+      items.push({
+
+        tipo:
+          MODO,
+
+
+        fecha:
+          fechaGeneral,
+
+
+        idProducto:
+          candidato.id,
+
+
+        producto:
+          candidato.producto,
+
+
+        categoria:
+          candidato.categoria || '',
+
+
+        marca:
+          candidato.marca || '',
+
+
+        modeloVariante:
+          candidato.modeloVariante || '',
+
+
+        codigoSerie:
+          candidato.codigoSerie || '',
+
+
+        unidad:
+          candidato.unidad ||
+          'Unidad',
+
+
+        cantidad:
+          Math.max(
+            1,
+            Number(
+              item.cantidadDetectada || 1
+            )
+          ),
+
+
+        costoUnitario:
+          Number(
+            candidato.costo || 0
+          ),
+
+
+        precioVenta:
+          precio,
+
+
+        imagenData:
+          '',
+
+
+        forceNew:
+          false
+      });
+
+
+      continue;
+    }
+
+
+    /**********************************************************
+     * =========================================================
+     * CASO 2
+     *
+     * EXISTE FILA VISIBLE.
+     *
+     * NUEVO / REVISAR / NO_EXISTE
+     * =========================================================
+     **********************************************************/
     const check =
       document.getElementById(
         'multi_usar_' +
@@ -6901,6 +7561,9 @@ function obtenerDatosMultiples_() {
       );
 
 
+    /**********************************************************
+     * EL USUARIO LO EXCLUYÓ.
+     **********************************************************/
     if (
       check &&
       !check.checked
@@ -6919,69 +7582,94 @@ function obtenerDatosMultiples_() {
 
     const seleccion =
       selector
+
       ? selector.value
+
       : '';
 
 
-    /********************************************************
-     * NO CONFIRMADO
-     ********************************************************/
+    /**********************************************************
+     * REVISAR TODAVÍA SIN RESOLVER
+     **********************************************************/
     if (!seleccion) {
 
       toast(
-        '⚠️ Revisa la coincidencia del producto ' +
+
+        '⚠️ Revisa la coincidencia de "' +
+
         (
-          index + 1
+          item.producto ||
+          (
+            'producto ' +
+            (
+              index + 1
+            )
+          )
         ) +
-        '.'
+
+        '".'
       );
 
 
-      const fila =
-        document.getElementById(
-          'multi_fila_' +
-          index
-        );
+      fila.scrollIntoView({
 
+        behavior:
+          'smooth',
 
-      if (fila) {
-
-        fila.scrollIntoView({
-
-          behavior:
-            'smooth',
-
-          block:
-            'center'
-        });
-      }
+        block:
+          'center'
+      });
 
 
       return null;
     }
 
 
+    /**********************************************************
+     * PRODUCTO NUEVO
+     **********************************************************/
     const idProducto =
-      seleccion === 'NUEVO'
+
+      seleccion ===
+      'NUEVO'
 
       ? ''
 
       : seleccion;
 
 
+    /**********************************************************
+     * VENTA:
+     *
+     * nunca puede crear un producto nuevo.
+     **********************************************************/
     if (
       MODO === 'VENTA' &&
       !idProducto
     ) {
 
       toast(
-        'Para vender, cada fila debe corresponder a un producto existente.'
+        'Para vender, cada producto debe corresponder a un producto existente.'
       );
+
+
+      fila.scrollIntoView({
+
+        behavior:
+          'smooth',
+
+        block:
+          'center'
+      });
+
 
       return null;
     }
 
 
+    /**********************************************************
+     * DATOS EDITADOS
+     **********************************************************/
     const producto =
       valorMulti_(
         'multi_producto_' +
@@ -7001,10 +7689,13 @@ function obtenerDatosMultiples_() {
     if (!producto) {
 
       toast(
-        'Falta el producto en la fila ' +
+
+        'Falta el nombre del producto en la fila ' +
+
         (
           index + 1
         ) +
+
         '.'
       );
 
@@ -7020,34 +7711,42 @@ function obtenerDatosMultiples_() {
     ) {
 
       toast(
-        'Cantidad inválida en la fila ' +
-        (
-          index + 1
-        ) +
-        '.'
+
+        'Cantidad inválida en "' +
+
+        producto +
+
+        '".'
       );
 
       return null;
     }
 
 
+    /**********************************************************
+     * AGREGAR FILA VISIBLE
+     **********************************************************/
     items.push({
 
       tipo:
         MODO,
+
 
       fecha:
         valorMulti_(
           'multi_fecha_' +
           index
         ) ||
-        fechaHoyISO(),
+        fechaGeneral,
+
 
       idProducto:
         idProducto,
 
+
       producto:
         producto,
+
 
       categoria:
         valorMulti_(
@@ -7055,11 +7754,13 @@ function obtenerDatosMultiples_() {
           index
         ),
 
+
       marca:
         valorMulti_(
           'multi_marca_' +
           index
         ),
+
 
       modeloVariante:
         valorMulti_(
@@ -7067,11 +7768,13 @@ function obtenerDatosMultiples_() {
           index
         ),
 
+
       codigoSerie:
         valorMulti_(
           'multi_codigo_' +
           index
         ),
+
 
       unidad:
         valorMulti_(
@@ -7080,8 +7783,10 @@ function obtenerDatosMultiples_() {
         ) ||
         'Unidad',
 
+
       cantidad:
         cantidad,
+
 
       costoUnitario:
         Number(
@@ -7090,6 +7795,7 @@ function obtenerDatosMultiples_() {
             index
           )
         ) || 0,
+
 
       precioVenta:
         Number(
@@ -7100,22 +7806,18 @@ function obtenerDatosMultiples_() {
         ) || 0,
 
 
-      /*
-       * Una fotografía con varios artículos
-       * NO debe convertirse en la foto principal
-       * de cada producto.
-       */
+      /******************************************************
+       * FOTO GENERAL:
+       *
+       * no se usa como imagen individual.
+       ******************************************************/
       imagenData:
         '',
 
 
-      /*
-       * Si el usuario confirmó NUEVO,
-       * no volvemos a preguntarle por coincidencias débiles.
-       *
-       * Código exacto todavía queda protegido
-       * en el GS.
-       */
+      /******************************************************
+       * NUEVO CONFIRMADO POR USUARIO.
+       ******************************************************/
       forceNew:
         (
           !idProducto &&
@@ -7125,12 +7827,15 @@ function obtenerDatosMultiples_() {
   }
 
 
+  /**********************************************************
+   * NINGUNO SELECCIONADO
+   **********************************************************/
   if (
     !items.length
   ) {
 
     toast(
-      'Selecciona por lo menos un producto.'
+      'No hay productos seleccionados para registrar.'
     );
 
     return null;
@@ -7139,8 +7844,7 @@ function obtenerDatosMultiples_() {
 
   return items;
 }
-
-
+  
 /************************************************************
  * GUARDAR VARIOS
  ************************************************************/
