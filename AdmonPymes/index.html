@@ -4856,12 +4856,154 @@ function aplicarIA(r) {
  * 10 productos por fotografía.
  * ==========================================================
  ************************************************************/
+/************************************************************
+ * ==========================================================
+ * MOSTRAR VARIOS PRODUCTOS
+ *
+ * MOSTRAR:
+ *
+ * ✅ EXISTENTE
+ * ⚠️ REVISAR COINCIDENCIA
+ * 🆕 PRODUCTO NUEVO
+ *
+ * NO MOSTRAR:
+ *
+ * - producto vacío
+ * - "sin producto"
+ * - "vacío"
+ * - "no identificado"
+ * - "ninguno"
+ * - N/A
+ * - NUEVO sin nombre de producto
+ * - NO_EXISTE
+ *
+ * MÁXIMO 10 PRODUCTOS POR FOTO.
+ * ==========================================================
+ ************************************************************/
 function mostrarResultadoMultiple(
   r
 ) {
 
   /**********************************************************
-   * RESPUESTA ORIGINAL DE IA
+   * =========================================================
+   * VALIDAR QUE REALMENTE EXISTA UN PRODUCTO
+   * =========================================================
+   **********************************************************/
+  function esProductoReal_(
+    valorProducto
+  ) {
+
+    let producto =
+      String(
+        valorProducto || ''
+      )
+      .trim()
+      .replace(
+        /\s+/g,
+        ' '
+      );
+
+
+    /******************************************************
+     * VACÍO
+     ******************************************************/
+    if (!producto) {
+
+      return false;
+    }
+
+
+    /******************************************************
+     * NORMALIZAR PARA DETECTAR TEXTOS
+     * QUE NO SON PRODUCTOS REALES
+     ******************************************************/
+    const normalizado =
+      producto
+        .toLowerCase()
+        .normalize(
+          'NFD'
+        )
+        .replace(
+          /[\u0300-\u036f]/g,
+          ''
+        )
+        .trim();
+
+
+    const noProductos = [
+
+      'sin producto',
+
+      'sin productos',
+
+      'vacio',
+
+      'vacia',
+
+      'no identificado',
+
+      'no identificada',
+
+      'producto no identificado',
+
+      'producto no identificable',
+
+      'ninguno',
+
+      'ninguna',
+
+      'n/a',
+
+      'na',
+
+      'null',
+
+      'undefined',
+
+      'producto',
+
+      'articulo desconocido',
+
+      'producto desconocido'
+    ];
+
+
+    if (
+      noProductos.indexOf(
+        normalizado
+      ) !== -1
+    ) {
+
+      return false;
+    }
+
+
+    /******************************************************
+     * SI SOLAMENTE TIENE SÍMBOLOS,
+     * TAMPOCO ES PRODUCTO.
+     ******************************************************/
+    const caracteresReales =
+      normalizado
+        .replace(
+          /[^a-z0-9]/g,
+          ''
+        );
+
+
+    if (!caracteresReales) {
+
+      return false;
+    }
+
+
+    return true;
+  }
+
+
+  /**********************************************************
+   * =========================================================
+   * RESPUESTA DE IA
+   * =========================================================
    **********************************************************/
   const listaOriginal =
     (
@@ -4881,10 +5023,16 @@ function mostrarResultadoMultiple(
 
   /**********************************************************
    * =========================================================
-   * FILTRO 1
+   * FILTRO PRINCIPAL
    *
-   * ELIMINAR TODO LO QUE NO TENGA
-   * UN NOMBRE REAL DE PRODUCTO.
+   * PRIMERO ELIMINAMOS TODO LO QUE
+   * NO SEA UN PRODUCTO REAL.
+   *
+   * ESTO TAMBIÉN IMPIDE:
+   *
+   * NUEVO + producto vacío
+   *
+   * NUEVO + "Sin producto"
    * =========================================================
    **********************************************************/
   const listaConProducto =
@@ -4897,29 +5045,16 @@ function mostrarResultadoMultiple(
         }
 
 
-        const producto =
-          String(
-            item.producto || ''
-          )
-          .trim();
-
-
-        if (!producto) {
-
-          return false;
-        }
-
-
-        return true;
+        return esProductoReal_(
+          item.producto
+        );
       }
     );
 
 
   /**********************************************************
    * =========================================================
-   * FILTRO 2
-   *
-   * SOLAMENTE TRABAJAMOS CON:
+   * SOLO ESTOS ESTADOS SE VAN A MOSTRAR
    *
    * EXISTENTE
    * REVISAR
@@ -4971,7 +5106,11 @@ function mostrarResultadoMultiple(
           String(
             item.producto || ''
           )
-          .trim();
+          .trim()
+          .replace(
+            /\s+/g,
+            ' '
+          );
 
 
         copia.idProducto =
@@ -4980,7 +5119,7 @@ function mostrarResultadoMultiple(
 
 
         /******************************************************
-         * DATOS ORIGINALES DE IA
+         * GUARDAR DATOS ORIGINALES DE IA
          ******************************************************/
         copia._original = {
 
@@ -5007,9 +5146,10 @@ function mostrarResultadoMultiple(
 
         /******************************************************
          * =====================================================
-         * EXISTENTE
+         * PRODUCTO EXISTENTE
          *
-         * RECUPERAR LA FICHA REAL DEL INVENTARIO.
+         * RECUPERAMOS LA FICHA REAL
+         * DEL INVENTARIO.
          * =====================================================
          ******************************************************/
         if (
@@ -5044,6 +5184,10 @@ function mostrarResultadoMultiple(
               );
 
 
+            /*
+             * Guardamos la ficha para
+             * utilizarla al construir la fila.
+             */
             copia._candidatoExistente =
               candidato;
           }
@@ -5099,7 +5243,7 @@ function mostrarResultadoMultiple(
 
 
   /**********************************************************
-   * LIMPIAR COINCIDENCIAS DEL MODO UN PRODUCTO
+   * LIMPIAR RESULTADOS DE MODO UNO
    **********************************************************/
   document
     .getElementById(
@@ -5111,11 +5255,11 @@ function mostrarResultadoMultiple(
 
   /**********************************************************
    * =========================================================
-   * SI IA NO IDENTIFICÓ NINGÚN PRODUCTO REAL
+   * NINGÚN PRODUCTO REAL IDENTIFICADO
    * =========================================================
    **********************************************************/
   if (
-    !listaConProducto.length
+    !PRODUCTOS_MULTI.length
   ) {
 
     PRODUCTOS_MULTI =
@@ -5144,7 +5288,7 @@ function mostrarResultadoMultiple(
     analisis.innerHTML =
 
       '⚠️ No pude identificar ningún producto ' +
-      'con suficiente claridad.<br>' +
+      'válido con suficiente claridad.<br>' +
 
       'Acércate un poco más y toma otra fotografía.';
 
@@ -5165,14 +5309,14 @@ function mostrarResultadoMultiple(
 
   /**********************************************************
    * =========================================================
-   * CONTADORES
+   * PREPARAR PRODUCTOS VISIBLES
    * =========================================================
    **********************************************************/
+  const visibles =
+    [];
+
+
   let existentes =
-    0;
-
-
-  let nuevos =
     0;
 
 
@@ -5180,35 +5324,28 @@ function mostrarResultadoMultiple(
     0;
 
 
-  let unidadesTotales =
+  let nuevos =
     0;
 
 
-  /**********************************************************
-   * =========================================================
-   * PRODUCTOS QUE REALMENTE VAN A MOSTRARSE
-   * =========================================================
-   **********************************************************/
-  const visibles =
-    [];
+  let unidadesTotales =
+    0;
 
 
   PRODUCTOS_MULTI.forEach(
     function(item,index) {
 
       /******************************************************
-       * BLINDAJE:
+       * SEGURIDAD EXTRA
        *
-       * nuevamente comprobamos nombre.
+       * NI SIQUIERA UN NUEVO PUEDE ENTRAR
+       * SI NO TIENE PRODUCTO REAL.
        ******************************************************/
-      const producto =
-        String(
-          item.producto || ''
+      if (
+        !esProductoReal_(
+          item.producto
         )
-        .trim();
-
-
-      if (!producto) {
+      ) {
 
         return;
       }
@@ -5231,8 +5368,6 @@ function mostrarResultadoMultiple(
       /******************************************************
        * =====================================================
        * EXISTENTE
-       *
-       * AHORA SÍ LO MOSTRAMOS.
        * =====================================================
        ******************************************************/
       if (
@@ -5259,39 +5394,9 @@ function mostrarResultadoMultiple(
 
       /******************************************************
        * =====================================================
-       * NUEVO
+       * REVISAR COINCIDENCIA
        *
-       * MOSTRAR.
-       * =====================================================
-       ******************************************************/
-      if (
-        item.estado ===
-        'NUEVO'
-      ) {
-
-        nuevos++;
-
-
-        visibles.push({
-
-          item:
-            item,
-
-          index:
-            index
-        });
-
-
-        return;
-      }
-
-
-      /******************************************************
-       * =====================================================
-       * REVISAR
-       *
-       * SOLAMENTE MOSTRAR SI REALMENTE
-       * EXISTE POR LO MENOS UNA COINCIDENCIA.
+       * SOLO SI TIENE CANDIDATOS.
        * =====================================================
        ******************************************************/
       if (
@@ -5328,6 +5433,46 @@ function mostrarResultadoMultiple(
           index:
             index
         });
+
+
+        return;
+      }
+
+
+      /******************************************************
+       * =====================================================
+       * NUEVO PRODUCTO
+       *
+       * SOLO ENTRA SI REALMENTE
+       * TIENE NOMBRE DE PRODUCTO.
+       * =====================================================
+       ******************************************************/
+      if (
+        item.estado ===
+        'NUEVO'
+      ) {
+
+        if (
+          !esProductoReal_(
+            item.producto
+          )
+        ) {
+
+          return;
+        }
+
+
+        nuevos++;
+
+
+        visibles.push({
+
+          item:
+            item,
+
+          index:
+            index
+        });
       }
     }
   );
@@ -5335,7 +5480,56 @@ function mostrarResultadoMultiple(
 
   /**********************************************************
    * =========================================================
-   * RESUMEN GENERAL
+   * SI DESPUÉS DE LOS FILTROS
+   * NO QUEDÓ NADA
+   * =========================================================
+   **********************************************************/
+  if (
+    !visibles.length
+  ) {
+
+    caja.innerHTML =
+      '';
+
+
+    contador.textContent =
+      '0';
+
+
+    resumen.innerHTML =
+      '';
+
+
+    cont
+      .classList
+      .add(
+        'hidden'
+      );
+
+
+    analisis.innerHTML =
+
+      '⚠️ La IA analizó la fotografía, ' +
+      'pero no encontró productos válidos para mostrar.';
+
+
+    analisis.style.display =
+      'block';
+
+
+    actualizarVistaIdentificacion_();
+
+
+    actualizarBotonGuardarMulti_();
+
+
+    return;
+  }
+
+
+  /**********************************************************
+   * =========================================================
+   * RESUMEN
    * =========================================================
    **********************************************************/
   let mensaje =
@@ -5344,24 +5538,22 @@ function mostrarResultadoMultiple(
 
     visibles.length +
 
-    '</strong> producto(s) válido(s)';
+    '</strong> producto(s) válido(s)' +
 
 
-  if (
-    unidadesTotales > 0
-  ) {
+    (
+      unidadesTotales > 0
 
-    mensaje +=
+      ? (
+          ' · <strong>' +
+          unidadesTotales +
+          '</strong> unidades visibles'
+        )
 
-      ' · <strong>' +
-
-      unidadesTotales +
-
-      '</strong> unidades visibles';
-  }
+      : ''
+    ) +
 
 
-  mensaje +=
     '.';
 
 
@@ -5378,7 +5570,7 @@ function mostrarResultadoMultiple(
 
       existentes +
 
-      '</strong> producto(s) existente(s).';
+      '</strong> existente(s).';
   }
 
 
@@ -5395,7 +5587,7 @@ function mostrarResultadoMultiple(
 
       revisar +
 
-      '</strong> producto(s) requieren revisar coincidencia.';
+      '</strong> por revisar coincidencia.';
   }
 
 
@@ -5425,47 +5617,7 @@ function mostrarResultadoMultiple(
 
 
   /**********************************************************
-   * =========================================================
-   * SI NO QUEDÓ NINGUNA FILA VÁLIDA
-   *
-   * NO MOSTRAR TABLA VACÍA.
-   * =========================================================
-   **********************************************************/
-  if (
-    !visibles.length
-  ) {
-
-    caja.innerHTML =
-      '';
-
-
-    contador.textContent =
-      '0';
-
-
-    resumen.innerHTML =
-      '';
-
-
-    cont
-      .classList
-      .add(
-        'hidden'
-      );
-
-
-    actualizarVistaIdentificacion_();
-
-
-    actualizarBotonGuardarMulti_();
-
-
-    return;
-  }
-
-
-  /**********************************************************
-   * TÍTULO
+   * TITULO DE LA TABLA
    **********************************************************/
   if (titulo) {
 
@@ -5498,7 +5650,7 @@ function mostrarResultadoMultiple(
 
   /**********************************************************
    * =========================================================
-   * CREAR FILAS
+   * CONSTRUIR FILAS
    * =========================================================
    **********************************************************/
   visibles.forEach(
@@ -5513,16 +5665,15 @@ function mostrarResultadoMultiple(
 
 
       /******************************************************
-       * NOMBRE REAL
+       * ÚLTIMA PROTECCIÓN
+       *
+       * NO CREAR FILA VACÍA.
        ******************************************************/
-      const nombreIA =
-        String(
-          item.producto || ''
+      if (
+        !esProductoReal_(
+          item.producto
         )
-        .trim();
-
-
-      if (!nombreIA) {
+      ) {
 
         return;
       }
@@ -5530,14 +5681,13 @@ function mostrarResultadoMultiple(
 
       /******************************************************
        * =====================================================
-       * SI ES EXISTENTE:
+       * PRODUCTO EXISTENTE
        *
-       * USAMOS LOS DATOS REALES DEL PRODUCTO
-       * QUE YA ESTÁ EN INVENTARIO.
+       * UTILIZA DATOS REALES DEL INVENTARIO.
        *
-       * PARA NUEVO / REVISAR:
+       * NUEVO / REVISAR
        *
-       * USAMOS LOS DATOS IDENTIFICADOS POR IA.
+       * UTILIZA DATOS DE IA.
        * =====================================================
        ******************************************************/
       const candidato =
@@ -5553,27 +5703,33 @@ function mostrarResultadoMultiple(
       const nombreProducto =
         String(
           base.producto ||
-          nombreIA
+          item.producto ||
+          ''
         )
-        .trim();
+        .trim()
+        .replace(
+          /\s+/g,
+          ' '
+        );
 
 
       /******************************************************
-       * NUEVO BLINDAJE:
-       *
-       * JAMÁS FILA VACÍA.
+       * NUNCA CREAR UNA FILA
+       * SIN NOMBRE REAL.
        ******************************************************/
-      if (!nombreProducto) {
+      if (
+        !esProductoReal_(
+          nombreProducto
+        )
+      ) {
 
         return;
       }
 
 
       /******************************************************
-       * CANTIDAD DETECTADA
-       *
-       * SIEMPRE VIENE DE LA FOTO.
-       ********************************************************/
+       * CANTIDAD VIENE DE LA FOTO
+       ******************************************************/
       const cantidad =
         Math.max(
           1,
@@ -5645,9 +5801,7 @@ function mostrarResultadoMultiple(
 
 
       /********************************************************
-       * =======================================================
        * FILA
-       * =======================================================
        ********************************************************/
       filas +=
 
@@ -5825,7 +5979,7 @@ function mostrarResultadoMultiple(
 
 
         /******************************************************
-         * CÓDIGO / SERIE
+         * CÓDIGO
          ******************************************************/
         '<td class="colCodigo">' +
 
@@ -5927,7 +6081,9 @@ function mostrarResultadoMultiple(
 
                   (
                     costo > 0
+
                     ? costo
+
                     : ''
                   ) +
 
@@ -5965,7 +6121,9 @@ function mostrarResultadoMultiple(
 
             (
               precio > 0
+
               ? precio
+
               : ''
             ) +
 
@@ -5983,9 +6141,7 @@ function mostrarResultadoMultiple(
 
   /**********************************************************
    * =========================================================
-   * SEGURIDAD:
-   *
-   * SI NO SE CREÓ NINGUNA FILA,
+   * SI NO SE CONSTRUYÓ NINGUNA FILA
    * NO MOSTRAR TABLA VACÍA.
    * =========================================================
    **********************************************************/
@@ -6093,9 +6249,7 @@ function mostrarResultadoMultiple(
               ? (
 
                   '<th class="colCosto">' +
-
                     'Costo unitario' +
-
                   '</th>'
                 )
 
@@ -6126,7 +6280,7 @@ function mostrarResultadoMultiple(
 
 
   /**********************************************************
-   * MOSTRAR
+   * MOSTRAR RESULTADO
    **********************************************************/
   cont
     .classList
