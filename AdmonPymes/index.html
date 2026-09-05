@@ -4225,6 +4225,849 @@ td.colProducto {
 
 <script>
 
+/************************************************************
+ * ==========================================================
+ * ADMÓNPYMES
+ *
+ * PUENTE:
+ *
+ * GITHUB PAGES
+ *       ↓
+ * APPS SCRIPT BACKEND
+ *
+ * La aplicación ahora puede abrirse directamente
+ * desde GitHub Pages.
+ *
+ * NO es necesario modificar las llamadas existentes:
+ *
+ * google.script.run
+ *
+ * Este puente las intercepta y las envía al backend
+ * de Apps Script mediante un iframe invisible.
+ * ==========================================================
+ ************************************************************/
+
+
+/************************************************************
+ * ==========================================================
+ * URL DEL BACKEND
+ *
+ * IMPORTANTE:
+ *
+ * Aquí debes pegar UNA SOLA VEZ
+ * tu URL /exec actual de Apps Script.
+ *
+ * Ejemplo:
+ *
+ * https://script.google.com/macros/s/XXXXXXXXXXXX/exec
+ *
+ * Esta URL ya NO será la que abrirá el usuario.
+ * Queda únicamente como backend oculto.
+ * ==========================================================
+ ************************************************************/
+const ADMONPYMES_BACKEND_URL =
+  'https://script.google.com/macros/s/AKfycbwuuyceUKCcXRzDk7Ud3N6C6E_7bVj-08YVoeBoDCQJjoqcTA-k-YMLUacSASoEHWH5OA/exec';
+
+
+/************************************************************
+ * ==========================================================
+ * INSTALAR PUENTE GOOGLE.SCRIPT.RUN
+ * ==========================================================
+ ************************************************************/
+(function instalarPuenteAdmPymes() {
+
+  /**********************************************************
+   * IDENTIFICADOR ÚNICO DE ESTA SESIÓN
+   **********************************************************/
+  function crearClavePuente_() {
+
+    try {
+
+      const valores =
+        new Uint32Array(
+          4
+        );
+
+      crypto
+        .getRandomValues(
+          valores
+        );
+
+      return Array
+        .from(
+          valores
+        )
+        .map(
+          function(n) {
+
+            return n
+              .toString(16)
+              .padStart(
+                8,
+                '0'
+              );
+          }
+        )
+        .join('');
+
+    } catch(error) {
+
+      return (
+        Date.now()
+          .toString(36)
+        +
+        Math.random()
+          .toString(36)
+          .slice(2)
+        +
+        Math.random()
+          .toString(36)
+          .slice(2)
+      );
+    }
+  }
+
+
+  const BRIDGE_KEY =
+    crearClavePuente_();
+
+
+  let bridgeIframe =
+    null;
+
+
+  let bridgeWindow =
+    null;
+
+
+  let bridgeOrigin =
+    '*';
+
+
+  let bridgeReady =
+    false;
+
+
+  let contadorRPC =
+    0;
+
+
+  const pendientes =
+    {};
+
+
+  const cola =
+    [];
+
+
+  /**********************************************************
+   * VALIDAR CONFIGURACIÓN
+   **********************************************************/
+  function backendConfigurado_() {
+
+    return (
+
+      ADMONPYMES_BACKEND_URL &&
+      ADMONPYMES_BACKEND_URL
+        .indexOf(
+          'https://script.google.com/macros/s/'
+        ) === 0 &&
+      ADMONPYMES_BACKEND_URL
+        .indexOf(
+          '/exec'
+        ) !== -1
+
+    );
+  }
+
+
+  /**********************************************************
+   * CREAR IFRAME INVISIBLE
+   *
+   * NO usamos display:none para evitar que algunos
+   * navegadores suspendan el iframe.
+   **********************************************************/
+  function crearIframeBridge_() {
+
+    if (
+      bridgeIframe
+    ) {
+
+      return;
+    }
+
+
+    if (
+      !backendConfigurado_()
+    ) {
+
+      console.error(
+        'AdmónPymes: falta configurar ADMONPYMES_BACKEND_URL.'
+      );
+
+      return;
+    }
+
+
+    bridgeIframe =
+      document.createElement(
+        'iframe'
+      );
+
+
+    bridgeIframe.id =
+      'admonpymesBackendBridge';
+
+
+    bridgeIframe.setAttribute(
+      'aria-hidden',
+      'true'
+    );
+
+
+    bridgeIframe.style.position =
+      'fixed';
+
+
+    bridgeIframe.style.width =
+      '1px';
+
+
+    bridgeIframe.style.height =
+      '1px';
+
+
+    bridgeIframe.style.left =
+      '-10000px';
+
+
+    bridgeIframe.style.top =
+      '-10000px';
+
+
+    bridgeIframe.style.opacity =
+      '0';
+
+
+    bridgeIframe.style.border =
+      '0';
+
+
+    bridgeIframe.style.pointerEvents =
+      'none';
+
+
+    bridgeIframe.src =
+
+      ADMONPYMES_BACKEND_URL +
+
+      '?bridge=1' +
+
+      '&key=' +
+
+      encodeURIComponent(
+        BRIDGE_KEY
+      ) +
+
+      '&t=' +
+
+      Date.now();
+
+
+    document.body.appendChild(
+      bridgeIframe
+    );
+  }
+
+
+  /**********************************************************
+   * ENVIAR MENSAJE REAL AL BACKEND
+   **********************************************************/
+  function enviarMensaje_(
+    mensaje
+  ) {
+
+    if (
+      !bridgeReady ||
+      !bridgeWindow
+    ) {
+
+      cola.push(
+        mensaje
+      );
+
+      return;
+    }
+
+
+    try {
+
+      bridgeWindow.postMessage(
+        mensaje,
+        bridgeOrigin
+      );
+
+    } catch(error) {
+
+      bridgeWindow.postMessage(
+        mensaje,
+        '*'
+      );
+    }
+  }
+
+
+  /**********************************************************
+   * VACIAR COLA CUANDO EL BACKEND ESTÁ LISTO
+   **********************************************************/
+  function vaciarCola_() {
+
+    while (
+      cola.length
+    ) {
+
+      const mensaje =
+        cola.shift();
+
+
+      enviarMensaje_(
+        mensaje
+      );
+    }
+  }
+
+
+  /**********************************************************
+   * RECIBIR RESPUESTAS DESDE APPS SCRIPT
+   **********************************************************/
+  window.addEventListener(
+    'message',
+
+    function(event) {
+
+      const mensaje =
+        event.data || {};
+
+
+      /******************************************************
+       * SOLAMENTE MENSAJES DE NUESTRO PUENTE
+       ******************************************************/
+      if (
+        mensaje.bridgeKey !==
+        BRIDGE_KEY
+      ) {
+
+        return;
+      }
+
+
+      /******************************************************
+       * APPS SCRIPT AVISA QUE ESTÁ LISTO
+       *
+       * event.source es MUY importante:
+       *
+       * guardamos directamente la ventana interna
+       * donde sí existe google.script.run.
+       ******************************************************/
+      if (
+        mensaje.type ===
+        'ADMONPYMES_BRIDGE_READY'
+      ) {
+
+        bridgeWindow =
+          event.source;
+
+
+        bridgeOrigin =
+          event.origin || '*';
+
+
+        bridgeReady =
+          true;
+
+
+        vaciarCola_();
+
+
+        return;
+      }
+
+
+      /******************************************************
+       * RESPUESTA DE UNA LLAMADA
+       ******************************************************/
+      if (
+        mensaje.type !==
+        'ADMONPYMES_RPC_RESULT'
+      ) {
+
+        return;
+      }
+
+
+      const pendiente =
+        pendientes[
+          mensaje.id
+        ];
+
+
+      if (!pendiente) {
+
+        return;
+      }
+
+
+      clearTimeout(
+        pendiente.timeout
+      );
+
+
+      delete pendientes[
+        mensaje.id
+      ];
+
+
+      /******************************************************
+       * ÉXITO
+       ******************************************************/
+      if (
+        mensaje.ok === true
+      ) {
+
+        if (
+          typeof pendiente.success ===
+          'function'
+        ) {
+
+          try {
+
+            pendiente.success(
+              mensaje.resultado,
+              pendiente.userObject
+            );
+
+          } catch(error) {
+
+            console.error(
+              error
+            );
+          }
+        }
+
+
+        return;
+      }
+
+
+      /******************************************************
+       * ERROR
+       ******************************************************/
+      const error =
+        new Error(
+          mensaje.error ||
+          'Error comunicándose con Apps Script.'
+        );
+
+
+      if (
+        typeof pendiente.failure ===
+        'function'
+      ) {
+
+        pendiente.failure(
+          error,
+          pendiente.userObject
+        );
+
+      } else {
+
+        console.error(
+          error
+        );
+      }
+    }
+  );
+
+
+  /**********************************************************
+   * EJECUTAR UNA FUNCIÓN DE APPS SCRIPT
+   **********************************************************/
+  function ejecutarRPC_(
+    funcion,
+    argumentos,
+    success,
+    failure,
+    userObject
+  ) {
+
+    if (
+      !backendConfigurado_()
+    ) {
+
+      const error =
+        new Error(
+          'Debes configurar ADMONPYMES_BACKEND_URL con tu enlace /exec.'
+        );
+
+
+      if (
+        typeof failure ===
+        'function'
+      ) {
+
+        failure(
+          error,
+          userObject
+        );
+
+      } else {
+
+        console.error(
+          error
+        );
+      }
+
+
+      return;
+    }
+
+
+    contadorRPC++;
+
+
+    const id =
+
+      'rpc_' +
+
+      Date.now() +
+
+      '_' +
+
+      contadorRPC;
+
+
+    const mensaje = {
+
+      type:
+        'ADMONPYMES_RPC',
+
+      bridgeKey:
+        BRIDGE_KEY,
+
+      id:
+        id,
+
+      funcion:
+        funcion,
+
+      argumentos:
+        Array.isArray(
+          argumentos
+        )
+        ? argumentos
+        : []
+
+    };
+
+
+    /********************************************************
+     * TIEMPO MÁXIMO
+     *
+     * Las operaciones con imágenes / OpenAI
+     * pueden tardar más que una consulta normal.
+     ********************************************************/
+    const timeout =
+      setTimeout(
+        function() {
+
+          const pendiente =
+            pendientes[
+              id
+            ];
+
+
+          if (!pendiente) {
+
+            return;
+          }
+
+
+          delete pendientes[
+            id
+          ];
+
+
+          const error =
+            new Error(
+              'El servidor tardó demasiado en responder.'
+            );
+
+
+          if (
+            typeof pendiente.failure ===
+            'function'
+          ) {
+
+            pendiente.failure(
+              error,
+              pendiente.userObject
+            );
+          }
+
+        },
+
+        180000
+      );
+
+
+    pendientes[
+      id
+    ] = {
+
+      success:
+        success,
+
+      failure:
+        failure,
+
+      userObject:
+        userObject,
+
+      timeout:
+        timeout
+
+    };
+
+
+    enviarMensaje_(
+      mensaje
+    );
+  }
+
+
+  /**********************************************************
+   * =========================================================
+   * CREAR UN OBJETO COMPATIBLE CON:
+   *
+   * google.script.run
+   *   .withSuccessHandler(...)
+   *   .withFailureHandler(...)
+   *   .miFuncion(...)
+   *
+   * Esto permite conservar TODO el HTML actual.
+   * =========================================================
+   **********************************************************/
+  function crearRunner_() {
+
+    let success =
+      null;
+
+
+    let failure =
+      null;
+
+
+    let userObject =
+      null;
+
+
+    let proxy =
+      null;
+
+
+    proxy =
+      new Proxy(
+        {},
+
+        {
+
+          get:
+            function(
+              target,
+              propiedad
+            ) {
+
+              /**********************************************
+               * Evitar comportamiento tipo Promise
+               **********************************************/
+              if (
+                propiedad ===
+                'then'
+              ) {
+
+                return undefined;
+              }
+
+
+              /**********************************************
+               * SUCCESS
+               **********************************************/
+              if (
+                propiedad ===
+                'withSuccessHandler'
+              ) {
+
+                return function(
+                  handler
+                ) {
+
+                  success =
+                    handler;
+
+
+                  return proxy;
+                };
+              }
+
+
+              /**********************************************
+               * FAILURE
+               **********************************************/
+              if (
+                propiedad ===
+                'withFailureHandler'
+              ) {
+
+                return function(
+                  handler
+                ) {
+
+                  failure =
+                    handler;
+
+
+                  return proxy;
+                };
+              }
+
+
+              /**********************************************
+               * USER OBJECT
+               **********************************************/
+              if (
+                propiedad ===
+                'withUserObject'
+              ) {
+
+                return function(
+                  objeto
+                ) {
+
+                  userObject =
+                    objeto;
+
+
+                  return proxy;
+                };
+              }
+
+
+              /**********************************************
+               * FUNCIÓN REMOTA
+               **********************************************/
+              if (
+                typeof propiedad ===
+                'symbol'
+              ) {
+
+                return undefined;
+              }
+
+
+              return function() {
+
+                const argumentos =
+                  Array.prototype.slice.call(
+                    arguments
+                  );
+
+
+                ejecutarRPC_(
+                  String(
+                    propiedad
+                  ),
+                  argumentos,
+                  success,
+                  failure,
+                  userObject
+                );
+
+
+                return undefined;
+              };
+            }
+        }
+      );
+
+
+    return proxy;
+  }
+
+
+  /**********************************************************
+   * =========================================================
+   * CREAR GOOGLE.SCRIPT.RUN FALSO
+   *
+   * Desde este punto el resto del HTML puede continuar
+   * usando exactamente el mismo código que ya tiene.
+   * =========================================================
+   **********************************************************/
+  window.google =
+    window.google || {};
+
+
+  window.google.script =
+    window.google.script || {};
+
+
+  Object.defineProperty(
+    window.google.script,
+    'run',
+    {
+
+      configurable:
+        true,
+
+      get:
+        function() {
+
+          return crearRunner_();
+        }
+    }
+  );
+
+
+  /**********************************************************
+   * CREAR PUENTE DESDE EL INICIO
+   **********************************************************/
+  if (
+    document.readyState ===
+    'loading'
+  ) {
+
+    document.addEventListener(
+      'DOMContentLoaded',
+      crearIframeBridge_,
+      {
+        once:
+          true
+      }
+    );
+
+  } else {
+
+    crearIframeBridge_();
+  }
+
+})();
+
+
+/************************************************************
+ * ==========================================================
+ * DESDE AQUÍ CONTINÚA TU CÓDIGO ORIGINAL
+ * ==========================================================
+ ************************************************************/
+
 let APP_PIN = '';
 
 let MODO =
