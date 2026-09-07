@@ -484,7 +484,7 @@
 
 <script>
 const SCRIPT_URL =
-'https://script.google.com/macros/s/AKfycbx9OvpCmeBn08YElzD7T6bvpzVirMUCJvhSpBHXCpywYMSQCzwkkgIxAuTy_o4r_6Ea/exec';
+'https://script.google.com/macros/s/AKfycbyqhV1a1sTKJRzjlGEBlJbWYjvFJZ3rt82bqdUTUOwaPFJ_fc7c5j2S4Y4pOSeFHZwF/exec';
 </script>
 
 <header class="topbar">
@@ -1035,82 +1035,26 @@ function bindEvents(){
     e => {
 
       if(
-        e.target.classList
-        .contains('money-input')
+        e.target.classList.contains('money-input')
       ){
-
         recalc();
       }
 
     }
   );
 
-
-  $('saveBtn')
-  .addEventListener(
+  $('saveBtn').addEventListener(
     'click',
     saveCierre
   );
 
-
-  $('reportBtn')
-  .addEventListener(
+  $('reportBtn').addEventListener(
     'click',
     loadReports
   );
 
-
-  window.addEventListener(
-    'message',
-    event => {
-
-      const data =
-      event.data;
-
-
-      if(
-        !data ||
-        data.source !== 'chombo-cierres'
-      ){
-
-        return;
-      }
-
-
-      if(
-        data.action === 'guardar'
-      ){
-
-        setSaving(false);
-
-
-        if(data.ok){
-
-          toast(
-            data.message ||
-            'Cierre guardado correctamente.',
-            true
-          );
-
-          clearForm();
-
-        }else{
-
-          toast(
-            data.message ||
-            'No se pudo guardar el cierre.',
-            false
-          );
-
-        }
-
-      }
-
-    }
-  );
 }
-
-
+  
 function collectItems(){
 
   return DESCRIPCIONES.map(
@@ -1173,22 +1117,15 @@ function hasAnyData(items){
 }
 
 
-function saveCierre(){
+async function saveCierre(){
 
-  if(
-    !assertScriptUrl()
-  ){
+  if(!assertScriptUrl()){
     return;
   }
 
+  const items = collectItems();
 
-  const items =
-  collectItems();
-
-
-  if(
-    !hasAnyData(items)
-  ){
+  if(!hasAnyData(items)){
 
     toast(
       'Ingresa al menos una entrada, salida u observación.',
@@ -1198,77 +1135,61 @@ function saveCierre(){
     return;
   }
 
-
-  const payload =
-  JSON.stringify({
-    items:items
-  });
-
-
   setSaving(true);
 
+  try{
 
-  const form =
-  document.createElement('form');
+    const payload = JSON.stringify({
+      items: items
+    });
 
-
-  form.method =
-  'POST';
-
-
-  form.action =
-  SCRIPT_URL;
-
-
-  form.target =
-  'chomboBridge';
-
-
-  form.style.display =
-  'none';
-
-
-  addHidden(
-    form,
-    'action',
-    'guardar'
-  );
-
-
-  addHidden(
-    form,
-    'payload',
-    payload
-  );
-
-
-  document.body
-  .appendChild(form);
-
-
-  form.submit();
-
-
-  form.remove();
-
-
-  setTimeout(
-    () => {
-
-      if(
-        $('saveBtn').disabled
-      ){
-
-        setSaving(false);
-
+    const data = await jsonpRequest(
+      'guardar',
+      {
+        payload: payload
       }
+    );
 
-    },
-    15000
-  );
+    if(!data || !data.ok){
+
+      throw new Error(
+        data && data.message
+        ? data.message
+        : 'No se pudo guardar el cierre.'
+      );
+
+    }
+
+    toast(
+      data.message || 'Cierre guardado correctamente.',
+      true
+    );
+
+    // LIMPIAR TODOS LOS CAMPOS DESPUÉS DE GUARDAR
+    clearForm();
+
+  }
+  catch(error){
+
+    console.error(
+      'Error guardando cierre:',
+      error
+    );
+
+    toast(
+      'Error al guardar: ' + error.message,
+      false
+    );
+
+  }
+  finally{
+
+    setSaving(false);
+
+  }
+
 }
-
-
+  
 function addHidden(
   form,
   name,
