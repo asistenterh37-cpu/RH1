@@ -1,1 +1,1958 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Chombo | Cierres diarios</title>
 
+  <style>
+    :root{
+      --bg:#f5f7fb;
+      --card:#ffffff;
+      --text:#172033;
+      --muted:#667085;
+      --line:#d7dce5;
+      --primary:#1769e0;
+      --primary-dark:#0f56bb;
+      --success:#198754;
+      --danger:#c62828;
+      --table:#eeeeee;
+      --shadow:0 10px 28px rgba(16,24,40,.10);
+      --radius:16px;
+    }
+
+    *{
+      box-sizing:border-box;
+    }
+
+    body{
+      margin:0;
+      font-family:Arial, Helvetica, sans-serif;
+      background:var(--bg);
+      color:var(--text);
+    }
+
+    .topbar{
+      position:sticky;
+      top:0;
+      z-index:50;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:20px;
+      padding:12px 22px;
+      background:#fff;
+      border-bottom:1px solid var(--line);
+      box-shadow:0 2px 10px rgba(16,24,40,.05);
+    }
+
+    .brand{
+      font-weight:800;
+      font-size:20px;
+      letter-spacing:.2px;
+      white-space:nowrap;
+    }
+
+    .nav{
+      display:flex;
+      align-items:center;
+      gap:10px;
+    }
+
+    .menu-wrap{
+      position:relative;
+    }
+
+    .menu-btn{
+      border:0;
+      background:#fff;
+      color:var(--text);
+      padding:10px 14px;
+      border-radius:10px;
+      font-weight:700;
+      font-size:15px;
+      cursor:pointer;
+    }
+
+    .menu-btn:hover,
+    .menu-btn.active{
+      background:#eef4ff;
+      color:var(--primary);
+    }
+
+    .dropdown{
+      display:none;
+      position:absolute;
+      right:0;
+      top:calc(100% + 8px);
+      min-width:220px;
+      background:#fff;
+      border:1px solid var(--line);
+      border-radius:12px;
+      box-shadow:var(--shadow);
+      padding:7px;
+      z-index:100;
+    }
+
+    .dropdown.open{
+      display:block;
+    }
+
+    .dropdown button{
+      width:100%;
+      text-align:left;
+      border:0;
+      background:transparent;
+      padding:11px 12px;
+      border-radius:8px;
+      font-size:14px;
+      cursor:pointer;
+    }
+
+    .dropdown button:hover{
+      background:#f2f6ff;
+      color:var(--primary);
+    }
+
+    .container{
+      width:min(1180px, calc(100% - 28px));
+      margin:24px auto 50px;
+    }
+
+    .view{
+      display:none;
+    }
+
+    .view.active{
+      display:block;
+    }
+
+    .card{
+      background:var(--card);
+      border:1px solid #e7eaf0;
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      overflow:hidden;
+    }
+
+    .card-header{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:18px;
+      padding:20px 22px;
+      border-bottom:1px solid var(--line);
+    }
+
+    .card-header h1,
+    .card-header h2{
+      margin:0;
+      font-size:24px;
+    }
+
+    .subtitle{
+      margin-top:5px;
+      color:var(--muted);
+      font-size:14px;
+    }
+
+    .date-chip{
+      background:#eef4ff;
+      color:var(--primary);
+      border-radius:999px;
+      padding:8px 12px;
+      font-weight:700;
+      font-size:13px;
+      white-space:nowrap;
+    }
+
+    .table-scroll{
+      width:100%;
+      overflow-x:auto;
+    }
+
+    table{
+      width:100%;
+      border-collapse:collapse;
+    }
+
+    .cierre-table{
+      min-width:850px;
+      background:var(--table);
+    }
+
+    .cierre-table th,
+    .cierre-table td{
+      border:1px solid #444;
+      padding:7px 9px;
+    }
+
+    .cierre-table th{
+      text-align:center;
+      font-size:15px;
+      font-weight:700;
+      background:#dedede;
+    }
+
+    .cierre-table td:first-child{
+      font-weight:600;
+      min-width:250px;
+    }
+
+    .cierre-table td:nth-child(2),
+    .cierre-table td:nth-child(3){
+      width:150px;
+    }
+
+    .cierre-table td:nth-child(4){
+      min-width:270px;
+    }
+
+    .cell-input{
+      width:100%;
+      min-width:0;
+      border:1px solid #b8bec8;
+      border-radius:7px;
+      background:#fff;
+      padding:8px 9px;
+      font-size:14px;
+      outline:none;
+    }
+
+    .cell-input:focus{
+      border-color:var(--primary);
+      box-shadow:0 0 0 3px rgba(23,105,224,.12);
+    }
+
+    .footer-actions{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:18px;
+      padding:18px 22px;
+      flex-wrap:wrap;
+    }
+
+    .totals{
+      display:flex;
+      gap:20px;
+      flex-wrap:wrap;
+      color:var(--muted);
+      font-size:14px;
+    }
+
+    .totals strong{
+      color:var(--text);
+      font-size:16px;
+    }
+
+    .btn{
+      border:0;
+      border-radius:10px;
+      padding:11px 18px;
+      font-size:14px;
+      font-weight:800;
+      cursor:pointer;
+      transition:.15s ease;
+    }
+
+    .btn:disabled{
+      opacity:.6;
+      cursor:not-allowed;
+    }
+
+    .btn-primary{
+      background:var(--primary);
+      color:#fff;
+    }
+
+    .btn-primary:hover:not(:disabled){
+      background:var(--primary-dark);
+      transform:translateY(-1px);
+    }
+
+    .filters{
+      display:grid;
+      grid-template-columns:1fr 1fr auto;
+      gap:14px;
+      align-items:end;
+      padding:20px 22px;
+      border-bottom:1px solid var(--line);
+    }
+
+    .field label{
+      display:block;
+      margin-bottom:7px;
+      font-size:13px;
+      font-weight:800;
+    }
+
+    .field input{
+      width:100%;
+      border:1px solid #cbd1da;
+      border-radius:9px;
+      padding:10px 12px;
+      font-size:14px;
+      background:#fff;
+    }
+
+    .report-summary{
+      display:grid;
+      grid-template-columns:repeat(3, 1fr);
+      gap:12px;
+      padding:18px 22px 0;
+    }
+
+    .metric{
+      border:1px solid var(--line);
+      border-radius:12px;
+      padding:14px;
+      background:#fafbfc;
+    }
+
+    .metric span{
+      display:block;
+      color:var(--muted);
+      font-size:12px;
+      margin-bottom:4px;
+    }
+
+    .metric strong{
+      font-size:20px;
+    }
+
+    #reportResults{
+      padding:18px 22px 24px;
+    }
+
+    .report-card{
+      border:1px solid var(--line);
+      border-radius:12px;
+      overflow:hidden;
+      margin-bottom:16px;
+      background:#fff;
+    }
+
+    .report-head{
+      display:flex;
+      justify-content:space-between;
+      gap:14px;
+      align-items:center;
+      padding:13px 15px;
+      background:#f7f8fa;
+      border-bottom:1px solid var(--line);
+      flex-wrap:wrap;
+    }
+
+    .report-head strong{
+      font-size:15px;
+    }
+
+    .report-mini-totals{
+      display:flex;
+      gap:14px;
+      color:var(--muted);
+      font-size:13px;
+      flex-wrap:wrap;
+    }
+
+    .report-table{
+      min-width:760px;
+    }
+
+    .report-table th,
+    .report-table td{
+      border-bottom:1px solid #e7eaf0;
+      padding:9px 10px;
+      font-size:13px;
+      text-align:left;
+    }
+
+    .report-table th{
+      background:#fbfbfc;
+      font-weight:800;
+    }
+
+    .report-table td.num,
+    .report-table th.num{
+      text-align:right;
+      width:135px;
+    }
+
+    .empty{
+      text-align:center;
+      color:var(--muted);
+      padding:40px 20px;
+    }
+
+    .toast{
+      position:fixed;
+      right:20px;
+      bottom:20px;
+      z-index:200;
+      min-width:280px;
+      max-width:440px;
+      padding:13px 16px;
+      border-radius:12px;
+      color:#fff;
+      box-shadow:var(--shadow);
+      display:none;
+      font-size:14px;
+      font-weight:700;
+    }
+
+    .toast.show{
+      display:block;
+    }
+
+    .toast.ok{
+      background:var(--success);
+    }
+
+    .toast.error{
+      background:var(--danger);
+    }
+
+    .loading{
+      display:inline-block;
+      width:16px;
+      height:16px;
+      border:2px solid rgba(255,255,255,.55);
+      border-top-color:#fff;
+      border-radius:50%;
+      animation:spin .7s linear infinite;
+      vertical-align:-3px;
+      margin-right:7px;
+    }
+
+    @keyframes spin{
+      to{
+        transform:rotate(360deg);
+      }
+    }
+
+    @media (max-width:720px){
+
+      .topbar{
+        padding:10px 12px;
+      }
+
+      .brand{
+        font-size:18px;
+      }
+
+      .menu-btn{
+        padding:9px 10px;
+      }
+
+      .container{
+        width:min(100% - 16px, 1180px);
+        margin-top:12px;
+      }
+
+      .card-header{
+        padding:16px;
+      }
+
+      .card-header h1,
+      .card-header h2{
+        font-size:20px;
+      }
+
+      .filters{
+        grid-template-columns:1fr;
+        padding:16px;
+      }
+
+      .report-summary{
+        grid-template-columns:1fr;
+        padding:16px 16px 0;
+      }
+
+      #reportResults{
+        padding:16px;
+      }
+
+      .footer-actions{
+        padding:16px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+<script>
+const SCRIPT_URL =
+'https://script.google.com/macros/s/AKfycbx9OvpCmeBn08YElzD7T6bvpzVirMUCJvhSpBHXCpywYMSQCzwkkgIxAuTy_o4r_6Ea/exec';
+</script>
+
+<header class="topbar">
+
+  <div class="brand">
+    Chombo
+  </div>
+
+  <nav class="nav">
+
+    <div class="menu-wrap">
+
+      <button
+        id="menuBtn"
+        class="menu-btn active"
+        type="button"
+      >
+        Cierres diarios ▾
+      </button>
+
+      <div
+        id="dropdown"
+        class="dropdown"
+      >
+
+        <button
+          type="button"
+          data-view="cierreView"
+        >
+          Cierres diarios
+        </button>
+
+        <button
+          type="button"
+          data-view="reportView"
+        >
+          Reportes
+        </button>
+
+      </div>
+
+    </div>
+
+  </nav>
+
+</header>
+
+
+<main class="container">
+
+  <!-- ================================
+       CIERRES DIARIOS
+  ================================= -->
+
+  <section
+    id="cierreView"
+    class="view active"
+  >
+
+    <div class="card">
+
+      <div class="card-header">
+
+        <div>
+
+          <h1>
+            Cierre diario
+          </h1>
+
+          <div class="subtitle">
+            Registra entradas, salidas y observaciones del cierre.
+          </div>
+
+        </div>
+
+        <div
+          id="todayChip"
+          class="date-chip"
+        ></div>
+
+      </div>
+
+
+      <div class="table-scroll">
+
+        <table class="cierre-table">
+
+          <thead>
+
+            <tr>
+
+              <th>
+                Descripción
+              </th>
+
+              <th>
+                Entradas
+              </th>
+
+              <th>
+                Salidas
+              </th>
+
+              <th>
+                Observaciones
+              </th>
+
+            </tr>
+
+          </thead>
+
+          <tbody id="cierreBody"></tbody>
+
+        </table>
+
+      </div>
+
+
+      <div class="footer-actions">
+
+        <div class="totals">
+
+          <div>
+            Total entradas:
+            <strong id="totalEntradas">
+              0.00
+            </strong>
+          </div>
+
+          <div>
+            Total salidas:
+            <strong id="totalSalidas">
+              0.00
+            </strong>
+          </div>
+
+          <div>
+            Diferencia:
+            <strong id="diferencia">
+              0.00
+            </strong>
+          </div>
+
+        </div>
+
+
+        <button
+          id="saveBtn"
+          class="btn btn-primary"
+          type="button"
+        >
+          Guardar
+        </button>
+
+      </div>
+
+    </div>
+
+  </section>
+
+
+  <!-- ================================
+       REPORTES
+  ================================= -->
+
+  <section
+    id="reportView"
+    class="view"
+  >
+
+    <div class="card">
+
+      <div class="card-header">
+
+        <div>
+
+          <h2>
+            Reportes de cierres diarios
+          </h2>
+
+          <div class="subtitle">
+            Selecciona el rango de fechas que deseas consultar.
+          </div>
+
+        </div>
+
+      </div>
+
+
+      <div class="filters">
+
+        <div class="field">
+
+          <label for="desde">
+            Desde
+          </label>
+
+          <input
+            id="desde"
+            type="date"
+          >
+
+        </div>
+
+
+        <div class="field">
+
+          <label for="hasta">
+            Hasta
+          </label>
+
+          <input
+            id="hasta"
+            type="date"
+          >
+
+        </div>
+
+
+        <button
+          id="reportBtn"
+          class="btn btn-primary"
+          type="button"
+        >
+          Mostrar cierres
+        </button>
+
+      </div>
+
+
+      <div
+        id="reportSummary"
+        class="report-summary"
+        style="display:none"
+      >
+
+        <div class="metric">
+
+          <span>
+            Cierres encontrados
+          </span>
+
+          <strong id="mCierres">
+            0
+          </strong>
+
+        </div>
+
+
+        <div class="metric">
+
+          <span>
+            Total entradas
+          </span>
+
+          <strong id="mEntradas">
+            0.00
+          </strong>
+
+        </div>
+
+
+        <div class="metric">
+
+          <span>
+            Total salidas
+          </span>
+
+          <strong id="mSalidas">
+            0.00
+          </strong>
+
+        </div>
+
+      </div>
+
+
+      <div id="reportResults">
+
+        <div class="empty">
+          Selecciona Desde y Hasta y luego pulsa
+          “Mostrar cierres”.
+        </div>
+
+      </div>
+
+    </div>
+
+  </section>
+
+</main>
+
+
+<!-- iframe oculto usado para guardar -->
+<iframe
+  id="chomboBridge"
+  name="chomboBridge"
+  style="display:none"
+></iframe>
+
+
+<div
+  id="toast"
+  class="toast"
+></div>
+
+
+<script>
+
+const DESCRIPCIONES = [
+
+  'Apertura caja',
+
+  'Ventas en efectivo',
+
+  'Ventas Tigo Money',
+
+  'Ventas de recarga Tigo',
+
+  'Ventas de recargas Claro',
+
+  'Ventas de Lotería',
+
+  'Efectivo respaldo',
+
+  'RapiBac',
+
+  'Agente Atlántida',
+
+  'Pagos a proveedores',
+
+  'Caja apertura sig turno'
+
+];
+
+
+const $ =
+id => document.getElementById(id);
+
+
+const money =
+new Intl.NumberFormat(
+  'es-HN',
+  {
+    minimumFractionDigits:2,
+    maximumFractionDigits:2
+  }
+);
+
+
+function assertScriptUrl(){
+
+  if(
+    !SCRIPT_URL ||
+    SCRIPT_URL.includes('PEGA_AQUI')
+  ){
+
+    toast(
+      'Primero pega la URL /exec de Apps Script.',
+      false
+    );
+
+    return false;
+  }
+
+  return true;
+}
+
+
+function init(){
+
+  renderCierreRows();
+
+  setDates();
+
+  bindMenu();
+
+  bindEvents();
+
+  recalc();
+}
+
+
+function renderCierreRows(){
+
+  $('cierreBody').innerHTML =
+  DESCRIPCIONES.map(
+    (d,i) => `
+
+    <tr>
+
+      <td>
+        ${escapeHtml(d)}
+      </td>
+
+      <td>
+
+        <input
+          class="cell-input money-input entrada"
+          type="number"
+          min="0"
+          step="0.01"
+          inputmode="decimal"
+          data-i="${i}"
+          placeholder="0.00"
+        >
+
+      </td>
+
+      <td>
+
+        <input
+          class="cell-input money-input salida"
+          type="number"
+          min="0"
+          step="0.01"
+          inputmode="decimal"
+          data-i="${i}"
+          placeholder="0.00"
+        >
+
+      </td>
+
+      <td>
+
+        <input
+          class="cell-input observacion"
+          type="text"
+          maxlength="250"
+          data-i="${i}"
+        >
+
+      </td>
+
+    </tr>
+
+  `
+  ).join('');
+}
+
+
+function setDates(){
+
+  const now =
+  new Date();
+
+
+  $('todayChip').textContent =
+  now.toLocaleDateString(
+    'es-HN',
+    {
+      day:'2-digit',
+      month:'2-digit',
+      year:'numeric'
+    }
+  );
+
+
+  const ymd =
+  localYMD(now);
+
+
+  $('desde').value =
+  ymd;
+
+  $('hasta').value =
+  ymd;
+}
+
+
+function bindMenu(){
+
+  $('menuBtn').addEventListener(
+    'click',
+    e => {
+
+      e.stopPropagation();
+
+      $('dropdown')
+      .classList
+      .toggle('open');
+
+    }
+  );
+
+
+  document.addEventListener(
+    'click',
+    () => {
+
+      $('dropdown')
+      .classList
+      .remove('open');
+
+    }
+  );
+
+
+  document
+  .querySelectorAll('[data-view]')
+  .forEach(
+    btn => {
+
+      btn.addEventListener(
+        'click',
+        () => {
+
+          showView(
+            btn.dataset.view
+          );
+
+          $('dropdown')
+          .classList
+          .remove('open');
+
+        }
+      );
+
+    }
+  );
+}
+
+
+function showView(viewId){
+
+  document
+  .querySelectorAll('.view')
+  .forEach(
+    v => {
+
+      v.classList
+      .remove('active');
+
+    }
+  );
+
+
+  $(viewId)
+  .classList
+  .add('active');
+}
+
+
+function bindEvents(){
+
+  document.addEventListener(
+    'input',
+    e => {
+
+      if(
+        e.target.classList
+        .contains('money-input')
+      ){
+
+        recalc();
+      }
+
+    }
+  );
+
+
+  $('saveBtn')
+  .addEventListener(
+    'click',
+    saveCierre
+  );
+
+
+  $('reportBtn')
+  .addEventListener(
+    'click',
+    loadReports
+  );
+
+
+  window.addEventListener(
+    'message',
+    event => {
+
+      const data =
+      event.data;
+
+
+      if(
+        !data ||
+        data.source !== 'chombo-cierres'
+      ){
+
+        return;
+      }
+
+
+      if(
+        data.action === 'guardar'
+      ){
+
+        setSaving(false);
+
+
+        if(data.ok){
+
+          toast(
+            data.message ||
+            'Cierre guardado correctamente.',
+            true
+          );
+
+          clearForm();
+
+        }else{
+
+          toast(
+            data.message ||
+            'No se pudo guardar el cierre.',
+            false
+          );
+
+        }
+
+      }
+
+    }
+  );
+}
+
+
+function collectItems(){
+
+  return DESCRIPCIONES.map(
+    (descripcion,i) => {
+
+      const entradaEl =
+      document.querySelector(
+        `.entrada[data-i="${i}"]`
+      );
+
+
+      const salidaEl =
+      document.querySelector(
+        `.salida[data-i="${i}"]`
+      );
+
+
+      const obsEl =
+      document.querySelector(
+        `.observacion[data-i="${i}"]`
+      );
+
+
+      return {
+
+        descripcion:descripcion,
+
+        entrada:
+        entradaEl.value === ''
+        ? ''
+        : Number(entradaEl.value),
+
+        salida:
+        salidaEl.value === ''
+        ? ''
+        : Number(salidaEl.value),
+
+        observacion:
+        obsEl.value.trim()
+
+      };
+
+    }
+  );
+}
+
+
+function hasAnyData(items){
+
+  return items.some(
+    x =>
+
+    x.entrada !== '' ||
+
+    x.salida !== '' ||
+
+    x.observacion !== ''
+
+  );
+}
+
+
+function saveCierre(){
+
+  if(
+    !assertScriptUrl()
+  ){
+    return;
+  }
+
+
+  const items =
+  collectItems();
+
+
+  if(
+    !hasAnyData(items)
+  ){
+
+    toast(
+      'Ingresa al menos una entrada, salida u observación.',
+      false
+    );
+
+    return;
+  }
+
+
+  const payload =
+  JSON.stringify({
+    items:items
+  });
+
+
+  setSaving(true);
+
+
+  const form =
+  document.createElement('form');
+
+
+  form.method =
+  'POST';
+
+
+  form.action =
+  SCRIPT_URL;
+
+
+  form.target =
+  'chomboBridge';
+
+
+  form.style.display =
+  'none';
+
+
+  addHidden(
+    form,
+    'action',
+    'guardar'
+  );
+
+
+  addHidden(
+    form,
+    'payload',
+    payload
+  );
+
+
+  document.body
+  .appendChild(form);
+
+
+  form.submit();
+
+
+  form.remove();
+
+
+  setTimeout(
+    () => {
+
+      if(
+        $('saveBtn').disabled
+      ){
+
+        setSaving(false);
+
+      }
+
+    },
+    15000
+  );
+}
+
+
+function addHidden(
+  form,
+  name,
+  value
+){
+
+  const input =
+  document.createElement('input');
+
+
+  input.type =
+  'hidden';
+
+
+  input.name =
+  name;
+
+
+  input.value =
+  value;
+
+
+  form.appendChild(input);
+}
+
+
+function setSaving(isSaving){
+
+  $('saveBtn').disabled =
+  isSaving;
+
+
+  $('saveBtn').innerHTML =
+  isSaving
+  ?
+  '<span class="loading"></span>Guardando...'
+  :
+  'Guardar';
+}
+
+
+function clearForm(){
+
+  document
+  .querySelectorAll(
+    '.entrada,.salida,.observacion'
+  )
+  .forEach(
+    el => {
+
+      el.value = '';
+
+    }
+  );
+
+
+  recalc();
+}
+
+
+function recalc(){
+
+  let entradas = 0;
+
+  let salidas = 0;
+
+
+  document
+  .querySelectorAll('.entrada')
+  .forEach(
+    el => {
+
+      entradas +=
+      Number(
+        el.value || 0
+      );
+
+    }
+  );
+
+
+  document
+  .querySelectorAll('.salida')
+  .forEach(
+    el => {
+
+      salidas +=
+      Number(
+        el.value || 0
+      );
+
+    }
+  );
+
+
+  $('totalEntradas').textContent =
+  money.format(
+    entradas
+  );
+
+
+  $('totalSalidas').textContent =
+  money.format(
+    salidas
+  );
+
+
+  $('diferencia').textContent =
+  money.format(
+    entradas - salidas
+  );
+}
+
+
+async function loadReports(){
+
+  if(
+    !assertScriptUrl()
+  ){
+    return;
+  }
+
+
+  const desde =
+  $('desde').value;
+
+
+  const hasta =
+  $('hasta').value;
+
+
+  if(
+    !desde ||
+    !hasta
+  ){
+
+    toast(
+      'Selecciona Desde y Hasta.',
+      false
+    );
+
+    return;
+  }
+
+
+  if(
+    desde > hasta
+  ){
+
+    toast(
+      'Desde no puede ser mayor que Hasta.',
+      false
+    );
+
+    return;
+  }
+
+
+  $('reportBtn').disabled =
+  true;
+
+
+  $('reportBtn').innerHTML =
+  '<span class="loading"></span>Consultando...';
+
+
+  $('reportResults').innerHTML =
+  '<div class="empty">Consultando cierres...</div>';
+
+
+  try{
+
+    const data =
+    await jsonpRequest(
+      'reportes',
+      {
+        desde:desde,
+        hasta:hasta
+      }
+    );
+
+
+    if(
+      !data.ok
+    ){
+
+      throw new Error(
+        data.message ||
+        'Error al consultar.'
+      );
+
+    }
+
+
+    renderReports(data);
+
+  }
+  catch(err){
+
+    $('reportSummary').style.display =
+    'none';
+
+
+    $('reportResults').innerHTML =
+    `
+    <div class="empty">
+      No se pudieron cargar los cierres.
+      <br>
+      ${escapeHtml(err.message)}
+    </div>
+    `;
+
+
+    toast(
+      err.message,
+      false
+    );
+
+  }
+  finally{
+
+    $('reportBtn').disabled =
+    false;
+
+
+    $('reportBtn').textContent =
+    'Mostrar cierres';
+
+  }
+}
+
+
+function renderReports(data){
+
+  const cierres =
+  Array.isArray(data.cierres)
+  ?
+  data.cierres
+  :
+  [];
+
+
+  $('reportSummary').style.display =
+  'grid';
+
+
+  $('mCierres').textContent =
+  cierres.length;
+
+
+  $('mEntradas').textContent =
+  money.format(
+    Number(
+      data.totalEntradas || 0
+    )
+  );
+
+
+  $('mSalidas').textContent =
+  money.format(
+    Number(
+      data.totalSalidas || 0
+    )
+  );
+
+
+  if(
+    !cierres.length
+  ){
+
+    $('reportResults').innerHTML =
+    `
+    <div class="empty">
+      No hay cierres guardados
+      en ese rango de fechas.
+    </div>
+    `;
+
+    return;
+  }
+
+
+  $('reportResults').innerHTML =
+  cierres.map(
+    c => `
+
+    <div class="report-card">
+
+      <div class="report-head">
+
+        <strong>
+          Cierre:
+          ${escapeHtml(c.fechaTexto || '')}
+        </strong>
+
+
+        <div class="report-mini-totals">
+
+          <span>
+            Entradas:
+            <b>
+              ${
+                money.format(
+                  Number(
+                    c.totalEntradas || 0
+                  )
+                )
+              }
+            </b>
+          </span>
+
+
+          <span>
+            Salidas:
+            <b>
+              ${
+                money.format(
+                  Number(
+                    c.totalSalidas || 0
+                  )
+                )
+              }
+            </b>
+          </span>
+
+
+          <span>
+            Diferencia:
+            <b>
+              ${
+                money.format(
+                  Number(
+                    c.diferencia || 0
+                  )
+                )
+              }
+            </b>
+          </span>
+
+        </div>
+
+      </div>
+
+
+      <div class="table-scroll">
+
+        <table class="report-table">
+
+          <thead>
+
+            <tr>
+
+              <th>
+                Descripción
+              </th>
+
+              <th class="num">
+                Entradas
+              </th>
+
+              <th class="num">
+                Salidas
+              </th>
+
+              <th>
+                Observaciones
+              </th>
+
+            </tr>
+
+          </thead>
+
+
+          <tbody>
+
+          ${
+            (c.items || [])
+            .map(
+              item => `
+
+              <tr>
+
+                <td>
+                  ${
+                    escapeHtml(
+                      item.descripcion || ''
+                    )
+                  }
+                </td>
+
+
+                <td class="num">
+
+                  ${
+                    item.entrada === null ||
+                    item.entrada === ''
+                    ?
+                    ''
+                    :
+                    money.format(
+                      Number(
+                        item.entrada
+                      )
+                    )
+                  }
+
+                </td>
+
+
+                <td class="num">
+
+                  ${
+                    item.salida === null ||
+                    item.salida === ''
+                    ?
+                    ''
+                    :
+                    money.format(
+                      Number(
+                        item.salida
+                      )
+                    )
+                  }
+
+                </td>
+
+
+                <td>
+
+                  ${
+                    escapeHtml(
+                      item.observacion || ''
+                    )
+                  }
+
+                </td>
+
+              </tr>
+
+              `
+            )
+            .join('')
+          }
+
+          </tbody>
+
+        </table>
+
+      </div>
+
+    </div>
+
+    `
+  )
+  .join('');
+}
+
+
+function jsonpRequest(
+  action,
+  params={}
+){
+
+  return new Promise(
+    (
+      resolve,
+      reject
+    ) => {
+
+      const cbName =
+      `chomboJsonp_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+
+
+      const script =
+      document.createElement(
+        'script'
+      );
+
+
+      const qs =
+      new URLSearchParams({
+        action:action,
+        callback:cbName,
+        ...params
+      });
+
+
+      let done =
+      false;
+
+
+      function cleanup(){
+
+        if(done){
+          return;
+        }
+
+
+        done = true;
+
+
+        delete window[
+          cbName
+        ];
+
+
+        script.remove();
+
+
+        clearTimeout(
+          timer
+        );
+
+      }
+
+
+      window[
+        cbName
+      ] =
+      data => {
+
+        cleanup();
+
+        resolve(data);
+
+      };
+
+
+      script.src =
+      `${SCRIPT_URL}?${qs.toString()}`;
+
+
+      script.async =
+      true;
+
+
+      script.onerror =
+      () => {
+
+        cleanup();
+
+        reject(
+          new Error(
+            'No se pudo conectar con Apps Script.'
+          )
+        );
+
+      };
+
+
+      document.body
+      .appendChild(
+        script
+      );
+
+
+      const timer =
+      setTimeout(
+        () => {
+
+          cleanup();
+
+          reject(
+            new Error(
+              'Apps Script no respondió.'
+            )
+          );
+
+        },
+        15000
+      );
+
+    }
+  );
+}
+
+
+function toast(
+  message,
+  ok=true
+){
+
+  const el =
+  $('toast');
+
+
+  el.textContent =
+  message;
+
+
+  el.className =
+  `toast show ${
+    ok
+    ?
+    'ok'
+    :
+    'error'
+  }`;
+
+
+  clearTimeout(
+    el._timer
+  );
+
+
+  el._timer =
+  setTimeout(
+    () => {
+
+      el.classList.remove(
+        'show'
+      );
+
+    },
+    4200
+  );
+}
+
+
+function localYMD(date){
+
+  const y =
+  date.getFullYear();
+
+
+  const m =
+  String(
+    date.getMonth()+1
+  )
+  .padStart(
+    2,
+    '0'
+  );
+
+
+  const d =
+  String(
+    date.getDate()
+  )
+  .padStart(
+    2,
+    '0'
+  );
+
+
+  return `${y}-${m}-${d}`;
+}
+
+
+function escapeHtml(value){
+
+  return String(value)
+
+  .replaceAll(
+    '&',
+    '&amp;'
+  )
+
+  .replaceAll(
+    '<',
+    '&lt;'
+  )
+
+  .replaceAll(
+    '>',
+    '&gt;'
+  )
+
+  .replaceAll(
+    '"',
+    '&quot;'
+  )
+
+  .replaceAll(
+    "'",
+    '&#039;'
+  );
+
+}
+
+
+init();
+
+</script>
+
+</body>
+</html>
