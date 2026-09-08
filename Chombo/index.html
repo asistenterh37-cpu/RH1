@@ -204,9 +204,27 @@
       width:150px;
     }
 
-    .cierre-table td:nth-child(4){
-      min-width:270px;
-    }
+   .cierre-table td:nth-child(4){
+  width:75px;
+  min-width:75px;
+  text-align:center;
+  vertical-align:middle;
+}
+
+.cierre-table td:nth-child(5){
+  min-width:270px;
+}
+
+.check-revisado{
+  width:19px;
+  height:19px;
+  cursor:pointer;
+  accent-color:#1769e0;
+}
+
+.fila-pendiente td{
+  background:#fff0f0 !important;
+}
 
     .cell-input{
       width:100%;
@@ -576,23 +594,29 @@ const SCRIPT_URL =
 
             <tr>
 
-              <th>
-                Descripción
-              </th>
+             <tr>
 
-              <th>
-                Entradas
-              </th>
+  <th>
+    Descripción
+  </th>
 
-              <th>
-                Salidas
-              </th>
+  <th>
+    Entradas
+  </th>
 
-              <th>
-                Observaciones
-              </th>
+  <th>
+    Salidas
+  </th>
 
-            </tr>
+  <th>
+    Revisado
+  </th>
+
+  <th>
+    Observaciones
+  </th>
+
+</tr>
 
           </thead>
 
@@ -911,6 +935,17 @@ function renderCierreRows(){
       <td>
 
         <input
+          class="check-revisado"
+          type="checkbox"
+          data-i="${i}"
+          title="Marcar cuando esta fila haya sido revisada"
+        >
+
+      </td>
+
+      <td>
+
+        <input
           class="cell-input observacion"
           type="text"
           maxlength="250"
@@ -924,7 +959,6 @@ function renderCierreRows(){
   `
   ).join('');
 }
-
 
 function setDates(){
 
@@ -1040,13 +1074,34 @@ function bindEvents(){
         recalc();
       }
 
+      /*
+      CUANDO MARQUE EL CHECK,
+      QUITAR EL COLOR ROJO DE ESA FILA
+      */
+
+      if(
+        e.target.classList.contains('check-revisado') &&
+        e.target.checked
+      ){
+
+        const fila =
+          e.target.closest('tr');
+
+        if(fila){
+          fila.classList.remove('fila-pendiente');
+        }
+
+      }
+
     }
   );
+
 
   $('saveBtn').addEventListener(
     'click',
     saveCierre
   );
+
 
   $('reportBtn').addEventListener(
     'click',
@@ -1123,7 +1178,103 @@ async function saveCierre(){
     return;
   }
 
-  const items = collectItems();
+
+  /*
+  ============================================
+  VALIDAR QUE TODAS LAS FILAS ESTÉN REVISADAS
+  ============================================
+  */
+
+  const checks =
+    document.querySelectorAll(
+      '.check-revisado'
+    );
+
+
+  /*
+  QUITAR MARCAS ROJAS ANTERIORES
+  */
+
+  document
+    .querySelectorAll('#cierreBody tr')
+    .forEach(
+      fila => {
+
+        fila.classList.remove(
+          'fila-pendiente'
+        );
+
+      }
+    );
+
+
+  const pendientes =
+    Array.from(checks)
+    .filter(
+      check => !check.checked
+    );
+
+
+  /*
+  SI FALTA ALGÚN CHECK
+  NO GUARDAR
+  */
+
+  if(pendientes.length > 0){
+
+    pendientes.forEach(
+      check => {
+
+        const fila =
+          check.closest('tr');
+
+        if(fila){
+
+          fila.classList.add(
+            'fila-pendiente'
+          );
+
+        }
+
+      }
+    );
+
+
+    const primeraFila =
+      pendientes[0].closest('tr');
+
+
+    if(primeraFila){
+
+      primeraFila.scrollIntoView({
+        behavior:'smooth',
+        block:'center'
+      });
+
+    }
+
+
+    toast(
+      'No se puede guardar. Faltan ' +
+      pendientes.length +
+      ' filas por revisar.',
+      false
+    );
+
+
+    return;
+  }
+
+
+  /*
+  ============================================
+  RECOGER DATOS
+  ============================================
+  */
+
+  const items =
+    collectItems();
+
 
   if(!hasAnyData(items)){
 
@@ -1135,27 +1286,37 @@ async function saveCierre(){
     return;
   }
 
+
   setSaving(true);
+
 
   try{
 
-    const payload = JSON.stringify({
-      items: items
-    });
+    const payload =
+      JSON.stringify({
+        items:items
+      });
 
-    const data = await jsonpRequest(
-      'guardar',
-      {
-        payload: payload
-      }
-    );
+
+    const data =
+      await jsonpRequest(
+        'guardar',
+        {
+          payload:payload
+        }
+      );
+
 
     console.log(
       'RESPUESTA GUARDAR:',
       data
     );
 
-    if(!data || data.ok !== true){
+
+    if(
+      !data ||
+      data.ok !== true
+    ){
 
       throw new Error(
         data && data.message
@@ -1165,13 +1326,14 @@ async function saveCierre(){
 
     }
 
+
     /*
-    ======================================
-    LIMPIAR FORMULARIO
-    ======================================
+    GUARDÓ CORRECTAMENTE:
+    LIMPIAR TODO
     */
 
     limpiarFormularioCierre();
+
 
     toast(
       data.message ||
@@ -1186,6 +1348,7 @@ async function saveCierre(){
       'ERROR GUARDANDO:',
       error
     );
+
 
     toast(
       'Error al guardar: ' +
@@ -1250,31 +1413,66 @@ function limpiarFormularioCierre(){
       'cierreBody'
     );
 
+
   if(!tabla){
     return;
   }
 
+
   /*
-  VACÍA TODOS LOS INPUTS
-  DE LA TABLA
+  LIMPIAR ENTRADAS,
+  SALIDAS Y OBSERVACIONES
   */
 
-  const inputs =
-    tabla.querySelectorAll(
-      'input'
+  tabla
+    .querySelectorAll(
+      'input[type="number"], input[type="text"]'
+    )
+    .forEach(
+      input => {
+
+        input.value = '';
+
+      }
     );
-
-  inputs.forEach(
-    input => {
-
-      input.value = '';
-
-    }
-  );
 
 
   /*
-  REINICIA TOTALES
+  DESMARCAR TODOS LOS CHECK
+  */
+
+  tabla
+    .querySelectorAll(
+      '.check-revisado'
+    )
+    .forEach(
+      check => {
+
+        check.checked = false;
+
+      }
+    );
+
+
+  /*
+  QUITAR FILAS ROJAS
+  */
+
+  tabla
+    .querySelectorAll('tr')
+    .forEach(
+      fila => {
+
+        fila.classList.remove(
+          'fila-pendiente'
+        );
+
+      }
+    );
+
+
+  /*
+  REINICIAR TOTALES
   */
 
   document.getElementById(
@@ -1291,10 +1489,6 @@ function limpiarFormularioCierre(){
     'diferencia'
   ).textContent = '0.00';
 
-
-  /*
-  QUITA FOCO DEL ÚLTIMO CAMPO
-  */
 
   if(
     document.activeElement &&
