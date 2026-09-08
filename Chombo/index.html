@@ -156,6 +156,71 @@
       font-size:14px;
     }
 
+    .header-catalogos{
+  display:flex;
+  align-items:flex-end;
+  justify-content:center;
+  gap:16px;
+  flex:1;
+  flex-wrap:wrap;
+}
+
+.catalogo-field{
+  display:flex;
+  flex-direction:column;
+  gap:5px;
+  min-width:180px;
+}
+
+.catalogo-field label{
+  font-size:12px;
+  font-weight:800;
+  color:var(--muted);
+}
+
+.catalogo-field select{
+  width:100%;
+  height:38px;
+  padding:0 10px;
+  border:1px solid #cbd1da;
+  border-radius:9px;
+  background:#fff;
+  font-size:14px;
+  color:var(--text);
+  outline:none;
+}
+
+.catalogo-field select:focus{
+  border-color:var(--primary);
+  box-shadow:0 0 0 3px rgba(23,105,224,.12);
+}
+
+.efectivo-row td{
+  background:#f6f9ff !important;
+  font-weight:800;
+}
+
+.efectivo-disponible-celda{
+  position:relative;
+  text-align:center;
+}
+
+.efectivo-disponible{
+  display:block;
+  width:190px;
+  max-width:90%;
+  margin:0 auto;
+  border:2px solid var(--primary);
+  border-radius:12px;
+  background:#fff;
+  padding:9px 12px;
+  font-size:17px;
+  font-weight:800;
+  text-align:center;
+  color:var(--primary);
+  box-shadow:0 5px 14px rgba(23,105,224,.15);
+}
+
     .date-chip{
       background:#eef4ff;
       color:var(--primary);
@@ -494,6 +559,16 @@
       .footer-actions{
         padding:16px;
       }
+.header-catalogos{
+  width:100%;
+  order:3;
+}
+
+.catalogo-field{
+  min-width:145px;
+  flex:1;
+}
+      
     }
   </style>
 </head>
@@ -578,6 +653,43 @@ const SCRIPT_URL =
 
         </div>
 
+<div class="header-catalogos">
+
+  <div class="catalogo-field">
+
+    <label for="ubicacionSelect">
+      Ubicación
+    </label>
+
+    <select id="ubicacionSelect">
+
+      <option value="">
+        Seleccionar
+      </option>
+
+    </select>
+
+  </div>
+
+
+  <div class="catalogo-field">
+
+    <label for="responsableSelect">
+      Responsable
+    </label>
+
+    <select id="responsableSelect">
+
+      <option value="">
+        Seleccionar
+      </option>
+
+    </select>
+
+  </div>
+
+</div>
+        
         <div
           id="todayChip"
           class="date-chip"
@@ -888,13 +1000,123 @@ function init(){
 
   bindEvents();
 
+  loadCatalogos();
+
   recalc();
+
 }
+async function loadCatalogos(){
+
+  try{
+
+    const data =
+      await jsonpRequest(
+        'catalogos'
+      );
 
 
+    if(
+      !data ||
+      data.ok !== true
+    ){
+
+      throw new Error(
+        data && data.message
+          ? data.message
+          : 'No se pudieron cargar los catálogos.'
+      );
+
+    }
+
+
+    const ubicacionSelect =
+      document.getElementById(
+        'ubicacionSelect'
+      );
+
+
+    const responsableSelect =
+      document.getElementById(
+        'responsableSelect'
+      );
+
+
+    ubicacionSelect.innerHTML =
+      '<option value="">Seleccionar</option>';
+
+
+    responsableSelect.innerHTML =
+      '<option value="">Seleccionar</option>';
+
+
+    (data.ubicaciones || [])
+      .forEach(
+        ubicacion => {
+
+          const option =
+            document.createElement(
+              'option'
+            );
+
+          option.value =
+            ubicacion;
+
+          option.textContent =
+            ubicacion;
+
+          ubicacionSelect
+            .appendChild(
+              option
+            );
+
+        }
+      );
+
+
+    (data.responsables || [])
+      .forEach(
+        responsable => {
+
+          const option =
+            document.createElement(
+              'option'
+            );
+
+          option.value =
+            responsable;
+
+          option.textContent =
+            responsable;
+
+          responsableSelect
+            .appendChild(
+              option
+            );
+
+        }
+      );
+
+  }
+  catch(error){
+
+    console.error(
+      'ERROR CATÁLOGOS:',
+      error
+    );
+
+
+    toast(
+      'No se pudieron cargar Ubicación y Responsable.',
+      false
+    );
+
+  }
+
+}
+  
 function renderCierreRows(){
 
-  $('cierreBody').innerHTML =
+  const filas =
   DESCRIPCIONES.map(
     (d,i) => `
 
@@ -958,8 +1180,46 @@ function renderCierreRows(){
 
   `
   ).join('');
-}
 
+
+  const efectivoDisponible = `
+
+    <tr class="efectivo-row">
+
+      <td>
+        Efectivo disponible
+      </td>
+
+      <td
+        colspan="2"
+        class="efectivo-disponible-celda"
+      >
+
+        <input
+          id="efectivoDisponible"
+          class="efectivo-disponible"
+          type="text"
+          value="0.00"
+          readonly
+        >
+
+      </td>
+
+      <td></td>
+
+      <td></td>
+
+    </tr>
+
+  `;
+
+
+  $('cierreBody').innerHTML =
+    filas +
+    efectivoDisponible;
+
+}
+  
 function setDates(){
 
   const now =
@@ -1178,7 +1438,47 @@ async function saveCierre(){
     return;
   }
 
+const ubicacion =
+  document.getElementById(
+    'ubicacionSelect'
+  ).value;
 
+
+const responsable =
+  document.getElementById(
+    'responsableSelect'
+  ).value;
+
+
+if(!ubicacion){
+
+  toast(
+    'Debes seleccionar una Ubicación antes de guardar.',
+    false
+  );
+
+  document.getElementById(
+    'ubicacionSelect'
+  ).focus();
+
+  return;
+}
+
+
+if(!responsable){
+
+  toast(
+    'Debes seleccionar un Responsable antes de guardar.',
+    false
+  );
+
+  document.getElementById(
+    'responsableSelect'
+  ).focus();
+
+  return;
+}
+  
   /*
   ============================================
   VALIDAR QUE TODAS LAS FILAS ESTÉN REVISADAS
@@ -1292,10 +1592,16 @@ async function saveCierre(){
 
   try{
 
-    const payload =
-      JSON.stringify({
-        items:items
-      });
+   const payload =
+  JSON.stringify({
+
+    items:items,
+
+    ubicacion:ubicacion,
+
+    responsable:responsable
+
+  });
 
 
     const data =
@@ -1489,7 +1795,29 @@ function limpiarFormularioCierre(){
     'diferencia'
   ).textContent = '0.00';
 
+document.getElementById(
+  'ubicacionSelect'
+).value = '';
 
+
+document.getElementById(
+  'responsableSelect'
+).value = '';
+
+
+const efectivoEl =
+  document.getElementById(
+    'efectivoDisponible'
+  );
+
+
+if(efectivoEl){
+
+  efectivoEl.value =
+    '0.00';
+
+}
+  
   if(
     document.activeElement &&
     typeof document.activeElement.blur === 'function'
@@ -1509,52 +1837,73 @@ function recalc(){
 
 
   document
-  .querySelectorAll('.entrada')
-  .forEach(
-    el => {
+    .querySelectorAll('.entrada')
+    .forEach(
+      el => {
 
-      entradas +=
-      Number(
-        el.value || 0
-      );
+        entradas +=
+          Number(
+            el.value || 0
+          );
 
-    }
-  );
+      }
+    );
 
 
   document
-  .querySelectorAll('.salida')
-  .forEach(
-    el => {
+    .querySelectorAll('.salida')
+    .forEach(
+      el => {
 
-      salidas +=
-      Number(
-        el.value || 0
-      );
+        salidas +=
+          Number(
+            el.value || 0
+          );
 
-    }
-  );
+      }
+    );
+
+
+  const efectivoDisponible =
+    entradas -
+    salidas;
 
 
   $('totalEntradas').textContent =
-  money.format(
-    entradas
-  );
+    money.format(
+      entradas
+    );
 
 
   $('totalSalidas').textContent =
-  money.format(
-    salidas
-  );
+    money.format(
+      salidas
+    );
 
 
   $('diferencia').textContent =
-  money.format(
-    entradas - salidas
-  );
+    money.format(
+      efectivoDisponible
+    );
+
+
+  const efectivoEl =
+    document.getElementById(
+      'efectivoDisponible'
+    );
+
+
+  if(efectivoEl){
+
+    efectivoEl.value =
+      money.format(
+        efectivoDisponible
+      );
+
+  }
+
 }
-
-
+  
 async function loadReports(){
 
   if(
