@@ -1150,34 +1150,46 @@ async function saveCierre(){
       }
     );
 
-    if(!data || !data.ok){
+    console.log(
+      'RESPUESTA GUARDAR:',
+      data
+    );
+
+    if(!data || data.ok !== true){
 
       throw new Error(
         data && data.message
-        ? data.message
-        : 'No se pudo guardar el cierre.'
+          ? data.message
+          : 'No se pudo guardar el cierre.'
       );
 
     }
 
+    /*
+    ======================================
+    LIMPIAR FORMULARIO
+    ======================================
+    */
+
+    limpiarFormularioCierre();
+
     toast(
-      data.message || 'Cierre guardado correctamente.',
+      data.message ||
+      'Cierre guardado correctamente.',
       true
     );
-
-    // LIMPIAR TODOS LOS CAMPOS DESPUÉS DE GUARDAR
-    clearForm();
 
   }
   catch(error){
 
     console.error(
-      'Error guardando cierre:',
+      'ERROR GUARDANDO:',
       error
     );
 
     toast(
-      'Error al guardar: ' + error.message,
+      'Error al guardar: ' +
+      error.message,
       false
     );
 
@@ -1231,25 +1243,70 @@ function setSaving(isSaving){
 }
 
 
-function clearForm(){
+function limpiarFormularioCierre(){
 
-  document
-  .querySelectorAll(
-    '.entrada,.salida,.observacion'
-  )
-  .forEach(
-    el => {
+  const tabla =
+    document.getElementById(
+      'cierreBody'
+    );
 
-      el.value = '';
+  if(!tabla){
+    return;
+  }
+
+  /*
+  VACÍA TODOS LOS INPUTS
+  DE LA TABLA
+  */
+
+  const inputs =
+    tabla.querySelectorAll(
+      'input'
+    );
+
+  inputs.forEach(
+    input => {
+
+      input.value = '';
 
     }
   );
 
 
-  recalc();
+  /*
+  REINICIA TOTALES
+  */
+
+  document.getElementById(
+    'totalEntradas'
+  ).textContent = '0.00';
+
+
+  document.getElementById(
+    'totalSalidas'
+  ).textContent = '0.00';
+
+
+  document.getElementById(
+    'diferencia'
+  ).textContent = '0.00';
+
+
+  /*
+  QUITA FOCO DEL ÚLTIMO CAMPO
+  */
+
+  if(
+    document.activeElement &&
+    typeof document.activeElement.blur === 'function'
+  ){
+
+    document.activeElement.blur();
+
+  }
+
 }
-
-
+  
 function recalc(){
 
   let entradas = 0;
