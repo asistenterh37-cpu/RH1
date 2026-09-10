@@ -1501,7 +1501,7 @@ const CONFIG = {
    */
 
   GAS_WEB_APP_URL:
-    'https://script.google.com/macros/s/AKfycbzbxre53SVEcGBRpr8Iry_82qTCYlSn8LoLm2xUxwWoxpHUo3URJFO3K4QOwyAwvgrK/exec',
+    'https://script.google.com/macros/s/AKfycbzvK41MgQMLLHaqSQFEc4xAfRB0ihqlppNOThDxBmuuCNMTp6vzTR-JDtj2okputFg2KQ/exec',
 
   CURRENCY:
     'L'
@@ -5033,54 +5033,37 @@ function makeOrderId(){
 }
 
 
-function imageUrl(
-  raw
-){
+function imageUrl(raw) {
 
   const u =
-    String(
-      raw
-      ||
-      ''
-    )
-    .trim();
+    String(raw || '').trim();
 
-
-  if(
-    !u
-  ){
-
+  if (!u) {
     return '';
-
   }
 
-
   const m =
-    u.match(
-      /\/file\/d\/([\w-]+)/
+    u.match(/\/file\/d\/([\w-]+)/) ||
+    u.match(/[?&]id=([\w-]+)/);
+
+  if (
+    m &&
+    (
+      u.includes('drive.google.com') ||
+      u.includes('googleusercontent.com')
     )
-    ||
-    u.match(
-      /[?&]id=([\w-]+)/
+  ) {
+
+    return (
+      'https://drive.google.com/thumbnail?id=' +
+      m[1] +
+      '&sz=w1200'
     );
+  }
 
-
-  return m
-    &&
-    u.includes(
-      'drive.google.com'
-    )
-
-      ?
-
-      `https://drive.google.com/uc?export=view&id=${m[1]}`
-
-      :
-
-      u;
-
+  return u;
 }
-
+  
 </script>
 
 </body>
