@@ -1501,7 +1501,7 @@ const CONFIG = {
    */
 
   GAS_WEB_APP_URL:
-    'https://script.google.com/macros/s/AKfycbyJ2jIOVHYFrZE3ioq0wB2dv0eRA4xKui7LAYanrn-xzl4fQhSDxQ88OdfjhDBZ7--NSQ/exec',
+    'https://script.google.com/macros/s/AKfycbzFMY-xtWPWmuGb2vis1H6RRq__4vsUUw98AVkOVidytF47ysxNPip0MP5bS3sHrGG6oQ/exec',
 
   CURRENCY:
     'L'
@@ -3007,22 +3007,6 @@ async function submitOrder(){
     assertConfigured();
 
 
-    if(
-      !pendingOrderId
-    ){
-
-      pendingOrderId =
-        makeOrderId();
-
-
-      localStorage.setItem(
-        'ventaswp_pending_order_id',
-        pendingOrderId
-      );
-
-    }
-
-
     $('confirmBtn').disabled =
       true;
 
@@ -3031,35 +3015,88 @@ async function submitOrder(){
       'Enviando…';
 
 
-    postForm({
+    /*
+     * Apps Script crea ahora
+     * el ID correlativo del pedido.
+     */
 
-      action:
+    const r =
+      await sendJob(
         'createOrder',
+        {
 
-      orderId:
-        pendingOrderId,
+          client:
+            client,
 
-      client:
-        client,
+          address:
+            address,
 
-      address:
-        address,
+          phone:
+            phone,
 
-      phone:
-        phone,
+          items:
+            JSON.stringify(
+              items
+            )
 
-      items:
-        JSON.stringify(
-          items
-        )
-
-    });
+        }
+      );
 
 
-    verifyOrder(
-      pendingOrderId,
-      0
+    if(
+      !r.ok
+    ){
+
+      throw new Error(
+        r.error
+        ||
+        'No pude registrar el pedido.'
+      );
+
+    }
+
+
+    orderMsg(
+      '✓ Pedido '
+      +
+      r.orderId
+      +
+      ' recibido correctamente.',
+      true
     );
+
+
+    cart =
+      {};
+
+
+    pendingOrderId =
+      '';
+
+
+    localStorage.removeItem(
+      'ventaswp_pending_order_id'
+    );
+
+
+    saveCart();
+
+
+    await loadProducts();
+
+
+    renderCart();
+
+
+    refreshCartUI();
+
+
+    $('confirmBtn').disabled =
+      false;
+
+
+    $('confirmBtn').textContent =
+      'Confirmar pedido';
 
   }
   catch(e){
