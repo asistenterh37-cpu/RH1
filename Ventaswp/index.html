@@ -762,33 +762,51 @@
 
       </div>
 
-      <div class="field">
+<div class="field">
 
-        <label>
-          Nombre
-        </label>
+  <label>
+    Nombre
+  </label>
 
-        <input
-          id="customerName"
-          maxlength="80"
-          autocomplete="name">
+  <input
+    id="customerName"
+    maxlength="80"
+    autocomplete="name"
+    placeholder="Nombre del cliente">
 
-      </div>
+</div>
 
-      <div class="field">
 
-        <label>
-          Teléfono / WhatsApp
-        </label>
+<div class="field">
 
-        <input
-          id="customerPhone"
-          maxlength="25"
-          inputmode="tel"
-          autocomplete="tel">
+  <label>
+    Dirección
+  </label>
 
-      </div>
+  <input
+    id="customerAddress"
+    maxlength="250"
+    autocomplete="street-address"
+    placeholder="Dirección de entrega">
 
+</div>
+
+
+<div class="field">
+
+  <label>
+    Teléfono / WhatsApp
+  </label>
+
+  <input
+    id="customerPhone"
+    maxlength="25"
+    inputmode="tel"
+    autocomplete="tel"
+    placeholder="Número de WhatsApp">
+
+</div>
+      
       <button
         id="confirmBtn"
         class="primary"
@@ -1133,7 +1151,7 @@ const CONFIG = {
    */
 
   GAS_WEB_APP_URL:
-    'https://script.google.com/macros/s/AKfycbz5FLGA9gmHaccG070OuqDJJ3MHCBHbszccZ5xS97r3hNP8v78m6X_Bd7AbtnuBYQgHTg/exec',
+    'https://script.google.com/macros/s/AKfycbxrBoxGFLSOxTdc3ADYKJWAloqNPYWlvaPqg6pFwpF5yhkVJpXPiJuJm_AEgV_sijew7g/exec',
 
   CURRENCY:
     'L'
@@ -1246,8 +1264,9 @@ window.addEventListener(
 
     loadProducts();
 
-    refreshCartUI();
+refreshCartUI();
 
+prefillCustomerFromWhatsApp();
   }
 );
 
@@ -1274,7 +1293,126 @@ function assertConfigured(){
 
 }
 
+/*************************************************
+ * PRECARGAR CLIENTE DESDE WHATSAPP
+ *
+ * Ejemplo de enlace:
+ * ?tel=50499385730
+ *************************************************/
 
+async function prefillCustomerFromWhatsApp(){
+
+  const params =
+    new URLSearchParams(
+      window.location.search
+    );
+
+
+  const rawPhone =
+    params.get('tel')
+    ||
+    params.get('phone')
+    ||
+    params.get('wa_id')
+    ||
+    '';
+
+
+  if(
+    !rawPhone
+  ){
+
+    return;
+
+  }
+
+
+  const phone =
+    String(
+      rawPhone
+    )
+    .replace(
+      /\D/g,
+      ''
+    )
+    .trim();
+
+
+  if(
+    phone.length < 8
+  ){
+
+    return;
+
+  }
+
+
+  /*
+   * Colocar automáticamente
+   * el número del WhatsApp.
+   */
+
+  $('customerPhone').value =
+    phone;
+
+
+  try{
+
+    /*
+     * Consultar si ese teléfono
+     * ya existe en Pedidos.
+     */
+
+    const r =
+      await jsonp(
+        'customerByPhone',
+        {
+          phone:
+            phone
+        }
+      );
+
+
+    if(
+      !r
+      ||
+      r.ok !== true
+    ){
+
+      return;
+
+    }
+
+
+    /*
+     * Si ya compró anteriormente,
+     * colocar automáticamente
+     * su nombre.
+     */
+
+    if(
+      r.found === true
+      &&
+      r.client
+    ){
+
+      $('customerName').value =
+        r.client;
+
+    }
+
+  }
+  catch(error){
+
+    console.log(
+      'No fue posible recuperar el cliente:',
+      error
+    );
+
+  }
+
+}
+  
 /*************************************************
  * JSONP
  *************************************************/
@@ -2416,6 +2554,12 @@ async function submitOrder(){
       .trim();
 
 
+  const address =
+    $('customerAddress')
+      .value
+      .trim();
+
+
   const phone =
     $('customerPhone')
       .value
@@ -2455,6 +2599,18 @@ async function submitOrder(){
 
     return orderMsg(
       'Escribe tu nombre.',
+      false
+    );
+
+  }
+
+
+  if(
+    address.length < 4
+  ){
+
+    return orderMsg(
+      'Escribe tu dirección.',
       false
     );
 
@@ -2518,6 +2674,9 @@ async function submitOrder(){
       client:
         client,
 
+      address:
+        address,
+
       phone:
         phone,
 
@@ -2553,8 +2712,7 @@ async function submitOrder(){
   }
 
 }
-
-
+  
 /*************************************************
  * COMPROBAR QUE PEDIDO SE GUARDÓ
  *************************************************/
