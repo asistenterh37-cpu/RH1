@@ -9751,55 +9751,168 @@ specialized:
 
 function clearProductForm(){
 
+  /*
+   * Guardamos el rubro actual.
+   *
+   * Ejemplo:
+   * si estamos trabajando Ferretería,
+   * después de guardar continuamos
+   * en Ferretería.
+   */
+
+  const rubroActual =
+    $('pRubro')
+      ?
+      $('pRubro').value
+      :
+      'general';
+
+
+  /*
+   * LIMPIAR CAMPOS GENERALES
+   */
+
   [
-
     'pCode',
-
     'pName',
-
     'pCategory',
-
     'pDescription',
-
     'pKeywords',
-
     'pCost',
-
     'pPrice',
-
     'pStock',
-
     'pPhotoUrl'
-
   ]
   .forEach(
-    id =>
-      $(
-        id
-      )
-      .value =
-        ''
+    id => {
+
+      const el =
+        $(id);
+
+
+      if(el){
+
+        el.value =
+          '';
+
+      }
+
+    }
   );
 
 
-  $('pState').value =
-    'Activo';
-if(
-  $('pRubro')
-){
+  /*
+   * Estado vuelve a Activo.
+   */
 
-  $('pRubro').value =
-    'general';
+  if(
+    $('pState')
+  ){
+
+    $('pState').value =
+      'Activo';
+
+  }
+
+
+  /*
+   * Conservamos el rubro seleccionado.
+   *
+   * Si estás cargando Ferretería,
+   * seguirá apareciendo Ferretería.
+   */
+
+  if(
+    $('pRubro')
+  ){
+
+    $('pRubro').value =
+      rubroActual;
+
+  }
+
+
+  /*
+   * LIMPIAR TODOS LOS CAMPOS
+   * ESPECIALIZADOS DEL RUBRO.
+   *
+   * FER_Marca
+   * FER_Medida
+   * FER_Color
+   * REP_OEM
+   * MAS_Especie
+   * etc.
+   */
+
+  document
+    .querySelectorAll(
+      '#adminSpecialFields input, '
+      +
+      '#adminSpecialFields textarea, '
+      +
+      '#adminSpecialFields select'
+    )
+    .forEach(
+      el => {
+
+        if(
+          el.tagName ===
+          'SELECT'
+        ){
+
+          el.selectedIndex =
+            0;
+
+        }
+        else{
+
+          el.value =
+            '';
+
+        }
+
+      }
+    );
+
+
+  /*
+   * Volvemos a crear el bloque especializado
+   * completamente limpio.
+   */
 
   renderAdminSpecializedFields();
 
-}
+
+  /*
+   * LIMPIAR FOTOGRAFÍA
+   */
 
   clearPhoto();
 
+
+  /*
+   * Colocar cursor directamente
+   * en Producto para ingresar
+   * el siguiente artículo.
+   */
+
+  setTimeout(
+    () => {
+
+      if(
+        $('pName')
+      ){
+
+        $('pName').focus();
+
+      }
+
+    },
+    100
+  );
+
 }
-
-
+  
 function clearPhoto(){
 
   photoData =
@@ -9875,6 +9988,14 @@ async function sendJob(
       );
 
 
+  /*
+   * Enviamos primero el POST.
+   *
+   * Apps Script puede guardar correctamente
+   * aunque una consulta posterior de estado
+   * falle momentáneamente.
+   */
+
   postForm({
 
     action:
@@ -9888,45 +10009,128 @@ async function sendJob(
   });
 
 
+  let lastError =
+    null;
+
+
+  /*
+   * Antes eran 20 intentos.
+   *
+   * Ahora hacemos 30 y, MUY IMPORTANTE,
+   * un error temporal de JSONP ya no cancela
+   * inmediatamente todo el proceso.
+   */
+
   for(
     let i = 0;
-    i < 20;
+    i < 30;
     i++
   ){
 
+    /*
+     * En el primer intento damos un poco
+     * más de tiempo al POST para terminar.
+     */
+
     await sleep(
-      700
+      i === 0
+        ?
+        1000
+        :
+        700
     );
 
 
-    const r =
-      await jsonp(
-        'requestStatus',
-        {
-          id:
-            requestId
-        }
+    try{
+
+      const r =
+        await jsonp(
+          'requestStatus',
+          {
+
+            id:
+              requestId,
+
+            /*
+             * Evita cualquier respuesta
+             * almacenada en caché.
+             */
+
+            t:
+              Date.now()
+
+          }
+        );
+
+
+      if(
+        r
+        &&
+        r.ready
+      ){
+
+        return r.result;
+
+      }
+
+
+      /*
+       * Si todavía no está listo,
+       * seguimos esperando.
+       */
+
+    }
+    catch(error){
+
+      /*
+       * ANTES:
+       * aquí el error salía de sendJob()
+       * y mostraba:
+       *
+       * "No fue posible conectar con Apps Script."
+       *
+       * AHORA:
+       * guardamos el error y volvemos
+       * a intentarlo.
+       */
+
+      lastError =
+        error;
+
+
+      console.log(
+        'Esperando respuesta de Apps Script...',
+        error
       );
 
 
-    if(
-      r.ready
-    ){
-
-      return r.result;
+      await sleep(
+        400
+      );
 
     }
 
   }
 
 
+  /*
+   * Si llegamos hasta aquí, no sabemos
+   * con certeza si Apps Script guardó o no.
+   *
+   * Por eso NO decimos "No se guardó",
+   * porque justamente en tu caso sí se guardó.
+   */
+
   throw new Error(
-    'Apps Script tardó demasiado en responder.'
+
+    'Apps Script recibió la solicitud, pero no pude confirmar la respuesta. '
+    +
+    'Antes de volver a guardar, revisa la hoja Productos para evitar duplicados.'
+
   );
 
 }
-
-
+  
 /*************************************************
  * REDUCIR FOTO
  *************************************************/
