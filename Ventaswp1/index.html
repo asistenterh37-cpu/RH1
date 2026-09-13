@@ -2473,7 +2473,47 @@
   color:var(--mut);
 }
 
+/* ============================================================
+   CONEXION RUBROS / CAMPOS ESPECIALIZADOS
+   ============================================================ */
 
+.pc-special-fields{
+  margin-top:14px;
+  padding:15px;
+  background:#f8fbf9;
+  border:1px solid #dde8e1;
+  border-radius:16px;
+}
+
+.pc-special-fields h3{
+  margin:0 0 12px;
+  color:var(--gd);
+  font-size:16px;
+}
+
+.pc-product-meta{
+  display:flex;
+  flex-wrap:wrap;
+  gap:5px;
+  margin-top:3px;
+}
+
+.pc-product-meta span{
+  font-size:10px;
+  padding:4px 7px;
+  border-radius:999px;
+  background:#f1f6f3;
+  border:1px solid #e0e9e3;
+  color:#4b5b52;
+}
+
+.pc-order-sector-title{
+  margin:13px 0 9px;
+  padding-top:12px;
+  border-top:1px solid var(--ln);
+  font-weight:900;
+  color:var(--gd);
+}
 /* ============================================================
    MOBILE
    ============================================================ */
@@ -4334,73 +4374,573 @@
      ============================================================ -->
 
 <script>
+const PC_SECTORS = {
 
-function pcChangeBusiness(type){
+  general:{
+    label:'🛒 Tienda general',
+    sheet:'General',
+    module:null,
+    search:'Buscar producto...'
+  },
 
-  const modules = {
-    ferreteria:
-      'pcModuleFerreteria',
+  ferreteria:{
+    label:'🔨 Ferretería',
+    sheet:'Ferretería',
+    module:'pcModuleFerreteria',
+    search:'Buscar producto, marca, medida, material...'
+  },
 
-    repuestos:
-      'pcModuleRepuestos',
+  repuestos:{
+    label:'🚗 Repuestos / Yonker',
+    sheet:'Repuestos',
+    module:'pcModuleRepuestos',
+    search:'Buscar pieza, OEM, vehículo, motor...'
+  },
 
-    distribuidora:
-      'pcModuleDistribuidora',
+  distribuidora:{
+    label:'📦 Distribuidora / Mayorista',
+    sheet:'Distribuidora',
+    module:'pcModuleDistribuidora',
+    search:'Buscar producto, presentación, marca...'
+  },
 
-    electronica:
-      'pcModuleElectronica',
+  electronica:{
+    label:'📱 Electrónica',
+    sheet:'Electrónica',
+    module:'pcModuleElectronica',
+    search:'Buscar equipo, modelo, compatibilidad...'
+  },
 
-    muebleria:
-      'pcModuleMuebleria',
+  muebleria:{
+    label:'🛋️ Mueblería',
+    sheet:'Mueblería',
+    module:'pcModuleMuebleria',
+    search:'Buscar mueble, material, color, tamaño...'
+  },
 
-    mascotas:
-      'pcModuleMascotas'
-  };
+  mascotas:{
+    label:'🐶 Mascotas',
+    sheet:'Mascotas',
+    module:'pcModuleMascotas',
+    search:'Buscar alimento, marca, especie, etapa...'
+  }
 
-
-  Object.values(modules).forEach(id => {
-
-    const el =
-      document.getElementById(id);
-
-    if(el){
-      el.classList.remove('pc-show');
-    }
-
-  });
-
-
-  document
-    .querySelectorAll('.pc-tool')
-    .forEach(el => {
-      el.classList.remove('pc-show');
-    });
+};
 
 
-  /*
-   * GENERAL:
-   * No muestra módulo adicional.
-   * Queda funcionando únicamente
-   * tu tienda actual.
-   */
+/* ENCABEZADOS EXACTOS DE PRODUCTOS */
 
-  if(type === 'general'){
-    return;
+const PC_PRODUCT_FIELDS = {
+
+  general:[],
+
+  ferreteria:[
+    ['FER_Marca','Marca'],
+    ['FER_Unidad_Venta','Unidad de venta'],
+    ['FER_Presentación','Presentación'],
+    ['FER_Medida','Medida'],
+    ['FER_Material','Material'],
+    ['FER_Calibre','Calibre'],
+    ['FER_Diámetro','Diámetro'],
+    ['FER_Largo','Largo'],
+    ['FER_Color','Color'],
+    ['FER_Stock_Mínimo','Stock mínimo','number'],
+    ['FER_Pasillo','Pasillo'],
+    ['FER_Estante','Estante'],
+    ['FER_Precio_Contratista','Precio contratista','number'],
+    ['FER_Precio_Mayorista','Precio mayorista','number']
+  ],
+
+  repuestos:[
+    ['REP_Marca_Repuesto','Marca del repuesto'],
+    ['REP_Numero_OEM','Número OEM'],
+    ['REP_Numero_Fabricante','Número fabricante'],
+    ['REP_Numeros_Equivalentes','Números equivalentes'],
+
+    [
+      'REP_Condición',
+      'Condición',
+      'select',
+      ['Nuevo','Usado Original','Reconstruido','Nuevo Genérico']
+    ],
+
+    [
+      'REP_Probado',
+      'Probado',
+      'select',
+      ['Sí','No','No aplica']
+    ],
+
+    ['REP_Garantía_Días','Garantía días','number'],
+    ['REP_Marca_Vehículo','Marca vehículo'],
+    ['REP_Modelo_Vehículo','Modelo vehículo'],
+    ['REP_Año_Desde','Año desde','number'],
+    ['REP_Año_Hasta','Año hasta','number'],
+    ['REP_Motor','Motor'],
+    ['REP_Transmisión','Transmisión'],
+    ['REP_Posición','Posición'],
+    ['REP_Lado','Lado'],
+    ['REP_Vehículo_Donante','Vehículo donante'],
+    ['REP_Ubicación','Ubicación']
+  ],
+
+  distribuidora:[
+    ['DIS_Marca','Marca'],
+    ['DIS_Presentación','Presentación'],
+    ['DIS_Unidad_Venta','Unidad de venta'],
+    ['DIS_Unidades_por_Caja','Unidades por caja','number'],
+    ['DIS_Precio_Mayorista','Precio mayorista','number'],
+    ['DIS_Precio_Volumen','Precio volumen','number'],
+    ['DIS_Cantidad_Minima_Volumen','Cantidad mínima volumen','number'],
+    ['DIS_Stock_Mínimo','Stock mínimo','number'],
+    ['DIS_Proveedor','Proveedor']
+  ],
+
+  electronica:[
+    ['ELE_Marca','Marca'],
+    ['ELE_Modelo','Modelo'],
+    ['ELE_Color','Color'],
+    ['ELE_Capacidad','Capacidad'],
+    ['ELE_RAM','RAM'],
+    ['ELE_Almacenamiento','Almacenamiento'],
+    ['ELE_Voltaje','Voltaje'],
+    ['ELE_Potencia','Potencia'],
+    ['ELE_Compatibilidad','Compatibilidad'],
+    ['ELE_Garantía_Meses','Garantía meses','number'],
+
+    [
+      'ELE_Condición',
+      'Condición',
+      'select',
+      ['Nuevo','Usado','Reacondicionado']
+    ]
+  ],
+
+  muebleria:[
+    ['MUE_Marca','Marca'],
+    ['MUE_Modelo','Modelo'],
+    ['MUE_Material','Material'],
+    ['MUE_Color','Color'],
+    ['MUE_Estilo','Estilo'],
+    ['MUE_Ancho_cm','Ancho cm','number'],
+    ['MUE_Alto_cm','Alto cm','number'],
+    ['MUE_Profundidad_cm','Profundidad cm','number'],
+    ['MUE_Tamaño','Tamaño'],
+    ['MUE_Variante','Variante'],
+    ['MUE_Tiempo_Entrega_Días','Tiempo entrega días','number'],
+
+    [
+      'MUE_Requiere_Armado',
+      'Requiere armado',
+      'select',
+      ['Sí','No']
+    ]
+  ],
+
+  mascotas:[
+    ['MAS_Marca','Marca'],
+
+    [
+      'MAS_Especie',
+      'Especie',
+      'select',
+      ['Perro','Gato','Ave','Pez','General','Otro']
+    ],
+
+    [
+      'MAS_Etapa',
+      'Etapa',
+      'select',
+      ['Cachorro','Adulto','Senior','Todas']
+    ],
+
+    [
+      'MAS_Tamaño_Mascota',
+      'Tamaño mascota',
+      'select',
+      ['Pequeño','Mediano','Grande','Todos']
+    ],
+
+    ['MAS_Presentación','Presentación'],
+    ['MAS_Peso_Producto_kg','Peso producto kg','number'],
+    ['MAS_Sabor','Sabor'],
+
+    [
+      'MAS_Tipo_Producto',
+      'Tipo producto',
+      'select',
+      ['Alimento','Premio','Juguete','Higiene','Accesorio','Cama','Otro']
+    ],
+
+    ['MAS_Stock_Mínimo','Stock mínimo','number']
+  ]
+
+};
+
+
+/* ENCABEZADOS DE PEDIDOS QUE COMPLETA EL CLIENTE */
+
+const PC_ORDER_FIELDS = {
+
+  general:[],
+
+  ferreteria:[
+    [
+      'FER_Precio_Nivel',
+      'Precio / nivel',
+      'select',
+      ['Detalle','Contratista','Mayorista']
+    ],
+    ['FER_Proyecto','Proyecto o trabajo']
+  ],
+
+  repuestos:[
+    ['REP_Marca_Vehículo','Marca vehículo'],
+    ['REP_Modelo_Vehículo','Modelo'],
+    ['REP_Año_Vehículo','Año','number'],
+    ['REP_Motor','Motor'],
+
+    [
+      'REP_Transmisión',
+      'Transmisión',
+      'select',
+      ['Automática','Manual','CVT','Otra']
+    ],
+
+    ['REP_Reserva_Hasta','Reservar hasta','datetime-local']
+  ],
+
+  distribuidora:[
+    [
+      'DIS_Tipo_Cliente',
+      'Tipo cliente',
+      'select',
+      ['Detalle','Mayorista','Distribuidor','Empresa']
+    ],
+
+    [
+      'DIS_Precio_Nivel',
+      'Precio / nivel',
+      'select',
+      ['Detalle','Mayorista','Volumen']
+    ],
+
+    ['DIS_Descuento','Descuento solicitado'],
+
+    [
+      'DIS_Forma_Pago',
+      'Forma de pago',
+      'select',
+      ['Efectivo','Transferencia','Tarjeta','Crédito']
+    ],
+
+    ['DIS_Fecha_Entrega','Fecha entrega','date']
+  ],
+
+  electronica:[
+    [
+      'ELE_Forma_Pago',
+      'Forma de pago',
+      'select',
+      ['Efectivo','Transferencia','Tarjeta','Financiamiento']
+    ],
+
+    [
+      'ELE_Tipo_Entrega',
+      'Tipo entrega',
+      'select',
+      ['Recoger en tienda','Envío']
+    ]
+  ],
+
+  muebleria:[
+    [
+      'MUE_Forma_Pago',
+      'Forma pago',
+      'select',
+      ['Contado','Transferencia','Tarjeta','Financiamiento']
+    ],
+
+    [
+      'MUE_Plazo_Meses',
+      'Plazo meses',
+      'select',
+      ['0','3','6','12','18','24']
+    ],
+
+    ['MUE_Prima','Prima','number'],
+    ['MUE_Fecha_Entrega','Fecha entrega','date']
+  ],
+
+  mascotas:[
+    ['MAS_Nombre_Mascota','Nombre mascota'],
+
+    [
+      'MAS_Especie',
+      'Especie',
+      'select',
+      ['Perro','Gato','Ave','Pez','Otro']
+    ],
+
+    ['MAS_Raza','Raza'],
+    ['MAS_Edad','Edad'],
+    ['MAS_Peso_Mascota','Peso mascota'],
+
+    [
+      'MAS_Tamaño_Mascota',
+      'Tamaño mascota',
+      'select',
+      ['Pequeño','Mediano','Grande']
+    ],
+
+    [
+      'MAS_Recompra',
+      'Recompra',
+      'select',
+      ['Sí','No']
+    ],
+
+    ['MAS_Fecha_Proxima_Compra','Próxima compra','date']
+  ]
+
+};
+
+
+function pcAvailableBusinessKeys(){
+
+  return Object
+    .keys(
+      PC_SECTORS
+    )
+    .filter(
+      key => {
+
+        if(
+          key === 'general'
+        ){
+          return true;
+        }
+
+        return !!document.getElementById(
+          PC_SECTORS[key].module
+        );
+
+      }
+    );
+
+}
+
+
+function pcBusinessSheetValue(key){
+
+  return (
+    PC_SECTORS[key]
+    ||
+    PC_SECTORS.general
+  ).sheet;
+
+}
+
+
+function pcCartKey(key){
+
+  return key === 'general'
+    ?
+    'ventaswp_cart'
+    :
+    'ventaswp_cart_' + key;
+
+}
+
+
+function pcInitBusinessSelectors(){
+
+  const available =
+    new Set(
+      pcAvailableBusinessKeys()
+    );
+
+
+  const selector =
+    document.getElementById(
+      'businessTypeSelector'
+    );
+
+
+  if(selector){
+
+    Array.from(
+      selector.options
+    )
+    .forEach(
+      opt => {
+
+        if(
+          !available.has(
+            opt.value
+          )
+        ){
+          opt.remove();
+        }
+
+      }
+    );
+
   }
 
 
-  const moduleId =
-    modules[type];
+  const adminSelector =
+    document.getElementById(
+      'pRubro'
+    );
 
-  const module =
-    document.getElementById(moduleId);
 
-  if(module){
-    module.classList.add('pc-show');
+  if(adminSelector){
+
+    adminSelector.innerHTML =
+      pcAvailableBusinessKeys()
+        .map(
+          key =>
+            `<option value="${attr(key)}">${esc(PC_SECTORS[key].label)}</option>`
+        )
+        .join('');
+
+
+    adminSelector.value =
+      'general';
+
   }
 
 }
 
+
+function pcChangeBusiness(type){
+
+  if(
+    !PC_SECTORS[type]
+  ){
+    type =
+      'general';
+  }
+
+
+  Object
+    .values(
+      PC_SECTORS
+    )
+    .forEach(
+      cfg => {
+
+        if(!cfg.module){
+          return;
+        }
+
+        const el =
+          document.getElementById(
+            cfg.module
+          );
+
+        if(el){
+          el.classList.remove(
+            'pc-show'
+          );
+        }
+
+      }
+    );
+
+
+  document
+    .querySelectorAll(
+      '.pc-tool'
+    )
+    .forEach(
+      el =>
+        el.classList.remove(
+          'pc-show'
+        )
+    );
+
+
+  const cfg =
+    PC_SECTORS[type];
+
+
+  if(cfg.module){
+
+    const module =
+      document.getElementById(
+        cfg.module
+      );
+
+    if(module){
+      module.classList.add(
+        'pc-show'
+      );
+    }
+
+  }
+
+
+  const search =
+    document.getElementById(
+      'search'
+    );
+
+
+  if(search){
+    search.placeholder =
+      cfg.search;
+  }
+
+
+  if(
+    typeof activeBusiness !==
+    'undefined'
+  ){
+
+    if(
+      typeof saveCart ===
+      'function'
+    ){
+      saveCart();
+    }
+
+
+    activeBusiness =
+      type;
+
+
+    selectedCategory =
+      'Todos';
+
+
+    if(search){
+      search.value =
+        '';
+    }
+
+
+    cart =
+      loadJson(
+        pcCartKey(
+          activeBusiness
+        ),
+        {}
+      );
+
+
+    renderSectorOrderFields();
+
+    refreshCartUI();
+
+    if(!isAdmin){
+      loadProducts();
+    }
+
+  }
+
+}
 
 
 function pcOpenTool(
@@ -4408,32 +4948,22 @@ function pcOpenTool(
   toolId
 ){
 
-  const sectorModules = {
+  const cfg =
+    PC_SECTORS[sector];
 
-    ferreteria:
-      'pcModuleFerreteria',
 
-    repuestos:
-      'pcModuleRepuestos',
-
-    distribuidora:
-      'pcModuleDistribuidora',
-
-    electronica:
-      'pcModuleElectronica',
-
-    muebleria:
-      'pcModuleMuebleria',
-
-    mascotas:
-      'pcModuleMascotas'
-
-  };
+  if(
+    !cfg
+    ||
+    !cfg.module
+  ){
+    return;
+  }
 
 
   const module =
     document.getElementById(
-      sectorModules[sector]
+      cfg.module
     );
 
 
@@ -4443,16 +4973,25 @@ function pcOpenTool(
 
 
   module
-    .querySelectorAll('.pc-tool')
-    .forEach(el => {
+    .querySelectorAll(
+      '.pc-tool'
+    )
+    .forEach(
+      el => {
 
-      if(el.id !== toolId){
-        el.classList.remove(
-          'pc-show'
-        );
+        if(
+          el.id !==
+          toolId
+        ){
+
+          el.classList.remove(
+            'pc-show'
+          );
+
+        }
+
       }
-
-    });
+    );
 
 
   const tool =
@@ -4470,55 +5009,426 @@ function pcOpenTool(
     'pc-show'
   );
 
+}
+
+
+function pcRenderField(
+  field,
+  typeData
+){
+
+  const [
+    header,
+    label,
+    type = 'text',
+    options = []
+  ] = field;
+
+
+  const dataName =
+    typeData === 'product'
+      ?
+      'data-product-header'
+      :
+      'data-order-header';
+
+
+  let control =
+    '';
+
 
   if(
-    tool.classList.contains(
-      'pc-show'
-    )
+    type === 'select'
   ){
 
-    setTimeout(() => {
-
-      tool.scrollIntoView({
-        behavior:'smooth',
-        block:'nearest'
-      });
-
-    },50);
+    control =
+      `<select ${dataName}="${attr(header)}">
+        ${
+          options
+            .map(
+              option =>
+                `<option value="${attr(option)}">${esc(option)}</option>`
+            )
+            .join('')
+        }
+      </select>`;
 
   }
+  else{
+
+    const step =
+      type === 'number'
+        ?
+        ' step="any"'
+        :
+        '';
+
+
+    control =
+      `<input
+        type="${attr(type)}"
+        ${step}
+        ${dataName}="${attr(header)}">`;
+
+  }
+
+
+  return `
+    <div class="field">
+      <label>${esc(label)}</label>
+      ${control}
+    </div>
+  `;
 
 }
 
 
-/*
- * Siempre inicia como
- * TIENDA GENERAL.
- */
+function renderAdminSpecializedFields(){
 
-document.addEventListener(
-  'DOMContentLoaded',
-  function(){
+  const box =
+    document.getElementById(
+      'adminSpecialFields'
+    );
 
-    const selector =
-      document.getElementById(
-        'businessTypeSelector'
-      );
 
-    if(selector){
+  const selector =
+    document.getElementById(
+      'pRubro'
+    );
 
-      selector.value =
-        'general';
 
-      pcChangeBusiness(
-        'general'
-      );
+  if(
+    !box
+    ||
+    !selector
+  ){
+    return;
+  }
 
-    }
+
+  const key =
+    selector.value
+    ||
+    'general';
+
+
+  const fields =
+    PC_PRODUCT_FIELDS[key]
+    ||
+    [];
+
+
+  if(
+    !fields.length
+  ){
+
+    box.innerHTML =
+      `<div class="hint">
+        Tienda general: no requiere campos especializados.
+      </div>`;
+
+    return;
 
   }
-);
 
+
+  box.innerHTML =
+    `
+      <h3>
+        ${esc(PC_SECTORS[key].label)}
+        - Datos especializados
+      </h3>
+
+      <div class="formgrid">
+        ${
+          fields
+            .map(
+              field =>
+                pcRenderField(
+                  field,
+                  'product'
+                )
+            )
+            .join('')
+        }
+      </div>
+    `;
+
+}
+
+
+function collectAdminSpecializedFields(){
+
+  const out =
+    {};
+
+
+  document
+    .querySelectorAll(
+      '#adminSpecialFields [data-product-header]'
+    )
+    .forEach(
+      el => {
+
+        out[
+          el.getAttribute(
+            'data-product-header'
+          )
+        ] =
+          String(
+            el.value
+            ??
+            ''
+          )
+          .trim();
+
+      }
+    );
+
+
+  return out;
+
+}
+
+
+function fillAdminSpecializedFields(values){
+
+  if(
+    !values
+    ||
+    typeof values !==
+    'object'
+  ){
+    return;
+  }
+
+
+  document
+    .querySelectorAll(
+      '#adminSpecialFields [data-product-header]'
+    )
+    .forEach(
+      el => {
+
+        const header =
+          el.getAttribute(
+            'data-product-header'
+          );
+
+
+        if(
+          values[header] !==
+          undefined
+        ){
+
+          el.value =
+            values[header];
+
+        }
+
+      }
+    );
+
+}
+
+
+function renderSectorOrderFields(){
+
+  const box =
+    document.getElementById(
+      'sectorOrderFields'
+    );
+
+
+  if(!box){
+    return;
+  }
+
+
+  const fields =
+    PC_ORDER_FIELDS[
+      activeBusiness
+    ]
+    ||
+    [];
+
+
+  if(
+    !fields.length
+  ){
+
+    box.innerHTML =
+      '';
+
+    box.classList.add(
+      'hide'
+    );
+
+    return;
+
+  }
+
+
+  box.classList.remove(
+    'hide'
+  );
+
+
+  box.innerHTML =
+    `
+      <div class="pc-order-sector-title">
+        ${esc(PC_SECTORS[activeBusiness].label)}
+        - Datos del pedido
+      </div>
+
+      <div class="pc-form-grid">
+        ${
+          fields
+            .map(
+              field =>
+                pcRenderField(
+                  field,
+                  'order'
+                )
+            )
+            .join('')
+        }
+      </div>
+    `;
+
+}
+
+
+function collectSectorOrderFields(){
+
+  const out =
+    {};
+
+
+  document
+    .querySelectorAll(
+      '#sectorOrderFields [data-order-header]'
+    )
+    .forEach(
+      el => {
+
+        out[
+          el.getAttribute(
+            'data-order-header'
+          )
+        ] =
+          String(
+            el.value
+            ??
+            ''
+          )
+          .trim();
+
+      }
+    );
+
+
+  return out;
+
+}
+
+
+function pcProductSpecialSummary(p){
+
+  const special =
+    p.especializados
+    ||
+    {};
+
+
+  const fields =
+    {
+
+      ferreteria:[
+        'FER_Marca',
+        'FER_Unidad_Venta',
+        'FER_Medida'
+      ],
+
+      repuestos:[
+        'REP_Marca_Vehículo',
+        'REP_Modelo_Vehículo',
+        'REP_Año_Desde',
+        'REP_Motor',
+        'REP_Numero_OEM',
+        'REP_Condición'
+      ],
+
+      distribuidora:[
+        'DIS_Marca',
+        'DIS_Presentación',
+        'DIS_Unidad_Venta',
+        'DIS_Precio_Mayorista'
+      ],
+
+      electronica:[
+        'ELE_Marca',
+        'ELE_Modelo',
+        'ELE_Capacidad',
+        'ELE_RAM',
+        'ELE_Color'
+      ],
+
+      muebleria:[
+        'MUE_Material',
+        'MUE_Color',
+        'MUE_Tamaño',
+        'MUE_Ancho_cm',
+        'MUE_Profundidad_cm'
+      ],
+
+      mascotas:[
+        'MAS_Marca',
+        'MAS_Especie',
+        'MAS_Etapa',
+        'MAS_Presentación',
+        'MAS_Peso_Producto_kg'
+      ]
+
+    }[
+      activeBusiness
+    ]
+    ||
+    [];
+
+
+  const parts =
+    fields
+      .filter(
+        field =>
+          String(
+            special[field]
+            ??
+            ''
+          )
+          .trim()
+      )
+      .slice(
+        0,
+        6
+      )
+      .map(
+        field =>
+          `<span>
+            ${esc(field.replace(/^[A-Z]+_/,'').replaceAll('_',' '))}:
+            ${esc(special[field])}
+          </span>`
+      );
+
+
+  return parts.length
+    ?
+    `<div class="pc-product-meta">${parts.join('')}</div>`
+    :
+    '';
+
+}
+  
 </script>
 
 <!-- ============================================================
@@ -4754,6 +5664,49 @@ document.addEventListener(
     autocomplete="tel"
     placeholder="Número de WhatsApp">
 
+</div>
+
+<div class="field">
+
+  <label>
+    Tipo de documento
+  </label>
+
+  <select id="orderDocumentType">
+
+    <option value="Pedido">
+      Pedido
+    </option>
+
+    <option value="Cotización">
+      Cotización
+    </option>
+
+    <option value="Reserva">
+      Reserva
+    </option>
+
+  </select>
+
+</div>
+
+
+<div class="field">
+
+  <label>
+    Observaciones
+  </label>
+
+  <textarea
+    id="orderObservations"
+    placeholder="Indicaciones adicionales del pedido"></textarea>
+
+</div>
+
+
+<div
+  id="sectorOrderFields"
+  class="pc-special-fields hide">
 </div>
       
       <button
@@ -5003,6 +5956,23 @@ document.addEventListener(
 
         </div>
 
+        <div class="field">
+
+  <label>
+    Rubro
+  </label>
+
+  <select
+    id="pRubro"
+    onchange="renderAdminSpecializedFields()">
+
+    <option value="general">
+      🛒 Tienda general
+    </option>
+
+  </select>
+
+</div>
 
         <div class="field span2">
 
@@ -5088,7 +6058,15 @@ document.addEventListener(
 
       </div>
 
+<div
+  id="adminSpecialFields"
+  class="pc-special-fields">
 
+  <div class="hint">
+    Tienda general: no requiere campos especializados.
+  </div>
+
+</div>
       <button
         id="saveProductBtn"
         class="primary"
@@ -5213,7 +6191,7 @@ const CONFIG = {
    */
 
   GAS_WEB_APP_URL:
-    'https://script.google.com/macros/s/AKfycbxbH7j_Tv_5x4tEw8_pLduoMGeBSLnw65eds2626UC7UQMDewe6EaO3ZBI5UomSX1711g/exec',
+    'https://script.google.com/macros/s/AKfycbwqMYZKWfXKPiVkCZuX3ZBp5RkM-oin0x41UCZl5zg0i8jQVvZcvXeSJ0KAPPl2MWSSxQ/exec',
 
   CURRENCY:
     'L'
@@ -5248,6 +6226,9 @@ let shownProducts = [];
 let selectedCategory =
   'Todos';
 
+  let activeBusiness =
+  'general';
+
 /*
  * Vista de productos.
  *
@@ -5281,7 +6262,9 @@ let draftQty = {};
 
 let cart =
   loadJson(
-    'ventaswp_cart',
+    pcCartKey(
+      activeBusiness
+    ),
     {}
   );
 
@@ -5350,6 +6333,28 @@ window.addEventListener(
         'hide'
       );
 
+  pcInitBusinessSelectors();
+
+
+activeBusiness =
+  'general';
+
+
+const businessSelector =
+  $('businessTypeSelector');
+
+
+if(
+  businessSelector
+){
+
+  businessSelector.value =
+    'general';
+
+}
+
+
+renderSectorOrderFields();  
 
     $('search')
       .addEventListener(
@@ -5654,7 +6659,15 @@ async function loadProducts(){
 
     const r =
       await jsonp(
-        'products'
+        'products',
+        {
+
+          rubro:
+            pcBusinessSheetValue(
+              activeBusiness
+            )
+
+        }
       );
 
 
@@ -5710,7 +6723,7 @@ async function loadProducts(){
 
 
     setStatus(
-      `${allProducts.length} productos disponibles.`
+      `${allProducts.length} productos disponibles en ${PC_SECTORS[activeBusiness].sheet}.`
     );
 
 
@@ -5732,8 +6745,7 @@ async function loadProducts(){
   }
 
 }
-
-
+  
 /*************************************************
  * CATEGORÍAS
  *************************************************/
@@ -5887,9 +6899,15 @@ function filterLocal(){
 
               p.descripcion,
 
-              p.palabrasClave
+              p.palabrasClave,
+              Object.values(
+  p.especializados
+  ||
+  {}
+).join(' ')
 
             ]
+            
             .join(
               ' '
             )
@@ -5948,14 +6966,21 @@ async function aiSearch(
 
   try{
 
-    const r =
-      await jsonp(
-        'aiSearch',
-        {
-          q:
-            q
-        }
-      );
+ const r =
+  await jsonp(
+    'aiSearch',
+    {
+
+      q:
+        q,
+
+      rubro:
+        pcBusinessSheetValue(
+          activeBusiness
+        )
+
+    }
+  );
 
 
     if(
@@ -6233,6 +7258,7 @@ function catalogProductHtml(
         <div class="store-product-desc">
           ${esc(p.descripcion || '')}
         </div>
+${pcProductSpecialSummary(p)}
 
         <div class="store-product-price">
           ${money(p.precio)}
@@ -6293,6 +7319,7 @@ function gondolaProductHtml(
           ${esc(p.producto)}
         </div>
 
+${pcProductSpecialSummary(p)}
         <div class="gondola-price">
           ${money(p.precio)}
         </div>
@@ -6351,6 +7378,8 @@ function aisleProductHtml(
         <div class="aisle-product-desc">
           ${esc(p.descripcion || '')}
         </div>
+
+        ${pcProductSpecialSummary(p)}
 
         <div class="aisle-product-price">
           ${money(p.precio)}
@@ -7192,12 +8221,7 @@ async function submitOrder(){
 
 
   if(
-    phone
-      .replace(
-        /\D/g,
-        ''
-      )
-      .length < 7
+    phone.replace(/\D/g,'').length < 7
   ){
 
     return orderMsg(
@@ -7206,6 +8230,27 @@ async function submitOrder(){
     );
 
   }
+
+
+  const rubro =
+    pcBusinessSheetValue(
+      activeBusiness
+    );
+
+
+  const tipoDocumento =
+    $('orderDocumentType')
+      .value;
+
+
+  const observaciones =
+    $('orderObservations')
+      .value
+      .trim();
+
+
+  const orderExtra =
+    collectSectorOrderFields();
 
 
   try{
@@ -7221,11 +8266,6 @@ async function submitOrder(){
       'Enviando…';
 
 
-    /*
-     * Apps Script crea ahora
-     * el ID correlativo del pedido.
-     */
-
     const r =
       await sendJob(
         'createOrder',
@@ -7239,6 +8279,20 @@ async function submitOrder(){
 
           phone:
             phone,
+
+          rubro:
+            rubro,
+
+          tipoDocumento:
+            tipoDocumento,
+
+          observaciones:
+            observaciones,
+
+          orderExtra:
+            JSON.stringify(
+              orderExtra
+            ),
 
           items:
             JSON.stringify(
@@ -7288,11 +8342,20 @@ async function submitOrder(){
     saveCart();
 
 
+    $('orderObservations').value =
+      '';
+
+
+    $('orderDocumentType').value =
+      'Pedido';
+
+
+    renderSectorOrderFields();
+
+
     await loadProducts();
 
-
     renderCart();
-
 
     refreshCartUI();
 
@@ -7519,6 +8582,9 @@ function postForm(
  *************************************************/
 
 function initAdmin(){
+  pcInitBusinessSelectors();
+
+renderAdminSpecializedFields();
 
   const saved =
     sessionStorage.getItem(
@@ -8300,19 +9366,24 @@ async function identifyWithAI(){
     );
 
 
-    const r =
-      await sendJob(
-        'adminIdentifyProduct',
-        {
+  const r =
+  await sendJob(
+    'adminIdentifyProduct',
+    {
 
-          adminKey:
-            key,
+      adminKey:
+        key,
 
-          imageData:
-            photoData
+      imageData:
+        photoData,
 
-        }
-      );
+      rubro:
+        pcBusinessSheetValue(
+          $('pRubro').value
+        )
+
+    }
+  );
 
 
     if(
@@ -8350,7 +9421,11 @@ async function identifyWithAI(){
       r.palabrasClave
       ||
       '';
-
+fillAdminSpecializedFields(
+  r.especializados
+  ||
+  {}
+);
 
     adminMsg(
       '✓ Datos propuestos. Revísalos antes de guardar.',
@@ -8508,7 +9583,16 @@ async function saveProduct(){
           state:
             $('pState')
               .value,
+rubro:
+  pcBusinessSheetValue(
+    $('pRubro').value
+  ),
 
+specialized:
+  JSON.stringify(
+    collectAdminSpecializedFields()
+  ),
+          
           photoUrl:
             $('pPhotoUrl')
               .value
@@ -8604,7 +9688,16 @@ function clearProductForm(){
 
   $('pState').value =
     'Activo';
+if(
+  $('pRubro')
+){
 
+  $('pRubro').value =
+    'general';
+
+  renderAdminSpecializedFields();
+
+}
 
   clearPhoto();
 
@@ -8969,15 +10062,18 @@ function cartTotal(){
 function saveCart(){
 
   localStorage.setItem(
-    'ventaswp_cart',
+
+    pcCartKey(
+      activeBusiness
+    ),
+
     JSON.stringify(
       cart
     )
+
   );
 
 }
-
-
 function loadJson(
   k,
   f
