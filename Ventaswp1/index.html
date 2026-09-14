@@ -2697,10 +2697,9 @@
 </section>
 
 
-
 <!-- ============================================================
-     1. FERRETERIA
-     ============================================================ -->
+  1. FERRETERIA
+  ============================================================ -->
 
 <section
   id="pcModuleFerreteria"
@@ -2719,9 +2718,17 @@
   </div>
 
 
+  <!-- ========================================================
+       MENU FERRETERIA
+       ======================================================== -->
+
   <div class="pc-menu-grid">
 
+
+    <!-- CALCULAR MATERIALES -->
+
     <button
+      type="button"
       class="pc-menu-card pc-featured"
       onclick="pcOpenTool('ferreteria','pcFerCalcular')">
 
@@ -2740,7 +2747,10 @@
     </button>
 
 
+    <!-- ASESOR FERRETERO -->
+
     <button
+      type="button"
       class="pc-menu-card"
       onclick="pcOpenTool('ferreteria','pcFerAsesor')">
 
@@ -2759,7 +2769,12 @@
     </button>
 
 
-    <button class="pc-menu-card">
+    <!-- COTIZAR -->
+
+    <button
+      type="button"
+      class="pc-menu-card"
+      onclick="pcFerOpenQuote()">
 
       <span class="pc-icon">
         🧾
@@ -2776,7 +2791,12 @@
     </button>
 
 
-    <button class="pc-menu-card">
+    <!-- MIS COMPRAS -->
+
+    <button
+      type="button"
+      class="pc-menu-card"
+      onclick="pcOpenTool('ferreteria','pcFerCompras')">
 
       <span class="pc-icon">
         🔁
@@ -2795,7 +2815,9 @@
   </div>
 
 
-  <!-- CALCULADORA -->
+  <!-- ========================================================
+       CALCULADORA DE MATERIALES
+       ======================================================== -->
 
   <div
     id="pcFerCalcular"
@@ -2808,35 +2830,36 @@
 
     <div class="pc-form-grid">
 
+
       <div class="field">
 
         <label>
           ¿Qué deseas calcular?
         </label>
 
-        <select>
+        <select id="pcFerCalcType">
 
-          <option>
+          <option value="Pintura">
             Pintura
           </option>
 
-          <option>
+          <option value="Cerámica">
             Cerámica
           </option>
 
-          <option>
+          <option value="Bloques">
             Bloques
           </option>
 
-          <option>
+          <option value="Cemento">
             Cemento
           </option>
 
-          <option>
+          <option value="Lámina de techo">
             Lámina de techo
           </option>
 
-          <option>
+          <option value="Cable eléctrico">
             Cable eléctrico
           </option>
 
@@ -2852,7 +2875,10 @@
         </label>
 
         <input
+          id="pcFerCalcLength"
           type="number"
+          min="0"
+          step="0.01"
           placeholder="Metros">
 
       </div>
@@ -2865,7 +2891,10 @@
         </label>
 
         <input
+          id="pcFerCalcWidth"
           type="number"
+          min="0"
+          step="0.01"
           placeholder="Metros">
 
       </div>
@@ -2874,11 +2903,14 @@
       <div class="field">
 
         <label>
-          Alto
+          Alto / espesor
         </label>
 
         <input
+          id="pcFerCalcHeight"
           type="number"
+          min="0"
+          step="0.01"
           placeholder="Metros">
 
       </div>
@@ -2888,16 +2920,29 @@
 
     <div class="pc-action-row">
 
-      <button class="primary">
+      <button
+        type="button"
+        class="primary"
+        onclick="pcFerCalculateMaterials()">
+
         Calcular
+
       </button>
 
+    </div>
+
+
+    <div
+      id="pcFerCalcResult"
+      class="pc-mini-list">
     </div>
 
   </div>
 
 
-  <!-- ASESOR FERRETERO -->
+  <!-- ========================================================
+       ASESOR FERRETERO
+       ======================================================== -->
 
   <div
     id="pcFerAsesor"
@@ -2915,20 +2960,81 @@
       </label>
 
       <textarea
+        id="pcFerAdvisorText"
         placeholder="Ej.: quiero reparar una fuga de agua con tubo PVC de media pulgada"></textarea>
 
     </div>
 
 
-    <button class="primary">
+    <button
+      type="button"
+      class="primary"
+      onclick="pcFerRunAdvisor()">
+
       Buscar materiales
+
     </button>
+
+
+    <div
+      id="pcFerAdvisorResult"
+      class="pc-mini-list">
+    </div>
+
+  </div>
+
+
+  <!-- ========================================================
+       MIS COMPRAS
+       ======================================================== -->
+
+  <div
+    id="pcFerCompras"
+    class="pc-tool">
+
+    <h3>
+      🔁 Mis compras
+    </h3>
+
+
+    <div class="field">
+
+      <label>
+        Teléfono / WhatsApp usado en tus compras
+      </label>
+
+      <input
+        id="pcFerPurchasesPhone"
+        type="tel"
+        inputmode="tel"
+        placeholder="Ej.: 9879-0377">
+
+    </div>
+
+
+    <div class="pc-action-row">
+
+      <button
+        type="button"
+        class="primary"
+        onclick="pcFerLoadPurchases()">
+
+        Buscar mis compras
+
+      </button>
+
+    </div>
+
+
+    <div
+      id="pcFerPurchasesResult"
+      class="pc-mini-list">
+    </div>
 
   </div>
 
 </section>
-
-<!-- ============================================================
+    <!-- ============================================================
      2. REPUESTOS / YONKER
      ============================================================ -->
 
@@ -7636,6 +7742,1155 @@ function pcOpenTool(
 
 }
 
+/* ============================================================
+   FERRETERIA - FUNCIONES ACTIVAS
+   ============================================================ */
+
+let pcFerPurchaseOrders = [];
+
+
+/* ============================================================
+   1. CALCULAR MATERIALES
+   ============================================================ */
+
+function pcFerCalculateMaterials(){
+
+  const type =
+    $('pcFerCalcType').value;
+
+  const largo =
+    Number(
+      $('pcFerCalcLength').value
+    )
+    ||
+    0;
+
+  const ancho =
+    Number(
+      $('pcFerCalcWidth').value
+    )
+    ||
+    0;
+
+  const alto =
+    Number(
+      $('pcFerCalcHeight').value
+    )
+    ||
+    0;
+
+  const result =
+    $('pcFerCalcResult');
+
+
+  if(!result){
+    return;
+  }
+
+
+  let titulo = '';
+  let calculo = '';
+  let detalle = '';
+  let terminoBusqueda = type;
+
+
+  /*
+   * ========================================================
+   * PINTURA
+   *
+   * Área aproximada de cuatro paredes:
+   * perímetro × altura.
+   *
+   * 2 manos.
+   * Rendimiento referencial 10 m²/L.
+   * ========================================================
+   */
+
+  if(
+    type ===
+    'Pintura'
+  ){
+
+    if(
+      largo <= 0
+      ||
+      ancho <= 0
+      ||
+      alto <= 0
+    ){
+
+      result.innerHTML =
+        `
+        <div class="pc-mini-item">
+          Ingresa largo, ancho y alto.
+        </div>
+        `;
+
+      return;
+
+    }
+
+
+    const area =
+      2
+      *
+      (
+        largo
+        +
+        ancho
+      )
+      *
+      alto;
+
+
+    const litros =
+      Math.ceil(
+        (
+          area
+          *
+          2
+        )
+        /
+        10
+      );
+
+
+    titulo =
+      '🎨 Pintura estimada';
+
+    calculo =
+      litros
+      +
+      ' litro'
+      +
+      (
+        litros === 1
+        ?
+        ''
+        :
+        's'
+      );
+
+    detalle =
+      'Área de paredes: '
+      +
+      area.toFixed(2)
+      +
+      ' m². Estimado para 2 manos y rendimiento aproximado de 10 m² por litro.';
+
+  }
+
+
+  /*
+   * ========================================================
+   * CERAMICA
+   *
+   * Área del piso + 10% desperdicio.
+   * ========================================================
+   */
+
+  else if(
+    type ===
+    'Cerámica'
+  ){
+
+    if(
+      largo <= 0
+      ||
+      ancho <= 0
+    ){
+
+      result.innerHTML =
+        `
+        <div class="pc-mini-item">
+          Ingresa largo y ancho.
+        </div>
+        `;
+
+      return;
+
+    }
+
+
+    const area =
+      largo
+      *
+      ancho;
+
+
+    const compra =
+      area
+      *
+      1.10;
+
+
+    titulo =
+      '⬜ Cerámica estimada';
+
+    calculo =
+      compra.toFixed(2)
+      +
+      ' m²';
+
+    detalle =
+      'Área: '
+      +
+      area.toFixed(2)
+      +
+      ' m² + 10% para cortes y desperdicio.';
+
+  }
+
+
+  /*
+   * ========================================================
+   * BLOQUES
+   *
+   * Aproximación:
+   * 12.5 bloques por m² + 5%.
+   * ========================================================
+   */
+
+  else if(
+    type ===
+    'Bloques'
+  ){
+
+    if(
+      largo <= 0
+      ||
+      alto <= 0
+    ){
+
+      result.innerHTML =
+        `
+        <div class="pc-mini-item">
+          Para bloques ingresa largo y alto del muro.
+        </div>
+        `;
+
+      return;
+
+    }
+
+
+    const area =
+      largo
+      *
+      alto;
+
+
+    const bloques =
+      Math.ceil(
+        area
+        *
+        12.5
+        *
+        1.05
+      );
+
+
+    titulo =
+      '🧱 Bloques estimados';
+
+    calculo =
+      bloques
+      +
+      ' bloques';
+
+    detalle =
+      'Muro: '
+      +
+      area.toFixed(2)
+      +
+      ' m². Incluye aproximadamente 5% adicional.';
+
+  }
+
+
+  /*
+   * ========================================================
+   * CEMENTO
+   *
+   * Volumen × 7 bolsas/m³ + 5%.
+   *
+   * Referencial para estimación rápida.
+   * ========================================================
+   */
+
+  else if(
+    type ===
+    'Cemento'
+  ){
+
+    if(
+      largo <= 0
+      ||
+      ancho <= 0
+      ||
+      alto <= 0
+    ){
+
+      result.innerHTML =
+        `
+        <div class="pc-mini-item">
+          Ingresa largo, ancho y espesor en metros.
+        </div>
+        `;
+
+      return;
+
+    }
+
+
+    const volumen =
+      largo
+      *
+      ancho
+      *
+      alto;
+
+
+    const bolsas =
+      Math.ceil(
+        volumen
+        *
+        7
+        *
+        1.05
+      );
+
+
+    titulo =
+      '🏗️ Cemento estimado';
+
+    calculo =
+      bolsas
+      +
+      ' bolsa'
+      +
+      (
+        bolsas === 1
+        ?
+        ''
+        :
+        's'
+      );
+
+    detalle =
+      'Volumen aproximado: '
+      +
+      volumen.toFixed(3)
+      +
+      ' m³.';
+
+  }
+
+
+  /*
+   * ========================================================
+   * LAMINA DE TECHO
+   *
+   * Área + 10%.
+   * ========================================================
+   */
+
+  else if(
+    type ===
+    'Lámina de techo'
+  ){
+
+    if(
+      largo <= 0
+      ||
+      ancho <= 0
+    ){
+
+      result.innerHTML =
+        `
+        <div class="pc-mini-item">
+          Ingresa largo y ancho del techo.
+        </div>
+        `;
+
+      return;
+
+    }
+
+
+    const area =
+      largo
+      *
+      ancho;
+
+
+    const compra =
+      area
+      *
+      1.10;
+
+
+    titulo =
+      '🏠 Cobertura de lámina';
+
+    calculo =
+      compra.toFixed(2)
+      +
+      ' m²';
+
+    detalle =
+      'Área del techo: '
+      +
+      area.toFixed(2)
+      +
+      ' m² + 10% aproximado para traslapes.';
+
+  }
+
+
+  /*
+   * ========================================================
+   * CABLE
+   *
+   * Longitud + 10%.
+   * ========================================================
+   */
+
+  else if(
+    type ===
+    'Cable eléctrico'
+  ){
+
+    if(
+      largo <= 0
+    ){
+
+      result.innerHTML =
+        `
+        <div class="pc-mini-item">
+          Ingresa la longitud aproximada del recorrido.
+        </div>
+        `;
+
+      return;
+
+    }
+
+
+    const metros =
+      largo
+      *
+      1.10;
+
+
+    titulo =
+      '⚡ Cable estimado';
+
+    calculo =
+      metros.toFixed(2)
+      +
+      ' metros';
+
+    detalle =
+      'Incluye aproximadamente 10% adicional para conexiones y recorrido.';
+
+  }
+
+
+  result.innerHTML =
+    `
+    <div class="pc-mini-item">
+
+      <strong>
+        ${titulo}
+      </strong>
+
+      <div
+        style="
+          font-size:22px;
+          font-weight:900;
+          margin:7px 0;
+        ">
+        ${calculo}
+      </div>
+
+      <small>
+        ${detalle}
+      </small>
+
+      <div
+        class="hint"
+        style="margin-top:8px;">
+
+        Estimación referencial.
+        El rendimiento real depende del producto,
+        superficie y especificaciones del fabricante.
+
+      </div>
+
+    </div>
+    `;
+
+
+  /*
+   * Mostrar productos relacionados
+   * en el catálogo.
+   */
+
+  const search =
+    $('search');
+
+
+  if(search){
+
+    search.value =
+      terminoBusqueda;
+
+    selectedCategory =
+      'Todos';
+
+    filterLocal();
+
+  }
+
+}
+
+
+/* ============================================================
+   2. ASESOR FERRETERO
+   ============================================================ */
+
+async function pcFerRunAdvisor(){
+
+  const text =
+    $('pcFerAdvisorText')
+    ?
+    $('pcFerAdvisorText')
+      .value
+      .trim()
+    :
+    '';
+
+
+  const result =
+    $('pcFerAdvisorResult');
+
+
+  if(
+    text.length < 3
+  ){
+
+    if(result){
+
+      result.innerHTML =
+        `
+        <div class="pc-mini-item">
+          Explica qué deseas construir, instalar o reparar.
+        </div>
+        `;
+
+    }
+
+    return;
+
+  }
+
+
+  if(result){
+
+    result.innerHTML =
+      `
+      <div class="pc-mini-item">
+        🤖 Analizando los materiales disponibles...
+      </div>
+      `;
+
+  }
+
+
+  /*
+   * Usamos la búsqueda IA que YA existe
+   * en tu plataforma y en Apps Script.
+   */
+
+  const search =
+    $('search');
+
+
+  if(search){
+
+    search.value =
+      text;
+
+  }
+
+
+  selectedCategory =
+    'Todos';
+
+
+  /*
+   * Limpiamos la búsqueda anterior.
+   */
+
+  shownProducts = [];
+
+
+  const seq =
+    ++searchSeq;
+
+
+  await aiSearch(
+    text,
+    seq
+  );
+
+
+  if(result){
+
+    if(
+      shownProducts.length
+    ){
+
+      result.innerHTML =
+        `
+        <div class="pc-mini-item">
+
+          <strong>
+            ✅ Materiales encontrados
+          </strong>
+
+          <small>
+            El asesor encontró
+            ${shownProducts.length}
+            producto${shownProducts.length === 1 ? '' : 's'}
+            relacionado${shownProducts.length === 1 ? '' : 's'}.
+            Revisa el catálogo abajo.
+          </small>
+
+        </div>
+        `;
+
+    }
+    else{
+
+      result.innerHTML =
+        `
+        <div class="pc-mini-item">
+
+          <strong>
+            No encontré una coincidencia suficiente.
+          </strong>
+
+          <small>
+            Prueba describiendo con más detalle
+            el trabajo, medida o material.
+          </small>
+
+        </div>
+        `;
+
+    }
+
+  }
+
+
+  const viewbar =
+    document.querySelector(
+      '.viewbar'
+    );
+
+
+  if(viewbar){
+
+    viewbar.scrollIntoView({
+      behavior:
+        'smooth',
+      block:
+        'start'
+    });
+
+  }
+
+}
+
+
+/* ============================================================
+   3. COTIZAR
+   ============================================================ */
+
+function pcFerOpenQuote(){
+
+  const documentType =
+    $('orderDocumentType');
+
+
+  if(documentType){
+
+    documentType.value =
+      'Cotización';
+
+  }
+
+
+  /*
+   * Abrimos el mismo carrito,
+   * pero en modo Cotización.
+   *
+   * El backend YA sabe que una
+   * Cotización no descuenta inventario.
+   */
+
+  openCart();
+
+
+  if(
+    !cartItems().length
+  ){
+
+    orderMsg(
+      'Agrega los materiales que deseas cotizar.',
+      true
+    );
+
+  }
+  else{
+
+    orderMsg(
+      'Modo cotización activo. Revisa los materiales y confirma.',
+      true
+    );
+
+  }
+
+}
+
+
+/* ============================================================
+   4. MIS COMPRAS
+   ============================================================ */
+
+async function pcFerLoadPurchases(){
+
+  const input =
+    $('pcFerPurchasesPhone');
+
+
+  const result =
+    $('pcFerPurchasesResult');
+
+
+  if(
+    !input
+    ||
+    !result
+  ){
+
+    return;
+
+  }
+
+
+  /*
+   * Si el teléfono ya está en el carrito,
+   * lo aprovechamos.
+   */
+
+  if(
+    !input.value.trim()
+    &&
+    $('customerPhone')
+    &&
+    $('customerPhone').value.trim()
+  ){
+
+    input.value =
+      $('customerPhone').value.trim();
+
+  }
+
+
+  const phone =
+    input.value.trim();
+
+
+  if(
+    phone.replace(/\D/g,'').length < 7
+  ){
+
+    result.innerHTML =
+      `
+      <div class="pc-mini-item">
+        Escribe un teléfono válido.
+      </div>
+      `;
+
+    return;
+
+  }
+
+
+  result.innerHTML =
+    `
+    <div class="pc-mini-item">
+      Buscando compras anteriores...
+    </div>
+    `;
+
+
+  try{
+
+    const r =
+      await jsonp(
+        'customerPurchases',
+        {
+          phone:
+            phone,
+
+          rubro:
+            'Ferretería'
+        }
+      );
+
+
+    if(
+      !r
+      ||
+      r.ok !== true
+    ){
+
+      throw new Error(
+        r
+        &&
+        r.error
+        ?
+        r.error
+        :
+        'No pude consultar las compras.'
+      );
+
+    }
+
+
+    pcFerPurchaseOrders =
+      Array.isArray(
+        r.orders
+      )
+      ?
+      r.orders
+      :
+      [];
+
+
+    if(
+      !pcFerPurchaseOrders.length
+    ){
+
+      result.innerHTML =
+        `
+        <div class="pc-mini-item">
+
+          <strong>
+            No encontré compras anteriores.
+          </strong>
+
+          <small>
+            Verifica que sea el mismo número
+            de teléfono utilizado en la compra.
+          </small>
+
+        </div>
+        `;
+
+      return;
+
+    }
+
+
+    result.innerHTML =
+      pcFerPurchaseOrders
+      .map(
+        (
+          order,
+          index
+        ) => {
+
+          const items =
+            Array.isArray(
+              order.items
+            )
+            ?
+            order.items
+            :
+            [];
+
+
+          const lines =
+            items
+            .map(
+              item =>
+                `
+                <div
+                  style="
+                    margin-top:5px;
+                    font-size:12px;
+                  ">
+
+                  ${esc(item.product)}
+                  ×
+                  ${Number(item.quantity) || 1}
+
+                </div>
+                `
+            )
+            .join('');
+
+
+          return `
+            <div class="pc-mini-item">
+
+              <strong>
+                ${esc(order.id)}
+              </strong>
+
+              <small>
+                ${esc(order.date || '')}
+              </small>
+
+              ${lines}
+
+              <div
+                style="
+                  margin-top:9px;
+                  font-weight:900;
+                ">
+
+                ${money(
+                  Number(order.total)
+                  ||
+                  0
+                )}
+
+              </div>
+
+              <div
+                class="pc-action-row"
+                style="margin-top:9px;">
+
+                <button
+                  type="button"
+                  class="secondary"
+                  onclick="pcFerRepeatPurchase(${index})">
+
+                  🔁 Agregar nuevamente
+
+                </button>
+
+              </div>
+
+            </div>
+          `;
+
+        }
+      )
+      .join('');
+
+  }
+  catch(error){
+
+    result.innerHTML =
+      `
+      <div class="pc-mini-item">
+        ${esc(
+          error.message
+          ||
+          'No pude consultar las compras.'
+        )}
+      </div>
+      `;
+
+  }
+
+}
+
+
+/* ============================================================
+   REPETIR UNA COMPRA
+   ============================================================ */
+
+function pcFerRepeatPurchase(
+  index
+){
+
+  const order =
+    pcFerPurchaseOrders[
+      index
+    ];
+
+
+  if(
+    !order
+    ||
+    !Array.isArray(
+      order.items
+    )
+  ){
+
+    return;
+
+  }
+
+
+  let added =
+    0;
+
+
+  let unavailable =
+    0;
+
+
+  order.items.forEach(
+    item => {
+
+      const product =
+        allProducts.find(
+          p =>
+            norm(
+              p.codigo
+            )
+            ===
+            norm(
+              item.code
+            )
+        );
+
+
+      if(
+        !product
+        ||
+        Number(
+          product.existencia
+        )
+        <=
+        0
+      ){
+
+        unavailable++;
+
+        return;
+
+      }
+
+
+      const qty =
+        Math.max(
+          1,
+          Math.min(
+            Number(
+              product.existencia
+            ),
+            Math.floor(
+              Number(
+                item.quantity
+              )
+              ||
+              1
+            )
+          )
+        );
+
+
+      cart[
+        product.codigo
+      ] =
+        Math.min(
+          Number(
+            product.existencia
+          ),
+          (
+            Number(
+              cart[
+                product.codigo
+              ]
+            )
+            ||
+            0
+          )
+          +
+          qty
+        );
+
+
+      added +=
+        qty;
+
+    }
+  );
+
+
+  saveCart();
+
+  refreshCartUI();
+
+
+  if(
+    added > 0
+  ){
+
+    if(
+      $('orderDocumentType')
+    ){
+
+      $('orderDocumentType').value =
+        'Pedido';
+
+    }
+
+
+    openCart();
+
+
+    orderMsg(
+      'Se agregaron '
+      +
+      added
+      +
+      ' producto'
+      +
+      (
+        added === 1
+        ?
+        ''
+        :
+        's'
+      )
+      +
+      ' de tu compra anterior.'
+      +
+      (
+        unavailable
+        ?
+        ' '
+        +
+        unavailable
+        +
+        ' no están disponibles actualmente.'
+        :
+        ''
+      ),
+      true
+    );
+
+  }
+  else{
+
+    setStatus(
+      'Los productos de esa compra ya no están disponibles.'
+    );
+
+  }
+
+}
 
 function pcRenderField(
   field,
@@ -8830,7 +10085,7 @@ const CONFIG = {
    */
 
   GAS_WEB_APP_URL:
-    'https://script.google.com/macros/s/AKfycbyeleZ1GtfMRgbWr0o3VWfJgtOaI-mmogMpyrFzGa90SfU7iB_h4RBhUTCfgkbDSxecaw/exec',
+    'https://script.google.com/macros/s/AKfycbwsPQIlbGa9f_77Viun5XKKSfnaD2HTqIdhnJ8qHOabXplSxeuEsTbZFy7hOxuGrggqXg/exec',
 
   CURRENCY:
     'L'
@@ -11697,14 +12952,18 @@ async function submitOrder(){
     }
 
 
-    orderMsg(
-      '✓ Pedido '
-      +
-      r.orderId
-      +
-      ' recibido correctamente.',
-      true
-    );
+ orderMsg(
+  '✓ '
+  +
+  tipoDocumento
+  +
+  ' '
+  +
+  r.orderId
+  +
+  ' registrado correctamente.',
+  true
+);
 
 
     cart =
