@@ -4106,111 +4106,120 @@
    =
    ============================================================ */
 
+/* ============================================================
+   EXPRESIÓN DE LA CUENTA
+
+   FORMATO:
+
+   2× Baleada sencilla L 70.00
+   +
+   1× Café hondureño L 35.00
+   +
+   3× Jugo naranja L 165.00
+   =
+   ============================================================ */
+
 .pc-calc-expression{
 
-  display:
-    flex;
+  display:flex;
 
-  flex-wrap:
-    wrap;
+  flex-wrap:wrap;
 
-  align-items:
-    center;
+  align-items:center;
 
-  align-content:
-    flex-start;
+  align-content:flex-start;
 
-  gap:
-    6px;
+  gap:6px;
 
-  line-height:
-    1.55;
+  line-height:1.5;
 
-  font-size:
-    15px;
+  font-size:14px;
 
 }
 
 
-/* CANTIDAD + COMIDA */
+/* ============================================================
+   CADA OPERACIÓN
+
+   Cantidad | Comida | Subtotal
+   ============================================================ */
 
 .pc-calc-term{
 
-  display:
-    inline-flex;
+  display:inline-flex;
 
-  align-items:
-    center;
+  align-items:center;
 
-  gap:
-    3px;
+  gap:5px;
 
-  white-space:
-    nowrap;
+  white-space:nowrap;
 
-  padding:
-    3px
-    0;
+  padding:4px 6px;
+
+  border-radius:8px;
 
 }
 
+
+/* CANTIDAD */
 
 .pc-calc-term-qty{
 
-  color:
-    #8df0b7;
+  color:#8df0b7;
 
-  font-weight:
-    900;
+  font-weight:900;
+
+  white-space:nowrap;
 
 }
 
 
+/* COMIDA */
+
 .pc-calc-term-food{
 
-  color:
-    #eef7f1;
+  color:#eef7f1;
 
-  font-weight:
-    800;
+  font-weight:800;
 
-  /*
-   * Hasta aproximadamente
-   * 25 caracteres.
-   */
+  max-width:25ch;
 
-  max-width:
-    25ch;
+  overflow:hidden;
 
-  overflow:
-    hidden;
+  text-overflow:ellipsis;
 
-  text-overflow:
-    ellipsis;
+  white-space:nowrap;
 
-  white-space:
-    nowrap;
+}
+
+
+/* SUBTOTAL DEL ARTÍCULO */
+
+.pc-calc-term-subtotal{
+
+  color:#8df0b7;
+
+  font-weight:900;
+
+  white-space:nowrap;
+
+  margin-left:3px;
 
 }
 
 
 /*
- * Artículo que ya fue seleccionado,
- * pero todavía no fue confirmado
- * con + ni con =.
+ * Artículo seleccionado actualmente,
+ * antes de confirmar con + o =.
  */
 
 .pc-calc-term-current{
 
-  padding:
-    4px
-    7px;
+  background:rgba(141,240,183,.10);
 
-  border-radius:
-    7px;
-
-  background:
-    rgba(141,240,183,.10);
+  box-shadow:
+    inset 0 0 0 1px
+    rgba(141,240,183,.12);
 
 }
 
@@ -4219,18 +4228,13 @@
 
 .pc-calc-expression-plus{
 
-  color:
-    #8df0b7;
+  color:#8df0b7;
 
-  font-size:
-    19px;
+  font-size:19px;
 
-  font-weight:
-    900;
+  font-weight:900;
 
-  padding:
-    0
-    1px;
+  padding:0 1px;
 
 }
 
@@ -4239,60 +4243,65 @@
 
 .pc-calc-expression-equal{
 
-  color:
-    #fff;
+  color:#ffffff;
 
-  font-size:
-    20px;
+  font-size:20px;
 
-  font-weight:
-    900;
+  font-weight:900;
 
-  padding:
-    0
-    2px;
+  padding:0 2px;
 
 }
 
 
-/*
- * En celular mantenemos
- * la misma lógica.
- */
+/* ============================================================
+   CELULAR
+   ============================================================ */
 
 @media(max-width:560px){
 
   .pc-calc-expression{
 
-    gap:
-      4px;
+    gap:4px;
 
-    font-size:
-      13px;
+    font-size:12px;
 
   }
 
 
-  .pc-calc-expression-plus{
+  .pc-calc-term{
 
-    font-size:
-      17px;
+    gap:3px;
 
-  }
-
-
-  .pc-calc-expression-equal{
-
-    font-size:
-      18px;
+    padding:3px 4px;
 
   }
 
 
   .pc-calc-term-food{
 
-    max-width:
-      25ch;
+    max-width:25ch;
+
+  }
+
+
+  .pc-calc-term-subtotal{
+
+    margin-left:2px;
+
+  }
+
+
+  .pc-calc-expression-plus{
+
+    font-size:16px;
+
+  }
+
+
+  .pc-calc-expression-equal{
+
+    font-size:17px;
 
   }
 
@@ -6236,14 +6245,17 @@ function pcCalcRenderReceipt(){
 
   if(receipt){
 
-
     const pieces =
       [];
 
 
     /*
      * ========================================================
-     * ARTÍCULOS CONFIRMADOS CON +
+     * ARTÍCULOS YA CONFIRMADOS CON +
+     *
+     * Formato:
+     *
+     * cantidad × comida subtotal
      * ========================================================
      */
 
@@ -6254,6 +6266,10 @@ function pcCalcRenderReceipt(){
           index
         ) => {
 
+
+          /*
+           * Entre artículos colocamos +
+           */
 
           if(
             index > 0
@@ -6270,6 +6286,16 @@ function pcCalcRenderReceipt(){
           }
 
 
+          const subtotal =
+            Number(
+              line.cantidad
+            )
+            *
+            Number(
+              line.valor
+            );
+
+
           pieces.push(
             `
             <span class="pc-calc-term">
@@ -6277,6 +6303,7 @@ function pcCalcRenderReceipt(){
               <span class="pc-calc-term-qty">
                 ${line.cantidad}×
               </span>
+
 
               <span
                 class="pc-calc-term-food"
@@ -6288,6 +6315,15 @@ function pcCalcRenderReceipt(){
                   pcCalcShortFoodName(
                     line.comida
                   )
+                )}
+
+              </span>
+
+
+              <span class="pc-calc-term-subtotal">
+
+                ${pcCalcMoney(
+                  subtotal
                 )}
 
               </span>
@@ -6304,13 +6340,11 @@ function pcCalcRenderReceipt(){
      * ========================================================
      * ARTÍCULO ACTUAL
      *
-     * Todavía no confirmado.
+     * Todavía no se ha presionado +.
      *
-     * Ejemplo:
+     * También mostramos inmediatamente:
      *
-     * 2× Baleada + 1× Café
-     *
-     * antes de presionar +.
+     * cantidad × comida subtotal
      * ========================================================
      */
 
@@ -6326,10 +6360,9 @@ function pcCalcRenderReceipt(){
       !pcCalcClosed
     ){
 
-
       /*
-       * Si ya existen artículos anteriores,
-       * mostrar + antes del actual.
+       * Si ya hay artículos anteriores,
+       * colocamos + antes del actual.
        */
 
       if(
@@ -6351,13 +6384,24 @@ function pcCalcRenderReceipt(){
         pcCalcQtyValue();
 
 
+      const subtotalActual =
+        qty
+        *
+        Number(
+          selectedItem.valor
+        );
+
+
       pieces.push(
         `
         <span class="pc-calc-term pc-calc-term-current">
 
           <span class="pc-calc-term-qty">
+
             ${qty}×
+
           </span>
+
 
           <span
             class="pc-calc-term-food"
@@ -6373,6 +6417,15 @@ function pcCalcRenderReceipt(){
 
           </span>
 
+
+          <span class="pc-calc-term-subtotal">
+
+            ${pcCalcMoney(
+              subtotalActual
+            )}
+
+          </span>
+
         </span>
         `
       );
@@ -6382,7 +6435,10 @@ function pcCalcRenderReceipt(){
 
     /*
      * ========================================================
-     * SI SE PRESIONÓ =
+     * SIGNO =
+     *
+     * Solo aparece cuando
+     * la cuenta quedó cerrada.
      * ========================================================
      */
 
@@ -6404,8 +6460,8 @@ function pcCalcRenderReceipt(){
 
 
     /*
-     * Pantalla vacía cuando no hay
-     * ninguna operación.
+     * Si no hay ninguna operación,
+     * detalle vacío.
      */
 
     if(
@@ -6422,7 +6478,9 @@ function pcCalcRenderReceipt(){
       receipt.innerHTML =
         `
         <div class="pc-calc-expression">
+
           ${pieces.join('')}
+
         </div>
         `;
 
@@ -6430,8 +6488,8 @@ function pcCalcRenderReceipt(){
 
 
     /*
-     * Mantener la última operación visible
-     * si la expresión crece.
+     * Si se llena la pantalla,
+     * mantener visible lo último ingresado.
      */
 
     requestAnimationFrame(
@@ -6448,10 +6506,9 @@ function pcCalcRenderReceipt(){
 
   /*
    * ==========================================================
-   * TOTAL
+   * TOTAL FINAL
    *
-   * Solo mostramos el total definitivo
-   * después de presionar =
+   * Solo aparece después de =
    * ==========================================================
    */
 
@@ -6495,8 +6552,7 @@ function pcCalcRenderReceipt(){
   }
 
 }
-
-
+  
 /* ============================================================
    CERRAR CON =
 
