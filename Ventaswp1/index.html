@@ -4055,7 +4055,6 @@
 
 }
 
-
 /* ============================================================
    ZONA DEL DETALLE
    ============================================================ */
@@ -4069,8 +4068,8 @@
     0;
 
   padding:
-    7px
-    0;
+    13px
+    2px;
 
   overflow-y:
     auto;
@@ -4082,60 +4081,81 @@
 
 
 /*
- * Ya no mostramos mensajes
- * dentro de la pantalla vacía.
+ * Si la cuenta está vacía,
+ * no mostramos ningún mensaje.
  */
 
 .pc-calc-empty{
 
-  display:none;
+  display:
+    none;
 
 }
 
 
 /* ============================================================
-   FILA DEL DETALLE
- *
- * FORMATO:
- *
- * 2× Comida de hasta 25 caracteres       L 150.00
- *
- * ============================================================ */
+   EXPRESIÓN DE LA CUENTA
 
-.pc-calc-line{
+   Ejemplo:
 
-  display:grid;
+   2× Baleada sencilla
+   +
+   1× Café hondureño
+   +
+   3× Jugo naranja
+   =
+   ============================================================ */
 
-  grid-template-columns:
-    24px
-    minmax(0,25ch)
-    minmax(68px,1fr);
+.pc-calc-expression{
 
-  column-gap:
-    2px;
+  display:
+    flex;
 
-  align-items:center;
+  flex-wrap:
+    wrap;
 
-  padding:
-    5px
-    0;
+  align-items:
+    center;
 
-  border-bottom:
-    1px dashed
-    rgba(255,255,255,.13);
+  align-content:
+    flex-start;
+
+  gap:
+    6px;
+
+  line-height:
+    1.55;
 
   font-size:
-    13px;
+    15px;
 
 }
 
 
-/*
- * Cantidad muy pegada
- * al nombre de la comida.
- */
+/* CANTIDAD + COMIDA */
 
-.pc-calc-line-qty{
+.pc-calc-term{
+
+  display:
+    inline-flex;
+
+  align-items:
+    center;
+
+  gap:
+    3px;
+
+  white-space:
+    nowrap;
+
+  padding:
+    3px
+    0;
+
+}
+
+
+.pc-calc-term-qty{
 
   color:
     #8df0b7;
@@ -4143,79 +4163,138 @@
   font-weight:
     900;
 
-  white-space:
-    nowrap;
-
-  text-align:left;
-
 }
 
 
-/*
- * Aproximadamente 25 caracteres.
- * Siempre una sola fila.
- */
+.pc-calc-term-food{
 
-.pc-calc-line-name{
+  color:
+    #eef7f1;
 
-  width:
-    25ch;
+  font-weight:
+    800;
+
+  /*
+   * Hasta aproximadamente
+   * 25 caracteres.
+   */
 
   max-width:
     25ch;
 
-  min-width:
-    0;
-
-  white-space:
-    nowrap;
-
   overflow:
     hidden;
 
   text-overflow:
     ellipsis;
 
-}
-
-
-.pc-calc-line-name strong{
-
-  display:block;
-
   white-space:
     nowrap;
-
-  overflow:
-    hidden;
-
-  text-overflow:
-    ellipsis;
 
 }
 
 
 /*
- * No mostrar segunda línea
- * con precio unitario.
+ * Artículo que ya fue seleccionado,
+ * pero todavía no fue confirmado
+ * con + ni con =.
  */
 
-.pc-calc-line-name small{
+.pc-calc-term-current{
 
-  display:none;
+  padding:
+    4px
+    7px;
+
+  border-radius:
+    7px;
+
+  background:
+    rgba(141,240,183,.10);
 
 }
 
 
-.pc-calc-line-total{
+/* SIGNO + */
 
-  text-align:right;
+.pc-calc-expression-plus{
+
+  color:
+    #8df0b7;
+
+  font-size:
+    19px;
 
   font-weight:
     900;
 
-  white-space:
-    nowrap;
+  padding:
+    0
+    1px;
+
+}
+
+
+/* SIGNO = */
+
+.pc-calc-expression-equal{
+
+  color:
+    #fff;
+
+  font-size:
+    20px;
+
+  font-weight:
+    900;
+
+  padding:
+    0
+    2px;
+
+}
+
+
+/*
+ * En celular mantenemos
+ * la misma lógica.
+ */
+
+@media(max-width:560px){
+
+  .pc-calc-expression{
+
+    gap:
+      4px;
+
+    font-size:
+      13px;
+
+  }
+
+
+  .pc-calc-expression-plus{
+
+    font-size:
+      17px;
+
+  }
+
+
+  .pc-calc-expression-equal{
+
+    font-size:
+      18px;
+
+  }
+
+
+  .pc-calc-term-food{
+
+    max-width:
+      25ch;
+
+  }
 
 }
   
@@ -5855,6 +5934,13 @@ function pcCalcSelectFood(index){
   }
 
 
+  /*
+   * Seleccionar comida actual.
+   *
+   * Todavía NO se incorpora
+   * definitivamente a la cuenta.
+   */
+
   pcCalcSelectedIndex =
     index;
 
@@ -5868,16 +5954,25 @@ function pcCalcSelectFood(index){
 
 
   /*
-   * Mostrar inmediatamente
-   * en DETALLE DE CUENTA:
+   * Mostrar inmediatamente:
    *
-   * cantidad × comida | subtotal
+   * cantidad × comida
+   *
+   * dentro del detalle.
    */
 
   pcCalcRenderReceipt();
 
 }
-  
+
+
+/* ============================================================
+   SELECCIÓN AUXILIAR
+
+   Se conserva porque otras funciones
+   del módulo todavía pueden llamarla.
+   ============================================================ */
+
 function pcCalcRenderSelected(){
 
   const el =
@@ -5902,7 +5997,7 @@ function pcCalcRenderSelected(){
   if(!item){
 
     el.innerHTML =
-      'Selecciona una comida.';
+      '';
 
     return;
 
@@ -5911,21 +6006,32 @@ function pcCalcRenderSelected(){
 
   el.innerHTML =
     `
-    <strong>
-      ${pcCalcEsc(
-        item.comida
-      )}
-    </strong>
+      <strong>
+        ${pcCalcEsc(
+          item.comida
+        )}
+      </strong>
 
-    ${pcCalcMoney(
-      item.valor
-    )}
-    ×
-    ${pcCalcQtyValue()}
-  `;
+      ${pcCalcQtyValue()} ×
+      ${pcCalcMoney(
+        item.valor
+      )}
+    `;
 
 }
 
+
+/* ============================================================
+   AGREGAR CON +
+
+   EJEMPLO:
+
+   2× Baleada
+   +
+
+   Después se ingresa:
+   1× Café
+   ============================================================ */
 
 function pcCalcAddSelected(){
 
@@ -5951,7 +6057,7 @@ function pcCalcAddSelected(){
   if(!item){
 
     pcCalcSetStatus(
-      'Primero selecciona una comida.'
+      'Primero indica la cantidad y selecciona una comida.'
     );
 
     return;
@@ -5963,51 +6069,48 @@ function pcCalcAddSelected(){
     pcCalcQtyValue();
 
 
-  const existing =
-    pcCalcLines.find(
-      line =>
-        line.comida ===
-          item.comida
-        &&
-        Number(
-          line.valor
-        ) ===
-          Number(
-            item.valor
-          )
-    );
+  /*
+   * MUY IMPORTANTE:
+   *
+   * Ya NO agrupamos artículos iguales.
+   *
+   * Cada operación conserva
+   * exactamente el orden digitado.
+   *
+   * Ejemplo:
+   *
+   * 2× Baleada
+   * +
+   * 1× Café
+   * +
+   * 1× Baleada
+   */
+
+  pcCalcLines.push({
+
+    comida:
+      item.comida,
+
+    valor:
+      Number(
+        item.valor
+      )
+      ||
+      0,
+
+    cantidad:
+      qty
+
+  });
 
 
-  if(existing){
-
-    existing.cantidad +=
-      qty;
-
-  }
-  else{
-
-    pcCalcLines.push({
-
-      comida:
-        item.comida,
-
-      valor:
-        Number(
-          item.valor
-        )
-        ||
-        0,
-
-      cantidad:
-        qty
-
-    });
-
-  }
-
+  /*
+   * Preparar siguiente operación.
+   */
 
   pcCalcQuantity =
     '';
+
 
   pcCalcSelectedIndex =
     -1;
@@ -6023,11 +6126,15 @@ function pcCalcAddSelected(){
 
 
   pcCalcSetStatus(
-    'Artículo agregado. Selecciona el siguiente.'
+    'Artículo agregado. Ingresa la siguiente cantidad y comida.'
   );
 
 }
 
+
+/* ============================================================
+   TOTAL MATEMÁTICO
+   ============================================================ */
 
 function pcCalcTotalValue(){
 
@@ -6037,6 +6144,7 @@ function pcCalcTotalValue(){
         total,
         line
       ) =>
+
         total
         +
         (
@@ -6048,11 +6156,63 @@ function pcCalcTotalValue(){
             line.cantidad
           )
         ),
+
       0
     );
 
 }
 
+
+/* ============================================================
+   NOMBRE CORTO PARA PANTALLA
+
+   Máximo:
+   aproximadamente 25 caracteres.
+   ============================================================ */
+
+function pcCalcShortFoodName(value){
+
+  const text =
+    String(
+      value
+      ??
+      ''
+    )
+    .trim();
+
+
+  if(
+    text.length <= 25
+  ){
+
+    return text;
+
+  }
+
+
+  return text
+    .slice(
+      0,
+      24
+    )
+    +
+    '…';
+
+}
+
+
+/* ============================================================
+   RENDER DEL DETALLE DE CUENTA
+
+   FORMATO:
+
+   2× Baleada
+   +
+   1× Café
+   +
+   3× Jugo
+   =
+   ============================================================ */
 
 function pcCalcRenderReceipt(){
 
@@ -6077,118 +6237,82 @@ function pcCalcRenderReceipt(){
   if(receipt){
 
 
+    const pieces =
+      [];
+
+
     /*
-     * ==========================================================
-     * LÍNEAS YA AGREGADAS CON +
-     * ==========================================================
+     * ========================================================
+     * ARTÍCULOS CONFIRMADOS CON +
+     * ========================================================
      */
 
-    const confirmedLines =
-      pcCalcLines
-      .map(
-        line => {
+    pcCalcLines
+      .forEach(
+        (
+          line,
+          index
+        ) => {
 
-          const subtotal =
-            Number(
-              line.valor
-            )
-            *
-            Number(
-              line.cantidad
+
+          if(
+            index > 0
+          ){
+
+            pieces.push(
+              `
+              <span class="pc-calc-expression-plus">
+                +
+              </span>
+              `
             );
 
-
-          const comidaCompleta =
-            String(
-              line.comida
-              ??
-              ''
-            );
+          }
 
 
-          /*
-           * Máximo visible:
-           * 25 caracteres.
-           */
+          pieces.push(
+            `
+            <span class="pc-calc-term">
 
-          const comidaCorta =
-
-            comidaCompleta.length > 25
-
-            ?
-
-            comidaCompleta
-              .slice(
-                0,
-                24
-              )
-              +
-              '…'
-
-            :
-
-            comidaCompleta;
-
-
-          return `
-
-            <div class="pc-calc-line">
-
-
-              <div class="pc-calc-line-qty">
-
+              <span class="pc-calc-term-qty">
                 ${line.cantidad}×
+              </span>
 
-              </div>
-
-
-              <div
-                class="pc-calc-line-name"
+              <span
+                class="pc-calc-term-food"
                 title="${pcCalcEsc(
-                  comidaCompleta
+                  line.comida
                 )}">
 
-                <strong>
-
-                  ${pcCalcEsc(
-                    comidaCorta
-                  )}
-
-                </strong>
-
-              </div>
-
-
-              <div class="pc-calc-line-total">
-
-                ${pcCalcMoney(
-                  subtotal
+                ${pcCalcEsc(
+                  pcCalcShortFoodName(
+                    line.comida
+                  )
                 )}
 
-              </div>
+              </span>
 
-
-            </div>
-
-          `;
+            </span>
+            `
+          );
 
         }
-      )
-      .join('');
+      );
 
 
     /*
-     * ==========================================================
-     * LÍNEA ACTUAL SELECCIONADA
-     * ==========================================================
+     * ========================================================
+     * ARTÍCULO ACTUAL
      *
-     * Aparece automáticamente
-     * ANTES de presionar +.
+     * Todavía no confirmado.
+     *
+     * Ejemplo:
+     *
+     * 2× Baleada + 1× Café
+     *
+     * antes de presionar +.
+     * ========================================================
      */
-
-    let currentLine =
-      '';
-
 
     const selectedItem =
       pcCalcMenuItems[
@@ -6202,124 +6326,157 @@ function pcCalcRenderReceipt(){
       !pcCalcClosed
     ){
 
+
+      /*
+       * Si ya existen artículos anteriores,
+       * mostrar + antes del actual.
+       */
+
+      if(
+        pcCalcLines.length
+      ){
+
+        pieces.push(
+          `
+          <span class="pc-calc-expression-plus">
+            +
+          </span>
+          `
+        );
+
+      }
+
+
       const qty =
         pcCalcQtyValue();
 
 
-      const subtotal =
-        Number(
-          selectedItem.valor
-        )
-        *
-        qty;
+      pieces.push(
+        `
+        <span class="pc-calc-term pc-calc-term-current">
 
-
-      const comidaCompleta =
-        String(
-          selectedItem.comida
-          ??
-          ''
-        );
-
-
-      const comidaCorta =
-
-        comidaCompleta.length > 25
-
-        ?
-
-        comidaCompleta
-          .slice(
-            0,
-            24
-          )
-          +
-          '…'
-
-        :
-
-        comidaCompleta;
-
-
-      currentLine = `
-
-        <div
-          class="pc-calc-line"
-          style="
-            background:rgba(141,240,183,.07);
-          ">
-
-
-          <div class="pc-calc-line-qty">
-
+          <span class="pc-calc-term-qty">
             ${qty}×
+          </span>
 
-          </div>
-
-
-          <div
-            class="pc-calc-line-name"
+          <span
+            class="pc-calc-term-food"
             title="${pcCalcEsc(
-              comidaCompleta
+              selectedItem.comida
             )}">
 
-            <strong>
-
-              ${pcCalcEsc(
-                comidaCorta
-              )}
-
-            </strong>
-
-          </div>
-
-
-          <div class="pc-calc-line-total">
-
-            ${pcCalcMoney(
-              subtotal
+            ${pcCalcEsc(
+              pcCalcShortFoodName(
+                selectedItem.comida
+              )
             )}
 
-          </div>
+          </span>
 
-
-        </div>
-
-      `;
+        </span>
+        `
+      );
 
     }
 
 
     /*
-     * Si no hay nada agregado ni seleccionado,
-     * la pantalla queda simplemente vacía.
-     *
-     * NO aparece:
-     * "Selecciona una comida".
+     * ========================================================
+     * SI SE PRESIONÓ =
+     * ========================================================
      */
 
-    receipt.innerHTML =
-      confirmedLines
-      +
-      currentLine;
+    if(
+      pcCalcClosed
+      &&
+      pcCalcLines.length
+    ){
+
+      pieces.push(
+        `
+        <span class="pc-calc-expression-equal">
+          =
+        </span>
+        `
+      );
+
+    }
+
+
+    /*
+     * Pantalla vacía cuando no hay
+     * ninguna operación.
+     */
+
+    if(
+      !pieces.length
+    ){
+
+      receipt.innerHTML =
+        '';
+
+    }
+
+    else{
+
+      receipt.innerHTML =
+        `
+        <div class="pc-calc-expression">
+          ${pieces.join('')}
+        </div>
+        `;
+
+    }
+
+
+    /*
+     * Mantener la última operación visible
+     * si la expresión crece.
+     */
+
+    requestAnimationFrame(
+      () => {
+
+        receipt.scrollTop =
+          receipt.scrollHeight;
+
+      }
+    );
 
   }
 
 
   /*
-   * El TOTAL solamente incluye
-   * artículos confirmados con +.
+   * ==========================================================
+   * TOTAL
+   *
+   * Solo mostramos el total definitivo
+   * después de presionar =
+   * ==========================================================
    */
 
   if(total){
 
     total.textContent =
+
+      pcCalcClosed
+
+      ?
+
       pcCalcMoney(
         pcCalcTotalValue()
-      );
+      )
+
+      :
+
+      '—';
 
   }
 
+
+  /*
+   * ESTADO
+   */
 
   if(state){
 
@@ -6329,7 +6486,7 @@ function pcCalcRenderReceipt(){
 
       ?
 
-      'TOTAL CERRADO'
+      'TOTAL FINAL'
 
       :
 
@@ -6338,8 +6495,81 @@ function pcCalcRenderReceipt(){
   }
 
 }
-  
+
+
+/* ============================================================
+   CERRAR CON =
+
+   IMPORTANTE:
+
+   Si hay una comida seleccionada,
+   = la agrega automáticamente
+   como último término.
+
+   No es obligatorio presionar +
+   antes del último artículo.
+   ============================================================ */
+
 function pcCalcCloseSum(){
+
+  if(
+    pcCalcClosed
+  ){
+
+    return;
+
+  }
+
+
+  /*
+   * Si existe un artículo seleccionado,
+   * incorporarlo como último término.
+   */
+
+  const item =
+    pcCalcMenuItems[
+      pcCalcSelectedIndex
+    ];
+
+
+  if(item){
+
+    const qty =
+      pcCalcQtyValue();
+
+
+    pcCalcLines.push({
+
+      comida:
+        item.comida,
+
+      valor:
+        Number(
+          item.valor
+        )
+        ||
+        0,
+
+      cantidad:
+        qty
+
+    });
+
+
+    pcCalcQuantity =
+      '';
+
+
+    pcCalcSelectedIndex =
+      -1;
+
+  }
+
+
+  /*
+   * Si no existe ningún artículo,
+   * no hay nada que totalizar.
+   */
 
   if(
     !pcCalcLines.length
@@ -6354,11 +6584,15 @@ function pcCalcCloseSum(){
   }
 
 
+  /*
+   * Cerrar operación.
+   */
+
   pcCalcClosed =
     true;
 
-  pcCalcSelectedIndex =
-    -1;
+
+  pcCalcRenderQty();
 
   pcCalcRenderSelected();
 
@@ -6368,7 +6602,7 @@ function pcCalcCloseSum(){
 
 
   pcCalcSetStatus(
-    'Cuenta cerrada. Total: '
+    'Total final: '
     +
     pcCalcMoney(
       pcCalcTotalValue()
@@ -6376,8 +6610,7 @@ function pcCalcCloseSum(){
   );
 
 }
-
-
+  
 function pcCalcNewAccount(){
 
   pcCalcLines =
