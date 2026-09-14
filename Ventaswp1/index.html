@@ -3980,90 +3980,144 @@
 /* PANTALLA SIMULADA */
 
 .pc-calc-screen{
-  min-height:300px;
-  padding:16px;
-  border-radius:17px;
-  background:#202723;
-  color:#eef7f1;
+
+  height:
+    300px;
+
+  min-height:
+    300px;
+
+  padding:
+    14px;
+
+  border-radius:
+    17px;
+
+  background:
+    #202723;
+
+  color:
+    #eef7f1;
+
   box-shadow:
     inset 0 0 0 1px rgba(255,255,255,.05),
     inset 0 10px 30px rgba(0,0,0,.22);
+
   display:flex;
-  flex-direction:column;
-}
 
-
-.pc-calc-screen-head{
-  display:flex;
-  justify-content:space-between;
-  gap:12px;
-  padding-bottom:11px;
-  border-bottom:1px solid rgba(255,255,255,.15);
-  font-size:13px;
-}
-
-
-.pc-calc-screen-head strong{
-  color:#8df0b7;
-}
-
-
-.pc-calc-receipt{
-
-  flex:1;
-
-  padding:
-    7px
-    0;
-
-  overflow:auto;
-
-  max-height:
-    320px;
-
-}
-
-
-.pc-calc-empty{
-
-  color:
-    #a9b9b0;
-
-  text-align:center;
-
-  padding:
-    35px
-    10px;
-
-  font-size:
-    13px;
+  flex-direction:
+    column;
 
 }
 
 
 /* ============================================================
-   DETALLE DE CUENTA
-
-   FORMATO:
-   2 ×  Baleada sencilla          L 70.00
+   CABECERA FIJA
    ============================================================ */
+
+.pc-calc-screen-head{
+
+  display:flex;
+
+  justify-content:
+    space-between;
+
+  align-items:center;
+
+  gap:
+    8px;
+
+  padding-bottom:
+    9px;
+
+  border-bottom:
+    1px solid
+    rgba(255,255,255,.15);
+
+  font-size:
+    13px;
+
+  /*
+   * No se mueve aunque
+   * aumenten los artículos.
+   */
+
+  flex:
+    0 0 auto;
+
+}
+
+
+.pc-calc-screen-head strong{
+
+  color:
+    #8df0b7;
+
+}
+
+
+/* ============================================================
+   ZONA DEL DETALLE
+   ============================================================ */
+
+.pc-calc-receipt{
+
+  flex:
+    1 1 auto;
+
+  min-height:
+    0;
+
+  padding:
+    7px
+    0;
+
+  overflow-y:
+    auto;
+
+  overflow-x:
+    hidden;
+
+}
+
+
+/*
+ * Ya no mostramos mensajes
+ * dentro de la pantalla vacía.
+ */
+
+.pc-calc-empty{
+
+  display:none;
+
+}
+
+
+/* ============================================================
+   FILA DEL DETALLE
+ *
+ * FORMATO:
+ *
+ * 2× Comida de hasta 25 caracteres       L 150.00
+ *
+ * ============================================================ */
 
 .pc-calc-line{
 
   display:grid;
 
   grid-template-columns:
-    34px
-    minmax(0,20ch)
-    minmax(70px,1fr);
+    24px
+    minmax(0,25ch)
+    minmax(68px,1fr);
 
   column-gap:
-    4px;
+    2px;
 
   align-items:center;
 
   padding:
-    6px
+    5px
     0;
 
   border-bottom:
@@ -4076,6 +4130,11 @@
 }
 
 
+/*
+ * Cantidad muy pegada
+ * al nombre de la comida.
+ */
+
 .pc-calc-line-qty{
 
   color:
@@ -4087,25 +4146,23 @@
   white-space:
     nowrap;
 
-  text-align:right;
+  text-align:left;
 
 }
 
 
 /*
- * Máximo visual aproximado:
- * 20 caracteres.
- *
- * Siempre una sola línea.
+ * Aproximadamente 25 caracteres.
+ * Siempre una sola fila.
  */
 
 .pc-calc-line-name{
 
   width:
-    20ch;
+    25ch;
 
   max-width:
-    20ch;
+    25ch;
 
   min-width:
     0;
@@ -4139,8 +4196,8 @@
 
 
 /*
- * Ya NO utilizamos una segunda
- * línea con "L xx.xx c/u".
+ * No mostrar segunda línea
+ * con precio unitario.
  */
 
 .pc-calc-line-name small{
@@ -4161,8 +4218,7 @@
     nowrap;
 
 }
-
-
+  
 /* ============================================================
    PIE DE PANTALLA
    ============================================================ */
@@ -4860,15 +4916,9 @@
 
 
         <div
-          id="pcCalcReceipt"
-          class="pc-calc-receipt">
-
-          <div class="pc-calc-empty">
-            Selecciona una comida para comenzar.
-          </div>
-
-        </div>
-
+  id="pcCalcReceipt"
+  class="pc-calc-receipt">
+</div>
 
         <div class="pc-calc-screen-foot">
 
@@ -5008,15 +5058,6 @@
             onclick="pcCalcCloseSum()">
             =
           </button>
-
-        </div>
-
-
-        <div
-          id="pcCalcSelected"
-          class="pc-calc-selected">
-
-          Selecciona una comida.
 
         </div>
 
@@ -5291,15 +5332,18 @@ function pcCalcRenderQty(){
   const qty =
     pcCalcQtyValue();
 
+
   const box =
     document.getElementById(
       'pcCalcQtyBox'
     );
 
+
   const screen =
     document.getElementById(
       'pcCalcQtyScreen'
     );
+
 
   if(box){
 
@@ -5310,12 +5354,30 @@ function pcCalcRenderQty(){
 
   }
 
+
   if(screen){
 
     screen.textContent =
       'Cantidad: '
       +
       qty;
+
+  }
+
+
+  /*
+   * Si ya existe una comida
+   * seleccionada, al cambiar
+   * cantidad actualizamos
+   * inmediatamente el detalle.
+   */
+
+  if(
+    typeof pcCalcRenderReceipt ===
+      'function'
+  ){
+
+    pcCalcRenderReceipt();
 
   }
 
@@ -5332,6 +5394,7 @@ function pcCalcDigit(digit){
 
   }
 
+
   if(
     pcCalcQuantity.length >= 3
   ){
@@ -5339,6 +5402,7 @@ function pcCalcDigit(digit){
     return;
 
   }
+
 
   if(
     pcCalcQuantity === ''
@@ -5350,10 +5414,12 @@ function pcCalcDigit(digit){
 
   }
 
+
   pcCalcQuantity +=
     String(
       digit
     );
+
 
   pcCalcRenderQty();
 
@@ -5370,8 +5436,10 @@ function pcCalcClearQty(){
 
   }
 
+
   pcCalcQuantity =
     '';
+
 
   pcCalcRenderQty();
 
@@ -5388,17 +5456,17 @@ function pcCalcBackspace(){
 
   }
 
+
   pcCalcQuantity =
     pcCalcQuantity.slice(
       0,
       -1
     );
 
+
   pcCalcRenderQty();
 
 }
-
-
 function pcCalcSetStatus(text){
 
   const el =
@@ -5790,13 +5858,26 @@ function pcCalcSelectFood(index){
   pcCalcSelectedIndex =
     index;
 
-  pcCalcRenderSelected();
+
+  /*
+   * Marcar visualmente
+   * la tecla seleccionada.
+   */
 
   pcCalcRenderFoodKeys();
 
+
+  /*
+   * Mostrar inmediatamente
+   * en DETALLE DE CUENTA:
+   *
+   * cantidad × comida | subtotal
+   */
+
+  pcCalcRenderReceipt();
+
 }
-
-
+  
 function pcCalcRenderSelected(){
 
   const el =
@@ -5993,172 +6074,252 @@ function pcCalcRenderReceipt(){
     );
 
 
-  /*
-   * ==========================================================
-   * DETALLE
-   * ==========================================================
-   *
-   * Formato:
-   *
-   * 2 × Baleada sencilla        L 70.00
-   * 1 × Café hondureño          L 35.00
-   *
-   * Una sola fila por artículo.
-   */
-
   if(receipt){
 
 
-    if(
-      !pcCalcLines.length
-    ){
+    /*
+     * ==========================================================
+     * LÍNEAS YA AGREGADAS CON +
+     * ==========================================================
+     */
 
-      receipt.innerHTML =
-        `
-        <div class="pc-calc-empty">
+    const confirmedLines =
+      pcCalcLines
+      .map(
+        line => {
 
-          Selecciona una comida
-          para comenzar.
-
-        </div>
-        `;
-
-    }
-
-    else{
-
-
-      receipt.innerHTML =
-
-        pcCalcLines
-        .map(
-          line => {
+          const subtotal =
+            Number(
+              line.valor
+            )
+            *
+            Number(
+              line.cantidad
+            );
 
 
-            const subtotal =
+          const comidaCompleta =
+            String(
+              line.comida
+              ??
+              ''
+            );
 
-              Number(
-                line.valor
+
+          /*
+           * Máximo visible:
+           * 25 caracteres.
+           */
+
+          const comidaCorta =
+
+            comidaCompleta.length > 25
+
+            ?
+
+            comidaCompleta
+              .slice(
+                0,
+                24
               )
+              +
+              '…'
 
-              *
+            :
 
-              Number(
-                line.cantidad
-              );
-
-
-            /*
-             * Nombre original completo.
-             */
-
-            const comidaCompleta =
-
-              String(
-                line.comida
-                ??
-                ''
-              );
+            comidaCompleta;
 
 
-            /*
-             * Mostrar máximo
-             * aproximadamente 20 caracteres.
-             *
-             * Ejemplo:
-             *
-             * Desayuno típico con...
-             */
+          return `
 
-            const comidaCorta =
-
-              comidaCompleta.length > 20
-
-              ?
-
-              comidaCompleta
-                .slice(
-                  0,
-                  19
-                )
-                +
-                '…'
-
-              :
-
-              comidaCompleta;
+            <div class="pc-calc-line">
 
 
-            return `
+              <div class="pc-calc-line-qty">
 
-              <div class="pc-calc-line">
-
-
-                <div class="pc-calc-line-qty">
-
-                  ${line.cantidad}×
-
-                </div>
-
-
-                <div
-                  class="pc-calc-line-name"
-                  title="${pcCalcEsc(
-                    comidaCompleta
-                  )}">
-
-                  <strong>
-
-                    ${pcCalcEsc(
-                      comidaCorta
-                    )}
-
-                  </strong>
-
-                </div>
-
-
-                <div class="pc-calc-line-total">
-
-                  ${pcCalcMoney(
-                    subtotal
-                  )}
-
-                </div>
-
+                ${line.cantidad}×
 
               </div>
 
-            `;
 
-          }
+              <div
+                class="pc-calc-line-name"
+                title="${pcCalcEsc(
+                  comidaCompleta
+                )}">
 
+                <strong>
+
+                  ${pcCalcEsc(
+                    comidaCorta
+                  )}
+
+                </strong>
+
+              </div>
+
+
+              <div class="pc-calc-line-total">
+
+                ${pcCalcMoney(
+                  subtotal
+                )}
+
+              </div>
+
+
+            </div>
+
+          `;
+
+        }
+      )
+      .join('');
+
+
+    /*
+     * ==========================================================
+     * LÍNEA ACTUAL SELECCIONADA
+     * ==========================================================
+     *
+     * Aparece automáticamente
+     * ANTES de presionar +.
+     */
+
+    let currentLine =
+      '';
+
+
+    const selectedItem =
+      pcCalcMenuItems[
+        pcCalcSelectedIndex
+      ];
+
+
+    if(
+      selectedItem
+      &&
+      !pcCalcClosed
+    ){
+
+      const qty =
+        pcCalcQtyValue();
+
+
+      const subtotal =
+        Number(
+          selectedItem.valor
         )
-        .join('');
+        *
+        qty;
+
+
+      const comidaCompleta =
+        String(
+          selectedItem.comida
+          ??
+          ''
+        );
+
+
+      const comidaCorta =
+
+        comidaCompleta.length > 25
+
+        ?
+
+        comidaCompleta
+          .slice(
+            0,
+            24
+          )
+          +
+          '…'
+
+        :
+
+        comidaCompleta;
+
+
+      currentLine = `
+
+        <div
+          class="pc-calc-line"
+          style="
+            background:rgba(141,240,183,.07);
+          ">
+
+
+          <div class="pc-calc-line-qty">
+
+            ${qty}×
+
+          </div>
+
+
+          <div
+            class="pc-calc-line-name"
+            title="${pcCalcEsc(
+              comidaCompleta
+            )}">
+
+            <strong>
+
+              ${pcCalcEsc(
+                comidaCorta
+              )}
+
+            </strong>
+
+          </div>
+
+
+          <div class="pc-calc-line-total">
+
+            ${pcCalcMoney(
+              subtotal
+            )}
+
+          </div>
+
+
+        </div>
+
+      `;
 
     }
+
+
+    /*
+     * Si no hay nada agregado ni seleccionado,
+     * la pantalla queda simplemente vacía.
+     *
+     * NO aparece:
+     * "Selecciona una comida".
+     */
+
+    receipt.innerHTML =
+      confirmedLines
+      +
+      currentLine;
 
   }
 
 
   /*
-   * TOTAL GENERAL
+   * El TOTAL solamente incluye
+   * artículos confirmados con +.
    */
 
   if(total){
 
     total.textContent =
-
       pcCalcMoney(
         pcCalcTotalValue()
       );
 
   }
 
-
-  /*
-   * ESTADO DE LA CUENTA
-   */
 
   if(state){
 
