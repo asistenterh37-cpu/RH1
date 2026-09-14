@@ -3942,6 +3942,1765 @@
 </section>
 
 <!-- ============================================================
+     INICIO MODULO CALCULADORA NEGOCIO
+     Este bloque puede eliminarse completo si no se vende
+     este módulo.
+     ============================================================ -->
+
+<style>
+
+/* ============================================================
+   CALCULADORA NEGOCIO
+   ============================================================ */
+
+.pc-calc-business-module{
+  width:100%;
+}
+
+.pc-calc-shell{
+  margin-top:14px;
+  padding:18px;
+  background:#f7f8f7;
+  border:1px solid #dfe6e2;
+  border-radius:20px;
+  box-shadow:0 8px 24px rgba(0,0,0,.06);
+}
+
+
+/* PANTALLA + TECLADO */
+
+.pc-calc-top{
+  display:grid;
+  grid-template-columns:minmax(0,1.4fr) minmax(280px,.6fr);
+  gap:16px;
+  align-items:stretch;
+}
+
+
+/* PANTALLA SIMULADA */
+
+.pc-calc-screen{
+  min-height:300px;
+  padding:16px;
+  border-radius:17px;
+  background:#202723;
+  color:#eef7f1;
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,.05),
+    inset 0 10px 30px rgba(0,0,0,.22);
+  display:flex;
+  flex-direction:column;
+}
+
+
+.pc-calc-screen-head{
+  display:flex;
+  justify-content:space-between;
+  gap:12px;
+  padding-bottom:11px;
+  border-bottom:1px solid rgba(255,255,255,.15);
+  font-size:13px;
+}
+
+
+.pc-calc-screen-head strong{
+  color:#8df0b7;
+}
+
+
+.pc-calc-receipt{
+  flex:1;
+  padding:12px 0;
+  overflow:auto;
+  max-height:320px;
+}
+
+
+.pc-calc-empty{
+  color:#a9b9b0;
+  text-align:center;
+  padding:45px 10px;
+  font-size:14px;
+}
+
+
+.pc-calc-line{
+  display:grid;
+  grid-template-columns:52px minmax(0,1fr) auto;
+  gap:10px;
+  align-items:start;
+  padding:8px 0;
+  border-bottom:1px dashed rgba(255,255,255,.13);
+  font-size:13px;
+}
+
+
+.pc-calc-line-qty{
+  color:#8df0b7;
+  font-weight:900;
+}
+
+
+.pc-calc-line-name{
+  min-width:0;
+}
+
+
+.pc-calc-line-name strong{
+  display:block;
+}
+
+
+.pc-calc-line-name small{
+  display:block;
+  margin-top:2px;
+  color:#a9b9b0;
+}
+
+
+.pc-calc-line-total{
+  text-align:right;
+  font-weight:900;
+  white-space:nowrap;
+}
+
+
+.pc-calc-screen-foot{
+  padding-top:13px;
+  border-top:1px solid rgba(255,255,255,.17);
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+}
+
+
+.pc-calc-screen-foot span{
+  color:#b7c5bd;
+  font-size:13px;
+}
+
+
+.pc-calc-screen-foot strong{
+  color:#8df0b7;
+  font-size:28px;
+}
+
+
+/* CONTROLES */
+
+.pc-calc-controls{
+  background:#fff;
+  border:1px solid #e1e7e3;
+  border-radius:17px;
+  padding:14px;
+}
+
+
+.pc-calc-qty-title{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:10px;
+  font-size:13px;
+  font-weight:900;
+}
+
+
+.pc-calc-qty-box{
+  padding:5px 10px;
+  background:#eaf8f0;
+  color:#08713d;
+  border-radius:9px;
+  font-size:17px;
+}
+
+
+/* TECLADO NUMERICO */
+
+.pc-calc-keypad{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:7px;
+}
+
+
+.pc-calc-number{
+  min-height:47px;
+  border:1px solid #dfe5e1;
+  border-radius:11px;
+  background:#fff;
+  font-size:17px;
+  font-weight:900;
+}
+
+
+.pc-calc-number:hover{
+  background:#f1f7f3;
+  border-color:#9ecdb3;
+}
+
+
+/* + E = */
+
+.pc-calc-operators{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+  margin-top:9px;
+}
+
+
+.pc-calc-plus,
+.pc-calc-equal{
+  min-height:52px;
+  border:0;
+  border-radius:12px;
+  font-size:24px;
+  font-weight:900;
+}
+
+
+.pc-calc-plus{
+  background:#0f8b4c;
+  color:#fff;
+}
+
+
+.pc-calc-equal{
+  background:#17202a;
+  color:#fff;
+}
+
+
+.pc-calc-selected{
+  min-height:57px;
+  margin-top:10px;
+  padding:10px;
+  border-radius:11px;
+  background:#f3f6f4;
+  color:#5c6962;
+  font-size:12px;
+  line-height:1.35;
+}
+
+
+.pc-calc-selected strong{
+  color:#17202a;
+  display:block;
+  font-size:13px;
+}
+
+
+/* TIPOS */
+
+.pc-calc-types{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:8px;
+  margin-top:16px;
+}
+
+
+.pc-calc-type-btn{
+  border:1px solid #dce5df;
+  background:#fff;
+  border-radius:12px;
+  padding:12px 8px;
+  font-weight:900;
+  font-size:13px;
+}
+
+
+.pc-calc-type-btn.on{
+  background:#0f8b4c;
+  border-color:#0f8b4c;
+  color:#fff;
+}
+
+
+/* BOTONES DE COMIDA */
+
+.pc-calc-food-title{
+  margin:17px 0 9px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+}
+
+
+.pc-calc-food-title h3{
+  margin:0;
+  font-size:16px;
+}
+
+
+.pc-calc-food-title span{
+  color:#6b7280;
+  font-size:12px;
+}
+
+
+.pc-calc-food-grid{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:9px;
+}
+
+
+.pc-calc-food-btn{
+  min-height:86px;
+  padding:10px;
+  border:1px solid #dfe6e2;
+  border-radius:13px;
+  background:#fff;
+  text-align:left;
+  display:flex;
+  flex-direction:column;
+  justify-content:space-between;
+  gap:7px;
+}
+
+
+.pc-calc-food-btn:hover{
+  border-color:#79bd98;
+  box-shadow:0 4px 12px rgba(15,139,76,.08);
+}
+
+
+.pc-calc-food-btn.on{
+  background:#eaf8f0;
+  border:2px solid #0f8b4c;
+}
+
+
+.pc-calc-food-btn strong{
+  font-size:13px;
+  line-height:1.2;
+}
+
+
+.pc-calc-food-btn span{
+  color:#08713d;
+  font-size:16px;
+  font-weight:900;
+}
+
+
+/* PIE */
+
+.pc-calc-bottom{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:10px;
+  margin-top:14px;
+}
+
+
+.pc-calc-status{
+  color:#6b7280;
+  font-size:12px;
+}
+
+
+.pc-calc-new{
+  border:1px solid #dce5df;
+  background:#fff;
+  border-radius:11px;
+  padding:10px 14px;
+  font-weight:900;
+}
+
+
+/* RESPONSIVE */
+
+@media(max-width:800px){
+
+  .pc-calc-top{
+    grid-template-columns:1fr;
+  }
+
+  .pc-calc-food-grid{
+    grid-template-columns:repeat(3,minmax(0,1fr));
+  }
+
+}
+
+
+@media(max-width:560px){
+
+  .pc-calc-shell{
+    padding:10px;
+  }
+
+  .pc-calc-types{
+    grid-template-columns:repeat(2,1fr);
+  }
+
+  .pc-calc-food-grid{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+
+  .pc-calc-screen-foot strong{
+    font-size:23px;
+  }
+
+}
+
+</style>
+
+
+<section
+  id="pcModuleCalculadora"
+  class="pc-business-module pc-calc-business-module">
+
+  <div class="pc-business-head">
+
+    <h2>
+      🧮 Calculadora Negocio
+    </h2>
+
+    <p>
+      Selecciona la cantidad, el tipo de comida y el artículo.
+      Presiona + para agregar y = para cerrar la suma.
+    </p>
+
+  </div>
+
+
+  <div class="pc-calc-shell">
+
+
+    <!-- ========================================================
+         PANTALLA + TECLADO
+         ======================================================== -->
+
+    <div class="pc-calc-top">
+
+
+      <!-- PANTALLA -->
+
+      <div class="pc-calc-screen">
+
+        <div class="pc-calc-screen-head">
+
+          <span>
+            DETALLE DE CUENTA
+          </span>
+
+          <strong id="pcCalcQtyScreen">
+            Cantidad: 1
+          </strong>
+
+        </div>
+
+
+        <div
+          id="pcCalcReceipt"
+          class="pc-calc-receipt">
+
+          <div class="pc-calc-empty">
+            Selecciona una comida para comenzar.
+          </div>
+
+        </div>
+
+
+        <div class="pc-calc-screen-foot">
+
+          <span id="pcCalcState">
+            Cuenta abierta
+          </span>
+
+          <strong id="pcCalcTotal">
+            L 0.00
+          </strong>
+
+        </div>
+
+      </div>
+
+
+      <!-- TECLADO -->
+
+      <div class="pc-calc-controls">
+
+        <div class="pc-calc-qty-title">
+
+          <span>
+            Cantidad
+          </span>
+
+          <span
+            id="pcCalcQtyBox"
+            class="pc-calc-qty-box">
+            1
+          </span>
+
+        </div>
+
+
+        <div class="pc-calc-keypad">
+
+          <button
+            type="button"
+            class="pc-calc-number"
+            onclick="pcCalcDigit('1')">
+            1
+          </button>
+
+          <button
+            type="button"
+            class="pc-calc-number"
+            onclick="pcCalcDigit('2')">
+            2
+          </button>
+
+          <button
+            type="button"
+            class="pc-calc-number"
+            onclick="pcCalcDigit('3')">
+            3
+          </button>
+
+          <button
+            type="button"
+            class="pc-calc-number"
+            onclick="pcCalcDigit('4')">
+            4
+          </button>
+
+          <button
+            type="button"
+            class="pc-calc-number"
+            onclick="pcCalcDigit('5')">
+            5
+          </button>
+
+          <button
+            type="button"
+            class="pc-calc-number"
+            onclick="pcCalcDigit('6')">
+            6
+          </button>
+
+          <button
+            type="button"
+            class="pc-calc-number"
+            onclick="pcCalcDigit('7')">
+            7
+          </button>
+
+          <button
+            type="button"
+            class="pc-calc-number"
+            onclick="pcCalcDigit('8')">
+            8
+          </button>
+
+          <button
+            type="button"
+            class="pc-calc-number"
+            onclick="pcCalcDigit('9')">
+            9
+          </button>
+
+          <button
+            type="button"
+            class="pc-calc-number"
+            onclick="pcCalcClearQty()">
+            C
+          </button>
+
+          <button
+            type="button"
+            class="pc-calc-number"
+            onclick="pcCalcDigit('0')">
+            0
+          </button>
+
+          <button
+            type="button"
+            class="pc-calc-number"
+            onclick="pcCalcBackspace()">
+            ⌫
+          </button>
+
+        </div>
+
+
+        <div class="pc-calc-operators">
+
+          <button
+            type="button"
+            class="pc-calc-plus"
+            onclick="pcCalcAddSelected()">
+            +
+          </button>
+
+          <button
+            type="button"
+            class="pc-calc-equal"
+            onclick="pcCalcCloseSum()">
+            =
+          </button>
+
+        </div>
+
+
+        <div
+          id="pcCalcSelected"
+          class="pc-calc-selected">
+
+          Selecciona una comida.
+
+        </div>
+
+      </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         TIPOS
+         ======================================================== -->
+
+    <div class="pc-calc-types">
+
+      <button
+        type="button"
+        class="pc-calc-type-btn on"
+        data-calc-type="Desayunos"
+        onclick="pcCalcSelectType('Desayunos')">
+
+        Desayunos
+
+      </button>
+
+
+      <button
+        type="button"
+        class="pc-calc-type-btn"
+        data-calc-type="Almuerzos"
+        onclick="pcCalcSelectType('Almuerzos')">
+
+        Almuerzos
+
+      </button>
+
+
+      <button
+        type="button"
+        class="pc-calc-type-btn"
+        data-calc-type="Cenas"
+        onclick="pcCalcSelectType('Cenas')">
+
+        Cenas
+
+      </button>
+
+
+      <button
+        type="button"
+        class="pc-calc-type-btn"
+        data-calc-type="Bebidas"
+        onclick="pcCalcSelectType('Bebidas')">
+
+        Bebidas
+
+      </button>
+
+    </div>
+
+
+    <!-- ========================================================
+         TECLAS DE COMIDAS
+         ======================================================== -->
+
+    <div class="pc-calc-food-title">
+
+      <h3 id="pcCalcFoodTitle">
+        Desayunos
+      </h3>
+
+      <span>
+        Comida + valor desde hoja Menu
+      </span>
+
+    </div>
+
+
+    <div
+      id="pcCalcFoodGrid"
+      class="pc-calc-food-grid">
+
+      <div class="pc-calc-empty">
+        Cargando menú...
+      </div>
+
+    </div>
+
+
+    <div class="pc-calc-bottom">
+
+      <div
+        id="pcCalcStatus"
+        class="pc-calc-status">
+
+        Menú pendiente de cargar.
+
+      </div>
+
+
+      <button
+        type="button"
+        class="pc-calc-new"
+        onclick="pcCalcNewAccount()">
+
+        Nueva cuenta
+
+      </button>
+
+    </div>
+
+  </div>
+
+</section>
+
+
+<script>
+
+/* ============================================================
+   LOGICA MODULO CALCULADORA NEGOCIO
+   ============================================================ */
+
+let pcCalcMenuItems = [];
+
+let pcCalcCurrentType =
+  'Desayunos';
+
+let pcCalcQuantity =
+  '';
+
+let pcCalcSelectedIndex =
+  -1;
+
+let pcCalcLines = [];
+
+let pcCalcClosed =
+  false;
+
+let pcCalcLoading =
+  false;
+
+
+const PC_CALC_TYPE_MAP = {
+
+  Desayunos:[
+    'desayuno',
+    'desayunos'
+  ],
+
+  Almuerzos:[
+    'almuerzo',
+    'almuerzos'
+  ],
+
+  Cenas:[
+    'cena',
+    'cenas'
+  ],
+
+  Bebidas:[
+    'bebida',
+    'bebidas'
+  ]
+
+};
+
+
+function pcCalcNorm(value){
+
+  return String(
+    value
+    ??
+    ''
+  )
+  .normalize(
+    'NFD'
+  )
+  .replace(
+    /[\u0300-\u036f]/g,
+    ''
+  )
+  .toLowerCase()
+  .trim();
+
+}
+
+
+function pcCalcEsc(value){
+
+  return String(
+    value
+    ??
+    ''
+  )
+  .replace(
+    /&/g,
+    '&amp;'
+  )
+  .replace(
+    /</g,
+    '&lt;'
+  )
+  .replace(
+    />/g,
+    '&gt;'
+  )
+  .replace(
+    /"/g,
+    '&quot;'
+  )
+  .replace(
+    /'/g,
+    '&#039;'
+  );
+
+}
+
+
+function pcCalcMoney(value){
+
+  const n =
+    Number(
+      value
+    )
+    ||
+    0;
+
+  return 'L '
+    +
+    n.toLocaleString(
+      'es-HN',
+      {
+        minimumFractionDigits:2,
+        maximumFractionDigits:2
+      }
+    );
+
+}
+
+
+function pcCalcQtyValue(){
+
+  const n =
+    parseInt(
+      pcCalcQuantity
+      ||
+      '1',
+      10
+    );
+
+  if(
+    !Number.isFinite(
+      n
+    )
+    ||
+    n < 1
+  ){
+
+    return 1;
+
+  }
+
+  return Math.min(
+    n,
+    999
+  );
+
+}
+
+
+function pcCalcRenderQty(){
+
+  const qty =
+    pcCalcQtyValue();
+
+  const box =
+    document.getElementById(
+      'pcCalcQtyBox'
+    );
+
+  const screen =
+    document.getElementById(
+      'pcCalcQtyScreen'
+    );
+
+  if(box){
+
+    box.textContent =
+      String(
+        qty
+      );
+
+  }
+
+  if(screen){
+
+    screen.textContent =
+      'Cantidad: '
+      +
+      qty;
+
+  }
+
+}
+
+
+function pcCalcDigit(digit){
+
+  if(
+    pcCalcClosed
+  ){
+
+    return;
+
+  }
+
+  if(
+    pcCalcQuantity.length >= 3
+  ){
+
+    return;
+
+  }
+
+  if(
+    pcCalcQuantity === ''
+    &&
+    digit === '0'
+  ){
+
+    return;
+
+  }
+
+  pcCalcQuantity +=
+    String(
+      digit
+    );
+
+  pcCalcRenderQty();
+
+}
+
+
+function pcCalcClearQty(){
+
+  if(
+    pcCalcClosed
+  ){
+
+    return;
+
+  }
+
+  pcCalcQuantity =
+    '';
+
+  pcCalcRenderQty();
+
+}
+
+
+function pcCalcBackspace(){
+
+  if(
+    pcCalcClosed
+  ){
+
+    return;
+
+  }
+
+  pcCalcQuantity =
+    pcCalcQuantity.slice(
+      0,
+      -1
+    );
+
+  pcCalcRenderQty();
+
+}
+
+
+function pcCalcSetStatus(text){
+
+  const el =
+    document.getElementById(
+      'pcCalcStatus'
+    );
+
+  if(el){
+
+    el.textContent =
+      text;
+
+  }
+
+}
+
+
+function pcCalcBusinessOpen(){
+
+  pcCalcRenderQty();
+
+  pcCalcRenderReceipt();
+
+  pcCalcRenderTypeButtons();
+
+  pcCalcRenderFoodKeys();
+
+  if(
+    !pcCalcMenuItems.length
+  ){
+
+    pcCalcLoadMenu();
+
+  }
+
+}
+
+
+async function pcCalcLoadMenu(){
+
+  if(
+    pcCalcLoading
+  ){
+
+    return;
+
+  }
+
+  pcCalcLoading =
+    true;
+
+  pcCalcSetStatus(
+    'Cargando datos de la hoja Menu...'
+  );
+
+
+  try{
+
+    const r =
+      await jsonp(
+        'businessMenu',
+        {
+          t:
+            Date.now()
+        }
+      );
+
+
+    if(
+      !r
+      ||
+      !r.ok
+    ){
+
+      throw new Error(
+        (
+          r
+          &&
+          r.error
+        )
+        ||
+        'No se pudo cargar la hoja Menu.'
+      );
+
+    }
+
+
+    pcCalcMenuItems =
+      (
+        r.items
+        ||
+        []
+      )
+      .map(
+        item => ({
+
+          no:
+            item.no,
+
+          tipo:
+            String(
+              item.tipo
+              ??
+              ''
+            )
+            .trim(),
+
+          comida:
+            String(
+              item.comida
+              ??
+              ''
+            )
+            .trim(),
+
+          valor:
+            Number(
+              item.valor
+            )
+            ||
+            0
+
+        })
+      );
+
+
+    pcCalcSetStatus(
+      pcCalcMenuItems.length
+      +
+      ' artículos cargados desde la hoja Menu.'
+    );
+
+
+    pcCalcRenderFoodKeys();
+
+  }
+  catch(error){
+
+    pcCalcSetStatus(
+      error.message
+      ||
+      'No fue posible cargar el menú.'
+    );
+
+
+    const grid =
+      document.getElementById(
+        'pcCalcFoodGrid'
+      );
+
+
+    if(grid){
+
+      grid.innerHTML =
+        `
+        <div class="pc-calc-empty">
+          ⚠️ ${pcCalcEsc(
+            error.message
+            ||
+            'No fue posible cargar el menú.'
+          )}
+        </div>
+        `;
+
+    }
+
+  }
+  finally{
+
+    pcCalcLoading =
+      false;
+
+  }
+
+}
+
+
+function pcCalcRenderTypeButtons(){
+
+  document
+    .querySelectorAll(
+      '[data-calc-type]'
+    )
+    .forEach(
+      btn => {
+
+        btn.classList.toggle(
+          'on',
+          btn.dataset.calcType ===
+            pcCalcCurrentType
+        );
+
+      }
+    );
+
+}
+
+
+function pcCalcSelectType(type){
+
+  if(
+    !PC_CALC_TYPE_MAP[type]
+  ){
+
+    return;
+
+  }
+
+  pcCalcCurrentType =
+    type;
+
+  pcCalcSelectedIndex =
+    -1;
+
+
+  const title =
+    document.getElementById(
+      'pcCalcFoodTitle'
+    );
+
+
+  if(title){
+
+    title.textContent =
+      type;
+
+  }
+
+
+  pcCalcRenderTypeButtons();
+
+  pcCalcRenderSelected();
+
+  pcCalcRenderFoodKeys();
+
+}
+
+
+function pcCalcTypeMatches(item){
+
+  const allowed =
+    PC_CALC_TYPE_MAP[
+      pcCalcCurrentType
+    ]
+    ||
+    [];
+
+  const type =
+    pcCalcNorm(
+      item.tipo
+    );
+
+  return allowed.includes(
+    type
+  );
+
+}
+
+
+function pcCalcRenderFoodKeys(){
+
+  const grid =
+    document.getElementById(
+      'pcCalcFoodGrid'
+    );
+
+
+  if(!grid){
+
+    return;
+
+  }
+
+
+  if(
+    !pcCalcMenuItems.length
+  ){
+
+    grid.innerHTML =
+      `
+      <div class="pc-calc-empty">
+        Cargando menú...
+      </div>
+      `;
+
+    return;
+
+  }
+
+
+  const matches =
+    pcCalcMenuItems
+    .map(
+      (
+        item,
+        index
+      ) => ({
+        item,
+        index
+      })
+    )
+    .filter(
+      x =>
+        pcCalcTypeMatches(
+          x.item
+        )
+    );
+
+
+  if(
+    !matches.length
+  ){
+
+    grid.innerHTML =
+      `
+      <div class="pc-calc-empty">
+        No hay artículos de ${pcCalcEsc(
+          pcCalcCurrentType
+        )}.
+      </div>
+      `;
+
+    return;
+
+  }
+
+
+  grid.innerHTML =
+    matches
+    .map(
+      x => {
+
+        const selected =
+          x.index ===
+          pcCalcSelectedIndex;
+
+        return `
+          <button
+            type="button"
+            class="pc-calc-food-btn ${selected ? 'on' : ''}"
+            onclick="pcCalcSelectFood(${x.index})">
+
+            <strong>
+              ${pcCalcEsc(
+                x.item.comida
+              )}
+            </strong>
+
+            <span>
+              ${pcCalcMoney(
+                x.item.valor
+              )}
+            </span>
+
+          </button>
+        `;
+
+      }
+    )
+    .join('');
+
+}
+
+
+function pcCalcSelectFood(index){
+
+  if(
+    pcCalcClosed
+  ){
+
+    pcCalcSetStatus(
+      'La cuenta está cerrada. Presiona Nueva cuenta.'
+    );
+
+    return;
+
+  }
+
+
+  if(
+    !pcCalcMenuItems[index]
+  ){
+
+    return;
+
+  }
+
+
+  pcCalcSelectedIndex =
+    index;
+
+  pcCalcRenderSelected();
+
+  pcCalcRenderFoodKeys();
+
+}
+
+
+function pcCalcRenderSelected(){
+
+  const el =
+    document.getElementById(
+      'pcCalcSelected'
+    );
+
+
+  if(!el){
+
+    return;
+
+  }
+
+
+  const item =
+    pcCalcMenuItems[
+      pcCalcSelectedIndex
+    ];
+
+
+  if(!item){
+
+    el.innerHTML =
+      'Selecciona una comida.';
+
+    return;
+
+  }
+
+
+  el.innerHTML =
+    `
+    <strong>
+      ${pcCalcEsc(
+        item.comida
+      )}
+    </strong>
+
+    ${pcCalcMoney(
+      item.valor
+    )}
+    ×
+    ${pcCalcQtyValue()}
+  `;
+
+}
+
+
+function pcCalcAddSelected(){
+
+  if(
+    pcCalcClosed
+  ){
+
+    pcCalcSetStatus(
+      'La cuenta está cerrada. Presiona Nueva cuenta.'
+    );
+
+    return;
+
+  }
+
+
+  const item =
+    pcCalcMenuItems[
+      pcCalcSelectedIndex
+    ];
+
+
+  if(!item){
+
+    pcCalcSetStatus(
+      'Primero selecciona una comida.'
+    );
+
+    return;
+
+  }
+
+
+  const qty =
+    pcCalcQtyValue();
+
+
+  const existing =
+    pcCalcLines.find(
+      line =>
+        line.comida ===
+          item.comida
+        &&
+        Number(
+          line.valor
+        ) ===
+          Number(
+            item.valor
+          )
+    );
+
+
+  if(existing){
+
+    existing.cantidad +=
+      qty;
+
+  }
+  else{
+
+    pcCalcLines.push({
+
+      comida:
+        item.comida,
+
+      valor:
+        Number(
+          item.valor
+        )
+        ||
+        0,
+
+      cantidad:
+        qty
+
+    });
+
+  }
+
+
+  pcCalcQuantity =
+    '';
+
+  pcCalcSelectedIndex =
+    -1;
+
+
+  pcCalcRenderQty();
+
+  pcCalcRenderSelected();
+
+  pcCalcRenderFoodKeys();
+
+  pcCalcRenderReceipt();
+
+
+  pcCalcSetStatus(
+    'Artículo agregado. Selecciona el siguiente.'
+  );
+
+}
+
+
+function pcCalcTotalValue(){
+
+  return pcCalcLines
+    .reduce(
+      (
+        total,
+        line
+      ) =>
+        total
+        +
+        (
+          Number(
+            line.valor
+          )
+          *
+          Number(
+            line.cantidad
+          )
+        ),
+      0
+    );
+
+}
+
+
+function pcCalcRenderReceipt(){
+
+  const receipt =
+    document.getElementById(
+      'pcCalcReceipt'
+    );
+
+  const total =
+    document.getElementById(
+      'pcCalcTotal'
+    );
+
+  const state =
+    document.getElementById(
+      'pcCalcState'
+    );
+
+
+  if(receipt){
+
+    if(
+      !pcCalcLines.length
+    ){
+
+      receipt.innerHTML =
+        `
+        <div class="pc-calc-empty">
+          Selecciona una comida para comenzar.
+        </div>
+        `;
+
+    }
+    else{
+
+      receipt.innerHTML =
+        pcCalcLines
+        .map(
+          line => {
+
+            const subtotal =
+              Number(
+                line.valor
+              )
+              *
+              Number(
+                line.cantidad
+              );
+
+            return `
+              <div class="pc-calc-line">
+
+                <div class="pc-calc-line-qty">
+                  ${line.cantidad} ×
+                </div>
+
+                <div class="pc-calc-line-name">
+
+                  <strong>
+                    ${pcCalcEsc(
+                      line.comida
+                    )}
+                  </strong>
+
+                  <small>
+                    ${pcCalcMoney(
+                      line.valor
+                    )}
+                    c/u
+                  </small>
+
+                </div>
+
+                <div class="pc-calc-line-total">
+                  ${pcCalcMoney(
+                    subtotal
+                  )}
+                </div>
+
+              </div>
+            `;
+
+          }
+        )
+        .join('');
+
+    }
+
+  }
+
+
+  if(total){
+
+    total.textContent =
+      pcCalcMoney(
+        pcCalcTotalValue()
+      );
+
+  }
+
+
+  if(state){
+
+    state.textContent =
+      pcCalcClosed
+      ?
+      'TOTAL CERRADO'
+      :
+      'Cuenta abierta';
+
+  }
+
+}
+
+
+function pcCalcCloseSum(){
+
+  if(
+    !pcCalcLines.length
+  ){
+
+    pcCalcSetStatus(
+      'No hay artículos para totalizar.'
+    );
+
+    return;
+
+  }
+
+
+  pcCalcClosed =
+    true;
+
+  pcCalcSelectedIndex =
+    -1;
+
+  pcCalcRenderSelected();
+
+  pcCalcRenderFoodKeys();
+
+  pcCalcRenderReceipt();
+
+
+  pcCalcSetStatus(
+    'Cuenta cerrada. Total: '
+    +
+    pcCalcMoney(
+      pcCalcTotalValue()
+    )
+  );
+
+}
+
+
+function pcCalcNewAccount(){
+
+  pcCalcLines =
+    [];
+
+  pcCalcQuantity =
+    '';
+
+  pcCalcSelectedIndex =
+    -1;
+
+  pcCalcClosed =
+    false;
+
+
+  pcCalcRenderQty();
+
+  pcCalcRenderSelected();
+
+  pcCalcRenderFoodKeys();
+
+  pcCalcRenderReceipt();
+
+
+  pcCalcSetStatus(
+    'Nueva cuenta abierta.'
+  );
+
+}
+
+</script>
+
+<!-- ============================================================
+     FIN MODULO CALCULADORA NEGOCIO
+     ============================================================ -->
+    
+<!-- ============================================================
      JAVASCRIPT DEL SELECTOR
      SOLO CONTROLA LA INTERFAZ.
      NO LLAMA AL GS TODAVIA.
@@ -3992,12 +5751,54 @@ const PC_SECTORS = {
     search:'Buscar mueble, material, color, tamaño...'
   },
 
-  mascotas:{
-    label:'🐶 Mascotas',
-    sheet:'Mascotas',
-    module:'pcModuleMascotas',
-    search:'Buscar alimento, marca, especie, etapa...'
-  }
+ mascotas:{
+
+  label:
+    '🐶 Mascotas',
+
+  sheet:
+    'Mascotas',
+
+  module:
+    'pcModuleMascotas',
+
+  search:
+    'Buscar alimento, marca, especie, etapa...'
+
+},
+
+
+/*
+ * ============================================================
+ * CALCULADORA NEGOCIO
+ *
+ * No usa Productos.
+ * No usa carrito.
+ * Lee directamente de la hoja Menu.
+ * ============================================================
+ */
+
+calculadora:{
+
+  label:
+    '🧮 Calculadora Negocio',
+
+  sheet:
+    'Menu',
+
+  module:
+    'pcModuleCalculadora',
+
+  search:
+    '',
+
+  standalone:
+    true,
+
+  adminProduct:
+    false
+
+}
 
 };
 
@@ -4329,11 +6130,20 @@ function pcCartKey(key){
 
 function pcInitBusinessSelectors(){
 
-  const available =
-    new Set(
-      pcAvailableBusinessKeys()
-    );
+  const availableKeys =
+    pcAvailableBusinessKeys();
 
+
+  /*
+   * ==========================================================
+   * SELECTOR DEL CLIENTE
+   * ==========================================================
+   *
+   * Se construye automáticamente desde PC_SECTORS.
+   *
+   * Si borras un módulo HTML,
+   * también desaparecerá del selector.
+   */
 
   const selector =
     document.getElementById(
@@ -4343,25 +6153,50 @@ function pcInitBusinessSelectors(){
 
   if(selector){
 
-    Array.from(
-      selector.options
-    )
-    .forEach(
-      opt => {
+    const previousValue =
+      selector.value;
 
-        if(
-          !available.has(
-            opt.value
-          )
-        ){
-          opt.remove();
-        }
 
-      }
-    );
+    selector.innerHTML =
+      availableKeys
+      .map(
+        key =>
+          `
+          <option value="${attr(key)}">
+            ${esc(
+              PC_SECTORS[key].label
+            )}
+          </option>
+          `
+      )
+      .join('');
+
+
+    selector.value =
+      availableKeys.includes(
+        previousValue
+      )
+      ?
+      previousValue
+      :
+      'general';
 
   }
 
+
+  /*
+   * ==========================================================
+   * SELECTOR DEL ADMINISTRADOR
+   * ==========================================================
+   *
+   * Solamente incluye módulos que manejan Productos.
+   *
+   * Calculadora Negocio tiene:
+   *
+   * adminProduct:false
+   *
+   * por eso NO aparece aquí.
+   */
 
   const adminSelector =
     document.getElementById(
@@ -4371,22 +6206,49 @@ function pcInitBusinessSelectors(){
 
   if(adminSelector){
 
+    const productKeys =
+      availableKeys
+      .filter(
+        key =>
+          PC_SECTORS[key]
+            .adminProduct
+          !==
+          false
+      );
+
+
     adminSelector.innerHTML =
-      pcAvailableBusinessKeys()
-        .map(
-          key =>
-            `<option value="${attr(key)}">${esc(PC_SECTORS[key].label)}</option>`
-        )
-        .join('');
+      productKeys
+      .map(
+        key =>
+          `
+          <option value="${attr(key)}">
+            ${esc(
+              PC_SECTORS[key].label
+            )}
+          </option>
+          `
+      )
+      .join('');
 
 
     adminSelector.value =
-      'general';
+      productKeys.includes(
+        'general'
+      )
+      ?
+      'general'
+      :
+      (
+        productKeys[0]
+        ||
+        ''
+      );
 
   }
 
 }
-
+  
 /*************************************************
  * ORDENAR PANTALLA DEL CLIENTE
  *
@@ -4474,10 +6336,49 @@ function pcChangeBusiness(type){
   if(
     !PC_SECTORS[type]
   ){
+
     type =
       'general';
+
   }
 
+
+  /*
+   * Guardar el carrito del negocio anterior,
+   * solamente si ese negocio usa carrito.
+   */
+
+  if(
+    typeof activeBusiness !==
+      'undefined'
+  ){
+
+    const previousCfg =
+      PC_SECTORS[
+        activeBusiness
+      ]
+      ||
+      PC_SECTORS.general;
+
+
+    if(
+      previousCfg.standalone !==
+        true
+      &&
+      typeof saveCart ===
+        'function'
+    ){
+
+      saveCart();
+
+    }
+
+  }
+
+
+  /*
+   * Ocultar todos los módulos especializados.
+   */
 
   Object
     .values(
@@ -4486,24 +6387,36 @@ function pcChangeBusiness(type){
     .forEach(
       cfg => {
 
-        if(!cfg.module){
+        if(
+          !cfg.module
+        ){
+
           return;
+
         }
+
 
         const el =
           document.getElementById(
             cfg.module
           );
 
+
         if(el){
+
           el.classList.remove(
             'pc-show'
           );
+
         }
 
       }
     );
 
+
+  /*
+   * Cerrar herramientas internas abiertas.
+   */
 
   document
     .querySelectorAll(
@@ -4521,21 +6434,85 @@ function pcChangeBusiness(type){
     PC_SECTORS[type];
 
 
-  if(cfg.module){
+  /*
+   * Mostrar módulo seleccionado.
+   */
+
+  if(
+    cfg.module
+  ){
 
     const module =
       document.getElementById(
         cfg.module
       );
 
+
     if(module){
+
       module.classList.add(
         'pc-show'
       );
+
     }
 
   }
 
+
+  /*
+   * ==========================================================
+   * MODO STANDALONE
+   * ==========================================================
+   *
+   * Calculadora Negocio no necesita:
+   *
+   * Hero
+   * Buscador
+   * Categorías
+   * Catálogo
+   * Góndola
+   * Pasillos
+   * Productos
+   * Carrito
+   */
+
+  const standalone =
+    cfg.standalone ===
+    true;
+
+
+  [
+    '.hero',
+    '.viewbar',
+    '#status',
+    '#products',
+    '#cartbar'
+  ]
+  .forEach(
+    selector => {
+
+      const el =
+        document.querySelector(
+          selector
+        );
+
+
+      if(el){
+
+        el.classList.toggle(
+          'hide',
+          standalone
+        );
+
+      }
+
+    }
+  );
+
+
+  /*
+   * Buscador normal para negocios con catálogo.
+   */
 
   const search =
     document.getElementById(
@@ -4543,61 +6520,101 @@ function pcChangeBusiness(type){
     );
 
 
-  if(search){
+  if(
+    search
+    &&
+    cfg.search
+  ){
+
     search.placeholder =
       cfg.search;
+
   }
 
 
   if(
-    typeof activeBusiness !==
-    'undefined'
+    typeof activeBusiness ===
+      'undefined'
   ){
 
+    return;
+
+  }
+
+
+  activeBusiness =
+    type;
+
+
+  selectedCategory =
+    'Todos';
+
+
+  if(search){
+
+    search.value =
+      '';
+
+  }
+
+
+  /*
+   * ==========================================================
+   * CALCULADORA NEGOCIO
+   * ==========================================================
+   */
+
+  if(standalone){
+
     if(
-      typeof saveCart ===
-      'function'
+      type ===
+        'calculadora'
+      &&
+      typeof pcCalcBusinessOpen ===
+        'function'
     ){
-      saveCart();
+
+      pcCalcBusinessOpen();
+
     }
 
 
-    activeBusiness =
-      type;
+    return;
+
+  }
 
 
-    selectedCategory =
-      'Todos';
+  /*
+   * ==========================================================
+   * NEGOCIOS NORMALES
+   * ==========================================================
+   */
+
+  cart =
+    loadJson(
+      pcCartKey(
+        activeBusiness
+      ),
+      {}
+    );
 
 
-    if(search){
-      search.value =
-        '';
-    }
+  renderSectorOrderFields();
 
 
-    cart =
-      loadJson(
-        pcCartKey(
-          activeBusiness
-        ),
-        {}
-      );
+  refreshCartUI();
 
 
-    renderSectorOrderFields();
+  if(
+    !isAdmin
+  ){
 
-    refreshCartUI();
-
-    if(!isAdmin){
-      loadProducts();
-    }
+    loadProducts();
 
   }
 
 }
-
-
+  
 function pcOpenTool(
   sector,
   toolId
@@ -5860,7 +7877,7 @@ const CONFIG = {
    */
 
   GAS_WEB_APP_URL:
-    'https://script.google.com/macros/s/AKfycbz-ojJMs353_8OgDgI7ngxc2qUz1jbL3obP3Y3CYEy2jas-UGseCTwtOkXV2GNtLCeP0g/exec',
+    'https://script.google.com/macros/s/AKfycbzHJWDuXVJGAC0sIIi1wITmYNv06PWzMUBwo1FclO8eLEw_h1waw5e17j2ogWwx_qj3bQ/exec',
 
   CURRENCY:
     'L'
