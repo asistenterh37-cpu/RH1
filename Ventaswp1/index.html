@@ -6267,12 +6267,10 @@ function pcCalcRenderReceipt(){
       'pcCalcReceipt'
     );
 
-
   const total =
     document.getElementById(
       'pcCalcTotal'
     );
-
 
   const state =
     document.getElementById(
@@ -6282,106 +6280,76 @@ function pcCalcRenderReceipt(){
 
   if(receipt){
 
-    const pieces =
-      [];
+    const pieces = [];
 
 
     /*
      * ========================================================
      * ARTÍCULOS YA CONFIRMADOS CON +
      *
-     * Formato:
-     *
-     * cantidad × comida subtotal
+     * El botón + sigue funcionando,
+     * pero NO mostramos el signo +
+     * dentro del detalle.
      * ========================================================
      */
 
-    pcCalcLines
-      .forEach(
-        (
-          line,
-          index
-        ) => {
+    pcCalcLines.forEach(
+      line => {
 
-
-          /*
-           * Entre artículos colocamos +
-           */
-
-          if(
-            index > 0
-          ){
-
-            pieces.push(
-              `
-              <span class="pc-calc-expression-plus">
-                +
-              </span>
-              `
-            );
-
-          }
-
-
-          const subtotal =
-            Number(
-              line.cantidad
-            )
-            *
-            Number(
-              line.valor
-            );
-
-
-          pieces.push(
-            `
-            <span class="pc-calc-term">
-
-              <span class="pc-calc-term-qty">
-                ${line.cantidad}×
-              </span>
-
-
-              <span
-                class="pc-calc-term-food"
-                title="${pcCalcEsc(
-                  line.comida
-                )}">
-
-                ${pcCalcEsc(
-                  pcCalcShortFoodName(
-                    line.comida
-                  )
-                )}
-
-              </span>
-
-
-              <span class="pc-calc-term-subtotal">
-
-                ${pcCalcMoney(
-                  subtotal
-                )}
-
-              </span>
-
-            </span>
-            `
+        const subtotal =
+          Number(
+            line.cantidad
+          )
+          *
+          Number(
+            line.valor
           );
 
-        }
-      );
+
+        pieces.push(
+          `
+          <span class="pc-calc-term">
+
+            <span class="pc-calc-term-qty">
+              ${line.cantidad}×
+            </span>
+
+            <span
+              class="pc-calc-term-food"
+              title="${pcCalcEsc(
+                line.comida
+              )}">
+
+              ${pcCalcEsc(
+                pcCalcShortFoodName(
+                  line.comida
+                )
+              )}
+
+            </span>
+
+            <span class="pc-calc-term-subtotal">
+
+              ${pcCalcMoney(
+                subtotal
+              )}
+
+            </span>
+
+          </span>
+          `
+        );
+
+      }
+    );
 
 
     /*
      * ========================================================
      * ARTÍCULO ACTUAL
      *
-     * Todavía no se ha presionado +.
-     *
-     * También mostramos inmediatamente:
-     *
-     * cantidad × comida subtotal
+     * Se muestra inmediatamente,
+     * pero sin signo + delante.
      * ========================================================
      */
 
@@ -6396,26 +6364,6 @@ function pcCalcRenderReceipt(){
       &&
       !pcCalcClosed
     ){
-
-      /*
-       * Si ya hay artículos anteriores,
-       * colocamos + antes del actual.
-       */
-
-      if(
-        pcCalcLines.length
-      ){
-
-        pieces.push(
-          `
-          <span class="pc-calc-expression-plus">
-            +
-          </span>
-          `
-        );
-
-      }
-
 
       const qty =
         pcCalcQtyValue();
@@ -6434,11 +6382,8 @@ function pcCalcRenderReceipt(){
         <span class="pc-calc-term pc-calc-term-current">
 
           <span class="pc-calc-term-qty">
-
             ${qty}×
-
           </span>
-
 
           <span
             class="pc-calc-term-food"
@@ -6453,7 +6398,6 @@ function pcCalcRenderReceipt(){
             )}
 
           </span>
-
 
           <span class="pc-calc-term-subtotal">
 
@@ -6474,8 +6418,8 @@ function pcCalcRenderReceipt(){
      * ========================================================
      * SIGNO =
      *
-     * Solo aparece cuando
-     * la cuenta quedó cerrada.
+     * Este SÍ se mantiene visible
+     * al cerrar la cuenta.
      * ========================================================
      */
 
@@ -6496,38 +6440,24 @@ function pcCalcRenderReceipt(){
     }
 
 
-    /*
-     * Si no hay ninguna operación,
-     * detalle vacío.
-     */
-
     if(
       !pieces.length
     ){
 
-      receipt.innerHTML =
-        '';
+      receipt.innerHTML = '';
 
     }
-
     else{
 
       receipt.innerHTML =
         `
         <div class="pc-calc-expression">
-
           ${pieces.join('')}
-
         </div>
         `;
 
     }
 
-
-    /*
-     * Si se llena la pantalla,
-     * mantener visible lo último ingresado.
-     */
 
     requestAnimationFrame(
       () => {
@@ -6542,11 +6472,7 @@ function pcCalcRenderReceipt(){
 
 
   /*
-   * ==========================================================
    * TOTAL FINAL
-   *
-   * Solo aparece después de =
-   * ==========================================================
    */
 
   if(total){
@@ -6590,19 +6516,6 @@ function pcCalcRenderReceipt(){
 
 }
   
-/* ============================================================
-   CERRAR CON =
-
-   IMPORTANTE:
-
-   Si hay una comida seleccionada,
-   = la agrega automáticamente
-   como último término.
-
-   No es obligatorio presionar +
-   antes del último artículo.
-   ============================================================ */
-
 function pcCalcCloseSum(){
 
   if(
