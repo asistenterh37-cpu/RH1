@@ -6160,22 +6160,45 @@ function pcCalcRenderTypeButtons(){
 }
 
 
-function pcCalcSelectType(type){
+async function pcCalcSelectType(type){
+
+  /*
+   * Validar categoría.
+   */
 
   if(
     !PC_CALC_TYPE_MAP[type]
   ){
-
     return;
-
   }
+
+
+  /*
+   * Cambiar categoría actual.
+   */
 
   pcCalcCurrentType =
     type;
 
+
+  /*
+   * Al cambiar de categoría
+   * quitamos cualquier comida
+   * seleccionada anteriormente.
+   */
+
   pcCalcSelectedIndex =
     -1;
 
+
+  /*
+   * Cambiar título:
+   *
+   * Desayunos
+   * Almuerzos
+   * Cenas
+   * Bebidas
+   */
 
   const title =
     document.getElementById(
@@ -6191,15 +6214,99 @@ function pcCalcSelectType(type){
   }
 
 
+  /*
+   * Marcar visualmente
+   * la categoría seleccionada.
+   */
+
   pcCalcRenderTypeButtons();
+
+
+  /*
+   * Limpiar selección anterior.
+   */
 
   pcCalcRenderSelected();
 
+  pcCalcRenderReceipt();
+
+
+  /*
+   * ========================================================
+   * ASEGURAR QUE EL MENU ESTE CARGADO
+   * ========================================================
+   */
+
+  if(
+    !pcCalcMenuItems.length
+    &&
+    !pcCalcLoading
+  ){
+
+    await pcCalcLoadMenu();
+
+  }
+
+
+  /*
+   * ========================================================
+   * MOSTRAR LAS COMIDAS DE LA CATEGORIA
+   * ========================================================
+   */
+
   pcCalcRenderFoodKeys();
 
+
+  /*
+   * ========================================================
+   * CELULAR
+   *
+   * Después de tocar:
+   *
+   * Desayunos
+   * Almuerzos
+   * Cenas
+   * Bebidas
+   *
+   * llevamos automáticamente la pantalla
+   * hacia las teclas correspondientes.
+   * ========================================================
+   */
+
+  if(
+    window.innerWidth <= 800
+  ){
+
+    setTimeout(
+      () => {
+
+        const foodTitle =
+          document.getElementById(
+            'pcCalcFoodTitle'
+          );
+
+
+        if(foodTitle){
+
+          foodTitle.scrollIntoView({
+
+            behavior:
+              'smooth',
+
+            block:
+              'start'
+
+          });
+
+        }
+
+      },
+      80
+    );
+
+  }
+
 }
-
-
 function pcCalcTypeMatches(item){
 
   const allowed =
