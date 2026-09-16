@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+
+  <title>Registro de Visitas</title>
+
+  <style>
+    *{
+      box-sizing:border-box;
+      margin:0;
+      padding:0;
+    }
+
+    body{
+      font-family: Arial, Helvetica, sans-serif;
+      background:#f4f7f6;
+      color:#202124;
+      padding:18px;
+    }
+
+    .contenedor{
+      width:100%;
+      max-width:650px;
+      margin:auto;
+    }
+
+    .tarjeta{
+      background:#ffffff;
+      border-radius:18px;
+      padding:25px;
+      box-shadow:0 5px 20px rgba(0,0,0,.10);
+    }
+
+    .titulo{
+      font-size:26px;
+      font-weight:700;
+      text-align:center;
+      margin-bottom:5px;
+      color:#1f5c47;
+    }
+
+    .subtitulo{
+      text-align:center;
+      color:#777;
+      font-size:14px;
+      margin-bottom:22px;
+    }
+
+    .grupo{
+      margin-bottom:17px;
+    }
+
+    label{
+      display:block;
+      font-size:14px;
+      font-weight:600;
+      margin-bottom:6px;
+    }
+
+    input,
+    textarea{
+      width:100%;
+      border:1px solid #d5d9dc;
+      border-radius:10px;
+      padding:13px 14px;
+      font-size:16px;
+      background:#fff;
+      outline:none;
+      transition:.2s;
+    }
+
+    input:focus,
+    textarea:focus{
+      border-color:#2e7d5b;
+      box-shadow:0 0 0 3px rgba(46,125,91,.10);
+    }
+
+    textarea{
+      min-height:130px;
+      resize:vertical;
+    }
+
+    .fila{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:15px;
+    }
+
+    .ubicacion{
+      background:#f2f8f5;
+      border:1px solid #d4e8dd;
+      border-radius:12px;
+      padding:13px;
+      margin-bottom:20px;
+    }
+
+    .ubicacion-titulo{
+      font-size:13px;
+      font-weight:bold;
+      color:#2e7d5b;
+      margin-bottom:5px;
+    }
+
+    #estadoUbicacion{
+      font-size:13px;
+      color:#666;
+      line-height:1.4;
+    }
+
+    .gps-ok{
+      color:#198754 !important;
+      font-weight:600;
+    }
+
+    .gps-error{
+      color:#c62828 !important;
+      font-weight:600;
+    }
+
+    .boton{
+      width:100%;
+      border:none;
+      border-radius:12px;
+      padding:15px;
+      font-size:18px;
+      font-weight:700;
+      background:#2e7d5b;
+      color:#fff;
+      cursor:pointer;
+      transition:.2s;
+    }
+
+    .boton:hover{
+      background:#236448;
+    }
+
+    .boton:disabled{
+      opacity:.6;
+      cursor:not-allowed;
+    }
+
+    .mensaje{
+      display:none;
+      margin-top:16px;
+      padding:13px;
+      border-radius:10px;
+      text-align:center;
+      font-size:14px;
+    }
+
+    .mensaje-ok{
+      display:block;
+      background:#e8f5e9;
+      color:#1b5e20;
+      border:1px solid #c8e6c9;
+    }
+
+    .mensaje-error{
+      display:block;
+      background:#ffebee;
+      color:#b71c1c;
+      border:1px solid #ffcdd2;
+    }
+
+    .reintentar{
+      margin-top:8px;
+      padding:6px 10px;
+      border:none;
+      border-radius:6px;
+      background:#e6efeb;
+      cursor:pointer;
+      font-size:12px;
+    }
+
+    @media(max-width:550px){
+      body{
+        padding:10px;
+      }
+
+      .tarjeta{
+        padding:20px 16px;
+      }
+
+      .fila{
+        grid-template-columns:1fr;
+        gap:0;
+      }
+
+      .titulo{
+        font-size:23px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="contenedor">
+
+  <div class="tarjeta">
+
+    <div class="titulo">
+      Registro de Visitas
+    </div>
+
+    <div class="subtitulo">
+      Resumen de visita
+    </div>
+
+
+    <form id="formVisita">
+
+      <div class="grupo">
+        <label>Empresa</label>
+        <input
+          type="text"
+          id="empresa"
+          autocomplete="organization">
+      </div>
+
+
+      <div class="grupo">
+        <label>Nombre</label>
+        <input
+          type="text"
+          id="nombre"
+          autocomplete="name">
+      </div>
+
+
+      <div class="fila">
+
+        <div class="grupo">
+          <label>Correo</label>
+          <input
+            type="email"
+            id="correo"
+            placeholder=" @ "
+            autocomplete="email">
+        </div>
+
+        <div class="grupo">
+          <label>Teléfono</label>
+          <input
+            type="tel"
+            id="telefono"
+            autocomplete="tel">
+        </div>
+
+      </div>
+
+
+      <div class="grupo">
+        <label>Observaciones</label>
+
+        <textarea
+          id="observaciones"
+          placeholder="Escriba aquí el resumen de la visita..."></textarea>
+      </div>
+
+
+      <div class="ubicacion">
+
+        <div class="ubicacion-titulo">
+          📍 Ubicación
+        </div>
+
+        <div id="estadoUbicacion">
+          Obteniendo ubicación del celular...
+        </div>
+
+        <button
+          type="button"
+          class="reintentar"
+          onclick="obtenerUbicacion()">
+          Actualizar ubicación
+        </button>
+
+      </div>
+
+
+      <button
+        type="submit"
+        id="btnGuardar"
+        class="boton">
+        Guardar
+      </button>
+
+
+      <div id="mensaje" class="mensaje"></div>
+
+    </form>
+
+  </div>
+
+</div>
+
+
+<!--
+El formulario se enviará silenciosamente
+a Apps Script dentro de este iframe.
+-->
+<iframe
+  id="iframeEnvio"
+  name="iframeEnvio"
+  style="display:none;">
+</iframe>
+
+
+<script>
+
+  /* =====================================================
+     PEGAR AQUÍ LA URL DEL WEB APP DE APPS SCRIPT
+     ===================================================== */
+
+  const WEB_APP_URL =
+    "https://script.google.com/macros/s/AKfycbzMSmdYBne91jV7O-eHxd6sDmgxqlC41M9GBGcsYEAzf_sM7crmfAc_db3ZSzK-65Xx/exec";
+
+
+  let latitud = "";
+  let longitud = "";
+  let ubicacionDisponible = false;
+  let enviando = false;
+
+
+  const form = document.getElementById("formVisita");
+  const boton = document.getElementById("btnGuardar");
+  const mensaje = document.getElementById("mensaje");
+  const estadoUbicacion =
+        document.getElementById("estadoUbicacion");
+
+  const iframe =
+        document.getElementById("iframeEnvio");
+
+
+  /* =====================================================
+     OBTENER GPS
+     ===================================================== */
+
+  function obtenerUbicacion(){
+
+    ubicacionDisponible = false;
+
+    estadoUbicacion.className = "";
+    estadoUbicacion.innerHTML =
+      "Obteniendo ubicación del celular...";
+
+
+    if(!navigator.geolocation){
+
+      estadoUbicacion.innerHTML =
+        "Este dispositivo no permite obtener ubicación.";
+
+      estadoUbicacion.className = "gps-error";
+
+      return;
+    }
+
+
+    navigator.geolocation.getCurrentPosition(
+
+      function(position){
+
+        latitud =
+          position.coords.latitude.toFixed(6);
+
+        longitud =
+          position.coords.longitude.toFixed(6);
+
+        ubicacionDisponible = true;
+
+        estadoUbicacion.innerHTML =
+          "✓ Ubicación detectada correctamente";
+
+        estadoUbicacion.className = "gps-ok";
+
+      },
+
+
+      function(error){
+
+        let texto =
+          "No fue posible obtener la ubicación.";
+
+        if(error.code === 1){
+          texto =
+            "Debe permitir el acceso a la ubicación.";
+        }
+
+        if(error.code === 2){
+          texto =
+            "No se pudo determinar la ubicación.";
+        }
+
+        if(error.code === 3){
+          texto =
+            "La ubicación tardó demasiado. Intente nuevamente.";
+        }
+
+        estadoUbicacion.innerHTML = texto;
+        estadoUbicacion.className = "gps-error";
+
+      },
+
+
+      {
+        enableHighAccuracy:true,
+        timeout:15000,
+        maximumAge:30000
+      }
+
+    );
+
+  }
+
+
+  /* =====================================================
+     ENVIAR INFORMACIÓN
+     ===================================================== */
+
+  form.addEventListener("submit", function(e){
+
+    e.preventDefault();
+
+
+    if(WEB_APP_URL.includes("PEGA_AQUI")){
+
+      mostrarError(
+        "Primero debe configurar la URL de Apps Script."
+      );
+
+      return;
+    }
+
+
+    if(!ubicacionDisponible){
+
+      mostrarError(
+        "Todavía no se ha obtenido la ubicación GPS."
+      );
+
+      obtenerUbicacion();
+
+      return;
+    }
+
+
+    boton.disabled = true;
+    boton.innerHTML = "Guardando...";
+
+    mensaje.className = "mensaje";
+    mensaje.innerHTML = "";
+
+    enviando = true;
+
+
+    /*
+      Se crea un formulario temporal.
+      Esto evita problemas de CORS entre
+      GitHub Pages y Apps Script.
+    */
+
+    const envio =
+      document.createElement("form");
+
+    envio.method = "POST";
+    envio.action = WEB_APP_URL;
+    envio.target = "iframeEnvio";
+    envio.style.display = "none";
+
+
+    agregarCampo(
+      envio,
+      "empresa",
+      document.getElementById("empresa").value
+    );
+
+    agregarCampo(
+      envio,
+      "nombre",
+      document.getElementById("nombre").value
+    );
+
+    agregarCampo(
+      envio,
+      "correo",
+      document.getElementById("correo").value
+    );
+
+    agregarCampo(
+      envio,
+      "telefono",
+      document.getElementById("telefono").value
+    );
+
+    agregarCampo(
+      envio,
+      "observaciones",
+      document.getElementById("observaciones").value
+    );
+
+    agregarCampo(
+      envio,
+      "latitud",
+      latitud
+    );
+
+    agregarCampo(
+      envio,
+      "longitud",
+      longitud
+    );
+
+
+    document.body.appendChild(envio);
+
+    envio.submit();
+
+    setTimeout(() => {
+      envio.remove();
+    },2000);
+
+  });
+
+
+  function agregarCampo(formulario,nombre,valor){
+
+    const input =
+      document.createElement("input");
+
+    input.type = "hidden";
+    input.name = nombre;
+    input.value = valor || "";
+
+    formulario.appendChild(input);
+
+  }
+
+
+  /* =====================================================
+     RESPUESTA DEL ENVÍO
+     ===================================================== */
+
+  iframe.addEventListener("load", function(){
+
+    if(!enviando) return;
+
+    enviando = false;
+
+    boton.disabled = false;
+    boton.innerHTML = "Guardar";
+
+    mostrarOK(
+      "✓ Visita guardada correctamente"
+    );
+
+
+    /*
+      Limpia solamente los campos escritos.
+    */
+
+    document.getElementById("empresa").value = "";
+    document.getElementById("nombre").value = "";
+    document.getElementById("correo").value = "";
+    document.getElementById("telefono").value = "";
+    document.getElementById("observaciones").value = "";
+
+
+    /*
+      Vuelve a obtener ubicación para
+      la próxima visita.
+    */
+
+    setTimeout(function(){
+
+      obtenerUbicacion();
+
+    },1000);
+
+  });
+
+
+  function mostrarOK(texto){
+
+    mensaje.innerHTML = texto;
+    mensaje.className =
+      "mensaje mensaje-ok";
+
+  }
+
+
+  function mostrarError(texto){
+
+    mensaje.innerHTML = texto;
+    mensaje.className =
+      "mensaje mensaje-error";
+
+  }
+
+
+  /* =====================================================
+     AL ABRIR LA PÁGINA
+     ===================================================== */
+
+  window.addEventListener("load", function(){
+
+    obtenerUbicacion();
+
+  });
+
+</script>
+
+</body>
+</html>
