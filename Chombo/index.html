@@ -1293,7 +1293,7 @@ tr{
 
 <script>
 const SCRIPT_URL =
-'https://script.google.com/macros/s/AKfycbwD9p31JkWNm6U1Nq1gYqrzdcrAQ4XK86OthOUDnzn5Nb9Bf60W532HLmR2GObuEM1G/exec';
+'https://script.google.com/macros/s/AKfycbxD2FftKCfyG29RzXFpp5BHJfYKoPfrp6HqkYyaxFiOkXZxT4Kdgu0QN3iBqLBEQ2_G/exec';
 </script>
 
 <header class="topbar">
@@ -3786,10 +3786,9 @@ function collectItems(){
 
   function pushItem(
     descripcion,
-    parcial,
-    entrada,
-    salida,
-    observacion
+    parcial = '',
+    entrada = '',
+    salida = ''
   ){
 
     items.push({
@@ -3807,39 +3806,67 @@ function collectItems(){
         salida,
 
       observacion:
-        observacion
+        ''
 
     });
 
   }
 
 
+  /* ======================================================
+     APERTURA CAJA
+  ====================================================== */
+
   pushItem(
     'Apertura caja',
     '',
     valueOrBlank('aperturaCaja'),
-    '',
-    getObs('aperturaCaja')
+    ''
   );
 
+
+  /* ======================================================
+     VENTAS CAI Y VENTAS BOTÓN
+     SE GUARDAN EN PARCIAL
+  ====================================================== */
 
   pushItem(
     'Ventas CAI',
     valueOrBlank('ventasCai'),
-    valueOrBlank('ventasCai'),
     '',
-    getObs('ventasCai')
+    ''
   );
 
 
   pushItem(
     'Ventas botón',
     valueOrBlank('ventasBoton'),
-    valueOrBlank('ventasBoton'),
     '',
-    getObs('ventasBoton')
+    ''
   );
 
+
+  /* ======================================================
+     VENTAS TOTAL
+  ====================================================== */
+
+  const ventas =
+    num('ventasCai') +
+    num('ventasBoton');
+
+
+  pushItem(
+    'Ventas',
+    '',
+    ventas,
+    ''
+  );
+
+
+  /* ======================================================
+     FORMAS DE PAGO
+     SE GUARDAN EN PARCIAL
+  ====================================================== */
 
   PAYMENT_METHODS
     .forEach(
@@ -3849,15 +3876,48 @@ function collectItems(){
           item.descripcion,
           valueOrBlank(item.key),
           '',
-          '',
-          getObs(item.key)
+          ''
         );
 
       }
     );
 
 
-  function pushDual(key,descripcion){
+  /* ======================================================
+     TOTAL FORMAS DE PAGO
+  ====================================================== */
+
+  const totalFormasPago =
+    PAYMENT_METHODS
+      .reduce(
+        (total,item) => {
+
+          return (
+            total +
+            num(item.key)
+          );
+
+        },
+        0
+      );
+
+
+  pushItem(
+    'Total formas de pago',
+    totalFormasPago,
+    '',
+    ''
+  );
+
+
+  /* ======================================================
+     MOVIMIENTOS ENTRADA / SALIDA
+  ====================================================== */
+
+  function pushDual(
+    key,
+    descripcion
+  ){
 
     pushItem(
       descripcion,
@@ -3867,8 +3927,7 @@ function collectItems(){
       ),
       valueOrBlank(
         `${key}Salida`
-      ),
-      getObs(key)
+      )
     );
 
   }
@@ -3896,8 +3955,7 @@ function collectItems(){
     'Efectivo respaldo',
     '',
     valueOrBlank('efectivoRespaldo'),
-    '',
-    getObs('efectivoRespaldo')
+    ''
   );
 
 
@@ -3919,18 +3977,44 @@ function collectItems(){
   );
 
 
+  /* ======================================================
+     TARJETAS A EFECTIVO
+  ====================================================== */
+
   pushItem(
     'Tarjetas a efectivo',
     '',
     '',
     valueOrBlank(
       'tarjetasAEfectivo'
-    ),
-    getObs(
-      'tarjetasAEfectivo'
     )
   );
 
+
+  /* ======================================================
+     PAGOS RECIBIDOS
+     EL TOTAL VA EN ENTRADAS
+  ====================================================== */
+
+  const totalPagosRecibidos =
+    sumDynamic(
+      'cliente'
+    );
+
+
+  pushItem(
+    'Pagos recibidos',
+    '',
+    totalPagosRecibidos,
+    ''
+  );
+
+
+  /*
+     DETALLE DE CLIENTES:
+     SE GUARDA EN PARCIAL PARA NO DUPLICAR
+     LA ENTRADA TOTAL.
+  */
 
   document
     .querySelectorAll(
@@ -3942,27 +4026,51 @@ function collectItems(){
         const key =
           row.dataset.rowKey;
 
+
         const valor =
           valueOrBlank(key);
 
-        const obs =
-          getObs(key);
 
         const cliente =
-          obs ||
+          getObs(key) ||
           `Cliente ${i + 1}`;
 
+
         pushItem(
-          `Pagos recibidos - ${cliente}`,
-          valor,
+          `Pago recibido - ${cliente}`,
           valor,
           '',
-          cliente
+          ''
         );
 
       }
     );
 
+
+  /* ======================================================
+     PAGO A PROVEEDORES
+     EL TOTAL VA EN SALIDAS
+  ====================================================== */
+
+  const totalPagosProveedores =
+    sumDynamic(
+      'proveedor'
+    );
+
+
+  pushItem(
+    'Pago a proveedores',
+    '',
+    '',
+    totalPagosProveedores
+  );
+
+
+  /*
+     DETALLE DE PROVEEDORES:
+     SE GUARDA EN PARCIAL PARA NO DUPLICAR
+     LA SALIDA TOTAL.
+  */
 
   document
     .querySelectorAll(
@@ -3974,36 +4082,36 @@ function collectItems(){
         const key =
           row.dataset.rowKey;
 
+
         const valor =
           valueOrBlank(key);
 
-        const obs =
-          getObs(key);
 
         const proveedor =
-          obs ||
+          getObs(key) ||
           `Proveedor ${i + 1}`;
 
+
         pushItem(
-          `Pago a proveedores - ${proveedor}`,
+          `Pago a proveedor - ${proveedor}`,
           valor,
           '',
-          valor,
-          proveedor
+          ''
         );
 
       }
     );
 
 
+  /* ======================================================
+     ÚLTIMA FILA A GUARDAR
+  ====================================================== */
+
   pushItem(
     'Caja apertura sig turno',
     '',
     '',
     valueOrBlank(
-      'cajaAperturaSigTurno'
-    ),
-    getObs(
       'cajaAperturaSigTurno'
     )
   );
@@ -4012,8 +4120,7 @@ function collectItems(){
   return items;
 
 }
-
-
+  
 /* ======================================================
    VALIDAR INFORMACION
 ====================================================== */
