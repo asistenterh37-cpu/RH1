@@ -1,740 +1,750 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Chombo | Cierres diarios</title>
-
-  <style>
-    :root{
-      --bg:#f5f7fb;
-      --card:#ffffff;
-      --text:#172033;
-      --muted:#667085;
-      --line:#d7dce5;
-      --primary:#1769e0;
-      --primary-dark:#0f56bb;
-      --success:#198754;
-      --danger:#c62828;
-      --warning:#b7791f;
-      --table:#eeeeee;
-      --shadow:0 10px 28px rgba(16,24,40,.10);
-      --radius:16px;
-    }
-
-    *{
-      box-sizing:border-box;
-    }
-
-    body{
-      margin:0;
-      font-family:Arial, Helvetica, sans-serif;
-      background:var(--bg);
-      color:var(--text);
-    }
-
-    .topbar{
-      position:sticky;
-      top:0;
-      z-index:50;
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:20px;
-      padding:12px 22px;
-      background:#fff;
-      border-bottom:1px solid var(--line);
-      box-shadow:0 2px 10px rgba(16,24,40,.05);
-    }
-
-    .brand{
-      font-weight:800;
-      font-size:20px;
-      letter-spacing:.2px;
-      white-space:nowrap;
-    }
-
-    .nav{
-      display:flex;
-      align-items:center;
-      gap:10px;
-    }
-
-    .menu-wrap{
-      position:relative;
-    }
-
-    .menu-btn{
-      border:0;
-      background:#fff;
-      color:var(--text);
-      padding:10px 14px;
-      border-radius:10px;
-      font-weight:700;
-      font-size:15px;
-      cursor:pointer;
-    }
-
-    .menu-btn:hover,
-    .menu-btn.active{
-      background:#eef4ff;
-      color:var(--primary);
-    }
-
-    .dropdown{
-      display:none;
-      position:absolute;
-      right:0;
-      top:calc(100% + 8px);
-      min-width:220px;
-      background:#fff;
-      border:1px solid var(--line);
-      border-radius:12px;
-      box-shadow:var(--shadow);
-      padding:7px;
-      z-index:100;
-    }
-
-    .dropdown.open{
-      display:block;
-    }
-
-    .dropdown button{
-      width:100%;
-      text-align:left;
-      border:0;
-      background:transparent;
-      padding:11px 12px;
-      border-radius:8px;
-      font-size:14px;
-      cursor:pointer;
-    }
-
-    .dropdown button:hover{
-      background:#f2f6ff;
-      color:var(--primary);
-    }
-
-    .container{
-      width:min(1240px, calc(100% - 28px));
-      margin:24px auto 50px;
-    }
-
-    .view{
-      display:none;
-    }
-
-    .view.active{
-      display:block;
-    }
-
-    .card{
-      background:var(--card);
-      border:1px solid #e7eaf0;
-      border-radius:var(--radius);
-      box-shadow:var(--shadow);
-      overflow:hidden;
-    }
-
-    .card-header{
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-      gap:18px;
-      padding:20px 22px;
-      border-bottom:1px solid var(--line);
-      flex-wrap:wrap;
-    }
-
-    .card-header h1,
-    .card-header h2{
-      margin:0;
-      font-size:24px;
-    }
-
-    .subtitle{
-      margin-top:5px;
-      color:var(--muted);
-      font-size:14px;
-    }
-
-    .header-catalogos{
-      display:flex;
-      align-items:flex-end;
-      justify-content:center;
-      gap:16px;
-      flex:1;
-      flex-wrap:wrap;
-    }
-
-    .catalogo-field{
-      display:flex;
-      flex-direction:column;
-      gap:5px;
-      min-width:180px;
-    }
-
-    .catalogo-field label{
-      font-size:12px;
-      font-weight:800;
-      color:var(--muted);
-    }
-
-    .catalogo-field select{
-      width:100%;
-      height:38px;
-      padding:0 10px;
-      border:1px solid #cbd1da;
-      border-radius:9px;
-      background:#fff;
-      font-size:14px;
-      color:var(--text);
-      outline:none;
-    }
-
-    .catalogo-field select:focus{
-      border-color:var(--primary);
-      box-shadow:0 0 0 3px rgba(23,105,224,.12);
-    }
-
-    .date-chip{
-      background:#eef4ff;
-      color:var(--primary);
-      border-radius:999px;
-      padding:8px 12px;
-      font-weight:700;
-      font-size:13px;
-      white-space:nowrap;
-    }
-
-    /* =========================================================
-       RESUMEN FLOTANTE DE CONCILIACIÓN
-       ========================================================= */
-
-    .conciliacion-wrap{
-      padding:16px 22px;
-      border-bottom:1px solid var(--line);
-      background:#fbfcff;
-    }
-
-    .conciliacion-box{
-      display:grid;
-      grid-template-columns:repeat(3, minmax(180px, 1fr));
-      gap:12px;
-      max-width:820px;
-      margin-left:auto;
-    }
-
-    .conciliacion-item{
-      background:#fff;
-      border:1px solid #dce3ee;
-      border-radius:14px;
-      padding:10px 12px;
-      box-shadow:0 5px 16px rgba(16,24,40,.08);
-    }
-
-    .conciliacion-item span{
-      display:block;
-      font-size:11px;
-      color:var(--muted);
-      font-weight:800;
-      text-transform:uppercase;
-      letter-spacing:.4px;
-      margin-bottom:5px;
-    }
-
-    .conciliacion-input{
-      width:100%;
-      border:0;
-      outline:0;
-      background:transparent;
-      font-size:20px;
-      font-weight:900;
-      color:var(--primary);
-      text-align:right;
-    }
-
-    .conciliacion-item.ok{
-      border-color:#a6d8bd;
-      background:#f4fbf7;
-    }
-
-    .conciliacion-item.ok .conciliacion-input{
-      color:var(--success);
-    }
-
-    .conciliacion-item.bad{
-      border-color:#efb2b2;
-      background:#fff7f7;
-    }
-
-    .conciliacion-item.bad .conciliacion-input{
-      color:var(--danger);
-    }
-
-    .table-scroll{
-      width:100%;
-      overflow-x:auto;
-    }
-
-    table{
-      width:100%;
-      border-collapse:collapse;
-    }
-
-    .cierre-table{
-      min-width:1080px;
-      background:var(--table);
-    }
-
-    .cierre-table th,
-    .cierre-table td{
-      border:1px solid #444;
-      padding:7px 9px;
-      vertical-align:middle;
-    }
-
-    .cierre-table th{
-      text-align:center;
-      font-size:15px;
-      font-weight:700;
-      background:#dedede;
-    }
-
-    .cierre-table td:first-child{
-      font-weight:600;
-      min-width:240px;
-    }
-
-    .cierre-table td:nth-child(2),
-    .cierre-table td:nth-child(3),
-    .cierre-table td:nth-child(4){
-      width:145px;
-    }
-
-    .cierre-table td:nth-child(5){
-      width:78px;
-      min-width:78px;
-      text-align:center;
-    }
-
-    .cierre-table td:nth-child(6){
-      min-width:280px;
-    }
-
-    .cell-input{
-      width:100%;
-      min-width:0;
-      border:1px solid #b8bec8;
-      border-radius:7px;
-      background:#fff;
-      padding:8px 9px;
-      font-size:14px;
-      outline:none;
-    }
-
-    .cell-input:focus{
-      border-color:var(--primary);
-      box-shadow:0 0 0 3px rgba(23,105,224,.12);
-    }
-
-    .partial-input{
-      border-color:#92acd1;
-      background:#fbfdff;
-    }
-
-    .readonly-total{
-      width:100%;
-      border:2px solid var(--primary);
-      border-radius:10px;
-      background:#fff;
-      padding:8px 10px;
-      font-size:16px;
-      font-weight:900;
-      text-align:right;
-      color:var(--primary);
-      box-shadow:0 4px 12px rgba(23,105,224,.12);
-    }
-
-    .computed-row td{
-      background:#eef4ff !important;
-      font-weight:800;
-    }
-
-    .payment-total-row td{
-      background:#f6f9ff !important;
-      font-weight:800;
-    }
-
-    .group-row td{
-      background:#f8fafc !important;
-      font-weight:800;
-    }
-
-    .dynamic-row td{
-      background:#fff !important;
-    }
-
-    .dynamic-row td:first-child{
-      padding-left:26px;
-      color:#475467;
-      font-weight:700;
-    }
-
-    .check-revisado{
-      width:19px;
-      height:19px;
-      cursor:pointer;
-      accent-color:#1769e0;
-    }
-
-    .fila-pendiente td{
-      background:#fff0f0 !important;
-    }
-
-    .obs-actions{
-      display:flex;
-      align-items:center;
-      gap:8px;
-    }
-
-    .obs-actions .cell-input{
-      flex:1;
-    }
-
-    .add-row-btn{
-      flex:0 0 34px;
-      width:34px;
-      height:34px;
-      border:0;
-      border-radius:9px;
-      background:var(--primary);
-      color:#fff;
-      font-size:22px;
-      line-height:1;
-      font-weight:900;
-      cursor:pointer;
-      box-shadow:0 4px 10px rgba(23,105,224,.20);
-    }
-
-    .add-row-btn:hover{
-      background:var(--primary-dark);
-    }
-
-    .add-row-btn:disabled{
-      opacity:.45;
-      cursor:not-allowed;
-    }
-
-    .mini-note{
-      color:var(--muted);
-      font-size:12px;
-      margin-left:4px;
-      white-space:nowrap;
-    }
-
-    .reconcile-badge{
-      display:inline-flex;
-      align-items:center;
-      justify-content:center;
-      min-width:92px;
-      padding:7px 9px;
-      border-radius:999px;
-      font-size:12px;
-      font-weight:900;
-      background:#eef2f6;
-      color:#475467;
-    }
-
-    .reconcile-badge.ok{
-      background:#e8f7ef;
-      color:var(--success);
-    }
-
-    .reconcile-badge.bad{
-      background:#fff0f0;
-      color:var(--danger);
-    }
-
-    .footer-actions{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:18px;
-      padding:18px 22px;
-      flex-wrap:wrap;
-    }
-
-    .totals{
-      display:flex;
-      gap:20px;
-      flex-wrap:wrap;
-      color:var(--muted);
-      font-size:14px;
-    }
-
-    .totals strong{
-      color:var(--text);
-      font-size:16px;
-    }
-
-    .btn{
-      border:0;
-      border-radius:10px;
-      padding:11px 18px;
-      font-size:14px;
-      font-weight:800;
-      cursor:pointer;
-      transition:.15s ease;
-    }
-
-    .btn:disabled{
-      opacity:.6;
-      cursor:not-allowed;
-    }
-
-    .btn-primary{
-      background:var(--primary);
-      color:#fff;
-    }
-
-    .btn-primary:hover:not(:disabled){
-      background:var(--primary-dark);
-      transform:translateY(-1px);
-    }
-
-    .filters{
-      display:grid;
-      grid-template-columns:1fr 1fr auto;
-      gap:14px;
-      align-items:end;
-      padding:20px 22px;
-      border-bottom:1px solid var(--line);
-    }
-
-    .field label{
-      display:block;
-      margin-bottom:7px;
-      font-size:13px;
-      font-weight:800;
-    }
-
-    .field input{
-      width:100%;
-      border:1px solid #cbd1da;
-      border-radius:9px;
-      padding:10px 12px;
-      font-size:14px;
-      background:#fff;
-    }
-
-    .report-summary{
-      display:grid;
-      grid-template-columns:repeat(3, 1fr);
-      gap:12px;
-      padding:18px 22px 0;
-    }
-
-    .metric{
-      border:1px solid var(--line);
-      border-radius:12px;
-      padding:14px;
-      background:#fafbfc;
-    }
-
-    .metric span{
-      display:block;
-      color:var(--muted);
-      font-size:12px;
-      margin-bottom:4px;
-    }
-
-    .metric strong{
-      font-size:20px;
-    }
-
-    #reportResults{
-      padding:18px 22px 24px;
-    }
-
-    .report-card{
-      border:1px solid var(--line);
-      border-radius:12px;
-      overflow:hidden;
-      margin-bottom:16px;
-      background:#fff;
-    }
-
-    .report-head{
-      display:flex;
-      justify-content:space-between;
-      gap:14px;
-      align-items:center;
-      padding:13px 15px;
-      background:#f7f8fa;
-      border-bottom:1px solid var(--line);
-      flex-wrap:wrap;
-    }
-
-    .report-head strong{
-      font-size:15px;
-    }
-
-    .report-mini-totals{
-      display:flex;
-      gap:14px;
-      color:var(--muted);
-      font-size:13px;
-      flex-wrap:wrap;
-    }
-
-    .report-table{
-      min-width:880px;
-    }
-
-    .report-table th,
-    .report-table td{
-      border-bottom:1px solid #e7eaf0;
-      padding:9px 10px;
-      font-size:13px;
-      text-align:left;
-    }
-
-    .report-table th{
-      background:#fbfbfc;
-      font-weight:800;
-    }
-
-    .report-table td.num,
-    .report-table th.num{
-      text-align:right;
-      width:120px;
-    }
-
-    .empty{
-      text-align:center;
-      color:var(--muted);
-      padding:40px 20px;
-    }
-
-    .toast{
-      position:fixed;
-      right:20px;
-      bottom:20px;
-      z-index:200;
-      min-width:280px;
-      max-width:440px;
-      padding:13px 16px;
-      border-radius:12px;
-      color:#fff;
-      box-shadow:var(--shadow);
-      display:none;
-      font-size:14px;
-      font-weight:700;
-    }
-
-    .toast.show{
-      display:block;
-    }
-
-    .toast.ok{
-      background:var(--success);
-    }
-
-    .toast.error{
-      background:var(--danger);
-    }
-
-    .loading{
-      display:inline-block;
-      width:16px;
-      height:16px;
-      border:2px solid rgba(255,255,255,.55);
-      border-top-color:#fff;
-      border-radius:50%;
-      animation:spin .7s linear infinite;
-      vertical-align:-3px;
-      margin-right:7px;
-    }
-
-    @keyframes spin{
-      to{
-        transform:rotate(360deg);
-      }
-    }
-
-    @media (max-width:720px){
-      .topbar{
-        padding:10px 12px;
-      }
-
-      .brand{
-        font-size:18px;
-      }
-
-      .menu-btn{
-        padding:9px 10px;
-      }
-
-      .container{
-        width:min(100% - 16px, 1240px);
-        margin-top:12px;
-      }
-
-      .card-header{
-        padding:16px;
-      }
-
-      .card-header h1,
-      .card-header h2{
-        font-size:20px;
-      }
-
-      .header-catalogos{
-        width:100%;
-        order:3;
-      }
-
-      .catalogo-field{
-        min-width:145px;
-        flex:1;
-      }
-
-      .conciliacion-wrap{
-        padding:12px 16px;
-      }
-
-      .conciliacion-box{
-        grid-template-columns:1fr;
-        max-width:none;
-      }
-
-      .filters{
-        grid-template-columns:1fr;
-        padding:16px;
-      }
-
-      .report-summary{
-        grid-template-columns:1fr;
-        padding:16px 16px 0;
-      }
-
-      #reportResults{
-        padding:16px;
-      }
-
-      .footer-actions{
-        padding:16px;
-      }
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chombo | Cierres diarios</title>
+
+<style>
+:root{
+  --bg:#f5f7fb;
+  --card:#ffffff;
+  --text:#172033;
+  --muted:#667085;
+  --line:#d7dce5;
+  --primary:#1769e0;
+  --primary-dark:#0f56bb;
+  --success:#198754;
+  --danger:#c62828;
+  --table:#eeeeee;
+  --shadow:0 10px 28px rgba(16,24,40,.10);
+  --radius:16px;
+}
+
+*{
+  box-sizing:border-box;
+}
+
+body{
+  margin:0;
+  font-family:Arial,Helvetica,sans-serif;
+  background:var(--bg);
+  color:var(--text);
+}
+
+.topbar{
+  position:sticky;
+  top:0;
+  z-index:50;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:20px;
+  padding:12px 22px;
+  background:#fff;
+  border-bottom:1px solid var(--line);
+  box-shadow:0 2px 10px rgba(16,24,40,.05);
+}
+
+.brand{
+  font-size:20px;
+  font-weight:800;
+  white-space:nowrap;
+}
+
+.nav{
+  display:flex;
+  align-items:center;
+}
+
+.menu-wrap{
+  position:relative;
+}
+
+.menu-btn{
+  border:0;
+  background:#fff;
+  color:var(--text);
+  padding:10px 14px;
+  border-radius:10px;
+  font-weight:700;
+  font-size:15px;
+  cursor:pointer;
+}
+
+.menu-btn:hover,
+.menu-btn.active{
+  background:#eef4ff;
+  color:var(--primary);
+}
+
+.dropdown{
+  display:none;
+  position:absolute;
+  right:0;
+  top:calc(100% + 8px);
+  min-width:220px;
+  background:#fff;
+  border:1px solid var(--line);
+  border-radius:12px;
+  box-shadow:var(--shadow);
+  padding:7px;
+  z-index:100;
+}
+
+.dropdown.open{
+  display:block;
+}
+
+.dropdown button{
+  width:100%;
+  text-align:left;
+  border:0;
+  background:transparent;
+  padding:11px 12px;
+  border-radius:8px;
+  font-size:14px;
+  cursor:pointer;
+}
+
+.dropdown button:hover{
+  background:#f2f6ff;
+  color:var(--primary);
+}
+
+.container{
+  width:min(1240px,calc(100% - 28px));
+  margin:24px auto 50px;
+}
+
+.view{
+  display:none;
+}
+
+.view.active{
+  display:block;
+}
+
+.card{
+  background:var(--card);
+  border:1px solid #e7eaf0;
+  border-radius:var(--radius);
+  box-shadow:var(--shadow);
+  overflow:hidden;
+}
+
+.card-header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:18px;
+  padding:20px 22px;
+  border-bottom:1px solid var(--line);
+  flex-wrap:wrap;
+}
+
+.card-header h1,
+.card-header h2{
+  margin:0;
+  font-size:24px;
+}
+
+.subtitle{
+  margin-top:5px;
+  color:var(--muted);
+  font-size:14px;
+}
+
+.header-catalogos{
+  display:flex;
+  align-items:flex-end;
+  justify-content:center;
+  gap:16px;
+  flex:1;
+  flex-wrap:wrap;
+}
+
+.catalogo-field{
+  display:flex;
+  flex-direction:column;
+  gap:5px;
+  min-width:180px;
+}
+
+.catalogo-field label{
+  font-size:12px;
+  font-weight:800;
+  color:var(--muted);
+}
+
+.catalogo-field select{
+  width:100%;
+  height:38px;
+  padding:0 10px;
+  border:1px solid #cbd1da;
+  border-radius:9px;
+  background:#fff;
+  font-size:14px;
+  color:var(--text);
+  outline:none;
+}
+
+.catalogo-field select:focus{
+  border-color:var(--primary);
+  box-shadow:0 0 0 3px rgba(23,105,224,.12);
+}
+
+.date-chip{
+  background:#eef4ff;
+  color:var(--primary);
+  border-radius:999px;
+  padding:8px 12px;
+  font-weight:700;
+  font-size:13px;
+  white-space:nowrap;
+}
+
+/* ===========================
+   CONCILIACION
+=========================== */
+
+.conciliacion-wrap{
+  padding:16px 22px;
+  border-bottom:1px solid var(--line);
+  background:#fbfcff;
+}
+
+.conciliacion-box{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(180px,1fr));
+  gap:12px;
+  max-width:820px;
+  margin-left:auto;
+}
+
+.conciliacion-item{
+  background:#fff;
+  border:1px solid #dce3ee;
+  border-radius:14px;
+  padding:10px 12px;
+  box-shadow:0 5px 16px rgba(16,24,40,.08);
+}
+
+.conciliacion-item span{
+  display:block;
+  font-size:11px;
+  color:var(--muted);
+  font-weight:800;
+  text-transform:uppercase;
+  letter-spacing:.4px;
+  margin-bottom:5px;
+}
+
+.conciliacion-input{
+  width:100%;
+  border:0;
+  outline:0;
+  background:transparent;
+  font-size:20px;
+  font-weight:900;
+  color:var(--primary);
+  text-align:right;
+}
+
+.conciliacion-item.ok{
+  border-color:#a6d8bd;
+  background:#f4fbf7;
+}
+
+.conciliacion-item.ok .conciliacion-input{
+  color:var(--success);
+}
+
+.conciliacion-item.bad{
+  border-color:#efb2b2;
+  background:#fff7f7;
+}
+
+.conciliacion-item.bad .conciliacion-input{
+  color:var(--danger);
+}
+
+/* ===========================
+   TABLA
+=========================== */
+
+.table-scroll{
+  width:100%;
+  overflow-x:auto;
+}
+
+table{
+  width:100%;
+  border-collapse:collapse;
+}
+
+.cierre-table{
+  min-width:1080px;
+  background:var(--table);
+}
+
+.cierre-table th,
+.cierre-table td{
+  border:1px solid #444;
+  padding:7px 9px;
+  vertical-align:middle;
+}
+
+.cierre-table th{
+  text-align:center;
+  font-size:15px;
+  font-weight:700;
+  background:#dedede;
+}
+
+.cierre-table td:first-child{
+  font-weight:600;
+  min-width:240px;
+}
+
+.cierre-table td:nth-child(2),
+.cierre-table td:nth-child(3),
+.cierre-table td:nth-child(4){
+  width:145px;
+}
+
+.cierre-table td:nth-child(5){
+  width:78px;
+  min-width:78px;
+  text-align:center;
+}
+
+.cierre-table td:nth-child(6){
+  min-width:280px;
+}
+
+.cell-input{
+  width:100%;
+  min-width:0;
+  border:1px solid #b8bec8;
+  border-radius:7px;
+  background:#fff;
+  padding:8px 9px;
+  font-size:14px;
+  outline:none;
+}
+
+.cell-input:focus{
+  border-color:var(--primary);
+  box-shadow:0 0 0 3px rgba(23,105,224,.12);
+}
+
+.partial-input{
+  border-color:#92acd1;
+  background:#fbfdff;
+}
+
+.readonly-total{
+  width:100%;
+  border:2px solid var(--primary);
+  border-radius:10px;
+  background:#fff;
+  padding:8px 10px;
+  font-size:16px;
+  font-weight:900;
+  text-align:right;
+  color:var(--primary);
+  box-shadow:0 4px 12px rgba(23,105,224,.12);
+}
+
+.computed-row td{
+  background:#eef4ff !important;
+  font-weight:800;
+}
+
+.payment-total-row td{
+  background:#f6f9ff !important;
+  font-weight:800;
+}
+
+.group-row td{
+  background:#f8fafc !important;
+  font-weight:800;
+}
+
+.dual-row td{
+  background:#fdfefe;
+}
+
+.dynamic-row td{
+  background:#fff !important;
+}
+
+.dynamic-row td:first-child{
+  padding-left:26px;
+  color:#475467;
+  font-weight:700;
+}
+
+.check-revisado{
+  width:19px;
+  height:19px;
+  cursor:pointer;
+  accent-color:#1769e0;
+}
+
+.fila-pendiente td{
+  background:#fff0f0 !important;
+}
+
+.obs-actions{
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+
+.add-row-btn{
+  flex:0 0 34px;
+  width:34px;
+  height:34px;
+  border:0;
+  border-radius:9px;
+  background:var(--primary);
+  color:#fff;
+  font-size:22px;
+  line-height:1;
+  font-weight:900;
+  cursor:pointer;
+  box-shadow:0 4px 10px rgba(23,105,224,.20);
+}
+
+.add-row-btn:hover{
+  background:var(--primary-dark);
+}
+
+.add-row-btn:disabled{
+  opacity:.45;
+  cursor:not-allowed;
+}
+
+.mini-note{
+  color:var(--muted);
+  font-size:12px;
+  margin-left:4px;
+  white-space:nowrap;
+}
+
+.reconcile-badge{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-width:92px;
+  padding:7px 9px;
+  border-radius:999px;
+  font-size:12px;
+  font-weight:900;
+  background:#eef2f6;
+  color:#475467;
+}
+
+.reconcile-badge.ok{
+  background:#e8f7ef;
+  color:var(--success);
+}
+
+.reconcile-badge.bad{
+  background:#fff0f0;
+  color:var(--danger);
+}
+
+/* ===========================
+   PIE
+=========================== */
+
+.footer-actions{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:18px;
+  padding:18px 22px;
+  flex-wrap:wrap;
+}
+
+.totals{
+  display:flex;
+  gap:20px;
+  flex-wrap:wrap;
+  color:var(--muted);
+  font-size:14px;
+}
+
+.totals strong{
+  color:var(--text);
+  font-size:16px;
+}
+
+.btn{
+  border:0;
+  border-radius:10px;
+  padding:11px 18px;
+  font-size:14px;
+  font-weight:800;
+  cursor:pointer;
+  transition:.15s ease;
+}
+
+.btn:disabled{
+  opacity:.6;
+  cursor:not-allowed;
+}
+
+.btn-primary{
+  background:var(--primary);
+  color:#fff;
+}
+
+.btn-primary:hover:not(:disabled){
+  background:var(--primary-dark);
+  transform:translateY(-1px);
+}
+
+/* ===========================
+   REPORTES
+=========================== */
+
+.filters{
+  display:grid;
+  grid-template-columns:1fr 1fr auto;
+  gap:14px;
+  align-items:end;
+  padding:20px 22px;
+  border-bottom:1px solid var(--line);
+}
+
+.field label{
+  display:block;
+  margin-bottom:7px;
+  font-size:13px;
+  font-weight:800;
+}
+
+.field input{
+  width:100%;
+  border:1px solid #cbd1da;
+  border-radius:9px;
+  padding:10px 12px;
+  font-size:14px;
+  background:#fff;
+}
+
+.report-summary{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:12px;
+  padding:18px 22px 0;
+}
+
+.metric{
+  border:1px solid var(--line);
+  border-radius:12px;
+  padding:14px;
+  background:#fafbfc;
+}
+
+.metric span{
+  display:block;
+  color:var(--muted);
+  font-size:12px;
+  margin-bottom:4px;
+}
+
+.metric strong{
+  font-size:20px;
+}
+
+#reportResults{
+  padding:18px 22px 24px;
+}
+
+.report-card{
+  border:1px solid var(--line);
+  border-radius:12px;
+  overflow:hidden;
+  margin-bottom:16px;
+  background:#fff;
+}
+
+.report-head{
+  display:flex;
+  justify-content:space-between;
+  gap:14px;
+  align-items:center;
+  padding:13px 15px;
+  background:#f7f8fa;
+  border-bottom:1px solid var(--line);
+  flex-wrap:wrap;
+}
+
+.report-mini-totals{
+  display:flex;
+  gap:14px;
+  color:var(--muted);
+  font-size:13px;
+  flex-wrap:wrap;
+}
+
+.report-table{
+  min-width:880px;
+}
+
+.report-table th,
+.report-table td{
+  border-bottom:1px solid #e7eaf0;
+  padding:9px 10px;
+  font-size:13px;
+  text-align:left;
+}
+
+.report-table th{
+  background:#fbfbfc;
+  font-weight:800;
+}
+
+.report-table td.num,
+.report-table th.num{
+  text-align:right;
+  width:120px;
+}
+
+.empty{
+  text-align:center;
+  color:var(--muted);
+  padding:40px 20px;
+}
+
+/* ===========================
+   TOAST
+=========================== */
+
+.toast{
+  position:fixed;
+  right:20px;
+  bottom:20px;
+  z-index:200;
+  min-width:280px;
+  max-width:440px;
+  padding:13px 16px;
+  border-radius:12px;
+  color:#fff;
+  box-shadow:var(--shadow);
+  display:none;
+  font-size:14px;
+  font-weight:700;
+}
+
+.toast.show{
+  display:block;
+}
+
+.toast.ok{
+  background:var(--success);
+}
+
+.toast.error{
+  background:var(--danger);
+}
+
+.loading{
+  display:inline-block;
+  width:16px;
+  height:16px;
+  border:2px solid rgba(255,255,255,.55);
+  border-top-color:#fff;
+  border-radius:50%;
+  animation:spin .7s linear infinite;
+  vertical-align:-3px;
+  margin-right:7px;
+}
+
+@keyframes spin{
+  to{
+    transform:rotate(360deg);
+  }
+}
+
+@media(max-width:720px){
+
+  .topbar{
+    padding:10px 12px;
+  }
+
+  .brand{
+    font-size:18px;
+  }
+
+  .menu-btn{
+    padding:9px 10px;
+  }
+
+  .container{
+    width:min(100% - 16px,1240px);
+    margin-top:12px;
+  }
+
+  .card-header{
+    padding:16px;
+  }
+
+  .card-header h1,
+  .card-header h2{
+    font-size:20px;
+  }
+
+  .header-catalogos{
+    width:100%;
+    order:3;
+  }
+
+  .catalogo-field{
+    min-width:145px;
+    flex:1;
+  }
+
+  .conciliacion-wrap{
+    padding:12px 16px;
+  }
+
+  .conciliacion-box{
+    grid-template-columns:1fr;
+    max-width:none;
+  }
+
+  .filters{
+    grid-template-columns:1fr;
+    padding:16px;
+  }
+
+  .report-summary{
+    grid-template-columns:1fr;
+    padding:16px 16px 0;
+  }
+
+  #reportResults{
+    padding:16px;
+  }
+
+  .footer-actions{
+    padding:16px;
+  }
+}
+</style>
 </head>
 
 <body>
 
 <script>
-  const SCRIPT_URL =
-    'https://script.google.com/macros/s/AKfycbwD9p31JkWNm6U1Nq1gYqrzdcrAQ4XK86OthOUDnzn5Nb9Bf60W532HLmR2GObuEM1G/exec';
+const SCRIPT_URL =
+'https://script.google.com/macros/s/AKfycbwD9p31JkWNm6U1Nq1gYqrzdcrAQ4XK86OthOUDnzn5Nb9Bf60W532HLmR2GObuEM1G/exec';
 </script>
 
 <header class="topbar">
@@ -782,12 +792,7 @@
 
 </header>
 
-
 <main class="container">
-
-  <!-- =========================================================
-       CIERRES DIARIOS
-       ========================================================= -->
 
   <section
     id="cierreView"
@@ -799,13 +804,16 @@
       <div class="card-header">
 
         <div>
-          <h1>Cierre diario</h1>
+
+          <h1>
+            Cierre diario
+          </h1>
 
           <div class="subtitle">
             Registra el cierre, concilia las ventas y controla pagos recibidos y pagos a proveedores.
           </div>
-        </div>
 
+        </div>
 
         <div class="header-catalogos">
 
@@ -825,7 +833,6 @@
 
           </div>
 
-
           <div class="catalogo-field">
 
             <label for="responsableSelect">
@@ -844,18 +851,12 @@
 
         </div>
 
-
         <div
           id="todayChip"
           class="date-chip"
         ></div>
 
       </div>
-
-
-      <!-- =====================================================
-           CAMPO FLOTANTE DE CONCILIACIÓN
-           ===================================================== -->
 
       <div class="conciliacion-wrap">
 
@@ -870,13 +871,11 @@
             <input
               id="ventasFlotante"
               class="conciliacion-input"
-              type="text"
               value="0.00"
               readonly
             >
 
           </div>
-
 
           <div class="conciliacion-item">
 
@@ -887,13 +886,11 @@
             <input
               id="formasPagoFlotante"
               class="conciliacion-input"
-              type="text"
               value="0.00"
               readonly
             >
 
           </div>
-
 
           <div
             id="diferenciaConciliacionBox"
@@ -907,7 +904,6 @@
             <input
               id="diferenciaConciliacion"
               class="conciliacion-input"
-              type="text"
               value="0.00"
               readonly
             >
@@ -917,7 +913,6 @@
         </div>
 
       </div>
-
 
       <div class="table-scroll">
 
@@ -961,7 +956,6 @@
 
       </div>
 
-
       <div class="footer-actions">
 
         <div class="totals">
@@ -1003,7 +997,6 @@
 
         </div>
 
-
         <button
           id="saveBtn"
           class="btn btn-primary"
@@ -1017,11 +1010,6 @@
     </div>
 
   </section>
-
-
-  <!-- =========================================================
-       REPORTES
-       ========================================================= -->
 
   <section
     id="reportView"
@@ -1046,7 +1034,6 @@
 
       </div>
 
-
       <div class="filters">
 
         <div class="field">
@@ -1062,7 +1049,6 @@
 
         </div>
 
-
         <div class="field">
 
           <label for="hasta">
@@ -1076,7 +1062,6 @@
 
         </div>
 
-
         <button
           id="reportBtn"
           class="btn btn-primary"
@@ -1086,7 +1071,6 @@
         </button>
 
       </div>
-
 
       <div
         id="reportSummary"
@@ -1106,7 +1090,6 @@
 
         </div>
 
-
         <div class="metric">
 
           <span>
@@ -1118,7 +1101,6 @@
           </strong>
 
         </div>
-
 
         <div class="metric">
 
@@ -1134,7 +1116,6 @@
 
       </div>
 
-
       <div id="reportResults">
 
         <div class="empty">
@@ -1149,1302 +1130,1923 @@
 
 </main>
 
-
 <iframe
   id="chomboBridge"
   name="chomboBridge"
   style="display:none"
 ></iframe>
 
-
 <div
   id="toast"
   class="toast"
 ></div>
 
-
 <script>
 
-  const $ =
-    id => document.getElementById(id);
+const $ = id => document.getElementById(id);
+
+const money =
+new Intl.NumberFormat(
+  'es-HN',
+  {
+    minimumFractionDigits:2,
+    maximumFractionDigits:2
+  }
+);
+
+const MAX_DETALLES = 20;
+
+let clienteCount = 0;
+let proveedorCount = 0;
 
 
-  const money =
-    new Intl.NumberFormat(
+/* ======================================================
+   FORMAS DE PAGO
+====================================================== */
+
+const PAYMENT_METHODS = [
+
+  {
+    key:'efectivo',
+    descripcion:'Efectivo'
+  },
+
+  {
+    key:'credito',
+    descripcion:'Crédito'
+  },
+
+  {
+    key:'tarjetasCredito',
+    descripcion:'Tarjetas de crédito'
+  },
+
+  {
+    key:'linkPago',
+    descripcion:'Link de pago'
+  },
+
+  {
+    key:'transferencias',
+    descripcion:'Transferencias'
+  },
+
+  {
+    key:'tarjetasVarias',
+    descripcion:'Tarjetas varias'
+  },
+
+  {
+    key:'tigoMoney',
+    descripcion:'Tigo Money'
+  }
+
+];
+
+
+/* ======================================================
+   MOVIMIENTOS CON ENTRADA Y SALIDA
+====================================================== */
+
+const DUAL_MOVEMENTS = [
+
+  {
+    key:'recargaTigo',
+    descripcion:'Ventas de recarga Tigo'
+  },
+
+  {
+    key:'recargasClaro',
+    descripcion:'Ventas de recarga Claro'
+  },
+
+  {
+    key:'loteria',
+    descripcion:'Ventas de Lotería'
+  },
+
+  {
+    key:'rapiBac',
+    descripcion:'RapiBac'
+  },
+
+  {
+    key:'agenteAtlantida',
+    descripcion:'Agente Atlántida'
+  },
+
+  {
+    key:'banpais',
+    descripcion:'Banpais'
+  }
+
+];
+
+
+function assertScriptUrl(){
+
+  if(
+    !SCRIPT_URL ||
+    SCRIPT_URL.includes('PEGA_AQUI')
+  ){
+
+    toast(
+      'Primero pega la URL /exec de Apps Script.',
+      false
+    );
+
+    return false;
+
+  }
+
+  return true;
+
+}
+
+
+/* ======================================================
+   INICIAR
+====================================================== */
+
+function init(){
+
+  renderCierreRows();
+
+  setDates();
+
+  bindMenu();
+
+  bindEvents();
+
+  loadCatalogos();
+
+  recalc();
+
+}
+
+
+/* ======================================================
+   CATALOGOS
+====================================================== */
+
+async function loadCatalogos(){
+
+  try{
+
+    const data =
+      await jsonpRequest(
+        'catalogos'
+      );
+
+    if(
+      !data ||
+      data.ok !== true
+    ){
+
+      throw new Error(
+        data && data.message
+          ? data.message
+          : 'No se pudieron cargar los catálogos.'
+      );
+
+    }
+
+    const ubicacionSelect =
+      $('ubicacionSelect');
+
+    const responsableSelect =
+      $('responsableSelect');
+
+    ubicacionSelect.innerHTML =
+      '<option value="">Seleccionar</option>';
+
+    responsableSelect.innerHTML =
+      '<option value="">Seleccionar</option>';
+
+    (data.ubicaciones || [])
+      .forEach(
+        ubicacion => {
+
+          const option =
+            document.createElement(
+              'option'
+            );
+
+          option.value =
+            ubicacion;
+
+          option.textContent =
+            ubicacion;
+
+          ubicacionSelect
+            .appendChild(
+              option
+            );
+
+        }
+      );
+
+    (data.responsables || [])
+      .forEach(
+        responsable => {
+
+          const option =
+            document.createElement(
+              'option'
+            );
+
+          option.value =
+            responsable;
+
+          option.textContent =
+            responsable;
+
+          responsableSelect
+            .appendChild(
+              option
+            );
+
+        }
+      );
+
+  }
+
+  catch(error){
+
+    console.error(
+      'ERROR CATÁLOGOS:',
+      error
+    );
+
+    toast(
+      'No se pudieron cargar Ubicación y Responsable.',
+      false
+    );
+
+  }
+
+}
+
+
+/* ======================================================
+   INPUT MONETARIO
+====================================================== */
+
+function moneyInput(
+  id,
+  className = '',
+  extra = ''
+){
+
+  return `
+    <input
+      id="${id}"
+      class="cell-input money-input ${className}"
+      type="number"
+      min="0"
+      step="0.01"
+      inputmode="decimal"
+      placeholder="0.00"
+      ${extra}
+    >
+  `;
+
+}
+
+
+/* ======================================================
+   OBSERVACIONES
+====================================================== */
+
+function obsInput(
+  key,
+  placeholder = ''
+){
+
+  return `
+    <input
+      id="obs_${key}"
+      class="cell-input observacion"
+      type="text"
+      maxlength="250"
+      placeholder="${escapeHtml(placeholder)}"
+    >
+  `;
+
+}
+
+
+/* ======================================================
+   CHECK
+====================================================== */
+
+function checkInput(key){
+
+  return `
+    <input
+      class="check-revisado"
+      type="checkbox"
+      data-check-key="${key}"
+      title="Marcar cuando esta fila haya sido revisada"
+    >
+  `;
+
+}
+
+
+/* ======================================================
+   FILA ENTRADA O SALIDA
+====================================================== */
+
+function directRow({
+  key,
+  descripcion,
+  tipo
+}){
+
+  const entrada =
+    tipo === 'entrada'
+      ? moneyInput(
+          key,
+          'entrada-directa'
+        )
+      : '';
+
+  const salida =
+    tipo === 'salida'
+      ? moneyInput(
+          key,
+          'salida-directa'
+        )
+      : '';
+
+  return `
+
+    <tr
+      data-row-key="${key}"
+      data-row-type="${tipo}"
+    >
+
+      <td>
+        ${escapeHtml(descripcion)}
+      </td>
+
+      <td></td>
+
+      <td>
+        ${entrada}
+      </td>
+
+      <td>
+        ${salida}
+      </td>
+
+      <td>
+        ${checkInput(key)}
+      </td>
+
+      <td>
+        ${obsInput(key)}
+      </td>
+
+    </tr>
+
+  `;
+
+}
+
+
+/* ======================================================
+   FILA CON ENTRADA Y SALIDA
+====================================================== */
+
+function dualRow({
+  key,
+  descripcion
+}){
+
+  return `
+
+    <tr
+      class="dual-row"
+      data-row-key="${key}"
+      data-row-type="entrada-salida"
+    >
+
+      <td>
+        ${escapeHtml(descripcion)}
+      </td>
+
+      <td></td>
+
+      <td>
+
+        ${moneyInput(
+          `${key}Entrada`,
+          'entrada-directa dual-entrada'
+        )}
+
+      </td>
+
+      <td>
+
+        ${moneyInput(
+          `${key}Salida`,
+          'salida-directa dual-salida'
+        )}
+
+      </td>
+
+      <td>
+        ${checkInput(key)}
+      </td>
+
+      <td>
+        ${obsInput(key)}
+      </td>
+
+    </tr>
+
+  `;
+
+}
+
+
+/* ======================================================
+   FILA PARCIAL
+====================================================== */
+
+function partialRow({
+  key,
+  descripcion,
+  grupo
+}){
+
+  return `
+
+    <tr
+      data-row-key="${key}"
+      data-row-type="parcial"
+      data-group="${grupo}"
+    >
+
+      <td>
+        ${escapeHtml(descripcion)}
+      </td>
+
+      <td>
+
+        ${moneyInput(
+          key,
+          'partial-input'
+        )}
+
+      </td>
+
+      <td></td>
+
+      <td></td>
+
+      <td>
+        ${checkInput(key)}
+      </td>
+
+      <td>
+        ${obsInput(key)}
+      </td>
+
+    </tr>
+
+  `;
+
+}
+
+
+/* ======================================================
+   CREAR FORMULARIO
+====================================================== */
+
+function renderCierreRows(){
+
+  $('cierreBody').innerHTML = `
+
+    ${directRow({
+      key:'aperturaCaja',
+      descripcion:'Apertura caja',
+      tipo:'entrada'
+    })}
+
+
+    ${partialRow({
+      key:'ventasCai',
+      descripcion:'Ventas CAI',
+      grupo:'ventas'
+    })}
+
+
+    ${partialRow({
+      key:'ventasBoton',
+      descripcion:'Ventas botón',
+      grupo:'ventas'
+    })}
+
+
+    <tr class="computed-row">
+
+      <td>
+        Ventas
+      </td>
+
+      <td></td>
+
+      <td>
+
+        <input
+          id="ventasTotal"
+          class="readonly-total"
+          value="0.00"
+          readonly
+        >
+
+      </td>
+
+      <td></td>
+
+      <td></td>
+
+      <td>
+        Suma automática de Ventas CAI + Ventas botón
+      </td>
+
+    </tr>
+
+
+    ${partialRow({
+      key:'efectivo',
+      descripcion:'Efectivo',
+      grupo:'formasPago'
+    })}
+
+
+    ${partialRow({
+      key:'credito',
+      descripcion:'Crédito',
+      grupo:'formasPago'
+    })}
+
+
+    ${partialRow({
+      key:'tarjetasCredito',
+      descripcion:'Tarjetas de crédito',
+      grupo:'formasPago'
+    })}
+
+
+    ${partialRow({
+      key:'linkPago',
+      descripcion:'Link de pago',
+      grupo:'formasPago'
+    })}
+
+
+    ${partialRow({
+      key:'transferencias',
+      descripcion:'Transferencias',
+      grupo:'formasPago'
+    })}
+
+
+    ${partialRow({
+      key:'tarjetasVarias',
+      descripcion:'Tarjetas varias',
+      grupo:'formasPago'
+    })}
+
+
+    ${partialRow({
+      key:'tigoMoney',
+      descripcion:'Tigo Money',
+      grupo:'formasPago'
+    })}
+
+
+    <tr class="payment-total-row">
+
+      <td>
+        Total formas de pago
+      </td>
+
+      <td>
+
+        <input
+          id="formasPagoTotal"
+          class="readonly-total"
+          value="0.00"
+          readonly
+        >
+
+      </td>
+
+      <td></td>
+
+      <td></td>
+
+      <td>
+
+        <span
+          id="estadoConciliacion"
+          class="reconcile-badge ok"
+        >
+          CUADRA
+        </span>
+
+      </td>
+
+      <td>
+        Se compara automáticamente contra Ventas
+      </td>
+
+    </tr>
+
+
+    ${dualRow({
+      key:'recargaTigo',
+      descripcion:'Ventas de recarga Tigo'
+    })}
+
+
+    ${dualRow({
+      key:'recargasClaro',
+      descripcion:'Ventas de recarga Claro'
+    })}
+
+
+    ${dualRow({
+      key:'loteria',
+      descripcion:'Ventas de Lotería'
+    })}
+
+
+    ${directRow({
+      key:'efectivoRespaldo',
+      descripcion:'Efectivo respaldo',
+      tipo:'entrada'
+    })}
+
+
+    ${dualRow({
+      key:'rapiBac',
+      descripcion:'RapiBac'
+    })}
+
+
+    ${dualRow({
+      key:'agenteAtlantida',
+      descripcion:'Agente Atlántida'
+    })}
+
+
+    ${dualRow({
+      key:'banpais',
+      descripcion:'Banpais'
+    })}
+
+
+    ${directRow({
+      key:'tarjetasAEfectivo',
+      descripcion:'Tarjetas a efectivo',
+      tipo:'salida'
+    })}
+
+
+    <tr
+      id="rowPagosRecibidos"
+      class="group-row"
+      data-row-key="pagosRecibidos"
+    >
+
+      <td>
+        Pagos recibidos
+      </td>
+
+      <td></td>
+
+      <td>
+
+        <input
+          id="pagosRecibidosTotal"
+          class="readonly-total"
+          value="0.00"
+          readonly
+        >
+
+      </td>
+
+      <td></td>
+
+      <td>
+        ${checkInput('pagosRecibidos')}
+      </td>
+
+      <td>
+
+        <div class="obs-actions">
+
+          <span class="mini-note">
+            Agregar cliente
+          </span>
+
+          <button
+            id="addClienteBtn"
+            class="add-row-btn"
+            type="button"
+            data-add-row="cliente"
+          >
+            +
+          </button>
+
+        </div>
+
+      </td>
+
+    </tr>
+
+
+    <tr
+      id="rowPagosProveedores"
+      class="group-row"
+      data-row-key="pagosProveedores"
+    >
+
+      <td>
+        Pago a proveedores
+      </td>
+
+      <td></td>
+
+      <td></td>
+
+      <td>
+
+        <input
+          id="pagosProveedoresTotal"
+          class="readonly-total"
+          value="0.00"
+          readonly
+        >
+
+      </td>
+
+      <td>
+        ${checkInput('pagosProveedores')}
+      </td>
+
+      <td>
+
+        <div class="obs-actions">
+
+          <span class="mini-note">
+            Agregar proveedor
+          </span>
+
+          <button
+            id="addProveedorBtn"
+            class="add-row-btn"
+            type="button"
+            data-add-row="proveedor"
+          >
+            +
+          </button>
+
+        </div>
+
+      </td>
+
+    </tr>
+
+
+    ${directRow({
+      key:'cajaAperturaSigTurno',
+      descripcion:'Caja apertura sig turno',
+      tipo:'salida'
+    })}
+
+  `;
+
+}
+
+
+/* ======================================================
+   CLIENTES / PROVEEDORES
+====================================================== */
+
+function addDynamicRow(tipo){
+
+  const esCliente =
+    tipo === 'cliente';
+
+  const actual =
+    esCliente
+      ? clienteCount
+      : proveedorCount;
+
+  if(
+    actual >= MAX_DETALLES
+  ){
+
+    toast(
+      `Máximo ${MAX_DETALLES} ${
+        esCliente
+          ? 'clientes'
+          : 'proveedores'
+      }.`,
+      false
+    );
+
+    return;
+
+  }
+
+  const numero =
+    actual + 1;
+
+  const key =
+    `${tipo}_${numero}`;
+
+  const placeholder =
+    esCliente
+      ? `Cliente ${numero}`
+      : `Proveedor ${numero}`;
+
+  const rowClass =
+    esCliente
+      ? 'dynamic-client-row'
+      : 'dynamic-provider-row';
+
+  const parentId =
+    esCliente
+      ? 'rowPagosRecibidos'
+      : 'rowPagosProveedores';
+
+  const descripcion =
+    esCliente
+      ? '↳ Pago recibido'
+      : '↳ Pago a proveedor';
+
+  const html = `
+
+    <tr
+      class="dynamic-row ${rowClass}"
+      data-row-key="${key}"
+    >
+
+      <td>
+        ${descripcion}
+      </td>
+
+      <td>
+
+        ${moneyInput(
+          key,
+          'partial-input dynamic-partial',
+          `data-dynamic-type="${tipo}"`
+        )}
+
+      </td>
+
+      <td></td>
+
+      <td></td>
+
+      <td>
+        ${checkInput(key)}
+      </td>
+
+      <td>
+
+        <input
+          id="obs_${key}"
+          class="cell-input observacion dynamic-observacion"
+          type="text"
+          maxlength="250"
+          placeholder="${placeholder}"
+        >
+
+      </td>
+
+    </tr>
+
+  `;
+
+  const rows =
+    Array.from(
+      document.querySelectorAll(
+        `.${rowClass}`
+      )
+    );
+
+  const anchor =
+    rows.length
+      ? rows[rows.length - 1]
+      : $(parentId);
+
+  anchor.insertAdjacentHTML(
+    'afterend',
+    html
+  );
+
+  if(esCliente){
+
+    clienteCount =
+      numero;
+
+    if(
+      clienteCount >= MAX_DETALLES
+    ){
+
+      $('addClienteBtn').disabled =
+        true;
+
+    }
+
+  }
+
+  else{
+
+    proveedorCount =
+      numero;
+
+    if(
+      proveedorCount >= MAX_DETALLES
+    ){
+
+      $('addProveedorBtn').disabled =
+        true;
+
+    }
+
+  }
+
+  recalc();
+
+  const input =
+    $(key);
+
+  if(input){
+    input.focus();
+  }
+
+}
+
+
+/* ======================================================
+   FECHA
+====================================================== */
+
+function setDates(){
+
+  const now =
+    new Date();
+
+  $('todayChip').textContent =
+    now.toLocaleDateString(
       'es-HN',
       {
-        minimumFractionDigits:2,
-        maximumFractionDigits:2
+        day:'2-digit',
+        month:'2-digit',
+        year:'numeric'
+      }
+    );
+
+  const fecha =
+    localYMD(now);
+
+  $('desde').value =
+    fecha;
+
+  $('hasta').value =
+    fecha;
+
+}
+
+
+/* ======================================================
+   MENU
+====================================================== */
+
+function bindMenu(){
+
+  $('menuBtn')
+    .addEventListener(
+      'click',
+      e => {
+
+        e.stopPropagation();
+
+        $('dropdown')
+          .classList
+          .toggle('open');
+
+      }
+    );
+
+  document
+    .addEventListener(
+      'click',
+      () => {
+
+        $('dropdown')
+          .classList
+          .remove('open');
+
+      }
+    );
+
+  document
+    .querySelectorAll('[data-view]')
+    .forEach(
+      btn => {
+
+        btn.addEventListener(
+          'click',
+          () => {
+
+            showView(
+              btn.dataset.view
+            );
+
+            $('dropdown')
+              .classList
+              .remove('open');
+
+          }
+        );
+
+      }
+    );
+
+}
+
+
+function showView(viewId){
+
+  document
+    .querySelectorAll('.view')
+    .forEach(
+      v =>
+        v.classList.remove(
+          'active'
+        )
+    );
+
+  $(viewId)
+    .classList
+    .add('active');
+
+}
+
+
+/* ======================================================
+   EVENTOS
+====================================================== */
+
+function bindEvents(){
+
+  document
+    .addEventListener(
+      'input',
+      e => {
+
+        if(
+          e.target.classList.contains(
+            'money-input'
+          )
+        ){
+
+          recalc();
+
+        }
+
+      }
+    );
+
+  document
+    .addEventListener(
+      'change',
+      e => {
+
+        if(
+          e.target.classList.contains(
+            'check-revisado'
+          ) &&
+          e.target.checked
+        ){
+
+          const fila =
+            e.target.closest('tr');
+
+          if(fila){
+
+            fila.classList.remove(
+              'fila-pendiente'
+            );
+
+          }
+
+        }
+
+      }
+    );
+
+  document
+    .addEventListener(
+      'click',
+      e => {
+
+        const btn =
+          e.target.closest(
+            '[data-add-row]'
+          );
+
+        if(btn){
+
+          addDynamicRow(
+            btn.dataset.addRow
+          );
+
+        }
+
+      }
+    );
+
+  $('saveBtn')
+    .addEventListener(
+      'click',
+      saveCierre
+    );
+
+  $('reportBtn')
+    .addEventListener(
+      'click',
+      loadReports
+    );
+
+}
+
+
+/* ======================================================
+   VALORES
+====================================================== */
+
+function num(id){
+
+  const el =
+    $(id);
+
+  return el
+    ? Number(el.value || 0)
+    : 0;
+
+}
+
+
+function valueOrBlank(id){
+
+  const el =
+    $(id);
+
+  if(
+    !el ||
+    el.value === ''
+  ){
+
+    return '';
+
+  }
+
+  return Number(
+    el.value
+  );
+
+}
+
+
+function getObs(key){
+
+  const el =
+    $(`obs_${key}`);
+
+  return el
+    ? el.value.trim()
+    : '';
+
+}
+
+
+/* ======================================================
+   SUMAS
+====================================================== */
+
+function sumDynamic(tipo){
+
+  let total = 0;
+
+  document
+    .querySelectorAll(
+      `.dynamic-partial[data-dynamic-type="${tipo}"]`
+    )
+    .forEach(
+      el => {
+
+        total +=
+          Number(
+            el.value || 0
+          );
+
+      }
+    );
+
+  return total;
+
+}
+
+
+function sumDual(tipo){
+
+  const sufijo =
+    tipo === 'entrada'
+      ? 'Entrada'
+      : 'Salida';
+
+  return DUAL_MOVEMENTS
+    .reduce(
+      (total,item) => {
+
+        return (
+          total +
+          num(
+            `${item.key}${sufijo}`
+          )
+        );
+
+      },
+      0
+    );
+
+}
+
+
+/* ======================================================
+   RECALCULAR
+====================================================== */
+
+function recalc(){
+
+  const ventas =
+    num('ventasCai') +
+    num('ventasBoton');
+
+
+  const formasPago =
+    PAYMENT_METHODS
+      .reduce(
+        (total,item) => {
+
+          return (
+            total +
+            num(item.key)
+          );
+
+        },
+        0
+      );
+
+
+  const pagosRecibidos =
+    sumDynamic(
+      'cliente'
+    );
+
+
+  const pagosProveedores =
+    sumDynamic(
+      'proveedor'
+    );
+
+
+  const movimientosEntradas =
+    sumDual(
+      'entrada'
+    );
+
+
+  const movimientosSalidas =
+    sumDual(
+      'salida'
+    );
+
+
+  const entradasDirectas =
+    num('aperturaCaja') +
+    num('efectivoRespaldo');
+
+
+  const totalEntradas =
+    entradasDirectas +
+    movimientosEntradas +
+    ventas +
+    pagosRecibidos;
+
+
+  const totalSalidas =
+    movimientosSalidas +
+    pagosProveedores +
+    num('tarjetasAEfectivo') +
+    num('cajaAperturaSigTurno');
+
+
+  const diferencia =
+    totalEntradas -
+    totalSalidas;
+
+
+  const diferenciaConciliacion =
+    formasPago -
+    ventas;
+
+
+  const cuadra =
+    Math.abs(
+      diferenciaConciliacion
+    ) < 0.005;
+
+
+  $('ventasTotal').value =
+    money.format(
+      ventas
+    );
+
+
+  $('ventasFlotante').value =
+    money.format(
+      ventas
+    );
+
+
+  $('formasPagoTotal').value =
+    money.format(
+      formasPago
+    );
+
+
+  $('formasPagoFlotante').value =
+    money.format(
+      formasPago
+    );
+
+
+  $('diferenciaConciliacion').value =
+    money.format(
+      diferenciaConciliacion
+    );
+
+
+  const estado =
+    $('estadoConciliacion');
+
+
+  estado.textContent =
+    cuadra
+      ? 'CUADRA'
+      : 'DIFERENCIA';
+
+
+  estado.classList.toggle(
+    'ok',
+    cuadra
+  );
+
+
+  estado.classList.toggle(
+    'bad',
+    !cuadra
+  );
+
+
+  const box =
+    $('diferenciaConciliacionBox');
+
+
+  box.classList.toggle(
+    'ok',
+    cuadra
+  );
+
+
+  box.classList.toggle(
+    'bad',
+    !cuadra
+  );
+
+
+  $('pagosRecibidosTotal').value =
+    money.format(
+      pagosRecibidos
+    );
+
+
+  $('pagosProveedoresTotal').value =
+    money.format(
+      pagosProveedores
+    );
+
+
+  $('totalEntradas').textContent =
+    money.format(
+      totalEntradas
+    );
+
+
+  $('totalSalidas').textContent =
+    money.format(
+      totalSalidas
+    );
+
+
+  $('diferencia').textContent =
+    money.format(
+      diferencia
+    );
+
+
+  $('totalPagosRecibidosFooter').textContent =
+    money.format(
+      pagosRecibidos
+    );
+
+
+  $('totalPagosProveedoresFooter').textContent =
+    money.format(
+      pagosProveedores
+    );
+
+}
+
+
+/* ======================================================
+   RECOGER DATOS
+====================================================== */
+
+function collectItems(){
+
+  const items = [];
+
+
+  function pushItem(
+    descripcion,
+    parcial,
+    entrada,
+    salida,
+    observacion
+  ){
+
+    items.push({
+
+      descripcion:
+        descripcion,
+
+      parcial:
+        parcial,
+
+      entrada:
+        entrada,
+
+      salida:
+        salida,
+
+      observacion:
+        observacion
+
+    });
+
+  }
+
+
+  pushItem(
+    'Apertura caja',
+    '',
+    valueOrBlank('aperturaCaja'),
+    '',
+    getObs('aperturaCaja')
+  );
+
+
+  pushItem(
+    'Ventas CAI',
+    valueOrBlank('ventasCai'),
+    valueOrBlank('ventasCai'),
+    '',
+    getObs('ventasCai')
+  );
+
+
+  pushItem(
+    'Ventas botón',
+    valueOrBlank('ventasBoton'),
+    valueOrBlank('ventasBoton'),
+    '',
+    getObs('ventasBoton')
+  );
+
+
+  PAYMENT_METHODS
+    .forEach(
+      item => {
+
+        pushItem(
+          item.descripcion,
+          valueOrBlank(item.key),
+          '',
+          '',
+          getObs(item.key)
+        );
+
       }
     );
 
 
-  const MAX_DETALLES = 20;
+  function pushDual(key,descripcion){
 
-  let clienteCount = 0;
-  let proveedorCount = 0;
+    pushItem(
+      descripcion,
+      '',
+      valueOrBlank(
+        `${key}Entrada`
+      ),
+      valueOrBlank(
+        `${key}Salida`
+      ),
+      getObs(key)
+    );
 
-
-  /*
-  ============================================================
-  CAMPOS QUE SE SUMAN COMO FORMAS DE PAGO
-  ============================================================
-  */
-
-  const PAYMENT_METHOD_KEYS = [
-
-    'efectivo',
-
-    'credito',
-
-    'tarjetasCredito',
-
-    'linkPago',
-
-    'transferencias',
-
-    'tarjetasVarias',
-
-    'tigoMoney'
-
-  ];
+  }
 
 
-  /*
-  ============================================================
-  ENTRADAS DIRECTAS
-  ============================================================
-  */
-
-  const DIRECT_ENTRY_KEYS = [
-
-    'aperturaCaja',
-
+  pushDual(
     'recargaTigo',
+    'Ventas de recarga Tigo'
+  );
 
+
+  pushDual(
     'recargasClaro',
+    'Ventas de recarga Claro'
+  );
 
+
+  pushDual(
     'loteria',
+    'Ventas de Lotería'
+  );
 
-    'efectivoRespaldo',
 
+  pushItem(
+    'Efectivo respaldo',
+    '',
+    valueOrBlank('efectivoRespaldo'),
+    '',
+    getObs('efectivoRespaldo')
+  );
+
+
+  pushDual(
     'rapiBac',
-
-    'agenteAtlantida'
-
-  ];
+    'RapiBac'
+  );
 
 
-  /*
-  ============================================================
-  VALIDAR URL
-  ============================================================
-  */
+  pushDual(
+    'agenteAtlantida',
+    'Agente Atlántida'
+  );
 
-  function assertScriptUrl(){
 
-    if(
-      !SCRIPT_URL ||
-      SCRIPT_URL.includes('PEGA_AQUI')
-    ){
+  pushDual(
+    'banpais',
+    'Banpais'
+  );
 
-      toast(
-        'Primero pega la URL /exec de Apps Script.',
-        false
-      );
 
-      return false;
+  pushItem(
+    'Tarjetas a efectivo',
+    '',
+    '',
+    valueOrBlank(
+      'tarjetasAEfectivo'
+    ),
+    getObs(
+      'tarjetasAEfectivo'
+    )
+  );
 
-    }
+
+  document
+    .querySelectorAll(
+      '.dynamic-client-row'
+    )
+    .forEach(
+      (row,i) => {
+
+        const key =
+          row.dataset.rowKey;
+
+        const valor =
+          valueOrBlank(key);
+
+        const obs =
+          getObs(key);
+
+        const cliente =
+          obs ||
+          `Cliente ${i + 1}`;
+
+        pushItem(
+          `Pagos recibidos - ${cliente}`,
+          valor,
+          valor,
+          '',
+          cliente
+        );
+
+      }
+    );
+
+
+  document
+    .querySelectorAll(
+      '.dynamic-provider-row'
+    )
+    .forEach(
+      (row,i) => {
+
+        const key =
+          row.dataset.rowKey;
+
+        const valor =
+          valueOrBlank(key);
+
+        const obs =
+          getObs(key);
+
+        const proveedor =
+          obs ||
+          `Proveedor ${i + 1}`;
+
+        pushItem(
+          `Pago a proveedores - ${proveedor}`,
+          valor,
+          '',
+          valor,
+          proveedor
+        );
+
+      }
+    );
+
+
+  pushItem(
+    'Caja apertura sig turno',
+    '',
+    '',
+    valueOrBlank(
+      'cajaAperturaSigTurno'
+    ),
+    getObs(
+      'cajaAperturaSigTurno'
+    )
+  );
+
+
+  return items;
+
+}
+
+
+/* ======================================================
+   VALIDAR INFORMACION
+====================================================== */
+
+function hasAnyData(items){
+
+  return items.some(
+    item =>
+
+      item.parcial !== '' ||
+
+      item.entrada !== '' ||
+
+      item.salida !== '' ||
+
+      item.observacion !== ''
+
+  );
+
+}
+
+
+/* ======================================================
+   VALIDAR REVISADOS
+====================================================== */
+
+function validateChecks(){
+
+  document
+    .querySelectorAll(
+      '#cierreBody tr'
+    )
+    .forEach(
+      fila => {
+
+        fila.classList.remove(
+          'fila-pendiente'
+        );
+
+      }
+    );
+
+
+  const pendientes =
+    Array.from(
+      document.querySelectorAll(
+        '.check-revisado'
+      )
+    )
+    .filter(
+      check =>
+        !check.checked
+    );
+
+
+  if(
+    !pendientes.length
+  ){
 
     return true;
 
   }
 
 
-  /*
-  ============================================================
-  INICIALIZACIÓN
-  ============================================================
-  */
+  pendientes
+    .forEach(
+      check => {
 
-  function init(){
+        const fila =
+          check.closest('tr');
 
-    renderCierreRows();
+        if(fila){
 
-    setDates();
+          fila.classList.add(
+            'fila-pendiente'
+          );
 
-    bindMenu();
-
-    bindEvents();
-
-    loadCatalogos();
-
-    recalc();
-
-  }
-
-
-  /*
-  ============================================================
-  CARGAR CATÁLOGOS
-  ============================================================
-  */
-
-  async function loadCatalogos(){
-
-    try{
-
-      const data =
-        await jsonpRequest(
-          'catalogos'
-        );
-
-
-      if(
-        !data ||
-        data.ok !== true
-      ){
-
-        throw new Error(
-          data && data.message
-            ? data.message
-            : 'No se pudieron cargar los catálogos.'
-        );
+        }
 
       }
-
-
-      const ubicacionSelect =
-        $('ubicacionSelect');
-
-
-      const responsableSelect =
-        $('responsableSelect');
-
-
-      ubicacionSelect.innerHTML =
-        '<option value="">Seleccionar</option>';
-
-
-      responsableSelect.innerHTML =
-        '<option value="">Seleccionar</option>';
-
-
-      (data.ubicaciones || [])
-        .forEach(
-          ubicacion => {
-
-            const option =
-              document.createElement(
-                'option'
-              );
-
-            option.value =
-              ubicacion;
-
-            option.textContent =
-              ubicacion;
-
-            ubicacionSelect
-              .appendChild(
-                option
-              );
-
-          }
-        );
-
-
-      (data.responsables || [])
-        .forEach(
-          responsable => {
-
-            const option =
-              document.createElement(
-                'option'
-              );
-
-            option.value =
-              responsable;
-
-            option.textContent =
-              responsable;
-
-            responsableSelect
-              .appendChild(
-                option
-              );
-
-          }
-        );
-
-    }
-
-    catch(error){
-
-      console.error(
-        'ERROR CATÁLOGOS:',
-        error
-      );
-
-      toast(
-        'No se pudieron cargar Ubicación y Responsable.',
-        false
-      );
-
-    }
-
-  }
-
-
-  /*
-  ============================================================
-  INPUT MONETARIO
-  ============================================================
-  */
-
-  function moneyInput(
-    key,
-    className = '',
-    extra = ''
-  ){
-
-    return `
-      <input
-        id="${key}"
-        class="cell-input money-input ${className}"
-        type="number"
-        min="0"
-        step="0.01"
-        inputmode="decimal"
-        placeholder="0.00"
-        ${extra}
-      >
-    `;
-
-  }
-
-
-  /*
-  ============================================================
-  OBSERVACIONES
-  ============================================================
-  */
-
-  function obsInput(
-    key,
-    placeholder = ''
-  ){
-
-    return `
-      <input
-        id="obs_${key}"
-        class="cell-input observacion"
-        type="text"
-        maxlength="250"
-        placeholder="${escapeHtml(placeholder)}"
-      >
-    `;
-
-  }
-
-
-  /*
-  ============================================================
-  CHECK REVISADO
-  ============================================================
-  */
-
-  function checkInput(key){
-
-    return `
-      <input
-        class="check-revisado"
-        type="checkbox"
-        data-check-key="${key}"
-        title="Marcar cuando esta fila haya sido revisada"
-      >
-    `;
-
-  }
-
-
-  /*
-  ============================================================
-  FILA ENTRADA / SALIDA NORMAL
-  ============================================================
-  */
-
-  function directRow({
-    key,
-    descripcion,
-    tipo
-  }){
-
-    const parcial = '';
-
-
-    const entrada =
-      tipo === 'entrada'
-        ? moneyInput(
-            key,
-            'entrada-directa'
-          )
-        : '';
-
-
-    const salida =
-      tipo === 'salida'
-        ? moneyInput(
-            key,
-            'salida-directa'
-          )
-        : '';
-
-
-    return `
-
-      <tr
-        data-row-key="${key}"
-        data-row-type="${tipo}"
-      >
-
-        <td>
-          ${escapeHtml(descripcion)}
-        </td>
-
-        <td>
-          ${parcial}
-        </td>
-
-        <td>
-          ${entrada}
-        </td>
-
-        <td>
-          ${salida}
-        </td>
-
-        <td>
-          ${checkInput(key)}
-        </td>
-
-        <td>
-          ${obsInput(key)}
-        </td>
-
-      </tr>
-
-    `;
-
-  }
-
-
-  /*
-  ============================================================
-  FILA PARCIAL
-  ============================================================
-  */
-
-  function partialRow({
-    key,
-    descripcion,
-    grupo
-  }){
-
-    return `
-
-      <tr
-        data-row-key="${key}"
-        data-row-type="parcial"
-        data-group="${grupo}"
-      >
-
-        <td>
-          ${escapeHtml(descripcion)}
-        </td>
-
-        <td>
-          ${moneyInput(
-            key,
-            'partial-input parcial-input'
-          )}
-        </td>
-
-        <td></td>
-
-        <td></td>
-
-        <td>
-          ${checkInput(key)}
-        </td>
-
-        <td>
-          ${obsInput(key)}
-        </td>
-
-      </tr>
-
-    `;
-
-  }
-
-
-  /*
-  ============================================================
-  CREAR FORMULARIO
-  ============================================================
-  */
-
-  function renderCierreRows(){
-
-    $('cierreBody').innerHTML = `
-
-      ${directRow({
-        key:'aperturaCaja',
-        descripcion:'Apertura caja',
-        tipo:'entrada'
-      })}
-
-
-      ${partialRow({
-        key:'ventasCai',
-        descripcion:'Ventas CAI',
-        grupo:'ventas'
-      })}
-
-
-      ${partialRow({
-        key:'ventasBoton',
-        descripcion:'Ventas botón',
-        grupo:'ventas'
-      })}
-
-
-      <tr
-        class="computed-row"
-        data-computed="ventas"
-      >
-
-        <td>
-          Ventas
-        </td>
-
-        <td></td>
-
-        <td>
-
-          <input
-            id="ventasTotal"
-            class="readonly-total"
-            type="text"
-            value="0.00"
-            readonly
-          >
-
-        </td>
-
-        <td></td>
-
-        <td></td>
-
-        <td>
-          Suma automática de Ventas CAI + Ventas botón
-        </td>
-
-      </tr>
-
-
-      ${partialRow({
-        key:'efectivo',
-        descripcion:'Efectivo',
-        grupo:'formasPago'
-      })}
-
-
-      ${partialRow({
-        key:'credito',
-        descripcion:'Crédito',
-        grupo:'formasPago'
-      })}
-
-
-      ${partialRow({
-        key:'tarjetasCredito',
-        descripcion:'Tarjetas de crédito',
-        grupo:'formasPago'
-      })}
-
-
-      ${partialRow({
-        key:'linkPago',
-        descripcion:'Link de pago',
-        grupo:'formasPago'
-      })}
-
-
-      ${partialRow({
-        key:'transferencias',
-        descripcion:'Transferencias',
-        grupo:'formasPago'
-      })}
-
-
-      ${partialRow({
-        key:'tarjetasVarias',
-        descripcion:'Tarjetas varias',
-        grupo:'formasPago'
-      })}
-
-
-      ${partialRow({
-        key:'tigoMoney',
-        descripcion:'Tigo Money',
-        grupo:'formasPago'
-      })}
-
-
-      <tr
-        class="payment-total-row"
-        data-computed="formasPago"
-      >
-
-        <td>
-          Total formas de pago
-        </td>
-
-        <td>
-
-          <input
-            id="formasPagoTotal"
-            class="readonly-total"
-            type="text"
-            value="0.00"
-            readonly
-          >
-
-        </td>
-
-        <td></td>
-
-        <td></td>
-
-        <td>
-
-          <span
-            id="estadoConciliacion"
-            class="reconcile-badge ok"
-          >
-            CUADRA
-          </span>
-
-        </td>
-
-        <td>
-          Se compara automáticamente contra Ventas
-        </td>
-
-      </tr>
-
-
-      ${directRow({
-        key:'recargaTigo',
-        descripcion:'Ventas de recarga Tigo',
-        tipo:'entrada'
-      })}
-
-
-      ${directRow({
-        key:'recargasClaro',
-        descripcion:'Ventas de recargas Claro',
-        tipo:'entrada'
-      })}
-
-
-      ${directRow({
-        key:'loteria',
-        descripcion:'Ventas de Lotería',
-        tipo:'entrada'
-      })}
-
-
-      ${directRow({
-        key:'efectivoRespaldo',
-        descripcion:'Efectivo respaldo',
-        tipo:'entrada'
-      })}
-
-
-      ${directRow({
-        key:'rapiBac',
-        descripcion:'RapiBac',
-        tipo:'entrada'
-      })}
-
-
-      ${directRow({
-        key:'agenteAtlantida',
-        descripcion:'Agente Atlántida',
-        tipo:'entrada'
-      })}
-
-
-      <!-- ===============================================
-           PAGOS RECIBIDOS
-           =============================================== -->
-
-      <tr
-        id="rowPagosRecibidos"
-        class="group-row"
-        data-row-key="pagosRecibidos"
-        data-row-type="grupo-clientes"
-      >
-
-        <td>
-          Pagos recibidos
-        </td>
-
-        <td></td>
-
-        <td>
-
-          <input
-            id="pagosRecibidosTotal"
-            class="readonly-total"
-            type="text"
-            value="0.00"
-            readonly
-          >
-
-        </td>
-
-        <td></td>
-
-        <td>
-          ${checkInput('pagosRecibidos')}
-        </td>
-
-        <td>
-
-          <div class="obs-actions">
-
-            <span class="mini-note">
-              Agregar cliente
-            </span>
-
-            <button
-              id="addClienteBtn"
-              class="add-row-btn"
-              type="button"
-              data-add-row="cliente"
-              title="Agregar cliente"
-            >
-              +
-            </button>
-
-          </div>
-
-        </td>
-
-      </tr>
-
-
-      <!-- ===============================================
-           PAGOS A PROVEEDORES
-           =============================================== -->
-
-      <tr
-        id="rowPagosProveedores"
-        class="group-row"
-        data-row-key="pagosProveedores"
-        data-row-type="grupo-proveedores"
-      >
-
-        <td>
-          Pago a proveedores
-        </td>
-
-        <td></td>
-
-        <td></td>
-
-        <td>
-
-          <input
-            id="pagosProveedoresTotal"
-            class="readonly-total"
-            type="text"
-            value="0.00"
-            readonly
-          >
-
-        </td>
-
-        <td>
-          ${checkInput('pagosProveedores')}
-        </td>
-
-        <td>
-
-          <div class="obs-actions">
-
-            <span class="mini-note">
-              Agregar proveedor
-            </span>
-
-            <button
-              id="addProveedorBtn"
-              class="add-row-btn"
-              type="button"
-              data-add-row="proveedor"
-              title="Agregar proveedor"
-            >
-              +
-            </button>
-
-          </div>
-
-        </td>
-
-      </tr>
-
-
-      ${directRow({
-        key:'cajaAperturaSigTurno',
-        descripcion:'Caja apertura sig turno',
-        tipo:'salida'
-      })}
-
-    `;
-
-  }
-
-
-  /*
-  ============================================================
-  AGREGAR CLIENTES / PROVEEDORES
-  ============================================================
-  */
-
-  function addDynamicRow(tipo){
-
-    const esCliente =
-      tipo === 'cliente';
-
-
-    const countActual =
-      esCliente
-        ? clienteCount
-        : proveedorCount;
-
-
-    if(
-      countActual >= MAX_DETALLES
-    ){
-
-      toast(
-        `Máximo ${MAX_DETALLES} ${
-          esCliente
-            ? 'clientes'
-            : 'proveedores'
-        }.`,
-        false
-      );
-
-      return;
-
-    }
-
-
-    const numero =
-      countActual + 1;
-
-
-    const key =
-      `${tipo}_${numero}`;
-
-
-    const placeholder =
-      esCliente
-        ? `Cliente ${numero}`
-        : `Proveedor ${numero}`;
-
-
-    const rowClass =
-      esCliente
-        ? 'dynamic-client-row'
-        : 'dynamic-provider-row';
-
-
-    const parentId =
-      esCliente
-        ? 'rowPagosRecibidos'
-        : 'rowPagosProveedores';
-
-
-    const descripcion =
-      esCliente
-        ? '↳ Pago recibido'
-        : '↳ Pago a proveedor';
-
-
-    const html = `
-
-      <tr
-        class="dynamic-row ${rowClass}"
-        data-row-key="${key}"
-        data-row-type="${tipo}"
-      >
-
-        <td>
-          ${descripcion}
-        </td>
-
-        <td>
-
-          ${moneyInput(
-            key,
-            'partial-input dynamic-partial',
-            `data-dynamic-type="${tipo}"`
-          )}
-
-        </td>
-
-        <td></td>
-
-        <td></td>
-
-        <td>
-          ${checkInput(key)}
-        </td>
-
-        <td>
-
-          <input
-            id="obs_${key}"
-            class="cell-input observacion dynamic-observacion"
-            type="text"
-            maxlength="250"
-            placeholder="${placeholder}"
-          >
-
-        </td>
-
-      </tr>
-
-    `;
-
-
-    const rows =
-      Array.from(
-        document.querySelectorAll(
-          `.${rowClass}`
-        )
-      );
-
-
-    const anchor =
-      rows.length
-        ? rows[
-            rows.length - 1
-          ]
-        : $(parentId);
-
-
-    anchor.insertAdjacentHTML(
-      'afterend',
-      html
     );
 
 
-    if(esCliente){
-
-      clienteCount =
-        numero;
-
-
-      if(
-        clienteCount >= MAX_DETALLES
-      ){
-
-        $('addClienteBtn').disabled =
-          true;
-
-      }
-
-    }
-
-    else{
-
-      proveedorCount =
-        numero;
+  const primeraFila =
+    pendientes[0]
+      .closest('tr');
 
 
-      if(
-        proveedorCount >= MAX_DETALLES
-      ){
+  if(primeraFila){
 
-        $('addProveedorBtn').disabled =
-          true;
-
-      }
-
-    }
-
-
-    recalc();
-
-
-    const nuevoInput =
-      $(key);
-
-
-    if(nuevoInput){
-
-      nuevoInput.focus();
-
-    }
+    primeraFila.scrollIntoView({
+      behavior:'smooth',
+      block:'center'
+    });
 
   }
 
 
-  /*
-  ============================================================
-  FECHAS
-  ============================================================
-  */
-
-  function setDates(){
-
-    const now =
-      new Date();
+  toast(
+    `No se puede guardar. Faltan ${pendientes.length} filas por revisar.`,
+    false
+  );
 
 
-    $('todayChip').textContent =
-      now.toLocaleDateString(
-        'es-HN',
-        {
-          day:'2-digit',
-          month:'2-digit',
-          year:'numeric'
-        }
-      );
+  return false;
+
+}
 
 
-    const ymd =
-      localYMD(now);
+/* ======================================================
+   GUARDAR
+====================================================== */
 
+async function saveCierre(){
 
-    $('desde').value =
-      ymd;
+  if(
+    !assertScriptUrl()
+  ){
 
-
-    $('hasta').value =
-      ymd;
+    return;
 
   }
 
 
-  /*
-  ============================================================
-  MENÚ
-  ============================================================
-  */
-
-  function bindMenu(){
-
-    $('menuBtn')
-      .addEventListener(
-        'click',
-        e => {
-
-          e.stopPropagation();
-
-          $('dropdown')
-            .classList
-            .toggle(
-              'open'
-            );
-
-        }
-      );
+  const ubicacion =
+    $('ubicacionSelect').value;
 
 
-    document
-      .addEventListener(
-        'click',
-        () => {
-
-          $('dropdown')
-            .classList
-            .remove(
-              'open'
-            );
-
-        }
-      );
+  const responsable =
+    $('responsableSelect').value;
 
 
-    document
-      .querySelectorAll(
-        '[data-view]'
-      )
-      .forEach(
-        btn => {
+  if(
+    !ubicacion
+  ){
 
-          btn
-            .addEventListener(
-              'click',
-              () => {
+    toast(
+      'Debes seleccionar una Ubicación antes de guardar.',
+      false
+    );
 
-                showView(
-                  btn.dataset.view
-                );
+    $('ubicacionSelect').focus();
 
-                $('dropdown')
-                  .classList
-                  .remove(
-                    'open'
-                  );
-
-              }
-            );
-
-        }
-      );
+    return;
 
   }
 
 
-  function showView(viewId){
+  if(
+    !responsable
+  ){
 
-    document
-      .querySelectorAll(
-        '.view'
-      )
-      .forEach(
-        v => {
+    toast(
+      'Debes seleccionar un Responsable antes de guardar.',
+      false
+    );
 
-          v.classList
-            .remove(
-              'active'
-            );
+    $('responsableSelect').focus();
 
-        }
-      );
-
-
-    $(viewId)
-      .classList
-      .add(
-        'active'
-      );
+    return;
 
   }
 
 
-  /*
-  ============================================================
-  EVENTOS
-  ============================================================
-  */
+  if(
+    !validateChecks()
+  ){
 
-  function bindEvents(){
-
-    document
-      .addEventListener(
-        'input',
-        e => {
-
-          if(
-            e.target
-              .classList
-              .contains(
-                'money-input'
-              )
-          ){
-
-            recalc();
-
-          }
-
-        }
-      );
-
-
-    document
-      .addEventListener(
-        'change',
-        e => {
-
-          if(
-            e.target
-              .classList
-              .contains(
-                'check-revisado'
-              ) &&
-            e.target.checked
-          ){
-
-            const fila =
-              e.target.closest(
-                'tr'
-              );
-
-
-            if(fila){
-
-              fila.classList
-                .remove(
-                  'fila-pendiente'
-                );
-
-            }
-
-          }
-
-        }
-      );
-
-
-    document
-      .addEventListener(
-        'click',
-        e => {
-
-          const btn =
-            e.target.closest(
-              '[data-add-row]'
-            );
-
-
-          if(btn){
-
-            addDynamicRow(
-              btn.dataset.addRow
-            );
-
-          }
-
-        }
-      );
-
-
-    $('saveBtn')
-      .addEventListener(
-        'click',
-        saveCierre
-      );
-
-
-    $('reportBtn')
-      .addEventListener(
-        'click',
-        loadReports
-      );
+    return;
 
   }
 
 
-  /*
-  ============================================================
-  OBTENER NÚMERO
-  ============================================================
-  */
-
-  function num(id){
-
-    const el =
-      $(id);
+  const items =
+    collectItems();
 
 
-    return el
-      ? Number(
-          el.value || 0
-        )
-      : 0;
+  if(
+    !hasAnyData(items)
+  ){
+
+    toast(
+      'Ingresa al menos un valor u observación.',
+      false
+    );
+
+    return;
 
   }
 
 
-  /*
-  ============================================================
-  SUMAR FILAS DINÁMICAS
-  ============================================================
-  */
-
-  function sumDynamic(tipo){
-
-    let total = 0;
+  setSaving(true);
 
 
-    document
-      .querySelectorAll(
-        `.dynamic-partial[data-dynamic-type="${tipo}"]`
-      )
-      .forEach(
-        el => {
-
-          total +=
-            Number(
-              el.value || 0
-            );
-
-        }
-      );
-
-
-    return total;
-
-  }
-
-
-  /*
-  ============================================================
-  CÁLCULOS
-  ============================================================
-  */
-
-  function recalc(){
-
-    /*
-    ----------------------------------------------------------
-    VENTAS
-    Ventas CAI + Ventas botón
-    ----------------------------------------------------------
-    */
+  try{
 
     const ventas =
       num('ventasCai') +
       num('ventasBoton');
 
 
-    /*
-    ----------------------------------------------------------
-    FORMAS DE PAGO
-    ----------------------------------------------------------
-    */
-
     const formasPago =
-      PAYMENT_METHOD_KEYS
+      PAYMENT_METHODS
         .reduce(
-          (acc,key) => {
+          (total,item) => {
 
             return (
-              acc +
-              num(key)
+              total +
+              num(item.key)
             );
 
           },
           0
         );
 
-
-    /*
-    ----------------------------------------------------------
-    PAGOS CLIENTES
-    ----------------------------------------------------------
-    */
 
     const pagosRecibidos =
       sumDynamic(
@@ -2452,1805 +3054,765 @@
       );
 
 
-    /*
-    ----------------------------------------------------------
-    PAGOS PROVEEDORES
-    ----------------------------------------------------------
-    */
-
     const pagosProveedores =
       sumDynamic(
         'proveedor'
       );
 
 
-    /*
-    ----------------------------------------------------------
-    OTRAS ENTRADAS DIRECTAS
-    ----------------------------------------------------------
-    */
+    const movimientosEntradas =
+      sumDual(
+        'entrada'
+      );
+
+
+    const movimientosSalidas =
+      sumDual(
+        'salida'
+      );
+
 
     const entradasDirectas =
-      DIRECT_ENTRY_KEYS
-        .reduce(
-          (acc,key) => {
+      num('aperturaCaja') +
+      num('efectivoRespaldo');
 
-            return (
-              acc +
-              num(key)
-            );
-
-          },
-          0
-        );
-
-
-    /*
-    ----------------------------------------------------------
-    TOTAL ENTRADAS
-    Las formas de pago NO se suman aquí,
-    porque representan cómo se cobraron las ventas.
-    ----------------------------------------------------------
-    */
 
     const totalEntradas =
       entradasDirectas +
+      movimientosEntradas +
       ventas +
       pagosRecibidos;
 
 
-    /*
-    ----------------------------------------------------------
-    TOTAL SALIDAS
-    ----------------------------------------------------------
-    */
-
     const totalSalidas =
+      movimientosSalidas +
       pagosProveedores +
-      num(
-        'cajaAperturaSigTurno'
-      );
+      num('tarjetasAEfectivo') +
+      num('cajaAperturaSigTurno');
 
 
-    /*
-    ----------------------------------------------------------
-    DIFERENCIA GENERAL
-    ----------------------------------------------------------
-    */
+    const payload =
+      JSON.stringify({
 
-    const diferencia =
-      totalEntradas -
-      totalSalidas;
+        items:
+          items,
 
+        ubicacion:
+          ubicacion,
 
-    /*
-    ----------------------------------------------------------
-    CONCILIACIÓN DE VENTAS
-    ----------------------------------------------------------
-    */
+        responsable:
+          responsable,
 
-    const diferenciaConciliacion =
-      formasPago -
-      ventas;
+        resumen:{
 
+          ventas:
+            ventas,
 
-    const cuadra =
-      Math.abs(
-        diferenciaConciliacion
-      ) < 0.005;
+          formasPago:
+            formasPago,
 
+          diferenciaConciliacion:
+            formasPago -
+            ventas,
 
-    /*
-    ----------------------------------------------------------
-    MOSTRAR VENTAS
-    ----------------------------------------------------------
-    */
+          pagosRecibidos:
+            pagosRecibidos,
 
-    $('ventasTotal').value =
-      money.format(
-        ventas
-      );
+          pagosProveedores:
+            pagosProveedores,
 
+          totalEntradas:
+            totalEntradas,
 
-    $('ventasFlotante').value =
-      money.format(
-        ventas
-      );
+          totalSalidas:
+            totalSalidas,
 
-
-    /*
-    ----------------------------------------------------------
-    MOSTRAR FORMAS DE PAGO
-    ----------------------------------------------------------
-    */
-
-    $('formasPagoTotal').value =
-      money.format(
-        formasPago
-      );
-
-
-    $('formasPagoFlotante').value =
-      money.format(
-        formasPago
-      );
-
-
-    /*
-    ----------------------------------------------------------
-    DIFERENCIA CONCILIACIÓN
-    ----------------------------------------------------------
-    */
-
-    $('diferenciaConciliacion').value =
-      money.format(
-        diferenciaConciliacion
-      );
-
-
-    /*
-    ----------------------------------------------------------
-    ESTADO CUADRA / DIFERENCIA
-    ----------------------------------------------------------
-    */
-
-    const estado =
-      $('estadoConciliacion');
-
-
-    estado.textContent =
-      cuadra
-        ? 'CUADRA'
-        : 'DIFERENCIA';
-
-
-    estado.classList
-      .toggle(
-        'ok',
-        cuadra
-      );
-
-
-    estado.classList
-      .toggle(
-        'bad',
-        !cuadra
-      );
-
-
-    const box =
-      $('diferenciaConciliacionBox');
-
-
-    box.classList
-      .toggle(
-        'ok',
-        cuadra
-      );
-
-
-    box.classList
-      .toggle(
-        'bad',
-        !cuadra
-      );
-
-
-    /*
-    ----------------------------------------------------------
-    PAGOS RECIBIDOS
-    ----------------------------------------------------------
-    */
-
-    $('pagosRecibidosTotal').value =
-      money.format(
-        pagosRecibidos
-      );
-
-
-    /*
-    ----------------------------------------------------------
-    PROVEEDORES
-    ----------------------------------------------------------
-    */
-
-    $('pagosProveedoresTotal').value =
-      money.format(
-        pagosProveedores
-      );
-
-
-    /*
-    ----------------------------------------------------------
-    PIE DEL FORMULARIO
-    ----------------------------------------------------------
-    */
-
-    $('totalEntradas').textContent =
-      money.format(
-        totalEntradas
-      );
-
-
-    $('totalSalidas').textContent =
-      money.format(
-        totalSalidas
-      );
-
-
-    $('diferencia').textContent =
-      money.format(
-        diferencia
-      );
-
-
-    $('totalPagosRecibidosFooter').textContent =
-      money.format(
-        pagosRecibidos
-      );
-
-
-    $('totalPagosProveedoresFooter').textContent =
-      money.format(
-        pagosProveedores
-      );
-
-  }
-
-
-  /*
-  ============================================================
-  OBTENER OBSERVACIÓN
-  ============================================================
-  */
-
-  function getObs(key){
-
-    const el =
-      $(
-        `obs_${key}`
-      );
-
-
-    return el
-      ? el.value.trim()
-      : '';
-
-  }
-
-
-  /*
-  ============================================================
-  VALOR O VACÍO
-  ============================================================
-  */
-
-  function valueOrBlank(id){
-
-    const el =
-      $(id);
-
-
-    if(
-      !el ||
-      el.value === ''
-    ){
-
-      return '';
-
-    }
-
-
-    return Number(
-      el.value
-    );
-
-  }
-
-
-  /*
-  ============================================================
-  RECOGER ITEMS
-  ============================================================
-  */
-
-  function collectItems(){
-
-    const items = [];
-
-
-    /*
-    ----------------------------------------------------------
-    APERTURA CAJA
-    ----------------------------------------------------------
-    */
-
-    items.push({
-
-      descripcion:
-        'Apertura caja',
-
-      parcial:
-        '',
-
-      entrada:
-        valueOrBlank(
-          'aperturaCaja'
-        ),
-
-      salida:
-        '',
-
-      observacion:
-        getObs(
-          'aperturaCaja'
-        )
-
-    });
-
-
-    /*
-    ----------------------------------------------------------
-    VENTAS CAI
-    ----------------------------------------------------------
-    */
-
-    items.push({
-
-      descripcion:
-        'Ventas CAI',
-
-      parcial:
-        valueOrBlank(
-          'ventasCai'
-        ),
-
-      entrada:
-        valueOrBlank(
-          'ventasCai'
-        ),
-
-      salida:
-        '',
-
-      observacion:
-        getObs(
-          'ventasCai'
-        )
-
-    });
-
-
-    /*
-    ----------------------------------------------------------
-    VENTAS BOTÓN
-    ----------------------------------------------------------
-    */
-
-    items.push({
-
-      descripcion:
-        'Ventas botón',
-
-      parcial:
-        valueOrBlank(
-          'ventasBoton'
-        ),
-
-      entrada:
-        valueOrBlank(
-          'ventasBoton'
-        ),
-
-      salida:
-        '',
-
-      observacion:
-        getObs(
-          'ventasBoton'
-        )
-
-    });
-
-
-    /*
-    ----------------------------------------------------------
-    FORMAS DE PAGO
-
-    Se guardan en PARCIAL.
-    No se guardan como entrada porque duplicarían ventas.
-    ----------------------------------------------------------
-    */
-
-    const paymentDescriptions = {
-
-      efectivo:
-        'Efectivo',
-
-      credito:
-        'Crédito',
-
-      tarjetasCredito:
-        'Tarjetas de crédito',
-
-      linkPago:
-        'Link de pago',
-
-      transferencias:
-        'Transferencias',
-
-      tarjetasVarias:
-        'Tarjetas varias',
-
-      tigoMoney:
-        'Tigo Money'
-
-    };
-
-
-    PAYMENT_METHOD_KEYS
-      .forEach(
-        key => {
-
-          items.push({
-
-            descripcion:
-              paymentDescriptions[
-                key
-              ],
-
-            parcial:
-              valueOrBlank(
-                key
-              ),
-
-            entrada:
-              '',
-
-            salida:
-              '',
-
-            observacion:
-              getObs(
-                key
-              )
-
-          });
+          diferencia:
+            totalEntradas -
+            totalSalidas
 
         }
-      );
+
+      });
 
 
-    /*
-    ----------------------------------------------------------
-    OTRAS ENTRADAS
-    ----------------------------------------------------------
-    */
-
-    const directEntries = [
-
-      [
-        'recargaTigo',
-        'Ventas de recarga Tigo'
-      ],
-
-      [
-        'recargasClaro',
-        'Ventas de recargas Claro'
-      ],
-
-      [
-        'loteria',
-        'Ventas de Lotería'
-      ],
-
-      [
-        'efectivoRespaldo',
-        'Efectivo respaldo'
-      ],
-
-      [
-        'rapiBac',
-        'RapiBac'
-      ],
-
-      [
-        'agenteAtlantida',
-        'Agente Atlántida'
-      ]
-
-    ];
-
-
-    directEntries
-      .forEach(
-        ([key,descripcion]) => {
-
-          items.push({
-
-            descripcion:
-              descripcion,
-
-            parcial:
-              '',
-
-            entrada:
-              valueOrBlank(
-                key
-              ),
-
-            salida:
-              '',
-
-            observacion:
-              getObs(
-                key
-              )
-
-          });
-
+    const data =
+      await jsonpRequest(
+        'guardar',
+        {
+          payload:
+            payload
         }
-      );
-
-
-    /*
-    ----------------------------------------------------------
-    PAGOS RECIBIDOS - CLIENTES
-    ----------------------------------------------------------
-    */
-
-    document
-      .querySelectorAll(
-        '.dynamic-client-row'
-      )
-      .forEach(
-        (row,i) => {
-
-          const key =
-            row.dataset.rowKey;
-
-
-          const valor =
-            valueOrBlank(
-              key
-            );
-
-
-          const obsEl =
-            $(
-              `obs_${key}`
-            );
-
-
-          const cliente =
-            obsEl &&
-            obsEl.value.trim()
-              ? obsEl.value.trim()
-              : `Cliente ${i + 1}`;
-
-
-          items.push({
-
-            descripcion:
-              `Pagos recibidos - ${cliente}`,
-
-            parcial:
-              valor,
-
-            entrada:
-              valor,
-
-            salida:
-              '',
-
-            observacion:
-              cliente
-
-          });
-
-        }
-      );
-
-
-    /*
-    ----------------------------------------------------------
-    PAGOS A PROVEEDORES
-    ----------------------------------------------------------
-    */
-
-    document
-      .querySelectorAll(
-        '.dynamic-provider-row'
-      )
-      .forEach(
-        (row,i) => {
-
-          const key =
-            row.dataset.rowKey;
-
-
-          const valor =
-            valueOrBlank(
-              key
-            );
-
-
-          const obsEl =
-            $(
-              `obs_${key}`
-            );
-
-
-          const proveedor =
-            obsEl &&
-            obsEl.value.trim()
-              ? obsEl.value.trim()
-              : `Proveedor ${i + 1}`;
-
-
-          items.push({
-
-            descripcion:
-              `Pago a proveedores - ${proveedor}`,
-
-            parcial:
-              valor,
-
-            entrada:
-              '',
-
-            salida:
-              valor,
-
-            observacion:
-              proveedor
-
-          });
-
-        }
-      );
-
-
-    /*
-    ----------------------------------------------------------
-    CAJA APERTURA SIGUIENTE TURNO
-    ----------------------------------------------------------
-    */
-
-    items.push({
-
-      descripcion:
-        'Caja apertura sig turno',
-
-      parcial:
-        '',
-
-      entrada:
-        '',
-
-      salida:
-        valueOrBlank(
-          'cajaAperturaSigTurno'
-        ),
-
-      observacion:
-        getObs(
-          'cajaAperturaSigTurno'
-        )
-
-    });
-
-
-    return items;
-
-  }
-
-
-  /*
-  ============================================================
-  VALIDAR SI HAY INFORMACIÓN
-  ============================================================
-  */
-
-  function hasAnyData(items){
-
-    return items.some(
-      x =>
-
-        x.parcial !== '' ||
-
-        x.entrada !== '' ||
-
-        x.salida !== '' ||
-
-        x.observacion !== ''
-
-    );
-
-  }
-
-
-  /*
-  ============================================================
-  VALIDAR CHECKS
-  ============================================================
-  */
-
-  function validateChecks(){
-
-    document
-      .querySelectorAll(
-        '#cierreBody tr'
-      )
-      .forEach(
-        fila => {
-
-          fila.classList
-            .remove(
-              'fila-pendiente'
-            );
-
-        }
-      );
-
-
-    const pendientes =
-      Array.from(
-        document.querySelectorAll(
-          '.check-revisado'
-        )
-      )
-      .filter(
-        check =>
-          !check.checked
       );
 
 
     if(
-      !pendientes.length
+      !data ||
+      data.ok !== true
     ){
 
-      return true;
-
-    }
-
-
-    pendientes
-      .forEach(
-        check => {
-
-          const fila =
-            check.closest(
-              'tr'
-            );
-
-
-          if(fila){
-
-            fila.classList
-              .add(
-                'fila-pendiente'
-              );
-
-          }
-
-        }
+      throw new Error(
+        data && data.message
+          ? data.message
+          : 'No se pudo guardar el cierre.'
       );
 
-
-    const primeraFila =
-      pendientes[0]
-        .closest(
-          'tr'
-        );
-
-
-    if(primeraFila){
-
-      primeraFila
-        .scrollIntoView({
-          behavior:'smooth',
-          block:'center'
-        });
-
     }
+
+
+    limpiarFormularioCierre();
 
 
     toast(
-      `No se puede guardar. Faltan ${pendientes.length} filas por revisar.`,
-      false
-    );
-
-
-    return false;
-
-  }
-
-
-  /*
-  ============================================================
-  GUARDAR CIERRE
-  ============================================================
-  */
-
-  async function saveCierre(){
-
-    if(
-      !assertScriptUrl()
-    ){
-
-      return;
-
-    }
-
-
-    const ubicacion =
-      $('ubicacionSelect').value;
-
-
-    const responsable =
-      $('responsableSelect').value;
-
-
-    if(
-      !ubicacion
-    ){
-
-      toast(
-        'Debes seleccionar una Ubicación antes de guardar.',
-        false
-      );
-
-      $('ubicacionSelect')
-        .focus();
-
-      return;
-
-    }
-
-
-    if(
-      !responsable
-    ){
-
-      toast(
-        'Debes seleccionar un Responsable antes de guardar.',
-        false
-      );
-
-      $('responsableSelect')
-        .focus();
-
-      return;
-
-    }
-
-
-    if(
-      !validateChecks()
-    ){
-
-      return;
-
-    }
-
-
-    const items =
-      collectItems();
-
-
-    if(
-      !hasAnyData(
-        items
-      )
-    ){
-
-      toast(
-        'Ingresa al menos un valor u observación.',
-        false
-      );
-
-      return;
-
-    }
-
-
-    setSaving(
+      data.message ||
+      'Cierre guardado correctamente.',
       true
     );
 
+  }
 
-    try{
+  catch(error){
 
-      /*
-      ----------------------------------------------------------
-      RESUMEN
-      ----------------------------------------------------------
-      */
+    console.error(
+      'ERROR GUARDANDO:',
+      error
+    );
 
-      const ventas =
-        num('ventasCai') +
-        num('ventasBoton');
 
-
-      const formasPago =
-        PAYMENT_METHOD_KEYS
-          .reduce(
-            (acc,key) =>
-              acc +
-              num(key),
-            0
-          );
-
-
-      const pagosRecibidos =
-        sumDynamic(
-          'cliente'
-        );
-
-
-      const pagosProveedores =
-        sumDynamic(
-          'proveedor'
-        );
-
-
-      const entradasDirectas =
-        DIRECT_ENTRY_KEYS
-          .reduce(
-            (acc,key) =>
-              acc +
-              num(key),
-            0
-          );
-
-
-      const totalEntradas =
-        entradasDirectas +
-        ventas +
-        pagosRecibidos;
-
-
-      const totalSalidas =
-        pagosProveedores +
-        num(
-          'cajaAperturaSigTurno'
-        );
-
-
-      /*
-      ----------------------------------------------------------
-      PAYLOAD
-      ----------------------------------------------------------
-      */
-
-      const payload =
-        JSON.stringify({
-
-          items:
-            items,
-
-          ubicacion:
-            ubicacion,
-
-          responsable:
-            responsable,
-
-          resumen:{
-
-            ventas:
-              ventas,
-
-            formasPago:
-              formasPago,
-
-            diferenciaConciliacion:
-              formasPago -
-              ventas,
-
-            pagosRecibidos:
-              pagosRecibidos,
-
-            pagosProveedores:
-              pagosProveedores,
-
-            totalEntradas:
-              totalEntradas,
-
-            totalSalidas:
-              totalSalidas,
-
-            diferencia:
-              totalEntradas -
-              totalSalidas
-
-          }
-
-        });
-
-
-      /*
-      ----------------------------------------------------------
-      GUARDAR
-      ----------------------------------------------------------
-      */
-
-      const data =
-        await jsonpRequest(
-          'guardar',
-          {
-            payload:
-              payload
-          }
-        );
-
-
-      console.log(
-        'RESPUESTA GUARDAR:',
-        data
-      );
-
-
-      if(
-        !data ||
-        data.ok !== true
-      ){
-
-        throw new Error(
-
-          data &&
-          data.message
-
-            ? data.message
-
-            : 'No se pudo guardar el cierre.'
-
-        );
-
-      }
-
-
-      limpiarFormularioCierre();
-
-
-      toast(
-
-        data.message ||
-
-        'Cierre guardado correctamente.',
-
-        true
-
-      );
-
-    }
-
-
-    catch(error){
-
-      console.error(
-        'ERROR GUARDANDO:',
-        error
-      );
-
-
-      toast(
-        'Error al guardar: ' +
-        error.message,
-        false
-      );
-
-    }
-
-
-    finally{
-
-      setSaving(
-        false
-      );
-
-    }
+    toast(
+      'Error al guardar: ' +
+      error.message,
+      false
+    );
 
   }
 
+  finally{
 
-  /*
-  ============================================================
-  BOTÓN GUARDAR
-  ============================================================
-  */
+    setSaving(false);
 
-  function setSaving(
+  }
+
+}
+
+
+/* ======================================================
+   ESTADO BOTON
+====================================================== */
+
+function setSaving(isSaving){
+
+  $('saveBtn').disabled =
+    isSaving;
+
+
+  $('saveBtn').innerHTML =
     isSaving
+      ? '<span class="loading"></span>Guardando...'
+      : 'Guardar';
+
+}
+
+
+/* ======================================================
+   LIMPIAR
+====================================================== */
+
+function limpiarFormularioCierre(){
+
+  document
+    .querySelectorAll(
+      '#cierreBody input[type="number"], #cierreBody input.observacion'
+    )
+    .forEach(
+      input => {
+
+        input.value =
+          '';
+
+      }
+    );
+
+
+  document
+    .querySelectorAll(
+      '.check-revisado'
+    )
+    .forEach(
+      check => {
+
+        check.checked =
+          false;
+
+      }
+    );
+
+
+  document
+    .querySelectorAll(
+      '#cierreBody tr'
+    )
+    .forEach(
+      fila => {
+
+        fila.classList.remove(
+          'fila-pendiente'
+        );
+
+      }
+    );
+
+
+  document
+    .querySelectorAll(
+      '.dynamic-client-row, .dynamic-provider-row'
+    )
+    .forEach(
+      row =>
+        row.remove()
+    );
+
+
+  clienteCount = 0;
+  proveedorCount = 0;
+
+
+  $('addClienteBtn').disabled =
+    false;
+
+
+  $('addProveedorBtn').disabled =
+    false;
+
+
+  $('ubicacionSelect').value =
+    '';
+
+
+  $('responsableSelect').value =
+    '';
+
+
+  recalc();
+
+
+  if(
+    document.activeElement &&
+    typeof document.activeElement.blur === 'function'
   ){
 
-    $('saveBtn').disabled =
-      isSaving;
+    document.activeElement.blur();
+
+  }
+
+}
 
 
-    $('saveBtn').innerHTML =
-      isSaving
+/* ======================================================
+   REPORTES
+====================================================== */
 
-        ? '<span class="loading"></span>Guardando...'
+async function loadReports(){
 
-        : 'Guardar';
+  if(
+    !assertScriptUrl()
+  ){
+
+    return;
 
   }
 
 
-  /*
-  ============================================================
-  LIMPIAR FORMULARIO
-  ============================================================
-  */
-
-  function limpiarFormularioCierre(){
-
-    /*
-    ----------------------------------------------------------
-    LIMPIAR NÚMEROS Y OBSERVACIONES
-    ----------------------------------------------------------
-    */
-
-    document
-      .querySelectorAll(
-        '#cierreBody input[type="number"], #cierreBody input.observacion'
-      )
-      .forEach(
-        input => {
-
-          input.value =
-            '';
-
-        }
-      );
+  const desde =
+    $('desde').value;
 
 
-    /*
-    ----------------------------------------------------------
-    QUITAR CHECKS
-    ----------------------------------------------------------
-    */
-
-    document
-      .querySelectorAll(
-        '.check-revisado'
-      )
-      .forEach(
-        check => {
-
-          check.checked =
-            false;
-
-        }
-      );
+  const hasta =
+    $('hasta').value;
 
 
-    /*
-    ----------------------------------------------------------
-    QUITAR FILAS ROJAS
-    ----------------------------------------------------------
-    */
+  if(
+    !desde ||
+    !hasta
+  ){
 
-    document
-      .querySelectorAll(
-        '#cierreBody tr'
-      )
-      .forEach(
-        fila => {
+    toast(
+      'Selecciona Desde y Hasta.',
+      false
+    );
 
-          fila.classList
-            .remove(
-              'fila-pendiente'
-            );
-
-        }
-      );
-
-
-    /*
-    ----------------------------------------------------------
-    ELIMINAR FILAS DINÁMICAS
-    ----------------------------------------------------------
-    */
-
-    document
-      .querySelectorAll(
-        '.dynamic-client-row, .dynamic-provider-row'
-      )
-      .forEach(
-        row =>
-          row.remove()
-      );
-
-
-    clienteCount =
-      0;
-
-
-    proveedorCount =
-      0;
-
-
-    $('addClienteBtn').disabled =
-      false;
-
-
-    $('addProveedorBtn').disabled =
-      false;
-
-
-    /*
-    ----------------------------------------------------------
-    REINICIAR CATÁLOGOS
-    ----------------------------------------------------------
-    */
-
-    $('ubicacionSelect').value =
-      '';
-
-
-    $('responsableSelect').value =
-      '';
-
-
-    /*
-    ----------------------------------------------------------
-    RECALCULAR
-    ----------------------------------------------------------
-    */
-
-    recalc();
-
-
-    if(
-      document.activeElement &&
-      typeof document.activeElement.blur === 'function'
-    ){
-
-      document.activeElement
-        .blur();
-
-    }
+    return;
 
   }
 
 
-  /*
-  ============================================================
-  REPORTES
-  ============================================================
-  */
+  if(
+    desde > hasta
+  ){
 
-  async function loadReports(){
+    toast(
+      'Desde no puede ser mayor que Hasta.',
+      false
+    );
 
-    if(
-      !assertScriptUrl()
-    ){
-
-      return;
-
-    }
-
-
-    const desde =
-      $('desde').value;
-
-
-    const hasta =
-      $('hasta').value;
-
-
-    if(
-      !desde ||
-      !hasta
-    ){
-
-      toast(
-        'Selecciona Desde y Hasta.',
-        false
-      );
-
-      return;
-
-    }
-
-
-    if(
-      desde > hasta
-    ){
-
-      toast(
-        'Desde no puede ser mayor que Hasta.',
-        false
-      );
-
-      return;
-
-    }
-
-
-    $('reportBtn').disabled =
-      true;
-
-
-    $('reportBtn').innerHTML =
-      '<span class="loading"></span>Consultando...';
-
-
-    $('reportResults').innerHTML =
-      '<div class="empty">Consultando cierres...</div>';
-
-
-    try{
-
-      const data =
-        await jsonpRequest(
-          'reportes',
-          {
-            desde:
-              desde,
-
-            hasta:
-              hasta
-          }
-        );
-
-
-      if(
-        !data.ok
-      ){
-
-        throw new Error(
-          data.message ||
-          'Error al consultar.'
-        );
-
-      }
-
-
-      renderReports(
-        data
-      );
-
-    }
-
-
-    catch(err){
-
-      $('reportSummary').style.display =
-        'none';
-
-
-      $('reportResults').innerHTML =
-        `
-          <div class="empty">
-
-            No se pudieron cargar los cierres.
-
-            <br>
-
-            ${escapeHtml(err.message)}
-
-          </div>
-        `;
-
-
-      toast(
-        err.message,
-        false
-      );
-
-    }
-
-
-    finally{
-
-      $('reportBtn').disabled =
-        false;
-
-
-      $('reportBtn').textContent =
-        'Mostrar cierres';
-
-    }
+    return;
 
   }
 
 
-  /*
-  ============================================================
-  MOSTRAR REPORTES
-  ============================================================
-  */
+  $('reportBtn').disabled =
+    true;
 
-  function renderReports(data){
 
-    const cierres =
-      Array.isArray(
-        data.cierres
-      )
+  $('reportBtn').innerHTML =
+    '<span class="loading"></span>Consultando...';
 
-        ? data.cierres
 
-        : [];
+  $('reportResults').innerHTML =
+    '<div class="empty">Consultando cierres...</div>';
 
+
+  try{
+
+    const data =
+      await jsonpRequest(
+        'reportes',
+        {
+          desde:
+            desde,
+
+          hasta:
+            hasta
+        }
+      );
+
+
+    if(
+      !data.ok
+    ){
+
+      throw new Error(
+        data.message ||
+        'Error al consultar.'
+      );
+
+    }
+
+
+    renderReports(data);
+
+  }
+
+  catch(error){
 
     $('reportSummary').style.display =
-      'grid';
-
-
-    $('mCierres').textContent =
-      cierres.length;
-
-
-    $('mEntradas').textContent =
-      money.format(
-        Number(
-          data.totalEntradas ||
-          0
-        )
-      );
-
-
-    $('mSalidas').textContent =
-      money.format(
-        Number(
-          data.totalSalidas ||
-          0
-        )
-      );
-
-
-    if(
-      !cierres.length
-    ){
-
-      $('reportResults').innerHTML =
-        `
-          <div class="empty">
-            No hay cierres guardados en ese rango de fechas.
-          </div>
-        `;
-
-      return;
-
-    }
+      'none';
 
 
     $('reportResults').innerHTML =
+      `
+        <div class="empty">
 
-      cierres
-        .map(
-          c => `
+          No se pudieron cargar los cierres.
 
-            <div class="report-card">
+          <br>
 
-              <div class="report-head">
+          ${escapeHtml(error.message)}
 
-                <strong>
-                  Cierre:
-                  ${escapeHtml(
-                    c.fechaTexto ||
-                    ''
-                  )}
-                </strong>
+        </div>
+      `;
 
 
-                <div class="report-mini-totals">
+    toast(
+      error.message,
+      false
+    );
 
-                  <span>
+  }
 
-                    Entradas:
+  finally{
 
-                    <b>
-
-                      ${
-                        money.format(
-                          Number(
-                            c.totalEntradas ||
-                            0
-                          )
-                        )
-                      }
-
-                    </b>
-
-                  </span>
+    $('reportBtn').disabled =
+      false;
 
 
-                  <span>
+    $('reportBtn').textContent =
+      'Mostrar cierres';
 
-                    Salidas:
+  }
 
-                    <b>
-
-                      ${
-                        money.format(
-                          Number(
-                            c.totalSalidas ||
-                            0
-                          )
-                        )
-                      }
-
-                    </b>
-
-                  </span>
+}
 
 
-                  <span>
+/* ======================================================
+   MOSTRAR REPORTES
+====================================================== */
 
-                    Diferencia:
+function renderReports(data){
 
-                    <b>
-
-                      ${
-                        money.format(
-                          Number(
-                            c.diferencia ||
-                            0
-                          )
-                        )
-                      }
-
-                    </b>
-
-                  </span>
-
-                </div>
-
-              </div>
+  const cierres =
+    Array.isArray(
+      data.cierres
+    )
+      ? data.cierres
+      : [];
 
 
-              <div class="table-scroll">
-
-                <table class="report-table">
-
-                  <thead>
-
-                    <tr>
-
-                      <th>
-                        Descripción
-                      </th>
-
-                      <th class="num">
-                        Parcial
-                      </th>
-
-                      <th class="num">
-                        Entradas
-                      </th>
-
-                      <th class="num">
-                        Salidas
-                      </th>
-
-                      <th>
-                        Observaciones
-                      </th>
-
-                    </tr>
-
-                  </thead>
+  $('reportSummary').style.display =
+    'grid';
 
 
-                  <tbody>
+  $('mCierres').textContent =
+    cierres.length;
 
+
+  $('mEntradas').textContent =
+    money.format(
+      Number(
+        data.totalEntradas || 0
+      )
+    );
+
+
+  $('mSalidas').textContent =
+    money.format(
+      Number(
+        data.totalSalidas || 0
+      )
+    );
+
+
+  if(
+    !cierres.length
+  ){
+
+    $('reportResults').innerHTML =
+      `
+        <div class="empty">
+          No hay cierres guardados en ese rango de fechas.
+        </div>
+      `;
+
+    return;
+
+  }
+
+
+  $('reportResults').innerHTML =
+
+    cierres
+      .map(
+        cierre => `
+
+          <div class="report-card">
+
+            <div class="report-head">
+
+              <strong>
+                Cierre:
+                ${escapeHtml(
+                  cierre.fechaTexto || ''
+                )}
+              </strong>
+
+              <div class="report-mini-totals">
+
+                <span>
+
+                  Entradas:
+
+                  <b>
                     ${
-                      (c.items || [])
-                        .map(
-                          item => `
-
-                            <tr>
-
-                              <td>
-
-                                ${
-                                  escapeHtml(
-                                    item.descripcion ||
-                                    ''
-                                  )
-                                }
-
-                              </td>
-
-
-                              <td class="num">
-
-                                ${
-                                  formatOptionalMoney(
-                                    item.parcial
-                                  )
-                                }
-
-                              </td>
-
-
-                              <td class="num">
-
-                                ${
-                                  formatOptionalMoney(
-                                    item.entrada
-                                  )
-                                }
-
-                              </td>
-
-
-                              <td class="num">
-
-                                ${
-                                  formatOptionalMoney(
-                                    item.salida
-                                  )
-                                }
-
-                              </td>
-
-
-                              <td>
-
-                                ${
-                                  escapeHtml(
-                                    item.observacion ||
-                                    ''
-                                  )
-                                }
-
-                              </td>
-
-                            </tr>
-
-                          `
+                      money.format(
+                        Number(
+                          cierre.totalEntradas || 0
                         )
-                        .join('')
+                      )
                     }
+                  </b>
 
-                  </tbody>
+                </span>
 
-                </table>
+                <span>
+
+                  Salidas:
+
+                  <b>
+                    ${
+                      money.format(
+                        Number(
+                          cierre.totalSalidas || 0
+                        )
+                      )
+                    }
+                  </b>
+
+                </span>
+
+                <span>
+
+                  Diferencia:
+
+                  <b>
+                    ${
+                      money.format(
+                        Number(
+                          cierre.diferencia || 0
+                        )
+                      )
+                    }
+                  </b>
+
+                </span>
 
               </div>
 
             </div>
 
-          `
-        )
-        .join('');
+            <div class="table-scroll">
 
-  }
+              <table class="report-table">
 
+                <thead>
 
-  /*
-  ============================================================
-  FORMATO MONEDA OPCIONAL
-  ============================================================
-  */
+                  <tr>
 
-  function formatOptionalMoney(value){
+                    <th>
+                      Descripción
+                    </th>
 
-    if(
-      value === null ||
-      value === undefined ||
-      value === ''
-    ){
+                    <th class="num">
+                      Parcial
+                    </th>
 
-      return '';
+                    <th class="num">
+                      Entradas
+                    </th>
 
-    }
+                    <th class="num">
+                      Salidas
+                    </th>
 
+                    <th>
+                      Observaciones
+                    </th>
 
-    return money.format(
-      Number(
-        value ||
-        0
+                  </tr>
+
+                </thead>
+
+                <tbody>
+
+                  ${
+                    (cierre.items || [])
+                      .map(
+                        item => `
+
+                          <tr>
+
+                            <td>
+                              ${
+                                escapeHtml(
+                                  item.descripcion || ''
+                                )
+                              }
+                            </td>
+
+                            <td class="num">
+                              ${
+                                formatOptionalMoney(
+                                  item.parcial
+                                )
+                              }
+                            </td>
+
+                            <td class="num">
+                              ${
+                                formatOptionalMoney(
+                                  item.entrada
+                                )
+                              }
+                            </td>
+
+                            <td class="num">
+                              ${
+                                formatOptionalMoney(
+                                  item.salida
+                                )
+                              }
+                            </td>
+
+                            <td>
+                              ${
+                                escapeHtml(
+                                  item.observacion || ''
+                                )
+                              }
+                            </td>
+
+                          </tr>
+
+                        `
+                      )
+                      .join('')
+                  }
+
+                </tbody>
+
+              </table>
+
+            </div>
+
+          </div>
+
+        `
       )
-    );
+      .join('');
 
-  }
+}
 
 
-  /*
-  ============================================================
-  JSONP
-  ============================================================
-  */
+/* ======================================================
+   FORMATO DINERO
+====================================================== */
 
-  function jsonpRequest(
-    action,
-    params = {}
+function formatOptionalMoney(value){
+
+  if(
+    value === null ||
+    value === undefined ||
+    value === ''
   ){
 
-    return new Promise(
-      (
-        resolve,
-        reject
-      ) => {
+    return '';
 
-        const cbName =
-          `chomboJsonp_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+  }
 
 
-        const script =
-          document.createElement(
-            'script'
-          );
+  return money.format(
+    Number(value || 0)
+  );
+
+}
 
 
-        const qs =
-          new URLSearchParams({
+/* ======================================================
+   JSONP
+====================================================== */
 
-            action:
-              action,
+function jsonpRequest(
+  action,
+  params = {}
+){
 
-            callback:
-              cbName,
+  return new Promise(
+    (
+      resolve,
+      reject
+    ) => {
 
-            ...params
-
-          });
-
-
-        let done =
-          false;
-
-
-        let timer;
+      const cbName =
+        `chomboJsonp_${Date.now()}_${Math.random().toString(36).slice(2)}`;
 
 
-        function cleanup(){
-
-          if(done){
-
-            return;
-
-          }
+      const script =
+        document.createElement(
+          'script'
+        );
 
 
-          done =
-            true;
+      const qs =
+        new URLSearchParams({
+
+          action:
+            action,
+
+          callback:
+            cbName,
+
+          ...params
+
+        });
 
 
-          delete window[
-            cbName
-          ];
+      let done =
+        false;
 
 
-          script.remove();
+      let timer;
 
 
-          clearTimeout(
-            timer
-          );
+      function cleanup(){
 
+        if(done){
+          return;
         }
 
 
-        window[
-          cbName
-        ] =
-          data => {
-
-            cleanup();
-
-            resolve(
-              data
-            );
-
-          };
-
-
-        script.src =
-          `${SCRIPT_URL}?${qs.toString()}`;
-
-
-        script.async =
+        done =
           true;
 
 
-        script.onerror =
+        delete window[
+          cbName
+        ];
+
+
+        script.remove();
+
+
+        clearTimeout(
+          timer
+        );
+
+      }
+
+
+      window[
+        cbName
+      ] =
+        data => {
+
+          cleanup();
+
+          resolve(
+            data
+          );
+
+        };
+
+
+      script.src =
+        `${SCRIPT_URL}?${qs.toString()}`;
+
+
+      script.async =
+        true;
+
+
+      script.onerror =
+        () => {
+
+          cleanup();
+
+
+          reject(
+            new Error(
+              'No se pudo conectar con Apps Script.'
+            )
+          );
+
+        };
+
+
+      document.body
+        .appendChild(
+          script
+        );
+
+
+      timer =
+        setTimeout(
           () => {
 
             cleanup();
@@ -4258,173 +3820,141 @@
 
             reject(
               new Error(
-                'No se pudo conectar con Apps Script.'
+                'Apps Script no respondió.'
               )
             );
 
-          };
+          },
+          15000
+        );
+
+    }
+  );
+
+}
 
 
-        document.body
-          .appendChild(
-            script
-          );
+/* ======================================================
+   MENSAJES
+====================================================== */
+
+function toast(
+  message,
+  ok = true
+){
+
+  const el =
+    $('toast');
 
 
-        timer =
-          setTimeout(
-            () => {
-
-              cleanup();
+  el.textContent =
+    message;
 
 
-              reject(
-                new Error(
-                  'Apps Script no respondió.'
-                )
-              );
+  el.className =
+    `toast show ${
+      ok
+        ? 'ok'
+        : 'error'
+    }`;
 
-            },
-            15000
-          );
 
-      }
+  clearTimeout(
+    el._timer
+  );
+
+
+  el._timer =
+    setTimeout(
+      () => {
+
+        el.classList.remove(
+          'show'
+        );
+
+      },
+      4200
     );
 
-  }
+}
 
 
-  /*
-  ============================================================
-  TOAST
-  ============================================================
-  */
+/* ======================================================
+   FECHA LOCAL
+====================================================== */
 
-  function toast(
-    message,
-    ok = true
-  ){
+function localYMD(date){
 
-    const el =
-      $('toast');
+  const y =
+    date.getFullYear();
 
 
-    el.textContent =
-      message;
-
-
-    el.className =
-      `toast show ${
-        ok
-          ? 'ok'
-          : 'error'
-      }`;
-
-
-    clearTimeout(
-      el._timer
+  const m =
+    String(
+      date.getMonth() + 1
+    )
+    .padStart(
+      2,
+      '0'
     );
 
 
-    el._timer =
-      setTimeout(
-        () => {
-
-          el.classList
-            .remove(
-              'show'
-            );
-
-        },
-        4200
-      );
-
-  }
+  const d =
+    String(
+      date.getDate()
+    )
+    .padStart(
+      2,
+      '0'
+    );
 
 
-  /*
-  ============================================================
-  FECHA LOCAL
-  ============================================================
-  */
+  return `${y}-${m}-${d}`;
 
-  function localYMD(date){
-
-    const y =
-      date.getFullYear();
+}
 
 
-    const m =
-      String(
-        date.getMonth() +
-        1
-      )
-      .padStart(
-        2,
-        '0'
-      );
+/* ======================================================
+   SEGURIDAD HTML
+====================================================== */
+
+function escapeHtml(value){
+
+  return String(value)
+
+    .replaceAll(
+      '&',
+      '&amp;'
+    )
+
+    .replaceAll(
+      '<',
+      '&lt;'
+    )
+
+    .replaceAll(
+      '>',
+      '&gt;'
+    )
+
+    .replaceAll(
+      '"',
+      '&quot;'
+    )
+
+    .replaceAll(
+      "'",
+      '&#039;'
+    );
+
+}
 
 
-    const d =
-      String(
-        date.getDate()
-      )
-      .padStart(
-        2,
-        '0'
-      );
+/* ======================================================
+   INICIAR
+====================================================== */
 
-
-    return `${y}-${m}-${d}`;
-
-  }
-
-
-  /*
-  ============================================================
-  ESCAPAR HTML
-  ============================================================
-  */
-
-  function escapeHtml(value){
-
-    return String(value)
-
-      .replaceAll(
-        '&',
-        '&amp;'
-      )
-
-      .replaceAll(
-        '<',
-        '&lt;'
-      )
-
-      .replaceAll(
-        '>',
-        '&gt;'
-      )
-
-      .replaceAll(
-        '"',
-        '&quot;'
-      )
-
-      .replaceAll(
-        "'",
-        '&#039;'
-      );
-
-  }
-
-
-  /*
-  ============================================================
-  INICIAR
-  ============================================================
-  */
-
-  init();
+init();
 
 </script>
 
