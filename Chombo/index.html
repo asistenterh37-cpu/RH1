@@ -660,7 +660,202 @@ table{
   background:var(--primary-dark);
   transform:translateY(-1px);
 }
+/* ===========================
+   BOTONES INFERIORES
+=========================== */
 
+.footer-buttons{
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:10px;
+}
+
+.btn-print{
+  background:#475467;
+  color:#fff;
+}
+
+.btn-print:hover{
+  background:#344054;
+  transform:translateY(-1px);
+}
+
+
+/* ===========================
+   BOTÓN ELIMINAR CLIENTE /
+   PROVEEDOR
+=========================== */
+
+.dynamic-obs-wrap{
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+
+.dynamic-obs-wrap .dynamic-observacion{
+  flex:1;
+}
+
+.remove-row-btn{
+  flex:0 0 34px;
+  width:34px;
+  height:34px;
+  border:0;
+  border-radius:9px;
+  background:#d92d20;
+  color:#fff;
+  font-size:23px;
+  font-weight:900;
+  line-height:1;
+  cursor:pointer;
+}
+
+.remove-row-btn:hover{
+  background:#b42318;
+}
+
+
+/* ======================================================
+   IMPRESIÓN / PDF
+   Intenta ajustar todo el cierre a una sola página A4
+   horizontal.
+====================================================== */
+
+@page{
+  size:A4 landscape;
+  margin:4mm;
+}
+
+@media print{
+
+  html,
+  body{
+    margin:0 !important;
+    padding:0 !important;
+    background:#fff !important;
+  }
+
+  body{
+    zoom:.58;
+  }
+
+  .topbar,
+  #reportView,
+  .footer-actions,
+  .toast{
+    display:none !important;
+  }
+
+  .container{
+    width:100% !important;
+    max-width:none !important;
+    margin:0 !important;
+    padding:0 !important;
+  }
+
+  #cierreView{
+    display:block !important;
+  }
+
+  #cierreView .card{
+    width:100% !important;
+    margin:0 !important;
+    border:none !important;
+    border-radius:0 !important;
+    box-shadow:none !important;
+    overflow:visible !important;
+  }
+
+  .card-header{
+    padding:5px 8px !important;
+  }
+
+  .card-header h1{
+    font-size:17px !important;
+  }
+
+  .subtitle{
+    display:none !important;
+  }
+
+  .conciliacion-wrap{
+    padding:5px 8px !important;
+  }
+
+  .conciliacion-box{
+    max-width:none !important;
+    grid-template-columns:repeat(3,1fr) !important;
+    gap:5px !important;
+  }
+
+  .conciliacion-item{
+    padding:4px 7px !important;
+    box-shadow:none !important;
+  }
+
+  .conciliacion-input{
+    font-size:14px !important;
+  }
+
+  .table-scroll{
+    overflow:visible !important;
+  }
+
+  .cierre-table,
+  .arqueo-table{
+    min-width:0 !important;
+    width:100% !important;
+  }
+
+  .cierre-table th,
+  .cierre-table td{
+    padding:2px 4px !important;
+    font-size:10px !important;
+  }
+
+  .cell-input,
+  .readonly-total{
+    padding:2px 4px !important;
+    height:23px !important;
+    font-size:10px !important;
+    box-shadow:none !important;
+  }
+
+  .check-revisado{
+    width:13px !important;
+    height:13px !important;
+  }
+
+  .add-row-btn,
+  .remove-row-btn,
+  .mini-note{
+    display:none !important;
+  }
+
+  .arqueo-wrap{
+    margin:5px 0 0 !important;
+    border-radius:0 !important;
+  }
+
+  .arqueo-title{
+    padding:4px 7px !important;
+    font-size:13px !important;
+  }
+
+  .arqueo-table th,
+  .arqueo-table td{
+    padding:2px 3px !important;
+    font-size:9px !important;
+  }
+
+  .arqueo-table .cell-input{
+    min-width:0 !important;
+    height:21px !important;
+  }
+
+}
+  
 /* ===========================
    REPORTES
 =========================== */
@@ -1424,15 +1619,27 @@ const SCRIPT_URL =
 
   <div></div>
 
-  <button
-    id="saveBtn"
-    class="btn btn-primary"
-    type="button"
-  >
-    Guardar
-  </button>
+  <div class="footer-buttons">
 
-</div>      
+    <button
+      id="printBtn"
+      class="btn btn-print"
+      type="button"
+    >
+      Imprimir
+    </button>
+
+    <button
+      id="saveBtn"
+      class="btn btn-primary"
+      type="button"
+    >
+      Guardar
+    </button>
+
+  </div>
+
+</div>
     </div>
 
   </section>
@@ -2441,13 +2648,21 @@ function addDynamicRow(tipo){
   const esCliente =
     tipo === 'cliente';
 
-  const actual =
+
+  const rowClass =
     esCliente
-      ? clienteCount
-      : proveedorCount;
+      ? 'dynamic-client-row'
+      : 'dynamic-provider-row';
+
+
+  const filasActuales =
+    document.querySelectorAll(
+      `.${rowClass}`
+    );
+
 
   if(
-    actual >= MAX_DETALLES
+    filasActuales.length >= MAX_DETALLES
   ){
 
     toast(
@@ -2463,42 +2678,73 @@ function addDynamicRow(tipo){
 
   }
 
-  const numero =
-    actual + 1;
+
+  /* ==================================================
+     BUSCAR PRIMER NÚMERO DISPONIBLE
+
+     Esto permite borrar, por ejemplo Cliente 2,
+     y volver a utilizar Cliente 2 sin crear IDs
+     duplicados.
+  ================================================== */
+
+  let numero = 1;
+
+
+  while(
+    numero <= MAX_DETALLES &&
+    document.querySelector(
+      `[data-row-key="${tipo}_${numero}"]`
+    )
+  ){
+
+    numero++;
+
+  }
+
+
+  if(
+    numero > MAX_DETALLES
+  ){
+
+    return;
+
+  }
+
 
   const key =
     `${tipo}_${numero}`;
+
 
   const placeholder =
     esCliente
       ? `Cliente ${numero}`
       : `Proveedor ${numero}`;
 
-  const rowClass =
-    esCliente
-      ? 'dynamic-client-row'
-      : 'dynamic-provider-row';
 
   const parentId =
     esCliente
       ? 'rowPagosRecibidos'
       : 'rowPagosProveedores';
 
+
   const descripcion =
     esCliente
       ? '↳ Pago recibido'
       : '↳ Pago a proveedor';
+
 
   const html = `
 
     <tr
       class="dynamic-row ${rowClass}"
       data-row-key="${key}"
+      data-dynamic-type="${tipo}"
     >
 
       <td>
         ${descripcion}
       </td>
+
 
       <td>
 
@@ -2510,29 +2756,47 @@ function addDynamicRow(tipo){
 
       </td>
 
+
       <td></td>
 
       <td></td>
+
 
       <td>
         ${checkInput(key)}
       </td>
 
+
       <td>
 
-        <input
-          id="obs_${key}"
-          class="cell-input observacion dynamic-observacion"
-          type="text"
-          maxlength="250"
-          placeholder="${placeholder}"
-        >
+        <div class="dynamic-obs-wrap">
+
+          <input
+            id="obs_${key}"
+            class="cell-input observacion dynamic-observacion"
+            type="text"
+            maxlength="250"
+            placeholder="${placeholder}"
+          >
+
+
+          <button
+            class="remove-row-btn"
+            type="button"
+            data-remove-row="${key}"
+            title="Eliminar esta fila"
+          >
+            −
+          </button>
+
+        </div>
 
       </td>
 
     </tr>
 
   `;
+
 
   const rows =
     Array.from(
@@ -2541,60 +2805,58 @@ function addDynamicRow(tipo){
       )
     );
 
+
   const anchor =
     rows.length
       ? rows[rows.length - 1]
       : $(parentId);
+
 
   anchor.insertAdjacentHTML(
     'afterend',
     html
   );
 
-  if(esCliente){
 
-    clienteCount =
-      numero;
+  /* ==================================================
+     ACTUALIZAR CONTADORES
+  ================================================== */
 
-    if(
-      clienteCount >= MAX_DETALLES
-    ){
+  clienteCount =
+    document.querySelectorAll(
+      '.dynamic-client-row'
+    ).length;
 
-      $('addClienteBtn').disabled =
-        true;
 
-    }
+  proveedorCount =
+    document.querySelectorAll(
+      '.dynamic-provider-row'
+    ).length;
 
-  }
 
-  else{
+  $('addClienteBtn').disabled =
+    clienteCount >= MAX_DETALLES;
 
-    proveedorCount =
-      numero;
 
-    if(
-      proveedorCount >= MAX_DETALLES
-    ){
+  $('addProveedorBtn').disabled =
+    proveedorCount >= MAX_DETALLES;
 
-      $('addProveedorBtn').disabled =
-        true;
-
-    }
-
-  }
 
   recalc();
+
 
   const input =
     $(key);
 
+
   if(input){
+
     input.focus();
+
   }
 
 }
-
-
+  
 /* ======================================================
    FECHA
 ====================================================== */
@@ -2755,40 +3017,117 @@ function bindEvents(){
     );
 
   document
-    .addEventListener(
-      'click',
-      e => {
+  .addEventListener(
+    'click',
+    e => {
 
-        const btn =
-          e.target.closest(
-            '[data-add-row]'
+
+      /* ===============================================
+         BOTÓN +
+      =============================================== */
+
+      const addBtn =
+        e.target.closest(
+          '[data-add-row]'
+        );
+
+
+      if(addBtn){
+
+        addDynamicRow(
+          addBtn.dataset.addRow
+        );
+
+        return;
+
+      }
+
+
+      /* ===============================================
+         BOTÓN -
+      =============================================== */
+
+      const removeBtn =
+        e.target.closest(
+          '[data-remove-row]'
+        );
+
+
+      if(removeBtn){
+
+        const fila =
+          removeBtn.closest(
+            '.dynamic-row'
           );
 
-        if(btn){
 
-          addDynamicRow(
-            btn.dataset.addRow
-          );
+        if(fila){
+
+          fila.remove();
 
         }
 
+
+        clienteCount =
+          document.querySelectorAll(
+            '.dynamic-client-row'
+          ).length;
+
+
+        proveedorCount =
+          document.querySelectorAll(
+            '.dynamic-provider-row'
+          ).length;
+
+
+        $('addClienteBtn').disabled =
+          clienteCount >= MAX_DETALLES;
+
+
+        $('addProveedorBtn').disabled =
+          proveedorCount >= MAX_DETALLES;
+
+
+        recalc();
+
       }
-    );
 
-  $('saveBtn')
-    .addEventListener(
-      'click',
-      saveCierre
-    );
+    }
+  );
 
-  $('reportBtn')
-    .addEventListener(
-      'click',
-      loadReports
-    );
+  $('printBtn')
+  .addEventListener(
+    'click',
+    imprimirCierre
+  );
+
+
+$('saveBtn')
+  .addEventListener(
+    'click',
+    saveCierre
+  );
+
+
+$('reportBtn')
+  .addEventListener(
+    'click',
+    loadReports
+  );
 
 }
 
+/* ======================================================
+   IMPRIMIR CIERRE / GUARDAR COMO PDF
+====================================================== */
+
+function imprimirCierre(){
+
+  recalc();
+
+  window.print();
+
+}
 
 /* ======================================================
    VALORES
