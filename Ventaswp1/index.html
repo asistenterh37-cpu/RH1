@@ -4252,6 +4252,22 @@
    2×  Baleada sencilla                    L 70.00
    ============================================================ */
 
+/* ============================================================
+   LINEA DEL DETALLE
+   ============================================================ */
+
+.pc-calc-line-wrap{
+
+  width:100%;
+
+  margin-bottom:2px;
+
+  border-radius:8px;
+
+  overflow:hidden;
+}
+
+
 .pc-calc-term{
 
   width:100%;
@@ -4267,10 +4283,41 @@
 
   column-gap:5px;
 
-  padding:5px 6px;
+  padding:6px;
+
+  border:0;
 
   border-radius:8px;
 
+  background:transparent;
+
+  color:inherit;
+
+  font:inherit;
+
+  text-align:left;
+
+  cursor:pointer;
+
+  appearance:none;
+
+  -webkit-appearance:none;
+}
+
+
+/*
+ * Línea tocada / seleccionada
+ */
+
+.pc-calc-line-wrap.editing
+.pc-calc-term{
+
+  background:
+    rgba(141,240,183,.10);
+
+  box-shadow:
+    inset 0 0 0 1px
+    rgba(141,240,183,.18);
 }
 
 
@@ -4331,6 +4378,198 @@
 
 }
 
+/* ============================================================
+   EDITOR DE UNA LINEA
+
+   [ − ]   cantidad   [ + ]   [ 🗑 ]
+   ============================================================ */
+
+.pc-calc-line-editor{
+
+  display:grid;
+
+  grid-template-columns:
+    38px
+    44px
+    38px
+    44px;
+
+  justify-content:start;
+
+  align-items:center;
+
+  gap:6px;
+
+  margin:
+    0
+    6px
+    5px;
+
+  padding:
+    6px
+    0
+    7px;
+
+  border-top:
+    1px solid
+    rgba(255,255,255,.12);
+}
+
+
+/* BOTONES − Y + */
+
+.pc-calc-line-control{
+
+  width:38px;
+
+  height:34px;
+
+  padding:0;
+
+  border:
+    1px solid
+    rgba(255,255,255,.18);
+
+  border-radius:8px;
+
+  background:
+    linear-gradient(
+      145deg,
+      #35413a,
+      #252f29
+    );
+
+  color:#ffffff;
+
+  font-size:19px;
+
+  font-weight:900;
+
+  line-height:1;
+
+  box-shadow:
+    0 3px 0 rgba(0,0,0,.35);
+
+  cursor:pointer;
+}
+
+
+/* CANTIDAD CENTRAL */
+
+.pc-calc-line-count{
+
+  min-width:44px;
+
+  text-align:center;
+
+  color:#8df0b7;
+
+  font-size:16px;
+
+  font-weight:900;
+}
+
+
+/* ELIMINAR LINEA */
+
+.pc-calc-line-delete{
+
+  width:44px;
+
+  height:34px;
+
+  padding:0;
+
+  border:
+    1px solid
+    rgba(255,150,150,.25);
+
+  border-radius:8px;
+
+  background:
+    linear-gradient(
+      145deg,
+      #7f2924,
+      #591b17
+    );
+
+  color:#ffffff;
+
+  font-size:15px;
+
+  cursor:pointer;
+
+  box-shadow:
+    0 3px 0 rgba(0,0,0,.35);
+}
+
+
+.pc-calc-line-control:active,
+.pc-calc-line-delete:active{
+
+  transform:
+    translateY(2px);
+
+  box-shadow:
+    0 1px 0 rgba(0,0,0,.35);
+}
+
+
+/*
+ * Cuando cantidad = 1
+ * el botón − queda desactivado.
+ */
+
+.pc-calc-line-control:disabled{
+
+  opacity:.35;
+
+  cursor:not-allowed;
+
+  transform:none;
+
+  box-shadow:none;
+}
+
+
+@media(max-width:560px){
+
+  .pc-calc-line-editor{
+
+    grid-template-columns:
+      36px
+      40px
+      36px
+      42px;
+
+    gap:5px;
+  }
+
+
+  .pc-calc-line-control{
+
+    width:36px;
+
+    height:32px;
+  }
+
+
+  .pc-calc-line-count{
+
+    min-width:40px;
+
+    font-size:15px;
+  }
+
+
+  .pc-calc-line-delete{
+
+    width:42px;
+
+    height:32px;
+  }
+
+}
 
 /* ARTÍCULO ACTUAL */
 
@@ -5457,13 +5696,23 @@ let pcCalcCurrentType =
 let pcCalcLines = [];
 
 
+/*
+ * Línea del detalle que está abierta
+ * para modificar cantidad o eliminar.
+ *
+ * -1 = ninguna línea abierta.
+ */
+
+let pcCalcEditingLine =
+  -1;
+
+
 let pcCalcClosed =
   false;
 
 
 let pcCalcLoading =
   false;
-
 
 
 /* ============================================================
@@ -6257,7 +6506,14 @@ function pcCalcRenderReceipt(){
     );
 
 
+  /*
+   * ========================================================
+   * DETALLE
+   * ========================================================
+   */
+
   if(receipt){
+
 
     if(
       !pcCalcLines.length
@@ -6268,7 +6524,9 @@ function pcCalcRenderReceipt(){
 
     }
 
+
     else{
+
 
       receipt.innerHTML =
         `
@@ -6278,7 +6536,10 @@ function pcCalcRenderReceipt(){
 
             pcCalcLines
               .map(
-                line => {
+                (
+                  line,
+                  index
+                ) => {
 
 
                   const subtotal =
@@ -6291,40 +6552,138 @@ function pcCalcRenderReceipt(){
                     );
 
 
+                  const editing =
+                    index ===
+                    pcCalcEditingLine;
+
+
                   return `
-                    <span class="pc-calc-term">
-
-                      <span class="pc-calc-term-qty">
-
-                        ${line.cantidad}×
-
-                      </span>
+                    <div
+                      class="
+                        pc-calc-line-wrap
+                        ${editing ? 'editing' : ''}
+                      ">
 
 
-                      <span
-                        class="pc-calc-term-food"
-                        title="${pcCalcEsc(
-                          line.comida
-                        )}">
+                      <!-- ================================
+                           LINEA PRINCIPAL
+                           ================================ -->
 
-                        ${pcCalcEsc(
-                          pcCalcShortFoodName(
+                      <button
+                        type="button"
+                        class="pc-calc-term"
+                        onclick="pcCalcToggleLine(${index})"
+                        aria-expanded="${editing ? 'true' : 'false'}"
+                        title="Toca para modificar esta línea">
+
+
+                        <span class="pc-calc-term-qty">
+
+                          ${line.cantidad}×
+
+                        </span>
+
+
+                        <span
+                          class="pc-calc-term-food"
+                          title="${pcCalcEsc(
                             line.comida
-                          )
-                        )}
+                          )}">
 
-                      </span>
+                          ${pcCalcEsc(
+                            pcCalcShortFoodName(
+                              line.comida
+                            )
+                          )}
+
+                        </span>
 
 
-                      <span class="pc-calc-term-subtotal">
+                        <span class="pc-calc-term-subtotal">
 
-                        ${pcCalcMoney(
-                          subtotal
-                        )}
+                          ${pcCalcMoney(
+                            subtotal
+                          )}
 
-                      </span>
+                        </span>
 
-                    </span>
+
+                      </button>
+
+
+                      ${
+                        editing
+
+                        ?
+
+                        `
+                        <!-- ==============================
+                             EDITOR
+                             ============================== -->
+
+                        <div class="pc-calc-line-editor">
+
+
+                          <!-- DISMINUIR -->
+
+                          <button
+                            type="button"
+                            class="pc-calc-line-control"
+                            onclick="pcCalcChangeLineQty(${index},-1)"
+                            ${Number(line.cantidad) <= 1 ? 'disabled' : ''}
+                            aria-label="Disminuir cantidad">
+
+                            −
+
+                          </button>
+
+
+                          <!-- CANTIDAD -->
+
+                          <span class="pc-calc-line-count">
+
+                            ${line.cantidad}
+
+                          </span>
+
+
+                          <!-- AUMENTAR -->
+
+                          <button
+                            type="button"
+                            class="pc-calc-line-control"
+                            onclick="pcCalcChangeLineQty(${index},1)"
+                            aria-label="Aumentar cantidad">
+
+                            +
+
+                          </button>
+
+
+                          <!-- ELIMINAR -->
+
+                          <button
+                            type="button"
+                            class="pc-calc-line-delete"
+                            onclick="pcCalcDeleteLine(${index})"
+                            aria-label="Eliminar línea"
+                            title="Eliminar">
+
+                            🗑
+
+                          </button>
+
+
+                        </div>
+                        `
+
+                        :
+
+                        ''
+                      }
+
+
+                    </div>
                   `;
 
                 }
@@ -6352,8 +6711,9 @@ function pcCalcRenderReceipt(){
 
 
   /*
-   * El total únicamente aparece
-   * cuando se presiona =
+   * ========================================================
+   * TOTAL
+   * ========================================================
    */
 
   if(total){
@@ -6375,6 +6735,12 @@ function pcCalcRenderReceipt(){
   }
 
 
+  /*
+   * ========================================================
+   * ESTADO
+   * ========================================================
+   */
+
   if(state){
 
     state.textContent =
@@ -6394,6 +6760,224 @@ function pcCalcRenderReceipt(){
 }
 
 
+
+/* ============================================================
+   ABRIR / CERRAR EDICION DE UNA LINEA
+   ============================================================ */
+
+function pcCalcToggleLine(index){
+
+  if(
+    !pcCalcLines[index]
+  ){
+    return;
+  }
+
+
+  if(
+    pcCalcEditingLine ===
+    index
+  ){
+
+    pcCalcEditingLine =
+      -1;
+
+  }
+
+  else{
+
+    pcCalcEditingLine =
+      index;
+
+  }
+
+
+  pcCalcRenderReceipt();
+
+}
+
+
+
+/* ============================================================
+   AUMENTAR / DISMINUIR CANTIDAD
+
+   delta:
+   -1 = disminuir
+    1 = aumentar
+   ============================================================ */
+
+function pcCalcChangeLineQty(
+  index,
+  delta
+){
+
+  const line =
+    pcCalcLines[
+      index
+    ];
+
+
+  if(!line){
+    return;
+  }
+
+
+  /*
+   * Si ya se había presionado =
+   * y luego se modifica una línea,
+   * reabrimos la cuenta.
+   */
+
+  if(
+    pcCalcClosed
+  ){
+
+    pcCalcClosed =
+      false;
+
+  }
+
+
+  const current =
+    Number(
+      line.cantidad
+    )
+    ||
+    1;
+
+
+  const next =
+    current
+    +
+    Number(
+      delta
+      ||
+      0
+    );
+
+
+  /*
+   * Mínimo 1.
+   *
+   * Para eliminar se usa 🗑.
+   */
+
+  if(
+    next < 1
+  ){
+    return;
+  }
+
+
+  line.cantidad =
+    Math.min(
+      999,
+      next
+    );
+
+
+  pcCalcEditingLine =
+    index;
+
+
+  /*
+   * Actualizar botones de comidas.
+   */
+
+  pcCalcRenderFoodKeys();
+
+
+  /*
+   * Actualizar subtotal y detalle.
+   */
+
+  pcCalcRenderReceipt();
+
+
+  pcCalcSetStatus(
+    line.cantidad
+    +
+    ' × '
+    +
+    line.comida
+  );
+
+}
+
+
+
+/* ============================================================
+   ELIMINAR COMPLETAMENTE UNA LINEA
+   ============================================================ */
+
+function pcCalcDeleteLine(index){
+
+  const line =
+    pcCalcLines[
+      index
+    ];
+
+
+  if(!line){
+    return;
+  }
+
+
+  const comida =
+    line.comida;
+
+
+  /*
+   * Si estaba totalizada,
+   * reabrimos la cuenta.
+   */
+
+  if(
+    pcCalcClosed
+  ){
+
+    pcCalcClosed =
+      false;
+
+  }
+
+
+  /*
+   * Quitar línea.
+   */
+
+  pcCalcLines.splice(
+    index,
+    1
+  );
+
+
+  /*
+   * Cerrar editor.
+   */
+
+  pcCalcEditingLine =
+    -1;
+
+
+  /*
+   * Quitar también el estado
+   * seleccionado de su tarjeta.
+   */
+
+  pcCalcRenderFoodKeys();
+
+
+  pcCalcRenderReceipt();
+
+
+  pcCalcSetStatus(
+    comida
+    +
+    ' eliminado de la cuenta.'
+  );
+
+}
 
 /* ============================================================
    = TOTALIZAR
@@ -6424,6 +7008,19 @@ function pcCalcCloseSum(){
   }
 
 
+  /*
+   * Cerrar cualquier línea
+   * que estuviera en edición.
+   */
+
+  pcCalcEditingLine =
+    -1;
+
+
+  /*
+   * Cerrar la cuenta.
+   */
+
   pcCalcClosed =
     true;
 
@@ -6451,9 +7048,25 @@ function pcCalcCloseSum(){
 
 function pcCalcNewAccount(){
 
+  /*
+   * Vaciar completamente.
+   */
+
   pcCalcLines =
     [];
 
+
+  /*
+   * Cerrar editor.
+   */
+
+  pcCalcEditingLine =
+    -1;
+
+
+  /*
+   * Abrir nueva cuenta.
+   */
 
   pcCalcClosed =
     false;
@@ -6469,8 +7082,6 @@ function pcCalcNewAccount(){
   );
 
 }
-
-
 </script>
   
 <!-- ============================================================
