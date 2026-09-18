@@ -1063,7 +1063,7 @@ tr{
 
 .filters{
   display:grid;
-  grid-template-columns:1fr 1fr auto;
+  grid-template-columns:1fr 1fr 1fr 1fr auto;
   gap:14px;
   align-items:end;
   padding:20px 22px;
@@ -1077,13 +1077,16 @@ tr{
   font-weight:800;
 }
 
-.field input{
+.field input,
+.field select{
   width:100%;
+  height:40px;
   border:1px solid #cbd1da;
   border-radius:9px;
-  padding:10px 12px;
+  padding:0 12px;
   font-size:14px;
   background:#fff;
+  color:var(--text);
 }
 
 .report-summary{
@@ -1293,7 +1296,7 @@ tr{
 
 <script>
 const SCRIPT_URL =
-'https://script.google.com/macros/s/AKfycbxTh4Q6muDANTCjflCr4hwZFT-sa56ritHG0L64v_F-ZY2wCl7JfmyE4YThjARFfUIP/exec';
+'https://script.google.com/macros/s/AKfycbyQAD0eATXvYLqOr3Z10pmAS7Q2jnvZYSgRbcdP7tYqeDxCgno0lr8p_sm8g3czaUiB/exec';
 </script>
 
 <header class="topbar">
@@ -1870,42 +1873,85 @@ const SCRIPT_URL =
 
       <div class="filters">
 
-        <div class="field">
+  <div class="field">
 
-          <label for="desde">
-            Desde
-          </label>
+    <label for="desde">
+      Desde
+    </label>
 
-          <input
-            id="desde"
-            type="date"
-          >
+    <input
+      id="desde"
+      type="date"
+    >
 
-        </div>
+  </div>
 
-        <div class="field">
 
-          <label for="hasta">
-            Hasta
-          </label>
+  <div class="field">
 
-          <input
-            id="hasta"
-            type="date"
-          >
+    <label for="hasta">
+      Hasta
+    </label>
 
-        </div>
+    <input
+      id="hasta"
+      type="date"
+    >
 
-        <button
-          id="reportBtn"
-          class="btn btn-primary"
-          type="button"
-        >
-          Mostrar cierres
-        </button>
+  </div>
 
-      </div>
 
+  <div class="field">
+
+    <label for="ubicacionReporte">
+      Ubicación
+    </label>
+
+    <select id="ubicacionReporte">
+
+      <option value="">
+        Seleccionar
+      </option>
+
+      <option value="__TODAS__">
+        Todas
+      </option>
+
+    </select>
+
+  </div>
+
+
+  <div class="field">
+
+    <label for="responsableReporte">
+      Responsable
+    </label>
+
+    <select id="responsableReporte">
+
+      <option value="">
+        Seleccionar
+      </option>
+
+      <option value="__TODOS__">
+        Todos
+      </option>
+
+    </select>
+
+  </div>
+
+
+  <button
+    id="reportBtn"
+    class="btn btn-primary"
+    type="button"
+  >
+    Mostrar cierres
+  </button>
+
+</div>
       <div
         id="reportSummary"
         class="report-summary"
@@ -2132,6 +2178,7 @@ async function loadCatalogos(){
         'catalogos'
       );
 
+
     if(
       !data ||
       data.ok !== true
@@ -2145,59 +2192,169 @@ async function loadCatalogos(){
 
     }
 
+
     const ubicacionSelect =
       $('ubicacionSelect');
+
 
     const responsableSelect =
       $('responsableSelect');
 
+
+    const ubicacionReporte =
+      $('ubicacionReporte');
+
+
+    const responsableReporte =
+      $('responsableReporte');
+
+
+    /* ==================================================
+       FORMULARIO DE CIERRE
+    ================================================== */
+
     ubicacionSelect.innerHTML =
       '<option value="">Seleccionar</option>';
 
+
     responsableSelect.innerHTML =
       '<option value="">Seleccionar</option>';
+
+
+    /* ==================================================
+       FILTROS DE REPORTES
+    ================================================== */
+
+    ubicacionReporte.innerHTML =
+      `
+        <option value="">
+          Seleccionar
+        </option>
+
+        <option value="__TODAS__">
+          Todas
+        </option>
+      `;
+
+
+    responsableReporte.innerHTML =
+      `
+        <option value="">
+          Seleccionar
+        </option>
+
+        <option value="__TODOS__">
+          Todos
+        </option>
+      `;
+
+
+    /* ==================================================
+       UBICACIONES
+    ================================================== */
 
     (data.ubicaciones || [])
       .forEach(
         ubicacion => {
 
-          const option =
+
+          /* CIERRE */
+
+          const optionCierre =
             document.createElement(
               'option'
             );
 
-          option.value =
+
+          optionCierre.value =
             ubicacion;
 
-          option.textContent =
+
+          optionCierre.textContent =
             ubicacion;
+
 
           ubicacionSelect
             .appendChild(
-              option
+              optionCierre
+            );
+
+
+          /* REPORTE */
+
+          const optionReporte =
+            document.createElement(
+              'option'
+            );
+
+
+          optionReporte.value =
+            ubicacion;
+
+
+          optionReporte.textContent =
+            ubicacion;
+
+
+          ubicacionReporte
+            .appendChild(
+              optionReporte
             );
 
         }
       );
 
+
+    /* ==================================================
+       RESPONSABLES
+    ================================================== */
+
     (data.responsables || [])
       .forEach(
         responsable => {
 
-          const option =
+
+          /* CIERRE */
+
+          const optionCierre =
             document.createElement(
               'option'
             );
 
-          option.value =
+
+          optionCierre.value =
             responsable;
 
-          option.textContent =
+
+          optionCierre.textContent =
             responsable;
+
 
           responsableSelect
             .appendChild(
-              option
+              optionCierre
+            );
+
+
+          /* REPORTE */
+
+          const optionReporte =
+            document.createElement(
+              'option'
+            );
+
+
+          optionReporte.value =
+            responsable;
+
+
+          optionReporte.textContent =
+            responsable;
+
+
+          responsableReporte
+            .appendChild(
+              optionReporte
             );
 
         }
@@ -2205,12 +2362,14 @@ async function loadCatalogos(){
 
   }
 
+
   catch(error){
 
     console.error(
       'ERROR CATÁLOGOS:',
       error
     );
+
 
     toast(
       'No se pudieron cargar Ubicación y Responsable.',
@@ -2220,8 +2379,6 @@ async function loadCatalogos(){
   }
 
 }
-
-
 /* ======================================================
    INPUT MONETARIO
 ====================================================== */
@@ -4636,6 +4793,18 @@ async function loadReports(){
     $('hasta').value;
 
 
+  const ubicacion =
+    $('ubicacionReporte').value;
+
+
+  const responsable =
+    $('responsableReporte').value;
+
+
+  /* ==================================================
+     VALIDAR FECHAS
+  ================================================== */
+
   if(
     !desde ||
     !hasta
@@ -4665,6 +4834,46 @@ async function loadReports(){
   }
 
 
+  /* ==================================================
+     VALIDAR UBICACIÓN
+  ================================================== */
+
+  if(
+    !ubicacion
+  ){
+
+    toast(
+      'Selecciona una Ubicación o Todas.',
+      false
+    );
+
+    $('ubicacionReporte').focus();
+
+    return;
+
+  }
+
+
+  /* ==================================================
+     VALIDAR RESPONSABLE
+  ================================================== */
+
+  if(
+    !responsable
+  ){
+
+    toast(
+      'Selecciona un Responsable o Todos.',
+      false
+    );
+
+    $('responsableReporte').focus();
+
+    return;
+
+  }
+
+
   $('reportBtn').disabled =
     true;
 
@@ -4683,11 +4892,19 @@ async function loadReports(){
       await jsonpRequest(
         'reportes',
         {
+
           desde:
             desde,
 
           hasta:
-            hasta
+            hasta,
+
+          ubicacion:
+            ubicacion,
+
+          responsable:
+            responsable
+
         }
       );
 
@@ -4704,9 +4921,12 @@ async function loadReports(){
     }
 
 
-    renderReports(data);
+    renderReports(
+      data
+    );
 
   }
+
 
   catch(error){
 
@@ -4735,6 +4955,7 @@ async function loadReports(){
 
   }
 
+
   finally{
 
     $('reportBtn').disabled =
@@ -4747,8 +4968,7 @@ async function loadReports(){
   }
 
 }
-
-
+  
 /* ======================================================
    MOSTRAR REPORTES
 ====================================================== */
@@ -4813,12 +5033,28 @@ function renderReports(data){
 
             <div class="report-head">
 
-              <strong>
-                Cierre:
-                ${escapeHtml(
-                  cierre.fechaTexto || ''
-                )}
-              </strong>
+             <strong>
+
+  Cierre:
+  ${escapeHtml(
+    cierre.fechaTexto || ''
+  )}
+
+  &nbsp; | &nbsp;
+
+  Ubicación:
+  ${escapeHtml(
+    cierre.ubicacion || ''
+  )}
+
+  &nbsp; | &nbsp;
+
+  Responsable:
+  ${escapeHtml(
+    cierre.responsable || ''
+  )}
+
+</strong>
 
               <div class="report-mini-totals">
 
