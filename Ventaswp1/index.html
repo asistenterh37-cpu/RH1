@@ -4728,6 +4728,248 @@
 
 }
 
+/* ============================================================
+   EFECTIVO RECIBIDO / CAMBIO
+
+   Oculto mientras se toma el pedido.
+   Aparece únicamente después de =
+   ============================================================ */
+
+.pc-calc-cash{
+
+  display:none;
+
+  flex:
+    0 0 auto;
+
+  margin-top:
+    8px;
+
+  padding-top:
+    8px;
+
+  border-top:
+    1px solid
+    rgba(255,255,255,.17);
+}
+
+
+/* MOSTRAR DESPUES DE = */
+
+.pc-calc-cash.show{
+
+  display:grid;
+
+  gap:7px;
+}
+
+
+/* ============================================================
+   EFECTIVO RECIBIDO
+   ============================================================ */
+
+.pc-calc-cash-row{
+
+  display:grid;
+
+  grid-template-columns:
+    minmax(0,1fr)
+    minmax(125px,180px);
+
+  align-items:center;
+
+  gap:10px;
+}
+
+
+.pc-calc-cash-row label{
+
+  color:#d8e3dc;
+
+  font-size:12px;
+
+  font-weight:900;
+
+  letter-spacing:.25px;
+}
+
+
+/* CAJA L 500.00 */
+
+.pc-calc-cash-input-wrap{
+
+  display:grid;
+
+  grid-template-columns:
+    auto
+    minmax(0,1fr);
+
+  align-items:center;
+
+  gap:5px;
+
+  min-width:0;
+
+  padding:
+    4px
+    8px;
+
+  border:
+    1px solid
+    rgba(141,240,183,.35);
+
+  border-radius:9px;
+
+  background:
+    rgba(255,255,255,.07);
+}
+
+
+.pc-calc-cash-input-wrap span{
+
+  color:#8df0b7;
+
+  font-size:16px;
+
+  font-weight:900;
+}
+
+
+.pc-calc-cash-input-wrap input{
+
+  width:100%;
+
+  min-width:0;
+
+  padding:
+    4px
+    2px;
+
+  border:0;
+
+  outline:0;
+
+  background:transparent;
+
+  color:#ffffff;
+
+  text-align:right;
+
+  font-size:19px;
+
+  font-weight:900;
+}
+
+
+.pc-calc-cash-input-wrap input::placeholder{
+
+  color:
+    rgba(255,255,255,.35);
+}
+
+
+/* ============================================================
+   CAMBIO / FALTANTE
+   ============================================================ */
+
+.pc-calc-change-row{
+
+  display:flex;
+
+  justify-content:space-between;
+
+  align-items:center;
+
+  gap:10px;
+}
+
+
+.pc-calc-change-row span{
+
+  color:#b7c5bd;
+
+  font-size:12px;
+
+  font-weight:900;
+}
+
+
+.pc-calc-change-row strong{
+
+  color:#8df0b7;
+
+  font-size:22px;
+
+  font-weight:900;
+}
+
+
+/* DINERO SUFICIENTE */
+
+.pc-calc-change-row strong.ok{
+
+  color:#8df0b7;
+}
+
+
+/* DINERO INSUFICIENTE */
+
+.pc-calc-change-row strong.short{
+
+  color:#ffad9f;
+}
+
+
+/* ============================================================
+   CELULAR
+   ============================================================ */
+
+@media(max-width:560px){
+
+  .pc-calc-cash{
+
+    margin-top:6px;
+
+    padding-top:7px;
+  }
+
+
+  .pc-calc-cash-row{
+
+    grid-template-columns:
+      minmax(0,1fr)
+      126px;
+
+    gap:6px;
+  }
+
+
+  .pc-calc-cash-row label{
+
+    font-size:10px;
+  }
+
+
+  .pc-calc-cash-input-wrap{
+
+    padding:
+      3px
+      6px;
+  }
+
+
+  .pc-calc-cash-input-wrap input{
+
+    font-size:18px;
+  }
+
+
+  .pc-calc-change-row strong{
+
+    font-size:20px;
+  }
+
+}
 
 /* ============================================================
    CONTROLES
@@ -5552,16 +5794,81 @@
 
         <div class="pc-calc-screen-foot">
 
-          <span id="pcCalcState">
-            Cuenta abierta
-          </span>
+  <span id="pcCalcState">
+    Cuenta abierta
+  </span>
 
-          <strong id="pcCalcTotal">
-            —
-          </strong>
+  <strong id="pcCalcTotal">
+    —
+  </strong>
 
-        </div>
+</div>
 
+
+<!-- ========================================================
+     EFECTIVO RECIBIDO / CAMBIO
+
+     Solo aparece después de presionar =
+     ======================================================== -->
+
+<div
+  id="pcCalcCash"
+  class="pc-calc-cash"
+  aria-hidden="true">
+
+
+  <!-- EFECTIVO RECIBIDO -->
+
+  <div class="pc-calc-cash-row">
+
+    <label for="pcCalcCashInput">
+
+      EFECTIVO RECIBIDO
+
+    </label>
+
+
+    <div class="pc-calc-cash-input-wrap">
+
+      <span>
+        L
+      </span>
+
+      <input
+        id="pcCalcCashInput"
+        type="text"
+        inputmode="decimal"
+        enterkeyhint="done"
+        autocomplete="off"
+        placeholder="0.00"
+        oninput="pcCalcUpdateChange()"
+        onfocus="this.select()">
+
+    </div>
+
+  </div>
+
+
+  <!-- CAMBIO / FALTANTE -->
+
+  <div class="pc-calc-change-row">
+
+    <span id="pcCalcChangeLabel">
+
+      CAMBIO
+
+    </span>
+
+    <strong id="pcCalcChangeAmount">
+
+      —
+
+    </strong>
+
+  </div>
+
+
+</div>
 
       </div>
 
@@ -6745,8 +7052,17 @@ if(state){
     'TOTAL ACTUAL';
 
 }
-}
 
+
+/*
+ * Mostrar u ocultar
+ * efectivo / cambio.
+ */
+
+pcCalcRenderCash();
+
+
+}
 
 
 /* ============================================================
@@ -6968,6 +7284,308 @@ function pcCalcDeleteLine(index){
 }
 
 /* ============================================================
+   EFECTIVO RECIBIDO / CAMBIO
+   ============================================================ */
+
+
+/* ============================================================
+   LEER EFECTIVO INGRESADO
+
+   Acepta:
+   500
+   500.50
+   500,50
+   ============================================================ */
+
+function pcCalcCashValue(){
+
+  const input =
+    document.getElementById(
+      'pcCalcCashInput'
+    );
+
+
+  if(!input){
+
+    return null;
+
+  }
+
+
+  const raw =
+    String(
+      input.value
+      ||
+      ''
+    )
+    .trim();
+
+
+  /*
+   * Campo vacío.
+   */
+
+  if(!raw){
+
+    return null;
+
+  }
+
+
+  /*
+   * Convertir coma decimal
+   * a punto.
+   */
+
+  let clean =
+    raw
+      .replace(
+        /,/g,
+        '.'
+      )
+      .replace(
+        /[^0-9.]/g,
+        ''
+      );
+
+
+  /*
+   * Evitar más de un punto decimal.
+   */
+
+  const firstDot =
+    clean.indexOf(
+      '.'
+    );
+
+
+  if(
+    firstDot !==
+    -1
+  ){
+
+    clean =
+      clean.slice(
+        0,
+        firstDot + 1
+      )
+      +
+      clean
+        .slice(
+          firstDot + 1
+        )
+        .replace(
+          /\./g,
+          ''
+        );
+
+  }
+
+
+  const value =
+    Number(
+      clean
+    );
+
+
+  if(
+    !Number.isFinite(
+      value
+    )
+  ){
+
+    return null;
+
+  }
+
+
+  return Math.max(
+    0,
+    value
+  );
+
+}
+
+
+
+/* ============================================================
+   CALCULAR CAMBIO EN TIEMPO REAL
+   ============================================================ */
+
+function pcCalcUpdateChange(){
+
+  const label =
+    document.getElementById(
+      'pcCalcChangeLabel'
+    );
+
+
+  const amount =
+    document.getElementById(
+      'pcCalcChangeAmount'
+    );
+
+
+  if(
+    !label
+    ||
+    !amount
+  ){
+
+    return;
+
+  }
+
+
+  const recibido =
+    pcCalcCashValue();
+
+
+  const total =
+    pcCalcTotalValue();
+
+
+  /*
+   * Limpiar clases anteriores.
+   */
+
+  amount.classList.remove(
+    'ok',
+    'short'
+  );
+
+
+  /*
+   * Todavía no se ha digitado efectivo.
+   */
+
+  if(
+    recibido ===
+    null
+  ){
+
+    label.textContent =
+      'CAMBIO';
+
+
+    amount.textContent =
+      '—';
+
+
+    return;
+
+  }
+
+
+  const diferencia =
+    recibido
+    -
+    total;
+
+
+  /*
+   * EFECTIVO SUFICIENTE
+   */
+
+  if(
+    diferencia >= 0
+  ){
+
+    label.textContent =
+      'CAMBIO';
+
+
+    amount.textContent =
+      pcCalcMoney(
+        diferencia
+      );
+
+
+    amount.classList.add(
+      'ok'
+    );
+
+  }
+
+
+  /*
+   * EFECTIVO INSUFICIENTE
+   */
+
+  else{
+
+    label.textContent =
+      'FALTAN';
+
+
+    amount.textContent =
+      pcCalcMoney(
+        Math.abs(
+          diferencia
+        )
+      );
+
+
+    amount.classList.add(
+      'short'
+    );
+
+  }
+
+}
+
+
+
+/* ============================================================
+   MOSTRAR / OCULTAR BLOQUE DE EFECTIVO
+   ============================================================ */
+
+function pcCalcRenderCash(){
+
+  const box =
+    document.getElementById(
+      'pcCalcCash'
+    );
+
+
+  if(!box){
+
+    return;
+
+  }
+
+
+  const show =
+    pcCalcClosed
+    &&
+    pcCalcLines.length > 0;
+
+
+  box.classList.toggle(
+    'show',
+    show
+  );
+
+
+  box.setAttribute(
+    'aria-hidden',
+    show
+      ?
+      'false'
+      :
+      'true'
+  );
+
+
+  if(show){
+
+    pcCalcUpdateChange();
+
+  }
+
+}  
+  
+/* ============================================================
    = TOTALIZAR
 
    Ya NO agrega ninguna comida.
@@ -6976,12 +7594,40 @@ function pcCalcDeleteLine(index){
 
 function pcCalcCloseSum(){
 
+  /*
+   * Si ya está totalizada,
+   * volver a tocar =
+   * lleva nuevamente al campo
+   * de efectivo.
+   */
+
   if(
     pcCalcClosed
   ){
+
+    const cashInput =
+      document.getElementById(
+        'pcCalcCashInput'
+      );
+
+
+    if(cashInput){
+
+      cashInput.focus();
+
+      cashInput.select();
+
+    }
+
+
     return;
+
   }
 
+
+  /*
+   * No hay nada que cobrar.
+   */
 
   if(
     !pcCalcLines.length
@@ -7006,7 +7652,7 @@ function pcCalcCloseSum(){
 
 
   /*
-   * Cerrar la cuenta.
+   * Cerrar cuenta.
    */
 
   pcCalcClosed =
@@ -7016,6 +7662,29 @@ function pcCalcCloseSum(){
   pcCalcRenderFoodKeys();
 
   pcCalcRenderReceipt();
+
+
+  /*
+   * ========================================================
+   * ABRIR TECLADO NUMERICO DEL CELULAR
+   *
+   * No necesitamos teclado propio.
+   * ========================================================
+   */
+
+  const cashInput =
+    document.getElementById(
+      'pcCalcCashInput'
+    );
+
+
+  if(cashInput){
+
+    cashInput.focus();
+
+    cashInput.select();
+
+  }
 
 
   pcCalcSetStatus(
@@ -7028,16 +7697,13 @@ function pcCalcCloseSum(){
 
 }
 
-
-
 /* ============================================================
    C = NUEVA CUENTA
    ============================================================ */
-
 function pcCalcNewAccount(){
 
   /*
-   * Vaciar completamente.
+   * Vaciar pedido.
    */
 
   pcCalcLines =
@@ -7045,7 +7711,7 @@ function pcCalcNewAccount(){
 
 
   /*
-   * Cerrar editor.
+   * Cerrar cualquier editor.
    */
 
   pcCalcEditingLine =
@@ -7053,11 +7719,66 @@ function pcCalcNewAccount(){
 
 
   /*
-   * Abrir nueva cuenta.
+   * Abrir cuenta nueva.
    */
 
   pcCalcClosed =
     false;
+
+
+  /*
+   * Limpiar efectivo recibido.
+   */
+
+  const cashInput =
+    document.getElementById(
+      'pcCalcCashInput'
+    );
+
+
+  if(cashInput){
+
+    cashInput.value =
+      '';
+
+  }
+
+
+  /*
+   * Limpiar resultado de cambio.
+   */
+
+  const changeLabel =
+    document.getElementById(
+      'pcCalcChangeLabel'
+    );
+
+
+  const changeAmount =
+    document.getElementById(
+      'pcCalcChangeAmount'
+    );
+
+
+  if(changeLabel){
+
+    changeLabel.textContent =
+      'CAMBIO';
+
+  }
+
+
+  if(changeAmount){
+
+    changeAmount.textContent =
+      '—';
+
+    changeAmount.classList.remove(
+      'ok',
+      'short'
+    );
+
+  }
 
 
   pcCalcRenderFoodKeys();
@@ -7070,6 +7791,7 @@ function pcCalcNewAccount(){
   );
 
 }
+  
 </script>
   
 <!-- ============================================================
