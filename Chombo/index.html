@@ -482,7 +482,53 @@ table{
   color:var(--text);
   font-size:16px;
 }
+.cierre-totales{
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  min-width:360px;
+}
 
+.total-linea{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:30px;
+  padding:7px 12px;
+  border-bottom:1px solid #e4e7ec;
+  color:var(--text);
+}
+
+.total-linea span{
+  font-weight:700;
+}
+
+.total-linea strong{
+  min-width:120px;
+  text-align:right;
+  font-size:17px;
+}
+
+.total-efectivo-linea{
+  margin-top:4px;
+  padding:11px 12px;
+  border:2px solid var(--primary);
+  border-radius:10px;
+  background:#eef4ff;
+}
+
+.total-efectivo-linea span{
+  font-size:17px;
+  font-weight:900;
+  color:var(--primary);
+}
+
+.total-efectivo-linea strong{
+  font-size:21px;
+  font-weight:900;
+  color:var(--primary);
+}
+  
 .btn{
   border:0;
   border-radius:10px;
@@ -956,57 +1002,61 @@ const SCRIPT_URL =
 
       </div>
 
-      <div class="footer-actions">
+<div class="footer-actions">
 
-        <div class="totals">
+  <div class="totals cierre-totales">
 
-          <div>
-            Total entradas:
-            <strong id="totalEntradas">
-              0.00
-            </strong>
-          </div>
+    <div class="total-linea">
 
-          <div>
-            Total salidas:
-            <strong id="totalSalidas">
-              0.00
-            </strong>
-          </div>
+      <span>
+        Caja apertura sig turno
+      </span>
 
-          <div>
-            Diferencia:
-            <strong id="diferencia">
-              0.00
-            </strong>
-          </div>
+      <strong id="cajaAperturaSigTurnoFooter">
+        0.00
+      </strong>
 
-          <div>
-            Pagos recibidos:
-            <strong id="totalPagosRecibidosFooter">
-              0.00
-            </strong>
-          </div>
+    </div>
 
-          <div>
-            Pago a proveedores:
-            <strong id="totalPagosProveedoresFooter">
-              0.00
-            </strong>
-          </div>
 
-        </div>
+    <div class="total-linea">
 
-        <button
-          id="saveBtn"
-          class="btn btn-primary"
-          type="button"
-        >
-          Guardar
-        </button>
+      <span>
+        Suma Entradas y Salidas
+      </span>
 
-      </div>
+      <strong id="sumaEntradasSalidas">
+        0.00
+      </strong>
 
+    </div>
+
+
+    <div class="total-linea total-efectivo-linea">
+
+      <span>
+        Total efectivo
+      </span>
+
+      <strong id="totalEfectivo">
+        0.00
+      </strong>
+
+    </div>
+
+  </div>
+
+
+  <button
+    id="saveBtn"
+    class="btn btn-primary"
+    type="button"
+  >
+    Guardar
+  </button>
+
+</div>
+      
     </div>
 
   </section>
@@ -2550,46 +2600,93 @@ function recalc(){
 
 
   $('pagosRecibidosTotal').value =
-    money.format(
-      pagosRecibidos
-    );
+  money.format(
+    pagosRecibidos
+  );
+
+$('pagosProveedoresTotal').value =
+  money.format(
+    pagosProveedores
+  );
 
 
-  $('pagosProveedoresTotal').value =
-    money.format(
-      pagosProveedores
-    );
+/*
+========================================================
+CAJA APERTURA SIGUIENTE TURNO
+========================================================
+*/
+
+const cajaAperturaSigTurno =
+  num(
+    'cajaAperturaSigTurno'
+  );
 
 
-  $('totalEntradas').textContent =
-    money.format(
-      totalEntradas
-    );
+/*
+========================================================
+SUMA ENTRADAS Y SALIDAS
+
+Representa el movimiento neto:
+Entradas - Salidas
+========================================================
+*/
+
+const sumaEntradasSalidas =
+  totalEntradas -
+  totalSalidas;
 
 
-  $('totalSalidas').textContent =
-    money.format(
-      totalSalidas
-    );
+/*
+========================================================
+TOTAL EFECTIVO
+
+Solo considera movimientos que afectan efectivo físico.
+========================================================
+*/
+
+const totalEfectivo =
+
+  num('aperturaCaja') +
+
+  num('efectivo') +
+
+  num('efectivoRespaldo') +
+
+  movimientosEntradas +
+
+  pagosRecibidos -
+
+  movimientosSalidas -
+
+  pagosProveedores -
+
+  num('tarjetasAEfectivo') -
+
+  cajaAperturaSigTurno;
 
 
-  $('diferencia').textContent =
-    money.format(
-      diferencia
-    );
+/*
+========================================================
+MOSTRAR TOTALES
+========================================================
+*/
+
+$('cajaAperturaSigTurnoFooter').textContent =
+  money.format(
+    cajaAperturaSigTurno
+  );
 
 
-  $('totalPagosRecibidosFooter').textContent =
-    money.format(
-      pagosRecibidos
-    );
+$('sumaEntradasSalidas').textContent =
+  money.format(
+    sumaEntradasSalidas
+  );
 
 
-  $('totalPagosProveedoresFooter').textContent =
-    money.format(
-      pagosProveedores
-    );
-
+$('totalEfectivo').textContent =
+  money.format(
+    totalEfectivo
+  );
 }
 
 
