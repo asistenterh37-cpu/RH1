@@ -1850,7 +1850,7 @@ const CONFIG = {
    */
 
   GAS_WEB_APP_URL:
-    'https://script.google.com/macros/s/AKfycbxmhXdT2rZVVP_iRi1xu3ttVeRxjecJDLSM8jZHH4PElMKqK86_xEstJGGXXx0Pks7g/exec'
+    'https://script.google.com/macros/s/AKfycby926tAW6QVTfaojEzn0T-iJtUUzS_9Uzucd1t7AZz8vRUuY9-BhDAi27HNnZ-77FQ/exec'
 
 };
 
@@ -3216,12 +3216,310 @@ function getItemFigure(item){
 }
 
 
+/* ============================================================
+   ITEMS + MODO VENTAS / MODO PRECIOS
+   ============================================================ */
+
+let appMode =
+  'sales';
+
+let changingPrice =
+  false;
+
 
 /* ============================================================
- ITEMS
- ============================================================ */
+   BOTON MODO
+   ============================================================ */
+
+function ensureModeButton(){
+
+  let button =
+    document.getElementById(
+      'modeButton'
+    );
+
+
+  if(button){
+
+    updateModeButton();
+
+    return;
+
+  }
+
+
+  const businessSelect =
+    document.getElementById(
+      'businessSelect'
+    );
+
+
+  if(
+    !businessSelect
+  ){
+    return;
+  }
+
+
+  const row =
+    businessSelect.closest(
+      '.business-row'
+    );
+
+
+  if(
+    !row
+  ){
+    return;
+  }
+
+
+  /*
+   * El último DIV es donde actualmente
+   * está el botón Actualizar.
+   */
+
+  const actions =
+    row.lastElementChild;
+
+
+  if(
+    !actions
+  ){
+    return;
+  }
+
+
+  actions.style.display =
+    'flex';
+
+  actions.style.gap =
+    '8px';
+
+  actions.style.flexWrap =
+    'wrap';
+
+
+  button =
+    document.createElement(
+      'button'
+    );
+
+
+  button.type =
+    'button';
+
+  button.id =
+    'modeButton';
+
+  button.className =
+    'category-btn on';
+
+
+  button.style.minHeight =
+    '46px';
+
+  button.style.padding =
+    '0 16px';
+
+  button.style.fontSize =
+    '14px';
+
+  button.style.fontWeight =
+    '900';
+
+
+  button.addEventListener(
+    'click',
+    toggleMode
+  );
+
+
+  actions.insertBefore(
+    button,
+    actions.firstChild
+  );
+
+
+  updateModeButton();
+
+}
+
+
+
+/* ============================================================
+   ACTUALIZAR APARIENCIA BOTON MODO
+   ============================================================ */
+
+function updateModeButton(){
+
+  const button =
+    document.getElementById(
+      'modeButton'
+    );
+
+
+  if(
+    !button
+  ){
+    return;
+  }
+
+
+  if(
+    appMode ===
+    'prices'
+  ){
+
+    button.textContent =
+      '🏷️ Modo Precios';
+
+    button.style.background =
+      '#d97706';
+
+    button.style.borderColor =
+      '#d97706';
+
+    button.style.color =
+      '#ffffff';
+
+    button.title =
+      'Toca para regresar a Modo Ventas';
+
+  }
+
+  else{
+
+    button.textContent =
+      '🛒 Modo Ventas';
+
+    button.style.background =
+      'var(--g)';
+
+    button.style.borderColor =
+      'var(--g)';
+
+    button.style.color =
+      '#ffffff';
+
+    button.title =
+      'Toca para cambiar a Modo Precios';
+
+  }
+
+}
+
+
+
+/* ============================================================
+   CAMBIAR MODO
+   ============================================================ */
+
+function toggleMode(){
+
+  if(
+    changingPrice
+  ){
+    return;
+  }
+
+
+  if(
+    appMode ===
+    'sales'
+  ){
+
+    appMode =
+      'prices';
+
+  }
+
+  else{
+
+    appMode =
+      'sales';
+
+  }
+
+
+  updateModeButton();
+
+
+  /*
+   * En modo precios deshabilitamos
+   * C y = para evitar operaciones
+   * accidentales.
+   */
+
+  document
+    .querySelectorAll(
+      '.operations button'
+    )
+    .forEach(
+      button => {
+
+        const disabled =
+          appMode ===
+          'prices';
+
+
+        button.disabled =
+          disabled;
+
+
+        button.style.opacity =
+          disabled
+          ?
+          '.45'
+          :
+          '1';
+
+
+        button.style.cursor =
+          disabled
+          ?
+          'not-allowed'
+          :
+          'pointer';
+
+      }
+    );
+
+
+  renderItems();
+
+
+  if(
+    appMode ===
+    'prices'
+  ){
+
+    setStatus(
+      'Modo Precios activo. Toca un ítem para modificar su precio.'
+    );
+
+  }
+
+  else{
+
+    setStatus(
+      'Modo Ventas activo.'
+    );
+
+  }
+
+}
+
+
+
+/* ============================================================
+   MOSTRAR ITEMS
+   ============================================================ */
 
 function renderItems(){
+
+  ensureModeButton();
+
 
   const grid =
     document.getElementById(
@@ -3350,13 +3648,22 @@ function renderItems(){
             );
 
 
+          const priceMode =
+            appMode ===
+            'prices';
+
+
           return `
             <button
               type="button"
               class="
                 item-btn
                 ${
-                  count
+                  (
+                    !priceMode
+                    &&
+                    count
+                  )
                   ?
                   'selected'
                   :
@@ -3430,6 +3737,14 @@ function renderItems(){
 
                 <span class="item-price">
 
+                  ${
+                    priceMode
+                    ?
+                    '✏️ '
+                    :
+                    ''
+                  }
+
                   ${money(
                     item.valor
                   )}
@@ -3438,17 +3753,34 @@ function renderItems(){
 
 
                 ${
-                  count
+                  priceMode
                   ?
                   `
-                  <span class="item-count">
-
-                    ${count}
-
+                  <span
+                    class="item-count"
+                    style="
+                      min-width:auto;
+                      padding:0 8px;
+                      background:#d97706;
+                    "
+                  >
+                    Editar
                   </span>
                   `
                   :
-                  ''
+                  (
+                    count
+                    ?
+                    `
+                    <span class="item-count">
+
+                      ${count}
+
+                    </span>
+                    `
+                    :
+                    ''
+                  )
                 }
 
               </span>
@@ -3473,9 +3805,28 @@ function renderItems(){
           'click',
           () => {
 
-            addItem(
-              button.dataset.itemId
-            );
+            const id =
+              button.dataset.itemId;
+
+
+            if(
+              appMode ===
+              'prices'
+            ){
+
+              editPrice(
+                id
+              );
+
+            }
+
+            else{
+
+              addItem(
+                id
+              );
+
+            }
 
           }
         );
@@ -3484,6 +3835,292 @@ function renderItems(){
     );
 
 }
+
+
+
+/* ============================================================
+   MODIFICAR PRECIO
+   ============================================================ */
+
+async function editPrice(
+  id
+){
+
+  if(
+    changingPrice
+  ){
+    return;
+  }
+
+
+  const item =
+    MENU.find(
+      x =>
+        x.id ===
+        id
+    );
+
+
+  if(
+    !item
+  ){
+
+    setStatus(
+      'No se encontró el ítem.',
+      true
+    );
+
+    return;
+
+  }
+
+
+  const answer =
+    window.prompt(
+      'Nuevo precio para:\n'
+      +
+      item.item
+      +
+      '\n\nPrecio actual: '
+      +
+      money(
+        item.valor
+      )
+      +
+      '\n\nEscribe el nuevo precio:',
+      Number(
+        item.valor
+      )
+      .toFixed(
+        2
+      )
+    );
+
+
+  /*
+   * Canceló.
+   */
+
+  if(
+    answer ===
+    null
+  ){
+    return;
+  }
+
+
+  let clean =
+    String(
+      answer
+    )
+    .trim()
+    .replace(
+      /L/gi,
+      ''
+    )
+    .replace(
+      /\s/g,
+      ''
+    );
+
+
+  /*
+   * Permitimos decimal con coma
+   * cuando no existe punto.
+   */
+
+  if(
+    clean.includes(',')
+    &&
+    !clean.includes('.')
+  ){
+
+    clean =
+      clean.replace(
+        ',',
+        '.'
+      );
+
+  }
+
+  else{
+
+    clean =
+      clean.replace(
+        /,/g,
+        ''
+      );
+
+  }
+
+
+  const number =
+    Number(
+      clean
+    );
+
+
+  if(
+    !Number.isFinite(
+      number
+    )
+    ||
+    number < 0
+  ){
+
+    setStatus(
+      'El precio ingresado no es válido.',
+      true
+    );
+
+    return;
+
+  }
+
+
+  const newPrice =
+    Math.round(
+      (
+        number
+        +
+        Number.EPSILON
+      )
+      *
+      100
+    )
+    /
+    100;
+
+
+  if(
+    newPrice ===
+    Number(
+      item.valor
+    )
+  ){
+
+    setStatus(
+      'El precio no cambió.'
+    );
+
+    return;
+
+  }
+
+
+  changingPrice =
+    true;
+
+
+  try{
+
+    setStatus(
+      'Actualizando precio de '
+      +
+      item.item
+      +
+      '...'
+    );
+
+
+    const response =
+      await jsonp(
+        'updatePrice',
+        {
+
+          id:
+            item.id,
+
+          valor:
+            newPrice,
+
+          item:
+            item.item,
+
+          negocio:
+            item.negocio,
+
+          categoria:
+            item.categoria
+
+        }
+      );
+
+
+    if(
+      !response
+      ||
+      response.ok !==
+      true
+    ){
+
+      throw new Error(
+        (
+          response
+          &&
+          response.error
+        )
+        ||
+        'No fue posible actualizar el precio.'
+      );
+
+    }
+
+
+    /*
+     * Cambiamos el valor local.
+     * La cajita se actualiza inmediatamente.
+     */
+
+    item.valor =
+      Number(
+        response.valor
+      );
+
+
+    renderItems();
+
+
+    setStatus(
+      item.item
+      +
+      ': precio actualizado a '
+      +
+      money(
+        item.valor
+      )
+      +
+      '.'
+    );
+
+  }
+
+  catch(error){
+
+    console.error(
+      error
+    );
+
+
+    setStatus(
+      error.message
+      ||
+      'Error actualizando el precio.',
+      true
+    );
+
+  }
+
+  finally{
+
+    changingPrice =
+      false;
+
+  }
+
+}
+
+
 
 /* ============================================================
    AGREGAR ITEM
@@ -3586,8 +4223,6 @@ function addItem(
   );
 
 }
-
-
 
 /* ============================================================
    TOTAL
