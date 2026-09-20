@@ -1850,7 +1850,7 @@ const CONFIG = {
    */
 
   GAS_WEB_APP_URL:
-    'https://script.google.com/macros/s/AKfycbxnFgUm_t5e0D3A3rx94kg8CU3RkLgrDxdTbZDQaGqMpypwFoF0RRmV2VPwAIb9sj1r/exec'
+    'https://script.google.com/macros/s/AKfycbye44ZyGRnO8YCGdQB4sUhQN9-U3GWza69e-7npmHZCHJapoJWs7gVJrW7UfG5Hypg/exec'
 
 };
 
@@ -5971,35 +5971,121 @@ function escapeAttr(
 
 <script>
 /* ============================================================
-   VARIABLES COBRO / COMPRAS
+   VARIABLES COBRO / MODOS
    ============================================================ */
 
 let cashEntry = '';
 
 let purchaseLines = [];
 
+let quoteLines = [];
+
 let purchaseSaving = false;
+
+let inventoryLoading = false;
+
+let inventorySnapshot = [];
+
+let saleDiscounts = {};
 
 let currentSupplier = '';
 
+
 try{
+
   currentSupplier =
     localStorage.getItem(
       'cajaLastSupplier'
     )
     ||
     '';
+
 }
+
 catch(_){
-  currentSupplier = '';
+
+  currentSupplier =
+    '';
+
 }
 
 
 /* ============================================================
-   CONVERTIR PRECIO ESCRITO
+   DEFINICION DE MODOS
    ============================================================ */
 
-function parseMoneyInput(value){
+const MODE_INFO = {
+
+  sales:{
+    label:'🛒 Modo Ventas',
+    color:'var(--g)',
+    text:'Modo Ventas activo.'
+  },
+
+  prices:{
+    label:'🏷️ Modo Precios',
+    color:'#d97706',
+    text:'Modo Precios activo. Toca un ítem para modificar su precio.'
+  },
+
+  purchases:{
+    label:'📦 Modo Compras',
+    color:'#2563eb',
+    text:'Modo Compras activo. Indica el proveedor y agrega los productos comprados.'
+  },
+
+  inventory:{
+    label:'📊 Modo Inventario',
+    color:'#0f766e',
+    text:'Modo Inventario activo. Consulta existencias y costo promedio.'
+  },
+
+  adjustments:{
+    label:'⚖️ Modo Ajustes',
+    color:'#7c3aed',
+    text:'Modo Ajustes activo. Toca un ítem para igualar el sistema al conteo físico.'
+  },
+
+  returns:{
+    label:'↩️ Modo Devoluciones',
+    color:'#be123c',
+    text:'Modo Devoluciones activo. Toca un ítem para registrar una devolución.'
+  },
+
+  margin:{
+    label:'📈 Modo Margen',
+    color:'#0891b2',
+    text:'Modo Margen activo. Compara precio de venta y costo promedio.'
+  },
+
+  discounts:{
+    label:'💸 Modo Descuentos',
+    color:'#c2410c',
+    text:'Modo Descuentos activo. Toca un ítem para aplicar descuento a la venta actual.'
+  },
+
+  quote:{
+    label:'🧾 Modo Cotización',
+    color:'#475569',
+    text:'Modo Cotización activo. Agrega productos sin afectar inventario.'
+  },
+
+  query:{
+    label:'🔎 Modo Consulta',
+    color:'#334155',
+    text:'Modo Consulta activo. Toca un ítem para ver su ficha.'
+  }
+
+};
+
+
+/* ============================================================
+   CONVERTIR VALOR MONETARIO
+   ============================================================ */
+
+function parseMoneyInput(
+  value
+){
 
   let text =
     String(
@@ -6050,9 +6136,12 @@ function parseMoneyInput(value){
 
 
   if(
-    !Number.isFinite(number)
+    !Number.isFinite(
+      number
+    )
     ||
-    number < 0
+    number <
+    0
   ){
 
     return null;
@@ -6076,7 +6165,204 @@ function parseMoneyInput(value){
 
 
 /* ============================================================
-   PROVEEDOR DE LA COMPRA
+   LLAVE INVENTARIO
+   ============================================================ */
+
+function inventoryKey(
+  categoria,
+  item
+){
+
+  return (
+    normalizeText(
+      categoria
+    )
+    +
+    '||'
+    +
+    normalizeText(
+      item
+    )
+  );
+
+}
+
+
+/* ============================================================
+   OBTENER INVENTARIO DE ITEM
+   ============================================================ */
+
+function inventoryForItem(
+  item
+){
+
+  const key =
+    inventoryKey(
+      item.categoria,
+      item.item
+    );
+
+
+  return (
+    inventorySnapshot.find(
+      x =>
+        inventoryKey(
+          x.categoria,
+          x.item
+        )
+        ===
+        key
+    )
+    ||
+    {
+
+      id:
+        item.id,
+
+      categoria:
+        item.categoria,
+
+      item:
+        item.item,
+
+      cantidad:
+        0,
+
+      costo:
+        0,
+
+      valorInventario:
+        0,
+
+      ultimoProveedor:
+        '',
+
+      ultimaCompra:
+        '',
+
+      ultimaVenta:
+        ''
+
+    }
+  );
+
+}
+
+
+/* ============================================================
+   CARGAR INVENTARIO
+   ============================================================ */
+
+async function loadInventorySnapshot(
+  force = false
+){
+
+  if(
+    inventoryLoading
+  ){
+    return;
+  }
+
+
+  if(
+    !force
+    &&
+    inventorySnapshot.length
+  ){
+    return;
+  }
+
+
+  inventoryLoading =
+    true;
+
+
+  try{
+
+    setStatus(
+      'Actualizando inventario...'
+    );
+
+
+    const response =
+      await jsonp(
+        'inventorySnapshot',
+        {},
+        20000
+      );
+
+
+    if(
+      !response
+      ||
+      response.ok !==
+      true
+    ){
+
+      throw new Error(
+        (
+          response
+          &&
+          response.error
+        )
+        ||
+        'No fue posible consultar el inventario.'
+      );
+
+    }
+
+
+    inventorySnapshot =
+      Array.isArray(
+        response.items
+      )
+      ?
+      response.items
+      :
+      [];
+
+  }
+
+  catch(error){
+
+    console.error(
+      error
+    );
+
+
+    setStatus(
+      error.message
+      ||
+      'Error consultando inventario.',
+      true
+    );
+
+  }
+
+  finally{
+
+    inventoryLoading =
+      false;
+
+  }
+
+}
+
+
+/* ============================================================
+   INVALIDAR INVENTARIO LOCAL
+   ============================================================ */
+
+function invalidateInventory(){
+
+  inventorySnapshot =
+    [];
+
+}
+
+
+/* ============================================================
+   PROVEEDOR
    ============================================================ */
 
 function ensurePurchaseSupplierBox(){
@@ -6114,26 +6400,16 @@ function ensurePurchaseSupplierBox(){
       'purchaseSupplierBox';
 
 
-    box.style.marginTop =
-      '12px';
-
-    box.style.padding =
-      '12px';
-
-    box.style.border =
-      '1px solid #dfe6e2';
-
-    box.style.borderRadius =
-      '13px';
-
-    box.style.background =
-      '#f7fbf9';
-
-    box.style.gridTemplateColumns =
-      '1fr';
-
-    box.style.gap =
-      '6px';
+    box.style.cssText =
+      `
+      margin-top:12px;
+      padding:12px;
+      border:1px solid #dfe6e2;
+      border-radius:13px;
+      background:#f7fbf9;
+      grid-template-columns:1fr;
+      gap:6px;
+      `;
 
 
     box.innerHTML =
@@ -6196,12 +6472,6 @@ function ensurePurchaseSupplierBox(){
           );
 
 
-        /*
-         * Recordar el último proveedor.
-         * Así no hay que escribirlo
-         * nuevamente en cada compra.
-         */
-
         try{
 
           localStorage.setItem(
@@ -6251,7 +6521,344 @@ function ensurePurchaseSupplierBox(){
 
 
 /* ============================================================
-   APARIENCIA DEL BOTON MODO
+   SELECTOR DE MODOS
+   ============================================================ */
+
+function ensureModeSelector(){
+
+  let overlay =
+    document.getElementById(
+      'modeSelectorOverlay'
+    );
+
+
+  if(
+    overlay
+  ){
+
+    return overlay;
+
+  }
+
+
+  overlay =
+    document.createElement(
+      'div'
+    );
+
+
+  overlay.id =
+    'modeSelectorOverlay';
+
+
+  overlay.style.cssText =
+    `
+    position:fixed;
+    inset:0;
+    z-index:99999;
+    background:rgba(15,23,42,.48);
+    display:none;
+    align-items:center;
+    justify-content:center;
+    padding:18px;
+    `;
+
+
+  overlay.innerHTML =
+    `
+    <div
+      style="
+        width:min(680px,100%);
+        max-height:88vh;
+        overflow:auto;
+        background:#fff;
+        border-radius:20px;
+        padding:18px;
+        box-shadow:0 24px 70px rgba(0,0,0,.25);
+      "
+    >
+
+      <div
+        style="
+          display:flex;
+          justify-content:space-between;
+          align-items:center;
+          gap:12px;
+          margin-bottom:14px;
+        "
+      >
+
+        <div>
+
+          <strong
+            style="font-size:20px;"
+          >
+            Seleccionar modo
+          </strong>
+
+          <div
+            style="
+              font-size:12px;
+              color:#6b7280;
+              margin-top:3px;
+            "
+          >
+            Elige qué quieres hacer con las cajitas.
+          </div>
+
+        </div>
+
+        <button
+          type="button"
+          onclick="closeModeSelector()"
+          style="
+            border:0;
+            background:#eef2f0;
+            border-radius:10px;
+            width:38px;
+            height:38px;
+            font-weight:900;
+          "
+        >
+          ✕
+        </button>
+
+      </div>
+
+      <div
+        id="modeSelectorGrid"
+        style="
+          display:grid;
+          grid-template-columns:repeat(2,minmax(0,1fr));
+          gap:10px;
+        "
+      >
+      </div>
+
+    </div>
+    `;
+
+
+  overlay.addEventListener(
+    'click',
+    event => {
+
+      if(
+        event.target ===
+        overlay
+      ){
+
+        closeModeSelector();
+
+      }
+
+    }
+  );
+
+
+  document.body.appendChild(
+    overlay
+  );
+
+
+  const grid =
+    overlay.querySelector(
+      '#modeSelectorGrid'
+    );
+
+
+  Object
+    .entries(
+      MODE_INFO
+    )
+    .forEach(
+      (
+        [
+          mode,
+          info
+        ]
+      ) => {
+
+        const button =
+          document.createElement(
+            'button'
+          );
+
+
+        button.type =
+          'button';
+
+
+        button.dataset.mode =
+          mode;
+
+
+        button.style.cssText =
+          `
+          min-height:64px;
+          text-align:left;
+          padding:12px 14px;
+          border:1px solid #dfe6e2;
+          border-radius:14px;
+          background:#fff;
+          font-weight:900;
+          box-shadow:0 3px 8px rgba(0,0,0,.05);
+          `;
+
+
+        button.textContent =
+          info.label;
+
+
+        button.addEventListener(
+          'click',
+          () =>
+            selectMode(
+              mode
+            )
+        );
+
+
+        grid.appendChild(
+          button
+        );
+
+      }
+    );
+
+
+  return overlay;
+
+}
+
+
+/* ============================================================
+   CERRAR SELECTOR
+   ============================================================ */
+
+function closeModeSelector(){
+
+  const overlay =
+    document.getElementById(
+      'modeSelectorOverlay'
+    );
+
+
+  if(
+    overlay
+  ){
+
+    overlay.style.display =
+      'none';
+
+  }
+
+
+  document.body.style.overflow =
+    '';
+
+}
+
+
+/* ============================================================
+   BOTON MODO
+   ============================================================ */
+
+function toggleMode(){
+
+  if(
+    changingPrice
+    ||
+    purchaseSaving
+  ){
+
+    return;
+
+  }
+
+
+  const overlay =
+    ensureModeSelector();
+
+
+  overlay.style.display =
+    'flex';
+
+
+  document.body.style.overflow =
+    'hidden';
+
+}
+
+
+/* ============================================================
+   SELECCIONAR MODO
+   ============================================================ */
+
+async function selectMode(
+  mode
+){
+
+  if(
+    !MODE_INFO[
+      mode
+    ]
+  ){
+
+    return;
+
+  }
+
+
+  appMode =
+    mode;
+
+
+  editingLine =
+    -1;
+
+
+  closeModeSelector();
+
+
+  if(
+    [
+      'inventory',
+      'adjustments',
+      'returns',
+      'margin',
+      'query'
+    ]
+    .includes(
+      mode
+    )
+  ){
+
+    await loadInventorySnapshot(
+      true
+    );
+
+  }
+
+
+  updateModeButton();
+
+  renderReceipt();
+
+  renderItems();
+
+
+  setStatus(
+    MODE_INFO[
+      mode
+    ].text
+  );
+
+}
+
+
+/* ============================================================
+   APARIENCIA BOTON MODO
    ============================================================ */
 
 function updateModeButton(){
@@ -6265,72 +6872,40 @@ function updateModeButton(){
   if(
     !button
   ){
+
     return;
-  }
-
-
-  if(
-    appMode ===
-    'prices'
-  ){
-
-    button.textContent =
-      '🏷️ Modo Precios';
-
-    button.style.background =
-      '#d97706';
-
-    button.style.borderColor =
-      '#d97706';
-
-    button.style.color =
-      '#ffffff';
-
-    button.title =
-      'Toca para cambiar a Modo Compras';
 
   }
 
-  else if(
-    appMode ===
-    'purchases'
-  ){
 
-    button.textContent =
-      '📦 Modo Compras';
+  const info =
+    MODE_INFO[
+      appMode
+    ]
+    ||
+    MODE_INFO.sales;
 
-    button.style.background =
-      '#2563eb';
 
-    button.style.borderColor =
-      '#2563eb';
+  button.textContent =
+    info.label
+    +
+    ' ▾';
 
-    button.style.color =
-      '#ffffff';
 
-    button.title =
-      'Toca para regresar a Modo Ventas';
+  button.style.background =
+    info.color;
 
-  }
 
-  else{
+  button.style.borderColor =
+    info.color;
 
-    button.textContent =
-      '🛒 Modo Ventas';
 
-    button.style.background =
-      'var(--g)';
+  button.style.color =
+    '#fff';
 
-    button.style.borderColor =
-      'var(--g)';
 
-    button.style.color =
-      '#ffffff';
-
-    button.title =
-      'Toca para cambiar a Modo Precios';
-
-  }
+  button.title =
+    'Seleccionar modo';
 
 
   ensurePurchaseSupplierBox();
@@ -6341,195 +6916,225 @@ function updateModeButton(){
 
 
 /* ============================================================
-   C Y = SEGUN EL MODO
+   BOTONES C Y =
    ============================================================ */
 
 function updateOperationButtons(){
 
   const clearButton =
     document.querySelector(
-      '.op.clear'
+      '.operations .op.clear'
     );
+
 
   const equalButton =
     document.querySelector(
-      '.op.equal'
+      '.operations .op.equal'
     );
 
 
-  const disabled =
-    appMode ===
-    'prices';
+  if(
+    !clearButton
+    ||
+    !equalButton
+  ){
+
+    return;
+
+  }
+
+
+  clearButton.textContent =
+    'C';
+
+
+  equalButton.textContent =
+    '=';
+
+
+  clearButton.style.fontSize =
+    '20px';
+
+
+  equalButton.style.fontSize =
+    '20px';
+
+
+  let disableClear =
+    false;
+
+
+  let disableEqual =
+    false;
 
 
   if(
-    clearButton
+    [
+      'prices',
+      'inventory',
+      'adjustments',
+      'returns',
+      'margin',
+      'query'
+    ]
+    .includes(
+      appMode
+    )
   ){
 
-    clearButton.disabled =
-      disabled;
+    disableClear =
+      true;
 
-    clearButton.style.opacity =
-      disabled
-      ?
-      '.45'
-      :
-      '1';
 
-    clearButton.style.cursor =
-      disabled
-      ?
-      'not-allowed'
-      :
-      'pointer';
+    disableEqual =
+      true;
 
+  }
+
+
+  if(
+    appMode ===
+    'purchases'
+  ){
 
     clearButton.title =
-      appMode ===
-      'purchases'
-      ?
-      'Nueva compra'
-      :
+      'Nueva compra';
+
+
+    equalButton.textContent =
+      'Guardar compra';
+
+
+    equalButton.style.fontSize =
+      '14px';
+
+  }
+
+  else if(
+    appMode ===
+    'discounts'
+  ){
+
+    clearButton.textContent =
+      'Quitar descuentos';
+
+
+    clearButton.style.fontSize =
+      '13px';
+
+
+    disableEqual =
+      true;
+
+  }
+
+  else if(
+    appMode ===
+    'quote'
+  ){
+
+    clearButton.title =
+      'Nueva cotización';
+
+
+    equalButton.textContent =
+      'Pasar a venta';
+
+
+    equalButton.style.fontSize =
+      '14px';
+
+  }
+
+  else{
+
+    clearButton.title =
       'Nueva venta';
 
   }
 
 
-  if(
+  clearButton.disabled =
+    disableClear;
+
+
+  equalButton.disabled =
+    disableEqual;
+
+
+  [
+    clearButton,
     equalButton
-  ){
+  ]
+  .forEach(
+    button => {
 
-    equalButton.disabled =
-      disabled;
-
-    equalButton.style.opacity =
-      disabled
-      ?
-      '.45'
-      :
-      '1';
-
-    equalButton.style.cursor =
-      disabled
-      ?
-      'not-allowed'
-      :
-      'pointer';
+      button.style.opacity =
+        button.disabled
+        ?
+        '.45'
+        :
+        '1';
 
 
-    if(
-      appMode ===
-      'purchases'
-    ){
-
-      equalButton.textContent =
-        'Guardar compra';
-
-      equalButton.style.fontSize =
-        '14px';
+      button.style.cursor =
+        button.disabled
+        ?
+        'not-allowed'
+        :
+        'pointer';
 
     }
-
-    else{
-
-      equalButton.textContent =
-        '=';
-
-      equalButton.style.fontSize =
-        '20px';
-
-    }
-
-  }
+  );
 
 }
 
 
 /* ============================================================
-   CAMBIAR MODO
-
-   VENTAS -> PRECIOS -> COMPRAS -> VENTAS
+   PRECIO EFECTIVO DE VENTA
    ============================================================ */
 
-function toggleMode(){
+function effectiveSalePrice(
+  item
+){
 
-  if(
-    changingPrice
+  const discount =
+    Number(
+      saleDiscounts[
+        item.id
+      ]
+      ||
+      0
+    );
+
+
+  const base =
+    Number(
+      item.valor
+    )
     ||
-    purchaseSaving
-  ){
-    return;
-  }
+    0;
 
 
-  if(
-    appMode ===
-    'sales'
-  ){
-
-    appMode =
-      'prices';
-
-  }
-
-  else if(
-    appMode ===
-    'prices'
-  ){
-
-    appMode =
-      'purchases';
-
-  }
-
-  else{
-
-    appMode =
-      'sales';
-
-  }
-
-
-  editingLine =
-    -1;
-
-
-  updateModeButton();
-
-  renderReceipt();
-
-  renderItems();
-
-
-  if(
-    appMode ===
-    'prices'
-  ){
-
-    setStatus(
-      'Modo Precios activo. Toca un ítem para modificar su precio.'
-    );
-
-  }
-
-  else if(
-    appMode ===
-    'purchases'
-  ){
-
-    setStatus(
-      'Modo Compras activo. Indica el proveedor y toca los productos comprados.'
-    );
-
-  }
-
-  else{
-
-    setStatus(
-      'Modo Ventas activo.'
-    );
-
-  }
+  return Math.round(
+    (
+      base
+      *
+      (
+        1
+        -
+        discount
+        /
+        100
+      )
+      +
+      Number.EPSILON
+    )
+    *
+    100
+  )
+  /
+  100;
 
 }
 
@@ -6569,35 +7174,33 @@ function renderItems(){
     );
 
 
-  if(query){
+  if(
+    query
+  ){
 
     items =
       items.filter(
-        x => {
+        x =>
 
-          const text =
-            normalizeText(
-              (
-                x.item
-                ||
-                ''
-              )
-              +
-              ' '
-              +
-              (
-                x.categoria
-                ||
-                ''
-              )
-            );
-
-
-          return text.includes(
+          normalizeText(
+            (
+              x.item
+              ||
+              ''
+            )
+            +
+            ' '
+            +
+            (
+              x.categoria
+              ||
+              ''
+            )
+          )
+          .includes(
             query
-          );
+          )
 
-        }
       );
 
   }
@@ -6625,19 +7228,10 @@ function renderItems(){
       </div>
       `;
 
+
     return;
 
   }
-
-
-  const priceMode =
-    appMode ===
-    'prices';
-
-
-  const purchaseMode =
-    appMode ===
-    'purchases';
 
 
   grid.innerHTML =
@@ -6645,15 +7239,19 @@ function renderItems(){
       .map(
         item => {
 
-          const line =
-            purchaseMode
-            ?
-            purchaseLines.find(
-              x =>
-                x.id ===
-                item.id
-            )
-            :
+          const figure =
+            getItemFigure(
+              item
+            );
+
+
+          const inv =
+            inventoryForItem(
+              item
+            );
+
+
+          const saleLine =
             accountLines.find(
               x =>
                 x.id ===
@@ -6661,27 +7259,81 @@ function renderItems(){
             );
 
 
-          const count =
-            line
-            ?
-            Number(
-              line.cantidad
-            )
-            :
-            0;
-
-
-          const figure =
-            getItemFigure(
-              item
+          const purchaseLine =
+            purchaseLines.find(
+              x =>
+                x.id ===
+                item.id
             );
 
 
-          let priceText;
+          const quoteLine =
+            quoteLines.find(
+              x =>
+                x.id ===
+                item.id
+            );
+
+
+          let count =
+            0;
+
+
+          let priceText =
+            '';
+
+
+          let badge =
+            '';
+
+
+          let selected =
+            false;
 
 
           if(
-            priceMode
+            appMode ===
+            'sales'
+          ){
+
+            count =
+              saleLine
+              ?
+              Number(
+                saleLine.cantidad
+              )
+              :
+              0;
+
+
+            selected =
+              count >
+              0;
+
+
+            priceText =
+              money(
+                effectiveSalePrice(
+                  item
+                )
+              );
+
+
+            badge =
+              count
+              ?
+              String(
+                count
+              )
+              :
+              '';
+
+          }
+
+
+          else if(
+            appMode ===
+            'prices'
           ){
 
             priceText =
@@ -6691,33 +7343,311 @@ function renderItems(){
                 item.valor
               );
 
+
+            badge =
+              'Editar';
+
           }
 
+
           else if(
-            purchaseMode
+            appMode ===
+            'purchases'
           ){
 
+            count =
+              purchaseLine
+              ?
+              Number(
+                purchaseLine.cantidad
+              )
+              :
+              0;
+
+
+            selected =
+              count >
+              0;
+
+
             priceText =
-              line
+              purchaseLine
               ?
               'Costo '
               +
               money(
-                line.costo
+                purchaseLine.costo
               )
               :
               '📦 Agregar';
 
+
+            badge =
+              count
+              ?
+              String(
+                count
+              )
+              :
+              '';
+
           }
 
-          else{
+
+          else if(
+            appMode ===
+            'inventory'
+          ){
+
+            priceText =
+              'Stock: '
+              +
+              Number(
+                inv.cantidad
+                ||
+                0
+              );
+
+
+            badge =
+              money(
+                inv.costo
+                ||
+                0
+              );
+
+          }
+
+
+          else if(
+            appMode ===
+            'adjustments'
+          ){
+
+            priceText =
+              'Stock: '
+              +
+              Number(
+                inv.cantidad
+                ||
+                0
+              );
+
+
+            badge =
+              'Ajustar';
+
+          }
+
+
+          else if(
+            appMode ===
+            'returns'
+          ){
+
+            priceText =
+              'Stock: '
+              +
+              Number(
+                inv.cantidad
+                ||
+                0
+              );
+
+
+            badge =
+              'Devolver';
+
+          }
+
+
+          else if(
+            appMode ===
+            'margin'
+          ){
+
+            const utility =
+              (
+                Number(
+                  item.valor
+                )
+                ||
+                0
+              )
+              -
+              (
+                Number(
+                  inv.costo
+                )
+                ||
+                0
+              );
+
+
+            priceText =
+              'Costo '
+              +
+              money(
+                inv.costo
+                ||
+                0
+              );
+
+
+            badge =
+              'Gan. '
+              +
+              money(
+                utility
+              );
+
+          }
+
+
+          else if(
+            appMode ===
+            'discounts'
+          ){
+
+            const discount =
+              Number(
+                saleDiscounts[
+                  item.id
+                ]
+                ||
+                0
+              );
+
+
+            priceText =
+              discount
+              ?
+              money(
+                effectiveSalePrice(
+                  item
+                )
+              )
+              :
+              money(
+                item.valor
+              );
+
+
+            badge =
+              discount
+              ?
+              '-'
+              +
+              discount
+              +
+              '%'
+              :
+              'Descuento';
+
+
+            selected =
+              discount >
+              0;
+
+          }
+
+
+          else if(
+            appMode ===
+            'quote'
+          ){
+
+            count =
+              quoteLine
+              ?
+              Number(
+                quoteLine.cantidad
+              )
+              :
+              0;
+
+
+            selected =
+              count >
+              0;
+
 
             priceText =
               money(
                 item.valor
               );
 
+
+            badge =
+              count
+              ?
+              String(
+                count
+              )
+              :
+              'Cotizar';
+
           }
+
+
+          else if(
+            appMode ===
+            'query'
+          ){
+
+            priceText =
+              'Stock: '
+              +
+              Number(
+                inv.cantidad
+                ||
+                0
+              );
+
+
+            badge =
+              'Ver ficha';
+
+          }
+
+
+          const badgeColor =
+            appMode ===
+            'prices'
+            ?
+            '#d97706'
+            :
+            appMode ===
+            'purchases'
+            ?
+            '#2563eb'
+            :
+            appMode ===
+            'adjustments'
+            ?
+            '#7c3aed'
+            :
+            appMode ===
+            'returns'
+            ?
+            '#be123c'
+            :
+            appMode ===
+            'margin'
+            ?
+            '#0891b2'
+            :
+            appMode ===
+            'discounts'
+            ?
+            '#c2410c'
+            :
+            appMode ===
+            'query'
+            ?
+            '#334155'
+            :
+            'var(--g)';
 
 
           return `
@@ -6726,11 +7656,7 @@ function renderItems(){
               class="
                 item-btn
                 ${
-                  (
-                    !priceMode
-                    &&
-                    count
-                  )
+                  selected
                   ?
                   'selected'
                   :
@@ -6749,7 +7675,7 @@ function renderItems(){
                   align-self:center;
                   margin-bottom:3px;
                   border-radius:15px;
-                  background:linear-gradient(145deg,#ffffff,#e8f5ee);
+                  background:linear-gradient(145deg,#fff,#e8f5ee);
                   border:1px solid #cce4d6;
                   box-shadow:
                     inset 0 1px 0 rgba(255,255,255,.95),
@@ -6781,7 +7707,7 @@ function renderItems(){
                 </span>
 
                 ${
-                  priceMode
+                  badge
                   ?
                   `
                   <span
@@ -6789,24 +7715,14 @@ function renderItems(){
                     style="
                       min-width:auto;
                       padding:0 8px;
-                      background:#d97706;
+                      background:${badgeColor};
                     "
                   >
-                    Editar
+                    ${escapeHtml(badge)}
                   </span>
                   `
                   :
-                  (
-                    count
-                    ?
-                    `
-                    <span class="item-count">
-                      ${count}
-                    </span>
-                    `
-                    :
-                    ''
-                  )
+                  ''
                 }
 
               </span>
@@ -6828,43 +7744,12 @@ function renderItems(){
 
         button.addEventListener(
           'click',
-          () => {
+          () =>
 
-            const id =
-              button.dataset.itemId;
+            handleItemClick(
+              button.dataset.itemId
+            )
 
-
-            if(
-              appMode ===
-              'prices'
-            ){
-
-              editPrice(
-                id
-              );
-
-            }
-
-            else if(
-              appMode ===
-              'purchases'
-            ){
-
-              addPurchaseItem(
-                id
-              );
-
-            }
-
-            else{
-
-              addItem(
-                id
-              );
-
-            }
-
-          }
         );
 
       }
@@ -6874,15 +7759,147 @@ function renderItems(){
 
 
 /* ============================================================
-   AGREGAR ITEM A COMPRA
+   ACCION SEGUN MODO
    ============================================================ */
 
-function addPurchaseItem(id){
+function handleItemClick(
+  id
+){
 
   if(
-    purchaseSaving
+    appMode ===
+    'prices'
   ){
+
+    return editPrice(
+      id
+    );
+
+  }
+
+
+  if(
+    appMode ===
+    'purchases'
+  ){
+
+    return addPurchaseItem(
+      id
+    );
+
+  }
+
+
+  if(
+    appMode ===
+    'inventory'
+  ){
+
+    return showInventoryItem(
+      id
+    );
+
+  }
+
+
+  if(
+    appMode ===
+    'adjustments'
+  ){
+
+    return adjustInventoryItem(
+      id
+    );
+
+  }
+
+
+  if(
+    appMode ===
+    'returns'
+  ){
+
+    return registerReturn(
+      id
+    );
+
+  }
+
+
+  if(
+    appMode ===
+    'margin'
+  ){
+
+    return showMarginItem(
+      id
+    );
+
+  }
+
+
+  if(
+    appMode ===
+    'discounts'
+  ){
+
+    return applyDiscount(
+      id
+    );
+
+  }
+
+
+  if(
+    appMode ===
+    'quote'
+  ){
+
+    return addQuoteItem(
+      id
+    );
+
+  }
+
+
+  if(
+    appMode ===
+    'query'
+  ){
+
+    return showQueryItem(
+      id
+    );
+
+  }
+
+
+  addItem(
+    id
+  );
+
+}
+
+
+/* ============================================================
+   AGREGAR A VENTA
+   ============================================================ */
+
+function addItem(
+  id
+){
+
+  if(
+    accountClosed
+  ){
+
+    setStatus(
+      'La cuenta está cerrada. Presiona C para abrir una nueva cuenta.'
+    );
+
+
     return;
+
   }
 
 
@@ -6897,24 +7914,23 @@ function addPurchaseItem(id){
   if(
     !item
   ){
+
     return;
+
   }
 
 
   let line =
-    purchaseLines.find(
+    accountLines.find(
       x =>
         x.id ===
         id
     );
 
 
-  /*
-   * Si ya existe, solamente
-   * aumentar cantidad.
-   */
-
-  if(line){
+  if(
+    line
+  ){
 
     line.cantidad =
       Math.min(
@@ -6927,15 +7943,148 @@ function addPurchaseItem(id){
       );
 
 
-    renderReceipt();
+    line.valor =
+      effectiveSalePrice(
+        item
+      );
 
-    renderItems();
+  }
+
+  else{
+
+    accountLines.push({
+
+      id:
+        item.id,
+
+      negocio:
+        item.negocio,
+
+      categoria:
+        item.categoria,
+
+      item:
+        item.item,
+
+      baseValor:
+        Number(
+          item.valor
+        )
+        ||
+        0,
+
+      valor:
+        effectiveSalePrice(
+          item
+        ),
+
+      cantidad:
+        1
+
+    });
+
+  }
 
 
-    setStatus(
+  renderReceipt();
+
+  renderItems();
+
+
+  setStatus(
+    item.item
+    +
+    ' agregado.'
+  );
+
+}
+
+
+/* ============================================================
+   DESCUENTOS
+   ============================================================ */
+
+function applyDiscount(
+  id
+){
+
+  const item =
+    MENU.find(
+      x =>
+        x.id ===
+        id
+    );
+
+
+  if(
+    !item
+  ){
+
+    return;
+
+  }
+
+
+  const current =
+    Number(
+      saleDiscounts[
+        id
+      ]
+      ||
+      0
+    );
+
+
+  const answer =
+    window.prompt(
+      'Descuento para:\n'
+      +
       item.item
       +
-      ': cantidad aumentada.'
+      '\n\nEscribe porcentaje de 0 a 100:',
+      String(
+        current
+      )
+    );
+
+
+  if(
+    answer ===
+    null
+  ){
+
+    return;
+
+  }
+
+
+  const percent =
+    Number(
+      String(
+        answer
+      )
+      .replace(
+        ',',
+        '.'
+      )
+    );
+
+
+  if(
+    !Number.isFinite(
+      percent
+    )
+    ||
+    percent <
+    0
+    ||
+    percent >
+    100
+  ){
+
+    setStatus(
+      'El descuento debe estar entre 0 y 100.',
+      true
     );
 
 
@@ -6944,19 +8093,303 @@ function addPurchaseItem(id){
   }
 
 
-  /*
-   * Primera vez:
-   * preguntar costo unitario.
-   */
+  if(
+    percent ===
+    0
+  ){
+
+    delete saleDiscounts[
+      id
+    ];
+
+  }
+
+  else{
+
+    saleDiscounts[
+      id
+    ] =
+      Math.round(
+        percent
+        *
+        100
+      )
+      /
+      100;
+
+  }
+
+
+  const line =
+    accountLines.find(
+      x =>
+        x.id ===
+        id
+    );
+
+
+  if(
+    line
+  ){
+
+    line.valor =
+      effectiveSalePrice(
+        item
+      );
+
+  }
+
+
+  renderReceipt();
+
+  renderItems();
+
+
+  setStatus(
+    percent
+    ?
+    item.item
+    +
+    ': descuento '
+    +
+    percent
+    +
+    '% aplicado.'
+    :
+    item.item
+    +
+    ': descuento eliminado.'
+  );
+
+}
+
+
+/* ============================================================
+   QUITAR DESCUENTOS
+   ============================================================ */
+
+function clearDiscounts(){
+
+  saleDiscounts =
+    {};
+
+
+  accountLines.forEach(
+    line => {
+
+      const item =
+        MENU.find(
+          x =>
+            x.id ===
+            line.id
+        );
+
+
+      if(
+        item
+      ){
+
+        line.valor =
+          Number(
+            item.valor
+          )
+          ||
+          0;
+
+      }
+
+    }
+  );
+
+
+  renderReceipt();
+
+  renderItems();
+
+
+  setStatus(
+    'Descuentos de la venta actual eliminados.'
+  );
+
+}
+
+
+/* ============================================================
+   AGREGAR A COMPRA
+   ============================================================ */
+
+function addPurchaseItem(
+  id
+){
+
+  if(
+    purchaseSaving
+  ){
+
+    return;
+
+  }
+
+
+  const item =
+    MENU.find(
+      x =>
+        x.id ===
+        id
+    );
+
+
+  if(
+    !item
+  ){
+
+    return;
+
+  }
+
+
+  let line =
+    purchaseLines.find(
+      x =>
+        x.id ===
+        id
+    );
+
+
+  if(
+    line
+  ){
+
+    line.cantidad =
+      Math.min(
+        999,
+        Number(
+          line.cantidad
+        )
+        +
+        1
+      );
+
+  }
+
+  else{
+
+    const answer =
+      window.prompt(
+        'Costo unitario de compra para:\n'
+        +
+        item.item
+        +
+        '\n\nEscribe el costo:',
+        ''
+      );
+
+
+    if(
+      answer ===
+      null
+    ){
+
+      return;
+
+    }
+
+
+    const cost =
+      parseMoneyInput(
+        answer
+      );
+
+
+    if(
+      cost ===
+      null
+    ){
+
+      setStatus(
+        'El costo ingresado no es válido.',
+        true
+      );
+
+
+      return;
+
+    }
+
+
+    purchaseLines.push({
+
+      id:
+        item.id,
+
+      negocio:
+        item.negocio,
+
+      categoria:
+        item.categoria,
+
+      item:
+        item.item,
+
+      costo:
+        cost,
+
+      cantidad:
+        1
+
+    });
+
+  }
+
+
+  renderReceipt();
+
+  renderItems();
+
+
+  setStatus(
+    item.item
+    +
+    ' agregado a la compra.'
+  );
+
+}
+
+
+/* ============================================================
+   CAMBIAR COSTO COMPRA
+   ============================================================ */
+
+function editPurchaseCost(
+  index
+){
+
+  const line =
+    purchaseLines[
+      index
+    ];
+
+
+  if(
+    !line
+  ){
+
+    return;
+
+  }
+
 
   const answer =
     window.prompt(
-      'Costo unitario de compra para:\n'
+      'Nuevo costo unitario para:\n'
       +
-      item.item
-      +
-      '\n\nEscribe el costo:',
-      ''
+      line.item,
+      Number(
+        line.costo
+      )
+      .toFixed(
+        2
+      )
     );
 
 
@@ -6964,7 +8397,9 @@ function addPurchaseItem(id){
     answer ===
     null
   ){
+
     return;
+
   }
 
 
@@ -6984,32 +8419,114 @@ function addPurchaseItem(id){
       true
     );
 
+
     return;
 
   }
 
 
-  purchaseLines.push({
+  line.costo =
+    cost;
 
-    id:
-      item.id,
 
-    negocio:
-      item.negocio,
+  renderReceipt();
 
-    categoria:
-      item.categoria,
+  renderItems();
 
-    item:
-      item.item,
 
-    costo:
-      cost,
+  setStatus(
+    line.item
+    +
+    ': costo actualizado a '
+    +
+    money(
+      cost
+    )
+    +
+    '.'
+  );
 
-    cantidad:
-      1
+}
 
-  });
+
+/* ============================================================
+   COTIZACION
+   ============================================================ */
+
+function addQuoteItem(
+  id
+){
+
+  const item =
+    MENU.find(
+      x =>
+        x.id ===
+        id
+    );
+
+
+  if(
+    !item
+  ){
+
+    return;
+
+  }
+
+
+  let line =
+    quoteLines.find(
+      x =>
+        x.id ===
+        id
+    );
+
+
+  if(
+    line
+  ){
+
+    line.cantidad =
+      Math.min(
+        999,
+        Number(
+          line.cantidad
+        )
+        +
+        1
+      );
+
+  }
+
+  else{
+
+    quoteLines.push({
+
+      id:
+        item.id,
+
+      negocio:
+        item.negocio,
+
+      categoria:
+        item.categoria,
+
+      item:
+        item.item,
+
+      valor:
+        Number(
+          item.valor
+        )
+        ||
+        0,
+
+      cantidad:
+        1
+
+    });
+
+  }
 
 
   renderReceipt();
@@ -7020,14 +8537,14 @@ function addPurchaseItem(id){
   setStatus(
     item.item
     +
-    ' agregado a la compra.'
+    ' agregado a la cotización.'
   );
 
 }
 
 
 /* ============================================================
-   TOTAL COMPRA
+   TOTALES
    ============================================================ */
 
 function purchaseTotal(){
@@ -7040,14 +8557,12 @@ function purchaseTotal(){
 
       total
       +
-      (
-        Number(
-          line.cantidad
-        )
-        *
-        Number(
-          line.costo
-        )
+      Number(
+        line.cantidad
+      )
+      *
+      Number(
+        line.costo
       ),
 
     0
@@ -7056,9 +8571,29 @@ function purchaseTotal(){
 }
 
 
-/* ============================================================
-   TOTAL VENTA
-   ============================================================ */
+function quoteTotal(){
+
+  return quoteLines.reduce(
+    (
+      total,
+      line
+    ) =>
+
+      total
+      +
+      Number(
+        line.cantidad
+      )
+      *
+      Number(
+        line.valor
+      ),
+
+    0
+  );
+
+}
+
 
 function accountTotal(){
 
@@ -7070,14 +8605,12 @@ function accountTotal(){
 
       total
       +
-      (
-        Number(
-          line.cantidad
-        )
-        *
-        Number(
-          line.valor
-        )
+      Number(
+        line.cantidad
+      )
+      *
+      Number(
+        line.valor
       ),
 
     0
@@ -7087,23 +8620,10 @@ function accountTotal(){
 
 
 /* ============================================================
-   DETALLE VENTA / COMPRA
+   DETALLE
    ============================================================ */
 
 function renderReceipt(){
-
-  const purchaseMode =
-    appMode ===
-    'purchases';
-
-
-  const lines =
-    purchaseMode
-    ?
-    purchaseLines
-    :
-    accountLines;
-
 
   const receipt =
     document.getElementById(
@@ -7129,16 +8649,142 @@ function renderReceipt(){
     );
 
 
+  let lines =
+    accountLines;
+
+
+  let valueField =
+    'valor';
+
+
+  let title =
+    'DETALLE DE CUENTA';
+
+
+  let emptyText =
+    'Toca un ítem para iniciar la cuenta.';
+
+
+  let totalValue =
+    accountTotal();
+
+
+  if(
+    appMode ===
+    'purchases'
+  ){
+
+    lines =
+      purchaseLines;
+
+
+    valueField =
+      'costo';
+
+
+    title =
+      'DETALLE DE COMPRA';
+
+
+    emptyText =
+      'Toca un ítem para iniciar la compra.';
+
+
+    totalValue =
+      purchaseTotal();
+
+  }
+
+
+  else if(
+    appMode ===
+    'quote'
+  ){
+
+    lines =
+      quoteLines;
+
+
+    valueField =
+      'valor';
+
+
+    title =
+      'COTIZACIÓN';
+
+
+    emptyText =
+      'Toca un ítem para iniciar la cotización.';
+
+
+    totalValue =
+      quoteTotal();
+
+  }
+
+
+  else if(
+    [
+      'inventory',
+      'adjustments',
+      'returns',
+      'margin',
+      'query',
+      'prices'
+    ]
+    .includes(
+      appMode
+    )
+  ){
+
+    lines =
+      [];
+
+
+    title =
+      MODE_INFO[
+        appMode
+      ].label
+      .replace(
+        /^\S+\s/,
+        ''
+      )
+      .toUpperCase();
+
+
+    emptyText =
+      MODE_INFO[
+        appMode
+      ].text;
+
+
+    totalValue =
+      0;
+
+  }
+
+
+  else if(
+    appMode ===
+    'discounts'
+  ){
+
+    title =
+      'VENTA CON DESCUENTOS';
+
+
+    emptyText =
+      'Aplica descuentos y vuelve a Modo Ventas para cobrar.';
+
+  }
+
+
   if(
     screenTitle
   ){
 
     screenTitle.textContent =
-      purchaseMode
-      ?
-      'DETALLE DE COMPRA'
-      :
-      'DETALLE DE CUENTA';
+      title;
 
   }
 
@@ -7150,13 +8796,7 @@ function renderReceipt(){
     receipt.innerHTML =
       `
       <div class="empty-receipt">
-        ${
-          purchaseMode
-          ?
-          'Toca un ítem para iniciar la compra.'
-          :
-          'Toca un ítem para iniciar la cuenta.'
-        }
+        ${escapeHtml(emptyText)}
       </div>
       `;
 
@@ -7172,29 +8812,26 @@ function renderReceipt(){
             index
           ) => {
 
-            const unitValue =
-              purchaseMode
-              ?
-              Number(
-                line.costo
-              )
-              :
-              Number(
-                line.valor
-              );
-
-
             const subtotal =
               Number(
                 line.cantidad
               )
               *
-              unitValue;
+              Number(
+                line[
+                  valueField
+                ]
+              );
 
 
             const editing =
               editingLine ===
               index;
+
+
+            const purchaseMode =
+              appMode ===
+              'purchases';
 
 
             return `
@@ -7237,111 +8874,78 @@ function renderReceipt(){
                 ${
                   editing
                   ?
-                  (
-                    purchaseMode
-                    ?
-                    `
-                    <div
-                      class="line-editor"
+                  `
+                  <div
+                    class="line-editor"
+                    ${
+                      purchaseMode
+                      ?
+                      `
                       style="
                         grid-template-columns:
                         42px 50px 42px 72px 42px;
                       "
+                      `
+                      :
+                      ''
+                    }
+                  >
+
+                    <button
+                      type="button"
+                      onclick="changeQty(${index},-1)"
+                      ${
+                        Number(
+                          line.cantidad
+                        )
+                        <=
+                        1
+                        ?
+                        'disabled'
+                        :
+                        ''
+                      }
                     >
+                      −
+                    </button>
 
-                      <button
-                        type="button"
-                        onclick="changeQty(${index},-1)"
-                        ${
-                          Number(
-                            line.cantidad
-                          )
-                          <=
-                          1
-                          ?
-                          'disabled'
-                          :
-                          ''
-                        }
-                      >
-                        −
-                      </button>
+                    <span class="line-count">
+                      ${line.cantidad}
+                    </span>
 
-                      <span class="line-count">
-                        ${line.cantidad}
-                      </span>
+                    <button
+                      type="button"
+                      onclick="changeQty(${index},1)"
+                    >
+                      +
+                    </button>
 
-                      <button
-                        type="button"
-                        onclick="changeQty(${index},1)"
-                      >
-                        +
-                      </button>
-
+                    ${
+                      purchaseMode
+                      ?
+                      `
                       <button
                         type="button"
                         onclick="editPurchaseCost(${index})"
-                        style="
-                          font-size:11px;
-                        "
+                        style="font-size:11px;"
                       >
                         Costo
                       </button>
+                      `
+                      :
+                      ''
+                    }
 
-                      <button
-                        type="button"
-                        class="delete"
-                        onclick="deleteLine(${index})"
-                      >
-                        🗑
-                      </button>
+                    <button
+                      type="button"
+                      class="delete"
+                      onclick="deleteLine(${index})"
+                    >
+                      🗑
+                    </button>
 
-                    </div>
-                    `
-                    :
-                    `
-                    <div class="line-editor">
-
-                      <button
-                        type="button"
-                        onclick="changeQty(${index},-1)"
-                        ${
-                          Number(
-                            line.cantidad
-                          )
-                          <=
-                          1
-                          ?
-                          'disabled'
-                          :
-                          ''
-                        }
-                      >
-                        −
-                      </button>
-
-                      <span class="line-count">
-                        ${line.cantidad}
-                      </span>
-
-                      <button
-                        type="button"
-                        onclick="changeQty(${index},1)"
-                      >
-                        +
-                      </button>
-
-                      <button
-                        type="button"
-                        class="delete"
-                        onclick="deleteLine(${index})"
-                      >
-                        🗑
-                      </button>
-
-                    </div>
-                    `
-                  )
+                  </div>
+                  `
                   :
                   ''
                 }
@@ -7358,20 +8962,46 @@ function renderReceipt(){
 
   total.textContent =
     money(
-      purchaseMode
-      ?
-      purchaseTotal()
-      :
-      accountTotal()
+      totalValue
     );
 
 
   if(
-    purchaseMode
+    appMode ===
+    'purchases'
   ){
 
     state.textContent =
       'TOTAL COMPRA';
+
+  }
+
+  else if(
+    appMode ===
+    'quote'
+  ){
+
+    state.textContent =
+      'TOTAL COTIZACIÓN';
+
+  }
+
+  else if(
+    [
+      'inventory',
+      'adjustments',
+      'returns',
+      'margin',
+      'query',
+      'prices'
+    ]
+    .includes(
+      appMode
+    )
+  ){
+
+    state.textContent =
+      'MODO CONSULTA';
 
   }
 
@@ -7403,7 +9033,9 @@ function renderReceipt(){
    EDITAR LINEA
    ============================================================ */
 
-function toggleLine(index){
+function toggleLine(
+  index
+){
 
   editingLine =
     editingLine ===
@@ -7420,6 +9052,37 @@ function toggleLine(index){
 
 
 /* ============================================================
+   LINEAS SEGUN MODO
+   ============================================================ */
+
+function activeEditableLines(){
+
+  if(
+    appMode ===
+    'purchases'
+  ){
+
+    return purchaseLines;
+
+  }
+
+
+  if(
+    appMode ===
+    'quote'
+  ){
+
+    return quoteLines;
+
+  }
+
+
+  return accountLines;
+
+}
+
+
+/* ============================================================
    CAMBIAR CANTIDAD
    ============================================================ */
 
@@ -7429,12 +9092,7 @@ function changeQty(
 ){
 
   const lines =
-    appMode ===
-    'purchases'
-    ?
-    purchaseLines
-    :
-    accountLines;
+    activeEditableLines();
 
 
   const line =
@@ -7446,13 +9104,18 @@ function changeQty(
   if(
     !line
   ){
+
     return;
+
   }
 
 
   if(
     appMode !==
     'purchases'
+    &&
+    appMode !==
+    'quote'
     &&
     accountClosed
   ){
@@ -7479,7 +9142,9 @@ function changeQty(
     next <
     1
   ){
+
     return;
+
   }
 
 
@@ -7502,108 +9167,15 @@ function changeQty(
 
 
 /* ============================================================
-   CAMBIAR COSTO DE COMPRA
-   ============================================================ */
-
-function editPurchaseCost(index){
-
-  const line =
-    purchaseLines[
-      index
-    ];
-
-
-  if(
-    !line
-  ){
-    return;
-  }
-
-
-  const answer =
-    window.prompt(
-      'Nuevo costo unitario para:\n'
-      +
-      line.item,
-      Number(
-        line.costo
-      )
-      .toFixed(
-        2
-      )
-    );
-
-
-  if(
-    answer ===
-    null
-  ){
-    return;
-  }
-
-
-  const cost =
-    parseMoneyInput(
-      answer
-    );
-
-
-  if(
-    cost ===
-    null
-  ){
-
-    setStatus(
-      'El costo ingresado no es válido.',
-      true
-    );
-
-    return;
-
-  }
-
-
-  line.costo =
-    cost;
-
-
-  renderReceipt();
-
-  renderItems();
-
-
-  setStatus(
-    line.item
-    +
-    ': costo actualizado a '
-    +
-    money(
-      cost
-    )
-    +
-    '.'
-  );
-
-}
-
-
-/* ============================================================
    ELIMINAR LINEA
    ============================================================ */
 
-function deleteLine(index){
-
-  const purchaseMode =
-    appMode ===
-    'purchases';
-
+function deleteLine(
+  index
+){
 
   const lines =
-    purchaseMode
-    ?
-    purchaseLines
-    :
-    accountLines;
+    activeEditableLines();
 
 
   if(
@@ -7611,12 +9183,18 @@ function deleteLine(index){
       index
     ]
   ){
+
     return;
+
   }
 
 
   if(
-    !purchaseMode
+    appMode !==
+    'purchases'
+    &&
+    appMode !==
+    'quote'
     &&
     accountClosed
   ){
@@ -7658,22 +9236,813 @@ function deleteLine(index){
 
 
 /* ============================================================
-   C
-   NUEVA VENTA / NUEVA COMPRA
+   INVENTARIO
+   ============================================================ */
+
+function showInventoryItem(
+  id
+){
+
+  const item =
+    MENU.find(
+      x =>
+        x.id ===
+        id
+    );
+
+
+  if(
+    !item
+  ){
+
+    return;
+
+  }
+
+
+  const inv =
+    inventoryForItem(
+      item
+    );
+
+
+  window.alert(
+    item.item
+    +
+    '\n\n'
+    +
+    'Existencia: '
+    +
+    Number(
+      inv.cantidad
+      ||
+      0
+    )
+    +
+    '\n'
+    +
+    'Costo promedio: '
+    +
+    money(
+      inv.costo
+      ||
+      0
+    )
+    +
+    '\n'
+    +
+    'Valor inventario: '
+    +
+    money(
+      inv.valorInventario
+      ||
+      0
+    )
+  );
+
+}
+
+
+/* ============================================================
+   MARGEN
+   ============================================================ */
+
+function showMarginItem(
+  id
+){
+
+  const item =
+    MENU.find(
+      x =>
+        x.id ===
+        id
+    );
+
+
+  if(
+    !item
+  ){
+
+    return;
+
+  }
+
+
+  const inv =
+    inventoryForItem(
+      item
+    );
+
+
+  const venta =
+    Number(
+      item.valor
+    )
+    ||
+    0;
+
+
+  const costo =
+    Number(
+      inv.costo
+    )
+    ||
+    0;
+
+
+  const utilidad =
+    venta
+    -
+    costo;
+
+
+  const margen =
+    venta >
+    0
+    ?
+    utilidad
+    /
+    venta
+    *
+    100
+    :
+    0;
+
+
+  const markup =
+    costo >
+    0
+    ?
+    utilidad
+    /
+    costo
+    *
+    100
+    :
+    0;
+
+
+  window.alert(
+    item.item
+    +
+    '\n\n'
+    +
+    'Precio de venta: '
+    +
+    money(
+      venta
+    )
+    +
+    '\n'
+    +
+    'Costo promedio: '
+    +
+    money(
+      costo
+    )
+    +
+    '\n'
+    +
+    'Utilidad/unidad: '
+    +
+    money(
+      utilidad
+    )
+    +
+    '\n'
+    +
+    'Margen sobre venta: '
+    +
+    margen.toFixed(
+      1
+    )
+    +
+    '%'
+    +
+    '\n'
+    +
+    'Markup sobre costo: '
+    +
+    markup.toFixed(
+      1
+    )
+    +
+    '%'
+  );
+
+}
+
+
+/* ============================================================
+   CONSULTA
+   ============================================================ */
+
+function showQueryItem(
+  id
+){
+
+  const item =
+    MENU.find(
+      x =>
+        x.id ===
+        id
+    );
+
+
+  if(
+    !item
+  ){
+
+    return;
+
+  }
+
+
+  const inv =
+    inventoryForItem(
+      item
+    );
+
+
+  const venta =
+    Number(
+      item.valor
+    )
+    ||
+    0;
+
+
+  const costo =
+    Number(
+      inv.costo
+    )
+    ||
+    0;
+
+
+  window.alert(
+    item.item
+    +
+    '\n\n'
+    +
+    'Categoría: '
+    +
+    item.categoria
+    +
+    '\n'
+    +
+    'Precio de venta: '
+    +
+    money(
+      venta
+    )
+    +
+    '\n'
+    +
+    'Costo promedio: '
+    +
+    money(
+      costo
+    )
+    +
+    '\n'
+    +
+    'Existencia: '
+    +
+    Number(
+      inv.cantidad
+      ||
+      0
+    )
+    +
+    '\n'
+    +
+    'Valor inventario: '
+    +
+    money(
+      inv.valorInventario
+      ||
+      0
+    )
+    +
+    '\n'
+    +
+    'Último proveedor: '
+    +
+    (
+      inv.ultimoProveedor
+      ||
+      '—'
+    )
+    +
+    '\n'
+    +
+    'Última compra: '
+    +
+    (
+      inv.ultimaCompra
+      ||
+      '—'
+    )
+    +
+    '\n'
+    +
+    'Última venta: '
+    +
+    (
+      inv.ultimaVenta
+      ||
+      '—'
+    )
+  );
+
+}
+
+
+/* ============================================================
+   AJUSTE DE INVENTARIO
+   ============================================================ */
+
+async function adjustInventoryItem(
+  id
+){
+
+  const item =
+    MENU.find(
+      x =>
+        x.id ===
+        id
+    );
+
+
+  if(
+    !item
+  ){
+
+    return;
+
+  }
+
+
+  const inv =
+    inventoryForItem(
+      item
+    );
+
+
+  const answer =
+    window.prompt(
+      'Ajuste de inventario:\n'
+      +
+      item.item
+      +
+      '\n\nExistencia sistema: '
+      +
+      Number(
+        inv.cantidad
+        ||
+        0
+      )
+      +
+      '\nEscribe la existencia física real:',
+      String(
+        Number(
+          inv.cantidad
+          ||
+          0
+        )
+      )
+    );
+
+
+  if(
+    answer ===
+    null
+  ){
+
+    return;
+
+  }
+
+
+  const target =
+    Number(
+      String(
+        answer
+      )
+      .replace(
+        ',',
+        '.'
+      )
+    );
+
+
+  if(
+    !Number.isInteger(
+      target
+    )
+    ||
+    target <
+    0
+  ){
+
+    setStatus(
+      'La existencia física debe ser un número entero igual o mayor que 0.',
+      true
+    );
+
+
+    return;
+
+  }
+
+
+  const reason =
+    window.prompt(
+      'Motivo del ajuste (opcional):',
+      'Conteo físico'
+    )
+    ??
+    '';
+
+
+  try{
+
+    setStatus(
+      'Guardando ajuste...'
+    );
+
+
+    const response =
+      await jsonp(
+        'saveAdjustment',
+        {
+
+          categoria:
+            item.categoria,
+
+          item:
+            item.item,
+
+          existencia:
+            target,
+
+          motivo:
+            reason
+
+        },
+        20000
+      );
+
+
+    if(
+      !response
+      ||
+      response.ok !==
+      true
+    ){
+
+      throw new Error(
+        (
+          response
+          &&
+          response.error
+        )
+        ||
+        'No fue posible guardar el ajuste.'
+      );
+
+    }
+
+
+    invalidateInventory();
+
+
+    await loadInventorySnapshot(
+      true
+    );
+
+
+    renderItems();
+
+
+    setStatus(
+      response.message
+      ||
+      'Ajuste registrado correctamente.'
+    );
+
+  }
+
+  catch(error){
+
+    console.error(
+      error
+    );
+
+
+    setStatus(
+      error.message
+      ||
+      'Error guardando ajuste.',
+      true
+    );
+
+  }
+
+}
+
+
+/* ============================================================
+   DEVOLUCIONES
+   ============================================================ */
+
+async function registerReturn(
+  id
+){
+
+  const item =
+    MENU.find(
+      x =>
+        x.id ===
+        id
+    );
+
+
+  if(
+    !item
+  ){
+
+    return;
+
+  }
+
+
+  const inv =
+    inventoryForItem(
+      item
+    );
+
+
+  const typeAnswer =
+    window.prompt(
+      'Devolución de:\n'
+      +
+      item.item
+      +
+      '\n\n'
+      +
+      '1 = Cliente devuelve producto (entra al inventario)\n'
+      +
+      '2 = Devolución al proveedor (sale del inventario)\n\n'
+      +
+      'Escribe 1 o 2:',
+      '1'
+    );
+
+
+  if(
+    typeAnswer ===
+    null
+  ){
+
+    return;
+
+  }
+
+
+  const type =
+    String(
+      typeAnswer
+    )
+    .trim() ===
+    '2'
+    ?
+    'purchase'
+    :
+    String(
+      typeAnswer
+    )
+    .trim() ===
+    '1'
+    ?
+    'sale'
+    :
+    '';
+
+
+  if(
+    !type
+  ){
+
+    setStatus(
+      'Selecciona 1 o 2.',
+      true
+    );
+
+
+    return;
+
+  }
+
+
+  const qtyAnswer =
+    window.prompt(
+      'Cantidad a devolver:',
+      '1'
+    );
+
+
+  if(
+    qtyAnswer ===
+    null
+  ){
+
+    return;
+
+  }
+
+
+  const qty =
+    Number(
+      qtyAnswer
+    );
+
+
+  if(
+    !Number.isInteger(
+      qty
+    )
+    ||
+    qty <=
+    0
+  ){
+
+    setStatus(
+      'La cantidad debe ser un entero mayor que 0.',
+      true
+    );
+
+
+    return;
+
+  }
+
+
+  if(
+    type ===
+    'purchase'
+    &&
+    qty >
+    Number(
+      inv.cantidad
+      ||
+      0
+    )
+  ){
+
+    setStatus(
+      'No puedes devolver al proveedor más unidades de las disponibles.',
+      true
+    );
+
+
+    return;
+
+  }
+
+
+  let reference =
+    '';
+
+
+  if(
+    type ===
+    'purchase'
+  ){
+
+    reference =
+      window.prompt(
+        'Proveedor o referencia de la devolución (opcional):',
+        currentSupplier
+        ||
+        ''
+      )
+      ??
+      '';
+
+  }
+
+  else{
+
+    reference =
+      window.prompt(
+        'Referencia o motivo de la devolución (opcional):',
+        'Devolución cliente'
+      )
+      ??
+      '';
+
+  }
+
+
+  try{
+
+    setStatus(
+      'Registrando devolución...'
+    );
+
+
+    const response =
+      await jsonp(
+        'saveReturn',
+        {
+
+          tipo:
+            type,
+
+          categoria:
+            item.categoria,
+
+          item:
+            item.item,
+
+          cantidad:
+            qty,
+
+          referencia:
+            reference
+
+        },
+        20000
+      );
+
+
+    if(
+      !response
+      ||
+      response.ok !==
+      true
+    ){
+
+      throw new Error(
+        (
+          response
+          &&
+          response.error
+        )
+        ||
+        'No fue posible registrar la devolución.'
+      );
+
+    }
+
+
+    invalidateInventory();
+
+
+    await loadInventorySnapshot(
+      true
+    );
+
+
+    renderItems();
+
+
+    setStatus(
+      response.message
+      ||
+      'Devolución registrada correctamente.'
+    );
+
+  }
+
+  catch(error){
+
+    console.error(
+      error
+    );
+
+
+    setStatus(
+      error.message
+      ||
+      'Error registrando devolución.',
+      true
+    );
+
+  }
+
+}
+
+
+/* ============================================================
+   C / NUEVO
    ============================================================ */
 
 function newAccount(
   showMessage = true
 ){
-
-  /*
-   * showMessage = false ocurre
-   * cuando se cambia de negocio.
-   *
-   * En ese caso limpiamos ambos
-   * movimientos para no mezclar
-   * negocios.
-   */
 
   if(
     showMessage ===
@@ -7683,11 +10052,22 @@ function newAccount(
     accountLines =
       [];
 
+
     purchaseLines =
       [];
 
+
+    quoteLines =
+      [];
+
+
+    saleDiscounts =
+      {};
+
+
     editingLine =
       -1;
+
 
     accountClosed =
       false;
@@ -7696,6 +10076,7 @@ function newAccount(
     renderReceipt();
 
     renderItems();
+
 
     return;
 
@@ -7709,6 +10090,7 @@ function newAccount(
 
     purchaseLines =
       [];
+
 
     editingLine =
       -1;
@@ -7729,11 +10111,58 @@ function newAccount(
   }
 
 
+  if(
+    appMode ===
+    'quote'
+  ){
+
+    quoteLines =
+      [];
+
+
+    editingLine =
+      -1;
+
+
+    renderReceipt();
+
+    renderItems();
+
+
+    setStatus(
+      'Nueva cotización abierta.'
+    );
+
+
+    return;
+
+  }
+
+
+  if(
+    appMode ===
+    'discounts'
+  ){
+
+    clearDiscounts();
+
+
+    return;
+
+  }
+
+
   accountLines =
     [];
 
+
+  saleDiscounts =
+    {};
+
+
   editingLine =
     -1;
+
 
   accountClosed =
     false;
@@ -7744,8 +10173,82 @@ function newAccount(
   renderItems();
 
 
+  if(
+    showMessage
+  ){
+
+    setStatus(
+      'Nueva cuenta abierta.'
+    );
+
+  }
+
+}
+
+
+/* ============================================================
+   CONVERTIR COTIZACION A VENTA
+   ============================================================ */
+
+function convertQuoteToSale(){
+
+  if(
+    !quoteLines.length
+  ){
+
+    setStatus(
+      'La cotización está vacía.',
+      true
+    );
+
+
+    return;
+
+  }
+
+
+  accountLines =
+    quoteLines.map(
+      line => ({
+
+        ...line,
+
+        baseValor:
+          Number(
+            line.valor
+          )
+          ||
+          0
+
+      })
+    );
+
+
+  quoteLines =
+    [];
+
+
+  saleDiscounts =
+    {};
+
+
+  accountClosed =
+    false;
+
+
+  appMode =
+    'sales';
+
+
+  updateModeButton();
+
+  renderReceipt();
+
+  renderItems();
+
+
   setStatus(
-    'Nueva cuenta abierta.'
+    'Cotización convertida a venta. Revisa la cuenta y presiona = para cobrar.'
   );
 
 }
@@ -7753,8 +10256,6 @@ function newAccount(
 
 /* ============================================================
    =
-   VENTA: COBRAR
-   COMPRA: GUARDAR
    ============================================================ */
 
 function closeAccount(){
@@ -7763,7 +10264,9 @@ function closeAccount(){
     appMode ===
     'prices'
   ){
+
     return;
+
   }
 
 
@@ -7772,7 +10275,34 @@ function closeAccount(){
     'purchases'
   ){
 
-    savePurchase();
+    return savePurchase();
+
+  }
+
+
+  if(
+    appMode ===
+    'quote'
+  ){
+
+    return convertQuoteToSale();
+
+  }
+
+
+  if(
+    [
+      'inventory',
+      'adjustments',
+      'returns',
+      'margin',
+      'discounts',
+      'query'
+    ]
+    .includes(
+      appMode
+    )
+  ){
 
     return;
 
@@ -7787,6 +10317,7 @@ function closeAccount(){
       'No hay ítems para totalizar.'
     );
 
+
     return;
 
   }
@@ -7794,6 +10325,7 @@ function closeAccount(){
 
   accountClosed =
     true;
+
 
   editingLine =
     -1;
@@ -7827,7 +10359,9 @@ async function savePurchase(){
   if(
     purchaseSaving
   ){
+
     return;
+
   }
 
 
@@ -7839,6 +10373,7 @@ async function savePurchase(){
       'No hay productos en la compra.',
       true
     );
+
 
     return;
 
@@ -7945,7 +10480,7 @@ async function savePurchase(){
 
   const button =
     document.querySelector(
-      '.op.equal'
+      '.operations .op.equal'
     );
 
 
@@ -7960,8 +10495,10 @@ async function savePurchase(){
     button.disabled =
       true;
 
+
     button.textContent =
       'Guardando...';
+
 
     button.style.opacity =
       '.65';
@@ -8017,8 +10554,12 @@ async function savePurchase(){
     purchaseLines =
       [];
 
+
     editingLine =
       -1;
+
+
+    invalidateInventory();
 
 
     renderReceipt();
@@ -8072,7 +10613,7 @@ async function savePurchase(){
 
 
 /* ============================================================
-   ABRIR COBRO DE VENTA
+   ABRIR COBRO
    ============================================================ */
 
 function openCashPayment(){
@@ -8124,11 +10665,8 @@ function openCashPayment(){
 
 
   setTimeout(
-    () => {
-
-      input.focus();
-
-    },
+    () =>
+      input.focus(),
     80
   );
 
@@ -8136,10 +10674,12 @@ function openCashPayment(){
 
 
 /* ============================================================
-   TECLADO DE EFECTIVO
+   TECLADO COBRO
    ============================================================ */
 
-function cashKey(key){
+function cashKey(
+  key
+){
 
   if(
     key ===
@@ -8151,7 +10691,9 @@ function cashKey(key){
         '.'
       )
     ){
+
       return;
+
     }
 
 
@@ -8189,7 +10731,9 @@ function cashKey(key){
       key !==
       '.'
     ){
+
       return;
+
     }
 
   }
@@ -8204,7 +10748,9 @@ function cashKey(key){
       .length >=
       10
   ){
+
     return;
+
   }
 
 
@@ -8224,10 +10770,6 @@ function cashKey(key){
 
 }
 
-
-/* ============================================================
-   RETROCESO
-   ============================================================ */
 
 function cashBackspace(){
 
@@ -8251,10 +10793,6 @@ function cashBackspace(){
 }
 
 
-/* ============================================================
-   LIMPIAR EFECTIVO
-   ============================================================ */
-
 function cashClear(){
 
   cashEntry =
@@ -8274,10 +10812,6 @@ function cashClear(){
 }
 
 
-/* ============================================================
-   INGRESO MANUAL
-   ============================================================ */
-
 function cashManualInput(){
 
   const input =
@@ -8291,11 +10825,8 @@ function cashManualInput(){
       input.value
       ||
       ''
-    );
-
-
-  value =
-    value.replace(
+    )
+    .replace(
       /[^0-9.]/g,
       ''
     );
@@ -8357,6 +10888,7 @@ function cashManualInput(){
   cashEntry =
     value;
 
+
   input.value =
     value;
 
@@ -8416,7 +10948,7 @@ function updateCashChange(){
 
 
 /* ============================================================
-   VOLVER A LA VENTA
+   VOLVER
    ============================================================ */
 
 function cancelCashPayment(){
@@ -8452,7 +10984,7 @@ function cancelCashPayment(){
 
 
 /* ============================================================
-   FINALIZAR, GUARDAR Y EMPEZAR NUEVA VENTA
+   FINALIZAR VENTA
    ============================================================ */
 
 async function finishCashPayment(){
@@ -8505,6 +11037,7 @@ async function finishCashPayment(){
       true
     );
 
+
     return;
 
   }
@@ -8529,11 +11062,14 @@ async function finishCashPayment(){
     finishButton.disabled =
       true;
 
+
     finishButton.textContent =
       'Guardando...';
 
+
     finishButton.style.opacity =
       '.65';
+
 
     finishButton.style.cursor =
       'wait';
@@ -8566,14 +11102,6 @@ async function finishCashPayment(){
             ''
           ),
 
-        /*
-         * Este sigue siendo
-         * PRECIO DE VENTA.
-         *
-         * Apps Script calculará
-         * por separado el costo
-         * de inventario.
-         */
         valor:
           Number(
             line.valor
@@ -8644,14 +11172,24 @@ async function finishCashPayment(){
     accountLines =
       [];
 
+
+    saleDiscounts =
+      {};
+
+
     editingLine =
       -1;
+
 
     accountClosed =
       false;
 
+
     cashEntry =
       '';
+
+
+    invalidateInventory();
 
 
     renderReceipt();
@@ -8701,11 +11239,14 @@ async function finishCashPayment(){
       finishButton.disabled =
         false;
 
+
       finishButton.textContent =
         'Nueva venta';
 
+
       finishButton.style.opacity =
         '1';
+
 
       finishButton.style.cursor =
         'pointer';
@@ -8714,8 +11255,7 @@ async function finishCashPayment(){
 
   }
 
-}
-  
+}  
 </script>
   
 </body>
