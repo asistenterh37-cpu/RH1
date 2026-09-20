@@ -3310,7 +3310,7 @@ const CONFIG = {
    */
 
   GAS_WEB_APP_URL:
-    'https://script.google.com/macros/s/AKfycbxvCjHmgXHn4hnTBUYhQ8TJsTwUGb4btLNLZcSiGumA1dbgqavT69BFHngwiu5FUlGH/exec'
+    'https://script.google.com/macros/s/AKfycbwm3KQ-L6-vlQH5bF53psy0ipTC4nyLQVgsehyamFCtD5zQE2ct0btmx8ZN1NfZ1neK/exec'
 
 };
 
@@ -17742,6 +17742,987 @@ cancelCashPayment =
    ============================================================ */
 
 installInvoiceUI();
+
+</script>  
+
+<!-- ============================================================
+     ISV 15% / 18% - NEGOCIOS360
+     ============================================================ -->
+
+<style>
+
+.payment-tax-summary{
+
+  margin-top:12px;
+
+  padding-top:10px;
+
+  border-top:
+    1px solid rgba(255,255,255,.18);
+
+  display:grid;
+
+  gap:5px;
+
+}
+
+
+.payment-tax-row{
+
+  display:flex;
+
+  justify-content:space-between;
+
+  gap:12px;
+
+  color:#d7e1dc;
+
+  font-size:12px;
+
+}
+
+
+.payment-tax-row span:last-child{
+
+  font-weight:900;
+
+  white-space:nowrap;
+
+}
+
+
+.payment-tax-row.payment-tax-total{
+
+  margin-top:5px;
+
+  padding-top:7px;
+
+  border-top:
+    1px solid rgba(255,255,255,.22);
+
+  color:#8df0b7;
+
+  font-size:14px;
+
+  font-weight:950;
+
+}
+
+</style>
+
+
+<script>
+
+/* ============================================================
+   REDONDEAR
+   ============================================================ */
+
+function isv360Round(
+  value
+){
+
+  return Math.round(
+    (
+      Number(
+        value
+      )
+      +
+      Number.EPSILON
+    )
+    *
+    100
+  )
+  /
+  100;
+
+}
+
+
+/* ============================================================
+   BUSCAR EL ITEM ORIGINAL EN MENU
+   ============================================================ */
+
+function isv360MenuItem(
+  line
+){
+
+  if(
+    !line
+  ){
+
+    return null;
+
+  }
+
+
+  if(
+    line.id
+  ){
+
+    const byId =
+      MENU.find(
+        item =>
+          item.id ===
+          line.id
+      );
+
+
+    if(
+      byId
+    ){
+
+      return byId;
+
+    }
+
+  }
+
+
+  return (
+    MENU.find(
+      item =>
+
+        String(
+          item.negocio
+          ||
+          ''
+        )
+        .trim()
+        ===
+        String(
+          currentBusiness
+          ||
+          ''
+        )
+        .trim()
+
+        &&
+
+        String(
+          item.categoria
+          ||
+          ''
+        )
+        .trim()
+        ===
+        String(
+          line.categoria
+          ||
+          ''
+        )
+        .trim()
+
+        &&
+
+        String(
+          item.item
+          ||
+          ''
+        )
+        .trim()
+        ===
+        String(
+          line.item
+          ||
+          ''
+        )
+        .trim()
+
+    )
+    ||
+    null
+  );
+
+}
+
+
+/* ============================================================
+   ISV UNITARIO
+
+   Menu:
+   Valor = precio base
+   isv15 = valor del impuesto 15% por unidad
+   isv18 = valor del impuesto 18% por unidad
+
+   Si hay descuento, el impuesto se ajusta
+   proporcionalmente al nuevo precio.
+   ============================================================ */
+
+function isv360UnitTax(
+  line,
+  field
+){
+
+  const menuItem =
+    isv360MenuItem(
+      line
+    );
+
+
+  if(
+    !menuItem
+  ){
+
+    return 0;
+
+  }
+
+
+  const configuredTax =
+    Number(
+      menuItem[
+        field
+      ]
+    )
+    ||
+    0;
+
+
+  if(
+    configuredTax <=
+    0
+  ){
+
+    return 0;
+
+  }
+
+
+  const originalPrice =
+    Number(
+      menuItem.valor
+    )
+    ||
+    0;
+
+
+  const salePrice =
+    Number(
+      line.valor
+    )
+    ||
+    0;
+
+
+  /*
+   * Conservamos la misma proporción de impuesto
+   * cuando existe descuento.
+   */
+
+  if(
+    originalPrice >
+    0
+  ){
+
+    return isv360Round(
+      configuredTax
+      *
+      (
+        salePrice
+        /
+        originalPrice
+      )
+    );
+
+  }
+
+
+  return isv360Round(
+    configuredTax
+  );
+
+}
+
+
+/* ============================================================
+   IMPUESTOS DE UNA LINEA
+   ============================================================ */
+
+function isv360LineTaxes(
+  line
+){
+
+  const quantity =
+    Number(
+      line.cantidad
+    )
+    ||
+    0;
+
+
+  const price =
+    Number(
+      line.valor
+    )
+    ||
+    0;
+
+
+  const base =
+    isv360Round(
+      quantity
+      *
+      price
+    );
+
+
+  let unit15 =
+    isv360UnitTax(
+      line,
+      'isv15'
+    );
+
+
+  let unit18 =
+    isv360UnitTax(
+      line,
+      'isv18'
+    );
+
+
+  /*
+   * Un producto debe usar una tarifa.
+   * Si accidentalmente las dos tienen valor,
+   * damos prioridad al 18%.
+   */
+
+  if(
+    unit18 >
+    0
+    &&
+    unit15 >
+    0
+  ){
+
+    unit15 =
+      0;
+
+  }
+
+
+  const tax15 =
+    isv360Round(
+      quantity
+      *
+      unit15
+    );
+
+
+  const tax18 =
+    isv360Round(
+      quantity
+      *
+      unit18
+    );
+
+
+  return {
+
+    base:
+      base,
+
+    isv15:
+      tax15,
+
+    isv18:
+      tax18
+
+  };
+
+}
+
+
+/* ============================================================
+   RESUMEN FISCAL COMPLETO
+   ============================================================ */
+
+function isv360Summary(
+  lines
+){
+
+  const result = {
+
+    exento:
+      0,
+
+    exonerado:
+      0,
+
+    gravado15:
+      0,
+
+    isv15:
+      0,
+
+    gravado18:
+      0,
+
+    isv18:
+      0,
+
+    subtotal:
+      0,
+
+    total:
+      0
+
+  };
+
+
+  (
+    Array.isArray(
+      lines
+    )
+    ?
+    lines
+    :
+    []
+  )
+  .forEach(
+    line => {
+
+      const taxes =
+        isv360LineTaxes(
+          line
+        );
+
+
+      result.subtotal +=
+        taxes.base;
+
+
+      if(
+        taxes.isv18 >
+        0
+      ){
+
+        result.gravado18 +=
+          taxes.base;
+
+
+        result.isv18 +=
+          taxes.isv18;
+
+      }
+
+      else if(
+        taxes.isv15 >
+        0
+      ){
+
+        result.gravado15 +=
+          taxes.base;
+
+
+        result.isv15 +=
+          taxes.isv15;
+
+      }
+
+      else{
+
+        /*
+         * Con las columnas actuales,
+         * 0 en 15% y 0 en 18% = EXENTO.
+         */
+
+        result.exento +=
+          taxes.base;
+
+      }
+
+    }
+  );
+
+
+  result.exento =
+    isv360Round(
+      result.exento
+    );
+
+
+  result.exonerado =
+    isv360Round(
+      result.exonerado
+    );
+
+
+  result.gravado15 =
+    isv360Round(
+      result.gravado15
+    );
+
+
+  result.isv15 =
+    isv360Round(
+      result.isv15
+    );
+
+
+  result.gravado18 =
+    isv360Round(
+      result.gravado18
+    );
+
+
+  result.isv18 =
+    isv360Round(
+      result.isv18
+    );
+
+
+  result.subtotal =
+    isv360Round(
+      result.subtotal
+    );
+
+
+  result.total =
+    isv360Round(
+
+      result.subtotal
+
+      +
+
+      result.isv15
+
+      +
+
+      result.isv18
+
+    );
+
+
+  return result;
+
+}
+
+
+/* ============================================================
+   TOTAL DE LA CUENTA
+
+   Antes:
+   cantidad × valor
+
+   Ahora:
+   subtotal + ISV15 + ISV18
+   ============================================================ */
+
+accountTotal =
+  function(){
+
+    return isv360Summary(
+      accountLines
+    )
+    .total;
+
+  };
+
+
+/* ============================================================
+   SOBRESCRIBIR IMPUESTOS DE FACTURA
+
+   Ya no utiliza tratamientoFiscal fijo.
+   Ahora manda lo configurado ITEM POR ITEM en Menu.
+   ============================================================ */
+
+invoiceTaxes =
+  function(){
+
+    if(
+      lastInvoice
+      &&
+      lastInvoice.taxSummary
+    ){
+
+      return {
+
+        exento:
+          lastInvoice.taxSummary.exento,
+
+        exonerado:
+          lastInvoice.taxSummary.exonerado,
+
+        gravado15:
+          lastInvoice.taxSummary.gravado15,
+
+        isv15:
+          lastInvoice.taxSummary.isv15,
+
+        gravado18:
+          lastInvoice.taxSummary.gravado18,
+
+        isv18:
+          lastInvoice.taxSummary.isv18
+
+      };
+
+    }
+
+
+    const summary =
+      isv360Summary(
+        accountLines
+      );
+
+
+    return {
+
+      exento:
+        summary.exento,
+
+      exonerado:
+        summary.exonerado,
+
+      gravado15:
+        summary.gravado15,
+
+      isv15:
+        summary.isv15,
+
+      gravado18:
+        summary.gravado18,
+
+      isv18:
+        summary.isv18
+
+    };
+
+  };
+
+
+/* ============================================================
+   GUARDAR RESUMEN DENTRO DE LA FACTURA
+   ============================================================ */
+
+const isv360ShowInvoiceBase =
+  showInvoiceResult;
+
+
+showInvoiceResult =
+  function(
+    invoice
+  ){
+
+    if(
+      invoice
+      &&
+      Array.isArray(
+        invoice.items
+      )
+    ){
+
+      invoice.taxSummary =
+        isv360Summary(
+          invoice.items
+        );
+
+    }
+
+
+    return isv360ShowInvoiceBase(
+      invoice
+    );
+
+  };
+
+
+/* ============================================================
+   AGREGAR LOS IMPUESTOS AL JSON QUE VA A GS
+   ============================================================ */
+
+const isv360JsonpBase =
+  jsonp;
+
+
+jsonp =
+  function(
+    action,
+    params = {},
+    timeoutMs = 15000
+  ){
+
+    if(
+      action ===
+      'saveSale'
+      &&
+      params
+      &&
+      params.items
+    ){
+
+      try{
+
+        const rows =
+          JSON.parse(
+            params.items
+          );
+
+
+        if(
+          Array.isArray(
+            rows
+          )
+        ){
+
+          const enriched =
+            rows.map(
+              line => {
+
+                const taxes =
+                  isv360LineTaxes(
+                    line
+                  );
+
+
+                return {
+
+                  ...line,
+
+                  /*
+                   * Estos son TOTALES de impuesto
+                   * por línea de venta.
+                   */
+
+                  isv15:
+                    taxes.isv15,
+
+                  isv18:
+                    taxes.isv18
+
+                };
+
+              }
+            );
+
+
+          params = {
+
+            ...params,
+
+            items:
+              JSON.stringify(
+                enriched
+              )
+
+          };
+
+        }
+
+      }
+
+      catch(error){
+
+        console.error(
+          'No fue posible agregar ISV a la venta.',
+          error
+        );
+
+      }
+
+    }
+
+
+    return isv360JsonpBase(
+      action,
+      params,
+      timeoutMs
+    );
+
+  };
+
+
+/* ============================================================
+   PANEL DE IMPUESTOS EN TOTAL A PAGAR
+   ============================================================ */
+
+function isv360InstallPaymentSummary(){
+
+  const box =
+    document.querySelector(
+      '.payment-total-box'
+    );
+
+
+  if(
+    !box
+    ||
+    document.getElementById(
+      'isv360PaymentSummary'
+    )
+  ){
+
+    return;
+
+  }
+
+
+  box.insertAdjacentHTML(
+    'beforeend',
+    `
+    <div
+      id="isv360PaymentSummary"
+      class="payment-tax-summary"
+    >
+
+      <div class="payment-tax-row">
+        <span>Subtotal Exento</span>
+        <span id="payExento">L 0.00</span>
+      </div>
+
+      <div class="payment-tax-row">
+        <span>Subtotal Exonerado</span>
+        <span id="payExonerado">L 0.00</span>
+      </div>
+
+      <div class="payment-tax-row">
+        <span>Subtotal Gravado 15%</span>
+        <span id="payGravado15">L 0.00</span>
+      </div>
+
+      <div class="payment-tax-row">
+        <span>ISV 15%</span>
+        <span id="payIsv15">L 0.00</span>
+      </div>
+
+      <div class="payment-tax-row">
+        <span>Subtotal Gravado 18%</span>
+        <span id="payGravado18">L 0.00</span>
+      </div>
+
+      <div class="payment-tax-row">
+        <span>ISV 18%</span>
+        <span id="payIsv18">L 0.00</span>
+      </div>
+
+      <div class="payment-tax-row payment-tax-total">
+        <span>TOTAL</span>
+        <span id="payFiscalTotal">L 0.00</span>
+      </div>
+
+    </div>
+    `
+  );
+
+}
+
+
+/* ============================================================
+   ACTUALIZAR PANEL
+   ============================================================ */
+
+function isv360RenderPaymentSummary(){
+
+  isv360InstallPaymentSummary();
+
+
+  const summary =
+    isv360Summary(
+      accountLines
+    );
+
+
+  const values = {
+
+    payExento:
+      summary.exento,
+
+    payExonerado:
+      summary.exonerado,
+
+    payGravado15:
+      summary.gravado15,
+
+    payIsv15:
+      summary.isv15,
+
+    payGravado18:
+      summary.gravado18,
+
+    payIsv18:
+      summary.isv18,
+
+    payFiscalTotal:
+      summary.total
+
+  };
+
+
+  Object
+    .entries(
+      values
+    )
+    .forEach(
+      (
+        [
+          id,
+          value
+        ]
+      ) => {
+
+        const element =
+          document.getElementById(
+            id
+          );
+
+
+        if(
+          element
+        ){
+
+          element.textContent =
+            money(
+              value
+            );
+
+        }
+
+      }
+    );
+
+
+  /*
+   * El TOTAL A PAGAR grande
+   * también incluye los impuestos.
+   */
+
+  const total =
+    document.getElementById(
+      'paymentTotal'
+    );
+
+
+  if(
+    total
+  ){
+
+    total.textContent =
+      money(
+        summary.total
+      );
+
+  }
+
+}
+
+
+/* ============================================================
+   INTERCEPTAR APERTURA DE COBRO
+   ============================================================ */
+
+const isv360OpenCashPaymentBase =
+  openCashPayment;
+
+
+openCashPayment =
+  function(){
+
+    isv360OpenCashPaymentBase();
+
+
+    isv360RenderPaymentSummary();
+
+  };
 
 </script>  
 </body>
