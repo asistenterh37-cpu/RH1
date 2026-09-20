@@ -16144,10 +16144,741 @@ function invoiceText(
 
 }
 
+/* ============================================================
+ ENVIAR FACTURA COMO IMAGEN
+ ============================================================ */
+
 
 /* ============================================================
-   ENVIAR
-   ============================================================ */
+ CARGAR HTML2CANVAS
+ Convierte la factura visible en una imagen PNG.
+ ============================================================ */
+
+function loadInvoiceImageEngine(){
+
+  if(
+    window.html2canvas
+  ){
+
+    return Promise.resolve(
+      window.html2canvas
+    );
+
+  }
+
+
+  return new Promise(
+    (
+      resolve,
+      reject
+    ) => {
+
+      const oldScript =
+        document.querySelector(
+          'script[data-invoice-html2canvas]'
+        );
+
+
+      if(
+        oldScript
+      ){
+
+        oldScript.addEventListener(
+          'load',
+          () => {
+
+            if(
+              window.html2canvas
+            ){
+
+              resolve(
+                window.html2canvas
+              );
+
+            }
+
+            else{
+
+              reject(
+                new Error(
+                  'No fue posible cargar el generador de imagen.'
+                )
+              );
+
+            }
+
+          }
+        );
+
+
+        oldScript.addEventListener(
+          'error',
+          () => {
+
+            reject(
+              new Error(
+                'No fue posible cargar el generador de imagen.'
+              )
+            );
+
+          }
+        );
+
+
+        return;
+
+      }
+
+
+      const script =
+        document.createElement(
+          'script'
+        );
+
+
+      script.src =
+        'https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js';
+
+
+      script.async =
+        true;
+
+
+      script.setAttribute(
+        'data-invoice-html2canvas',
+        'true'
+      );
+
+
+      script.onload =
+        () => {
+
+          if(
+            window.html2canvas
+          ){
+
+            resolve(
+              window.html2canvas
+            );
+
+          }
+
+          else{
+
+            reject(
+              new Error(
+                'No fue posible iniciar el generador de imagen.'
+              )
+            );
+
+          }
+
+        };
+
+
+      script.onerror =
+        () => {
+
+          reject(
+            new Error(
+              'No fue posible cargar el generador de imagen.'
+            )
+          );
+
+        };
+
+
+      document.head.appendChild(
+        script
+      );
+
+    }
+  );
+
+}
+
+
+/* ============================================================
+ CREAR COPIA FIJA DE FACTURA
+
+ La imagen SIEMPRE se genera a 440 px,
+ independientemente del tamaño del celular.
+
+ Así conservamos:
+ Cant. | Ítem | Precio | Total
+ siempre perfectamente alineados.
+ ============================================================ */
+
+function createInvoiceImageClone(){
+
+  const preview =
+    document.getElementById(
+      'invoicePreview'
+    );
+
+
+  if(
+    !preview
+  ){
+
+    throw new Error(
+      'No se encontró la factura para generar la imagen.'
+    );
+
+  }
+
+
+  const holder =
+    document.createElement(
+      'div'
+    );
+
+
+  holder.id =
+    'invoiceImageHolder';
+
+
+  holder.style.position =
+    'fixed';
+
+
+  holder.style.left =
+    '-10000px';
+
+
+  holder.style.top =
+    '0';
+
+
+  holder.style.width =
+    '470px';
+
+
+  holder.style.padding =
+    '15px';
+
+
+  holder.style.background =
+    '#ffffff';
+
+
+  holder.style.pointerEvents =
+    'none';
+
+
+  holder.style.zIndex =
+    '-999999';
+
+
+  const clone =
+    preview.cloneNode(
+      true
+    );
+
+
+  clone.removeAttribute(
+    'id'
+  );
+
+
+  clone.classList.add(
+    'invoice-image-render'
+  );
+
+
+  /*
+   * Tamaño fijo.
+   * Esto es lo que evita que WhatsApp
+   * o un celular estrecho cambien el alineamiento.
+   */
+
+  clone.style.width =
+    '440px';
+
+
+  clone.style.minWidth =
+    '440px';
+
+
+  clone.style.maxWidth =
+    '440px';
+
+
+  clone.style.margin =
+    '0';
+
+
+  clone.style.padding =
+    '17px';
+
+
+  clone.style.background =
+    '#ffffff';
+
+
+  clone.style.borderRadius =
+    '0';
+
+
+  clone.style.boxShadow =
+    'none';
+
+
+  /*
+   * Mantener tamaños de columnas exactos.
+   */
+
+  const table =
+    clone.querySelector(
+      '.invoice-table'
+    );
+
+
+  if(
+    table
+  ){
+
+    table.style.width =
+      '100%';
+
+
+    table.style.tableLayout =
+      'fixed';
+
+
+    table.style.fontSize =
+      '10px';
+
+  }
+
+
+  const headers =
+    clone.querySelectorAll(
+      '.invoice-table th'
+    );
+
+
+  const cells =
+    clone.querySelectorAll(
+      '.invoice-table td'
+    );
+
+
+  headers.forEach(
+    (
+      cell,
+      index
+    ) => {
+
+      const column =
+        index
+        %
+        4;
+
+
+      if(
+        column ===
+        0
+      ){
+
+        cell.style.width =
+          '35px';
+
+
+        cell.style.textAlign =
+          'center';
+
+      }
+
+
+      if(
+        column ===
+        1
+      ){
+
+        cell.style.textAlign =
+          'left';
+
+      }
+
+
+      if(
+        column ===
+        2
+      ){
+
+        cell.style.width =
+          '70px';
+
+
+        cell.style.textAlign =
+          'right';
+
+      }
+
+
+      if(
+        column ===
+        3
+      ){
+
+        cell.style.width =
+          '74px';
+
+
+        cell.style.textAlign =
+          'right';
+
+      }
+
+    }
+  );
+
+
+  cells.forEach(
+    (
+      cell,
+      index
+    ) => {
+
+      const column =
+        index
+        %
+        4;
+
+
+      if(
+        column ===
+        0
+      ){
+
+        cell.style.width =
+          '35px';
+
+
+        cell.style.textAlign =
+          'center';
+
+      }
+
+
+      if(
+        column ===
+        1
+      ){
+
+        cell.style.textAlign =
+          'left';
+
+      }
+
+
+      if(
+        column ===
+        2
+      ){
+
+        cell.style.width =
+          '70px';
+
+
+        cell.style.textAlign =
+          'right';
+
+
+        cell.style.whiteSpace =
+          'nowrap';
+
+      }
+
+
+      if(
+        column ===
+        3
+      ){
+
+        cell.style.width =
+          '74px';
+
+
+        cell.style.textAlign =
+          'right';
+
+
+        cell.style.whiteSpace =
+          'nowrap';
+
+      }
+
+    }
+  );
+
+
+  holder.appendChild(
+    clone
+  );
+
+
+  document.body.appendChild(
+    holder
+  );
+
+
+  return {
+
+    holder:
+      holder,
+
+    invoice:
+      clone
+
+  };
+
+}
+
+
+/* ============================================================
+ GENERAR PNG
+ ============================================================ */
+
+async function createInvoiceImageBlob(){
+
+  /*
+   * Recoger cambios hechos en Cliente / RTN.
+   */
+
+  updateInvoiceCustomer();
+
+
+  await loadInvoiceImageEngine();
+
+
+  const rendered =
+    createInvoiceImageClone();
+
+
+  try{
+
+    /*
+     * Esperar un cuadro de renderizado
+     * antes de tomar la imagen.
+     */
+
+    await new Promise(
+      resolve => {
+
+        requestAnimationFrame(
+          () => {
+
+            requestAnimationFrame(
+              resolve
+            );
+
+          }
+        );
+
+      }
+    );
+
+
+    if(
+      document.fonts
+      &&
+      document.fonts.ready
+    ){
+
+      try{
+
+        await document.fonts.ready;
+
+      }
+
+      catch(_){
+      }
+
+    }
+
+
+    /*
+     * windowWidth 1200 evita que las reglas
+     * responsive de celular cambien el diseño
+     * de la factura al generar la imagen.
+     */
+
+    const canvas =
+      await window.html2canvas(
+        rendered.invoice,
+        {
+
+          backgroundColor:
+            '#ffffff',
+
+          scale:
+            2,
+
+          useCORS:
+            true,
+
+          allowTaint:
+            false,
+
+          logging:
+            false,
+
+          scrollX:
+            0,
+
+          scrollY:
+            0,
+
+          windowWidth:
+            1200
+
+        }
+      );
+
+
+    const blob =
+      await new Promise(
+        (
+          resolve,
+          reject
+        ) => {
+
+          canvas.toBlob(
+            result => {
+
+              if(
+                result
+              ){
+
+                resolve(
+                  result
+                );
+
+              }
+
+              else{
+
+                reject(
+                  new Error(
+                    'No fue posible crear la imagen de la factura.'
+                  )
+                );
+
+              }
+
+            },
+            'image/png'
+          );
+
+        }
+      );
+
+
+    return blob;
+
+  }
+
+  finally{
+
+    rendered.holder.remove();
+
+  }
+
+}
+
+
+/* ============================================================
+ NOMBRE ARCHIVO
+ ============================================================ */
+
+function invoiceImageFileName(){
+
+  const number =
+    String(
+      (
+        lastInvoice
+        &&
+        lastInvoice.numero
+      )
+      ||
+      'factura'
+    )
+    .replace(
+      /[^0-9A-Za-z_-]/g,
+      '-'
+    );
+
+
+  return (
+    'Factura-'
+    +
+    number
+    +
+    '.png'
+  );
+
+}
+
+
+/* ============================================================
+ DESCARGAR IMAGEN COMO RESPALDO
+ ============================================================ */
+
+function downloadInvoiceImage(
+  blob,
+  fileName
+){
+
+  const url =
+    URL.createObjectURL(
+      blob
+    );
+
+
+  const link =
+    document.createElement(
+      'a'
+    );
+
+
+  link.href =
+    url;
+
+
+  link.download =
+    fileName;
+
+
+  document.body.appendChild(
+    link
+  );
+
+
+  link.click();
+
+
+  link.remove();
+
+
+  setTimeout(
+    () => {
+
+      URL.revokeObjectURL(
+        url
+      );
+
+    },
+    3000
+  );
+
+}
+
+
+/* ============================================================
+ ENVIAR
+ ============================================================ */
 
 async function sendInvoice(){
 
@@ -16169,49 +16900,106 @@ async function sendInvoice(){
   updateInvoiceCustomer();
 
 
-  const text =
-    invoiceText(
-      lastInvoice
+  const sendButton =
+    document.querySelector(
+      '.invoice-action.send'
     );
+
+
+  if(
+    sendButton
+  ){
+
+    sendButton.disabled =
+      true;
+
+
+    sendButton.textContent =
+      '🖼️ Generando imagen...';
+
+
+    sendButton.style.opacity =
+      '.65';
+
+  }
 
 
   try{
 
+    setStatus(
+      'Preparando factura como imagen...'
+    );
+
+
+    /*
+     * Crear exactamente la factura
+     * que está viendo el usuario.
+     */
+
+    const blob =
+      await createInvoiceImageBlob();
+
+
+    const fileName =
+      invoiceImageFileName();
+
+
+    const file =
+      new File(
+        [
+          blob
+        ],
+        fileName,
+        {
+
+          type:
+            'image/png'
+
+        }
+      );
+
+
+    /* ========================================================
+       CELULAR
+
+       Web Share API nivel 2 permite compartir
+       directamente el archivo PNG.
+
+       En Android/iPhone aparecerán:
+       WhatsApp, correo, mensajes, etc.
+       ======================================================== */
+
     if(
       navigator.share
-    ){
-
-      await navigator.share({
-
-        title:
-          'Factura '
-          +
-          lastInvoice.numero,
-
-        text:
-          text
-
-      });
-
-
-      return;
-
-    }
-
-
-    if(
-      navigator.clipboard
       &&
-      navigator.clipboard.writeText
+      navigator.canShare
+      &&
+      navigator.canShare(
+        {
+
+          files:
+            [
+              file
+            ]
+
+        }
+      )
     ){
 
-      await navigator.clipboard.writeText(
-        text
+      await navigator.share(
+        {
+
+          files:
+            [
+              file
+            ]
+
+        }
       );
 
 
       setStatus(
-        'Factura copiada. Puedes pegarla en WhatsApp, correo o mensaje.'
+        'Factura compartida como imagen.'
       );
 
 
@@ -16220,9 +17008,77 @@ async function sendInvoice(){
     }
 
 
-    window.prompt(
-      'Copia la factura:',
-      text
+    /* ========================================================
+       COMPUTADORA
+
+       Intentar copiar la IMAGEN al portapapeles.
+       Luego puede pegarse directamente en WhatsApp Web.
+       ======================================================== */
+
+    if(
+      navigator.clipboard
+      &&
+      navigator.clipboard.write
+      &&
+      window.ClipboardItem
+    ){
+
+      try{
+
+        const clipboardItem =
+          new ClipboardItem(
+            {
+
+              'image/png':
+                blob
+
+            }
+          );
+
+
+        await navigator.clipboard.write(
+          [
+            clipboardItem
+          ]
+        );
+
+
+        setStatus(
+          'Factura copiada como imagen. Ve a WhatsApp y presiona Ctrl + V.'
+        );
+
+
+        return;
+
+      }
+
+      catch(clipboardError){
+
+        console.warn(
+          'No fue posible copiar la imagen.',
+          clipboardError
+        );
+
+      }
+
+    }
+
+
+    /* ========================================================
+       RESPALDO
+
+       Si el navegador no permite compartir archivos,
+       descargamos el PNG.
+       ======================================================== */
+
+    downloadInvoiceImage(
+      blob,
+      fileName
+    );
+
+
+    setStatus(
+      'Factura guardada como imagen. Adjunta el PNG en WhatsApp.'
     );
 
   }
@@ -16236,6 +17092,11 @@ async function sendInvoice(){
       'AbortError'
     ){
 
+      setStatus(
+        'Envío cancelado.'
+      );
+
+
       return;
 
     }
@@ -16247,15 +17108,37 @@ async function sendInvoice(){
 
 
     setStatus(
-      'No fue posible abrir las opciones para enviar la factura.',
+      error.message
+      ||
+      'No fue posible generar la imagen de la factura.',
       true
     );
 
   }
 
+  finally{
+
+    if(
+      sendButton
+    ){
+
+      sendButton.disabled =
+        false;
+
+
+      sendButton.textContent =
+        '📤 Enviar factura';
+
+
+      sendButton.style.opacity =
+        '1';
+
+    }
+
+  }
+
 }
-
-
+  
 /* ============================================================
    HTML DE IMPRESION
    ============================================================ */
