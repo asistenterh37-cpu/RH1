@@ -1850,7 +1850,7 @@ const CONFIG = {
    */
 
   GAS_WEB_APP_URL:
-    'https://script.google.com/macros/s/AKfycby926tAW6QVTfaojEzn0T-iJtUUzS_9Uzucd1t7AZz8vRUuY9-BhDAi27HNnZ-77FQ/exec'
+    'https://script.google.com/macros/s/AKfycbwn4EqKi8o_kuMnTA4oDF_wZ5fYCd2XkOJ8g4u3dhKCM2QbgkR0q-hJ0Y6UldM6FsTZ/exec'
 
 };
 
@@ -6449,12 +6449,11 @@ function cancelCashPayment(){
 }
 
 
-
 /* ============================================================
-   FINALIZAR Y EMPEZAR NUEVA VENTA
+   FINALIZAR, GUARDAR Y EMPEZAR NUEVA VENTA
    ============================================================ */
 
-function finishCashPayment(){
+async function finishCashPayment(){
 
   const received =
     Number(
@@ -6471,6 +6470,10 @@ function finishCashPayment(){
     ||
     0;
 
+
+  /*
+   * Validar efectivo recibido.
+   */
 
   if(
     received <
@@ -6495,61 +6498,283 @@ function finishCashPayment(){
   }
 
 
+  /*
+   * La venta debe contener productos.
+   */
+
+  if(
+    !accountLines.length
+  ){
+
+    setStatus(
+      'No hay productos para guardar.',
+      true
+    );
+
+    return;
+
+  }
+
+
   const change =
     received
     -
     total;
 
 
-  document
-    .getElementById(
-      'cashPaymentOverlay'
-    )
-    .classList
-    .remove(
-      'show'
+  /*
+   * Botón Nueva venta.
+   * Se deshabilita mientras guarda
+   * para evitar duplicar la venta
+   * por doble clic.
+   */
+
+  const finishButton =
+    document.querySelector(
+      '.payment-action.finish'
     );
 
 
-  document.body.style.overflow =
-    '';
+  if(
+    finishButton
+  ){
+
+    finishButton.disabled =
+      true;
+
+    finishButton.textContent =
+      'Guardando...';
+
+    finishButton.style.opacity =
+      '.65';
+
+    finishButton.style.cursor =
+      'wait';
+
+  }
 
 
   /*
-   * Limpiar cuenta.
+   * Crear copia de la venta.
+   *
+   * IMPORTANTE:
+   * Se guarda el precio que tenía
+   * el producto en esta venta.
+   *
+   * Si mañana cambia el precio
+   * en Menu, esta venta histórica
+   * conserva su valor original.
    */
 
-  accountLines =
-    [];
+  const saleItems =
+    accountLines.map(
+      line => ({
+
+        categoria:
+          String(
+            line.categoria
+            ||
+            ''
+          ),
+
+        cantidad:
+          Number(
+            line.cantidad
+          )
+          ||
+          0,
+
+        item:
+          String(
+            line.item
+            ||
+            ''
+          ),
+
+        valor:
+          Number(
+            line.valor
+          )
+          ||
+          0
+
+      })
+    );
 
 
-  editingLine =
-    -1;
+  try{
+
+    setStatus(
+      'Guardando venta...'
+    );
 
 
-  accountClosed =
-    false;
+    /*
+     * Enviar toda la venta
+     * a Apps Script.
+     */
+
+    const response =
+      await jsonp(
+        'saveSale',
+        {
+
+          items:
+            JSON.stringify(
+              saleItems
+            )
+
+        },
+        20000
+      );
 
 
-  cashEntry =
-    '';
+    /*
+     * No cerrar la venta
+     * si Google Sheets no confirmó.
+     */
+
+    if(
+      !response
+      ||
+      response.ok !==
+      true
+    ){
+
+      throw new Error(
+        (
+          response
+          &&
+          response.error
+        )
+        ||
+        'No fue posible guardar la venta.'
+      );
+
+    }
 
 
-  renderReceipt();
+    /*
+     * ========================================================
+     * AQUÍ LA VENTA YA ESTÁ GUARDADA
+     * ========================================================
+     */
 
-  renderItems();
+
+    /*
+     * Cerrar ventana de cobro.
+     */
+
+    document
+      .getElementById(
+        'cashPaymentOverlay'
+      )
+      .classList
+      .remove(
+        'show'
+      );
 
 
-  setStatus(
-    'Venta finalizada. Cambio entregado: '
-    +
-    money(
-      change
-    )
-  );
+    document.body.style.overflow =
+      '';
+
+
+    /*
+     * Limpiar la venta anterior
+     * y dejar lista una nueva.
+     */
+
+    accountLines =
+      [];
+
+
+    editingLine =
+      -1;
+
+
+    accountClosed =
+      false;
+
+
+    cashEntry =
+      '';
+
+
+    renderReceipt();
+
+    renderItems();
+
+
+    setStatus(
+      'Venta guardada correctamente. Cambio entregado: '
+      +
+      money(
+        change
+      )
+    );
+
+  }
+
+  catch(error){
+
+    console.error(
+      error
+    );
+
+
+    /*
+     * MUY IMPORTANTE:
+     *
+     * Si no logró guardar,
+     * NO limpiamos la cuenta.
+     *
+     * De esta manera no se pierde
+     * la venta.
+     */
+
+    setStatus(
+      error.message
+      ||
+      'No fue posible guardar la venta.',
+      true
+    );
+
+
+    document
+      .getElementById(
+        'cashReceived'
+      )
+      .focus();
+
+  }
+
+  finally{
+
+    /*
+     * Reactivar Nueva venta.
+     */
+
+    if(
+      finishButton
+    ){
+
+      finishButton.disabled =
+        false;
+
+      finishButton.textContent =
+        'Nueva venta';
+
+      finishButton.style.opacity =
+        '1';
+
+      finishButton.style.cursor =
+        'pointer';
+
+    }
+
+  }
 
 }
-
 </script>
   
 </body>
