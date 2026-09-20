@@ -1850,7 +1850,7 @@ const CONFIG = {
    */
 
   GAS_WEB_APP_URL:
-    'https://script.google.com/macros/s/AKfycbwn4EqKi8o_kuMnTA4oDF_wZ5fYCd2XkOJ8g4u3dhKCM2QbgkR0q-hJ0Y6UldM6FsTZ/exec'
+    'https://script.google.com/macros/s/AKfycbxnFgUm_t5e0D3A3rx94kg8CU3RkLgrDxdTbZDQaGqMpypwFoF0RRmV2VPwAIb9sj1r/exec'
 
 };
 
@@ -5970,21 +5970,1814 @@ function escapeAttr(
 
 
 <script>
-
 /* ============================================================
-   VARIABLES COBRO
+   VARIABLES COBRO / COMPRAS
    ============================================================ */
 
-let cashEntry =
-  '';
+let cashEntry = '';
 
+let purchaseLines = [];
+
+let purchaseSaving = false;
+
+let currentSupplier = '';
+
+try{
+  currentSupplier =
+    localStorage.getItem(
+      'cajaLastSupplier'
+    )
+    ||
+    '';
+}
+catch(_){
+  currentSupplier = '';
+}
 
 
 /* ============================================================
-   REEMPLAZA EL COMPORTAMIENTO DEL =
+   CONVERTIR PRECIO ESCRITO
+   ============================================================ */
+
+function parseMoneyInput(value){
+
+  let text =
+    String(
+      value
+      ??
+      ''
+    )
+    .trim()
+    .replace(
+      /L/gi,
+      ''
+    )
+    .replace(
+      /\s/g,
+      ''
+    );
+
+
+  if(
+    text.includes(',')
+    &&
+    !text.includes('.')
+  ){
+
+    text =
+      text.replace(
+        ',',
+        '.'
+      );
+
+  }
+
+  else{
+
+    text =
+      text.replace(
+        /,/g,
+        ''
+      );
+
+  }
+
+
+  const number =
+    Number(
+      text
+    );
+
+
+  if(
+    !Number.isFinite(number)
+    ||
+    number < 0
+  ){
+
+    return null;
+
+  }
+
+
+  return Math.round(
+    (
+      number
+      +
+      Number.EPSILON
+    )
+    *
+    100
+  )
+  /
+  100;
+
+}
+
+
+/* ============================================================
+   PROVEEDOR DE LA COMPRA
+   ============================================================ */
+
+function ensurePurchaseSupplierBox(){
+
+  let box =
+    document.getElementById(
+      'purchaseSupplierBox'
+    );
+
+
+  if(
+    !box
+  ){
+
+    const status =
+      document.getElementById(
+        'status'
+      );
+
+
+    if(
+      !status
+    ){
+      return;
+    }
+
+
+    box =
+      document.createElement(
+        'div'
+      );
+
+
+    box.id =
+      'purchaseSupplierBox';
+
+
+    box.style.marginTop =
+      '12px';
+
+    box.style.padding =
+      '12px';
+
+    box.style.border =
+      '1px solid #dfe6e2';
+
+    box.style.borderRadius =
+      '13px';
+
+    box.style.background =
+      '#f7fbf9';
+
+    box.style.gridTemplateColumns =
+      '1fr';
+
+    box.style.gap =
+      '6px';
+
+
+    box.innerHTML =
+      `
+      <label
+        for="purchaseSupplier"
+        style="
+          font-size:12px;
+          font-weight:900;
+          color:#6b7280;
+          text-transform:uppercase;
+        "
+      >
+        Proveedor de esta compra
+      </label>
+
+      <input
+        id="purchaseSupplier"
+        type="text"
+        placeholder="Ej. Distribuidora XYZ"
+        autocomplete="off"
+        style="
+          width:100%;
+          min-height:44px;
+          padding:9px 12px;
+          border:1px solid #dfe6e2;
+          border-radius:11px;
+          outline:none;
+          background:#fff;
+        "
+      >
+      `;
+
+
+    status.insertAdjacentElement(
+      'afterend',
+      box
+    );
+
+
+    const input =
+      box.querySelector(
+        '#purchaseSupplier'
+      );
+
+
+    input.value =
+      currentSupplier;
+
+
+    input.addEventListener(
+      'input',
+      () => {
+
+        currentSupplier =
+          String(
+            input.value
+            ||
+            ''
+          );
+
+
+        /*
+         * Recordar el último proveedor.
+         * Así no hay que escribirlo
+         * nuevamente en cada compra.
+         */
+
+        try{
+
+          localStorage.setItem(
+            'cajaLastSupplier',
+            currentSupplier
+          );
+
+        }
+
+        catch(_){
+        }
+
+      }
+    );
+
+  }
+
+
+  box.style.display =
+    appMode ===
+    'purchases'
+    ?
+    'grid'
+    :
+    'none';
+
+
+  const input =
+    document.getElementById(
+      'purchaseSupplier'
+    );
+
+
+  if(
+    input
+    &&
+    input.value !==
+    currentSupplier
+  ){
+
+    input.value =
+      currentSupplier;
+
+  }
+
+}
+
+
+/* ============================================================
+   APARIENCIA DEL BOTON MODO
+   ============================================================ */
+
+function updateModeButton(){
+
+  const button =
+    document.getElementById(
+      'modeButton'
+    );
+
+
+  if(
+    !button
+  ){
+    return;
+  }
+
+
+  if(
+    appMode ===
+    'prices'
+  ){
+
+    button.textContent =
+      '🏷️ Modo Precios';
+
+    button.style.background =
+      '#d97706';
+
+    button.style.borderColor =
+      '#d97706';
+
+    button.style.color =
+      '#ffffff';
+
+    button.title =
+      'Toca para cambiar a Modo Compras';
+
+  }
+
+  else if(
+    appMode ===
+    'purchases'
+  ){
+
+    button.textContent =
+      '📦 Modo Compras';
+
+    button.style.background =
+      '#2563eb';
+
+    button.style.borderColor =
+      '#2563eb';
+
+    button.style.color =
+      '#ffffff';
+
+    button.title =
+      'Toca para regresar a Modo Ventas';
+
+  }
+
+  else{
+
+    button.textContent =
+      '🛒 Modo Ventas';
+
+    button.style.background =
+      'var(--g)';
+
+    button.style.borderColor =
+      'var(--g)';
+
+    button.style.color =
+      '#ffffff';
+
+    button.title =
+      'Toca para cambiar a Modo Precios';
+
+  }
+
+
+  ensurePurchaseSupplierBox();
+
+  updateOperationButtons();
+
+}
+
+
+/* ============================================================
+   C Y = SEGUN EL MODO
+   ============================================================ */
+
+function updateOperationButtons(){
+
+  const clearButton =
+    document.querySelector(
+      '.op.clear'
+    );
+
+  const equalButton =
+    document.querySelector(
+      '.op.equal'
+    );
+
+
+  const disabled =
+    appMode ===
+    'prices';
+
+
+  if(
+    clearButton
+  ){
+
+    clearButton.disabled =
+      disabled;
+
+    clearButton.style.opacity =
+      disabled
+      ?
+      '.45'
+      :
+      '1';
+
+    clearButton.style.cursor =
+      disabled
+      ?
+      'not-allowed'
+      :
+      'pointer';
+
+
+    clearButton.title =
+      appMode ===
+      'purchases'
+      ?
+      'Nueva compra'
+      :
+      'Nueva venta';
+
+  }
+
+
+  if(
+    equalButton
+  ){
+
+    equalButton.disabled =
+      disabled;
+
+    equalButton.style.opacity =
+      disabled
+      ?
+      '.45'
+      :
+      '1';
+
+    equalButton.style.cursor =
+      disabled
+      ?
+      'not-allowed'
+      :
+      'pointer';
+
+
+    if(
+      appMode ===
+      'purchases'
+    ){
+
+      equalButton.textContent =
+        'Guardar compra';
+
+      equalButton.style.fontSize =
+        '14px';
+
+    }
+
+    else{
+
+      equalButton.textContent =
+        '=';
+
+      equalButton.style.fontSize =
+        '20px';
+
+    }
+
+  }
+
+}
+
+
+/* ============================================================
+   CAMBIAR MODO
+
+   VENTAS -> PRECIOS -> COMPRAS -> VENTAS
+   ============================================================ */
+
+function toggleMode(){
+
+  if(
+    changingPrice
+    ||
+    purchaseSaving
+  ){
+    return;
+  }
+
+
+  if(
+    appMode ===
+    'sales'
+  ){
+
+    appMode =
+      'prices';
+
+  }
+
+  else if(
+    appMode ===
+    'prices'
+  ){
+
+    appMode =
+      'purchases';
+
+  }
+
+  else{
+
+    appMode =
+      'sales';
+
+  }
+
+
+  editingLine =
+    -1;
+
+
+  updateModeButton();
+
+  renderReceipt();
+
+  renderItems();
+
+
+  if(
+    appMode ===
+    'prices'
+  ){
+
+    setStatus(
+      'Modo Precios activo. Toca un ítem para modificar su precio.'
+    );
+
+  }
+
+  else if(
+    appMode ===
+    'purchases'
+  ){
+
+    setStatus(
+      'Modo Compras activo. Indica el proveedor y toca los productos comprados.'
+    );
+
+  }
+
+  else{
+
+    setStatus(
+      'Modo Ventas activo.'
+    );
+
+  }
+
+}
+
+
+/* ============================================================
+   MOSTRAR ITEMS
+   ============================================================ */
+
+function renderItems(){
+
+  ensureModeButton();
+
+  ensurePurchaseSupplierBox();
+
+
+  const grid =
+    document.getElementById(
+      'itemsGrid'
+    );
+
+
+  const query =
+    normalizeText(
+      document
+        .getElementById(
+          'searchInput'
+        )
+        .value
+    );
+
+
+  let items =
+    MENU.filter(
+      x =>
+        x.negocio ===
+        currentBusiness
+    );
+
+
+  if(query){
+
+    items =
+      items.filter(
+        x => {
+
+          const text =
+            normalizeText(
+              (
+                x.item
+                ||
+                ''
+              )
+              +
+              ' '
+              +
+              (
+                x.categoria
+                ||
+                ''
+              )
+            );
+
+
+          return text.includes(
+            query
+          );
+
+        }
+      );
+
+  }
+
+  else{
+
+    items =
+      items.filter(
+        x =>
+          x.categoria ===
+          currentCategory
+      );
+
+  }
+
+
+  if(
+    !items.length
+  ){
+
+    grid.innerHTML =
+      `
+      <div class="loader">
+        No hay ítems para mostrar.
+      </div>
+      `;
+
+    return;
+
+  }
+
+
+  const priceMode =
+    appMode ===
+    'prices';
+
+
+  const purchaseMode =
+    appMode ===
+    'purchases';
+
+
+  grid.innerHTML =
+    items
+      .map(
+        item => {
+
+          const line =
+            purchaseMode
+            ?
+            purchaseLines.find(
+              x =>
+                x.id ===
+                item.id
+            )
+            :
+            accountLines.find(
+              x =>
+                x.id ===
+                item.id
+            );
+
+
+          const count =
+            line
+            ?
+            Number(
+              line.cantidad
+            )
+            :
+            0;
+
+
+          const figure =
+            getItemFigure(
+              item
+            );
+
+
+          let priceText;
+
+
+          if(
+            priceMode
+          ){
+
+            priceText =
+              '✏️ '
+              +
+              money(
+                item.valor
+              );
+
+          }
+
+          else if(
+            purchaseMode
+          ){
+
+            priceText =
+              line
+              ?
+              'Costo '
+              +
+              money(
+                line.costo
+              )
+              :
+              '📦 Agregar';
+
+          }
+
+          else{
+
+            priceText =
+              money(
+                item.valor
+              );
+
+          }
+
+
+          return `
+            <button
+              type="button"
+              class="
+                item-btn
+                ${
+                  (
+                    !priceMode
+                    &&
+                    count
+                  )
+                  ?
+                  'selected'
+                  :
+                  ''
+                }
+              "
+              data-item-id="${escapeAttr(item.id)}"
+            >
+
+              <span
+                style="
+                  width:52px;
+                  height:52px;
+                  display:grid;
+                  place-items:center;
+                  align-self:center;
+                  margin-bottom:3px;
+                  border-radius:15px;
+                  background:linear-gradient(145deg,#ffffff,#e8f5ee);
+                  border:1px solid #cce4d6;
+                  box-shadow:
+                    inset 0 1px 0 rgba(255,255,255,.95),
+                    0 4px 8px rgba(0,0,0,.10);
+                  font-size:30px;
+                  line-height:1;
+                "
+              >
+                ${figure}
+              </span>
+
+              <span
+                class="item-name"
+                style="
+                  width:100%;
+                  text-align:center;
+                "
+              >
+                ${escapeHtml(item.item)}
+              </span>
+
+              <span
+                class="item-bottom"
+                style="width:100%;"
+              >
+
+                <span class="item-price">
+                  ${priceText}
+                </span>
+
+                ${
+                  priceMode
+                  ?
+                  `
+                  <span
+                    class="item-count"
+                    style="
+                      min-width:auto;
+                      padding:0 8px;
+                      background:#d97706;
+                    "
+                  >
+                    Editar
+                  </span>
+                  `
+                  :
+                  (
+                    count
+                    ?
+                    `
+                    <span class="item-count">
+                      ${count}
+                    </span>
+                    `
+                    :
+                    ''
+                  )
+                }
+
+              </span>
+
+            </button>
+          `;
+
+        }
+      )
+      .join('');
+
+
+  grid
+    .querySelectorAll(
+      '[data-item-id]'
+    )
+    .forEach(
+      button => {
+
+        button.addEventListener(
+          'click',
+          () => {
+
+            const id =
+              button.dataset.itemId;
+
+
+            if(
+              appMode ===
+              'prices'
+            ){
+
+              editPrice(
+                id
+              );
+
+            }
+
+            else if(
+              appMode ===
+              'purchases'
+            ){
+
+              addPurchaseItem(
+                id
+              );
+
+            }
+
+            else{
+
+              addItem(
+                id
+              );
+
+            }
+
+          }
+        );
+
+      }
+    );
+
+}
+
+
+/* ============================================================
+   AGREGAR ITEM A COMPRA
+   ============================================================ */
+
+function addPurchaseItem(id){
+
+  if(
+    purchaseSaving
+  ){
+    return;
+  }
+
+
+  const item =
+    MENU.find(
+      x =>
+        x.id ===
+        id
+    );
+
+
+  if(
+    !item
+  ){
+    return;
+  }
+
+
+  let line =
+    purchaseLines.find(
+      x =>
+        x.id ===
+        id
+    );
+
+
+  /*
+   * Si ya existe, solamente
+   * aumentar cantidad.
+   */
+
+  if(line){
+
+    line.cantidad =
+      Math.min(
+        999,
+        Number(
+          line.cantidad
+        )
+        +
+        1
+      );
+
+
+    renderReceipt();
+
+    renderItems();
+
+
+    setStatus(
+      item.item
+      +
+      ': cantidad aumentada.'
+    );
+
+
+    return;
+
+  }
+
+
+  /*
+   * Primera vez:
+   * preguntar costo unitario.
+   */
+
+  const answer =
+    window.prompt(
+      'Costo unitario de compra para:\n'
+      +
+      item.item
+      +
+      '\n\nEscribe el costo:',
+      ''
+    );
+
+
+  if(
+    answer ===
+    null
+  ){
+    return;
+  }
+
+
+  const cost =
+    parseMoneyInput(
+      answer
+    );
+
+
+  if(
+    cost ===
+    null
+  ){
+
+    setStatus(
+      'El costo ingresado no es válido.',
+      true
+    );
+
+    return;
+
+  }
+
+
+  purchaseLines.push({
+
+    id:
+      item.id,
+
+    negocio:
+      item.negocio,
+
+    categoria:
+      item.categoria,
+
+    item:
+      item.item,
+
+    costo:
+      cost,
+
+    cantidad:
+      1
+
+  });
+
+
+  renderReceipt();
+
+  renderItems();
+
+
+  setStatus(
+    item.item
+    +
+    ' agregado a la compra.'
+  );
+
+}
+
+
+/* ============================================================
+   TOTAL COMPRA
+   ============================================================ */
+
+function purchaseTotal(){
+
+  return purchaseLines.reduce(
+    (
+      total,
+      line
+    ) =>
+
+      total
+      +
+      (
+        Number(
+          line.cantidad
+        )
+        *
+        Number(
+          line.costo
+        )
+      ),
+
+    0
+  );
+
+}
+
+
+/* ============================================================
+   TOTAL VENTA
+   ============================================================ */
+
+function accountTotal(){
+
+  return accountLines.reduce(
+    (
+      total,
+      line
+    ) =>
+
+      total
+      +
+      (
+        Number(
+          line.cantidad
+        )
+        *
+        Number(
+          line.valor
+        )
+      ),
+
+    0
+  );
+
+}
+
+
+/* ============================================================
+   DETALLE VENTA / COMPRA
+   ============================================================ */
+
+function renderReceipt(){
+
+  const purchaseMode =
+    appMode ===
+    'purchases';
+
+
+  const lines =
+    purchaseMode
+    ?
+    purchaseLines
+    :
+    accountLines;
+
+
+  const receipt =
+    document.getElementById(
+      'receipt'
+    );
+
+
+  const total =
+    document.getElementById(
+      'grandTotal'
+    );
+
+
+  const state =
+    document.getElementById(
+      'accountState'
+    );
+
+
+  const screenTitle =
+    document.querySelector(
+      '.screen-head span:first-child'
+    );
+
+
+  if(
+    screenTitle
+  ){
+
+    screenTitle.textContent =
+      purchaseMode
+      ?
+      'DETALLE DE COMPRA'
+      :
+      'DETALLE DE CUENTA';
+
+  }
+
+
+  if(
+    !lines.length
+  ){
+
+    receipt.innerHTML =
+      `
+      <div class="empty-receipt">
+        ${
+          purchaseMode
+          ?
+          'Toca un ítem para iniciar la compra.'
+          :
+          'Toca un ítem para iniciar la cuenta.'
+        }
+      </div>
+      `;
+
+  }
+
+  else{
+
+    receipt.innerHTML =
+      lines
+        .map(
+          (
+            line,
+            index
+          ) => {
+
+            const unitValue =
+              purchaseMode
+              ?
+              Number(
+                line.costo
+              )
+              :
+              Number(
+                line.valor
+              );
+
+
+            const subtotal =
+              Number(
+                line.cantidad
+              )
+              *
+              unitValue;
+
+
+            const editing =
+              editingLine ===
+              index;
+
+
+            return `
+              <div
+                class="
+                  receipt-line
+                  ${
+                    editing
+                    ?
+                    'editing'
+                    :
+                    ''
+                  }
+                "
+              >
+
+                <button
+                  type="button"
+                  class="receipt-main"
+                  onclick="toggleLine(${index})"
+                >
+
+                  <span class="line-qty">
+                    ${line.cantidad}×
+                  </span>
+
+                  <span
+                    class="line-name"
+                    title="${escapeAttr(line.item)}"
+                  >
+                    ${escapeHtml(line.item)}
+                  </span>
+
+                  <span class="line-total">
+                    ${money(subtotal)}
+                  </span>
+
+                </button>
+
+                ${
+                  editing
+                  ?
+                  (
+                    purchaseMode
+                    ?
+                    `
+                    <div
+                      class="line-editor"
+                      style="
+                        grid-template-columns:
+                        42px 50px 42px 72px 42px;
+                      "
+                    >
+
+                      <button
+                        type="button"
+                        onclick="changeQty(${index},-1)"
+                        ${
+                          Number(
+                            line.cantidad
+                          )
+                          <=
+                          1
+                          ?
+                          'disabled'
+                          :
+                          ''
+                        }
+                      >
+                        −
+                      </button>
+
+                      <span class="line-count">
+                        ${line.cantidad}
+                      </span>
+
+                      <button
+                        type="button"
+                        onclick="changeQty(${index},1)"
+                      >
+                        +
+                      </button>
+
+                      <button
+                        type="button"
+                        onclick="editPurchaseCost(${index})"
+                        style="
+                          font-size:11px;
+                        "
+                      >
+                        Costo
+                      </button>
+
+                      <button
+                        type="button"
+                        class="delete"
+                        onclick="deleteLine(${index})"
+                      >
+                        🗑
+                      </button>
+
+                    </div>
+                    `
+                    :
+                    `
+                    <div class="line-editor">
+
+                      <button
+                        type="button"
+                        onclick="changeQty(${index},-1)"
+                        ${
+                          Number(
+                            line.cantidad
+                          )
+                          <=
+                          1
+                          ?
+                          'disabled'
+                          :
+                          ''
+                        }
+                      >
+                        −
+                      </button>
+
+                      <span class="line-count">
+                        ${line.cantidad}
+                      </span>
+
+                      <button
+                        type="button"
+                        onclick="changeQty(${index},1)"
+                      >
+                        +
+                      </button>
+
+                      <button
+                        type="button"
+                        class="delete"
+                        onclick="deleteLine(${index})"
+                      >
+                        🗑
+                      </button>
+
+                    </div>
+                    `
+                  )
+                  :
+                  ''
+                }
+
+              </div>
+            `;
+
+          }
+        )
+        .join('');
+
+  }
+
+
+  total.textContent =
+    money(
+      purchaseMode
+      ?
+      purchaseTotal()
+      :
+      accountTotal()
+    );
+
+
+  if(
+    purchaseMode
+  ){
+
+    state.textContent =
+      'TOTAL COMPRA';
+
+  }
+
+  else{
+
+    state.textContent =
+      accountClosed
+      ?
+      'TOTAL FINAL'
+      :
+      'TOTAL ACTUAL';
+
+  }
+
+
+  requestAnimationFrame(
+    () => {
+
+      receipt.scrollTop =
+        receipt.scrollHeight;
+
+    }
+  );
+
+}
+
+
+/* ============================================================
+   EDITAR LINEA
+   ============================================================ */
+
+function toggleLine(index){
+
+  editingLine =
+    editingLine ===
+    index
+    ?
+    -1
+    :
+    index;
+
+
+  renderReceipt();
+
+}
+
+
+/* ============================================================
+   CAMBIAR CANTIDAD
+   ============================================================ */
+
+function changeQty(
+  index,
+  delta
+){
+
+  const lines =
+    appMode ===
+    'purchases'
+    ?
+    purchaseLines
+    :
+    accountLines;
+
+
+  const line =
+    lines[
+      index
+    ];
+
+
+  if(
+    !line
+  ){
+    return;
+  }
+
+
+  if(
+    appMode !==
+    'purchases'
+    &&
+    accountClosed
+  ){
+
+    accountClosed =
+      false;
+
+  }
+
+
+  const next =
+    Number(
+      line.cantidad
+    )
+    +
+    Number(
+      delta
+      ||
+      0
+    );
+
+
+  if(
+    next <
+    1
+  ){
+    return;
+  }
+
+
+  line.cantidad =
+    Math.min(
+      999,
+      next
+    );
+
+
+  editingLine =
+    index;
+
+
+  renderReceipt();
+
+  renderItems();
+
+}
+
+
+/* ============================================================
+   CAMBIAR COSTO DE COMPRA
+   ============================================================ */
+
+function editPurchaseCost(index){
+
+  const line =
+    purchaseLines[
+      index
+    ];
+
+
+  if(
+    !line
+  ){
+    return;
+  }
+
+
+  const answer =
+    window.prompt(
+      'Nuevo costo unitario para:\n'
+      +
+      line.item,
+      Number(
+        line.costo
+      )
+      .toFixed(
+        2
+      )
+    );
+
+
+  if(
+    answer ===
+    null
+  ){
+    return;
+  }
+
+
+  const cost =
+    parseMoneyInput(
+      answer
+    );
+
+
+  if(
+    cost ===
+    null
+  ){
+
+    setStatus(
+      'El costo ingresado no es válido.',
+      true
+    );
+
+    return;
+
+  }
+
+
+  line.costo =
+    cost;
+
+
+  renderReceipt();
+
+  renderItems();
+
+
+  setStatus(
+    line.item
+    +
+    ': costo actualizado a '
+    +
+    money(
+      cost
+    )
+    +
+    '.'
+  );
+
+}
+
+
+/* ============================================================
+   ELIMINAR LINEA
+   ============================================================ */
+
+function deleteLine(index){
+
+  const purchaseMode =
+    appMode ===
+    'purchases';
+
+
+  const lines =
+    purchaseMode
+    ?
+    purchaseLines
+    :
+    accountLines;
+
+
+  if(
+    !lines[
+      index
+    ]
+  ){
+    return;
+  }
+
+
+  if(
+    !purchaseMode
+    &&
+    accountClosed
+  ){
+
+    accountClosed =
+      false;
+
+  }
+
+
+  const name =
+    lines[
+      index
+    ].item;
+
+
+  lines.splice(
+    index,
+    1
+  );
+
+
+  editingLine =
+    -1;
+
+
+  renderReceipt();
+
+  renderItems();
+
+
+  setStatus(
+    name
+    +
+    ' eliminado.'
+  );
+
+}
+
+
+/* ============================================================
+   C
+   NUEVA VENTA / NUEVA COMPRA
+   ============================================================ */
+
+function newAccount(
+  showMessage = true
+){
+
+  /*
+   * showMessage = false ocurre
+   * cuando se cambia de negocio.
+   *
+   * En ese caso limpiamos ambos
+   * movimientos para no mezclar
+   * negocios.
+   */
+
+  if(
+    showMessage ===
+    false
+  ){
+
+    accountLines =
+      [];
+
+    purchaseLines =
+      [];
+
+    editingLine =
+      -1;
+
+    accountClosed =
+      false;
+
+
+    renderReceipt();
+
+    renderItems();
+
+    return;
+
+  }
+
+
+  if(
+    appMode ===
+    'purchases'
+  ){
+
+    purchaseLines =
+      [];
+
+    editingLine =
+      -1;
+
+
+    renderReceipt();
+
+    renderItems();
+
+
+    setStatus(
+      'Nueva compra abierta. El proveedor se mantiene.'
+    );
+
+
+    return;
+
+  }
+
+
+  accountLines =
+    [];
+
+  editingLine =
+    -1;
+
+  accountClosed =
+    false;
+
+
+  renderReceipt();
+
+  renderItems();
+
+
+  setStatus(
+    'Nueva cuenta abierta.'
+  );
+
+}
+
+
+/* ============================================================
+   =
+   VENTA: COBRAR
+   COMPRA: GUARDAR
    ============================================================ */
 
 function closeAccount(){
+
+  if(
+    appMode ===
+    'prices'
+  ){
+    return;
+  }
+
+
+  if(
+    appMode ===
+    'purchases'
+  ){
+
+    savePurchase();
+
+    return;
+
+  }
+
 
   if(
     !accountLines.length
@@ -6001,7 +7794,6 @@ function closeAccount(){
 
   accountClosed =
     true;
-
 
   editingLine =
     -1;
@@ -6026,9 +7818,261 @@ function closeAccount(){
 }
 
 
+/* ============================================================
+   GUARDAR COMPRA
+   ============================================================ */
+
+async function savePurchase(){
+
+  if(
+    purchaseSaving
+  ){
+    return;
+  }
+
+
+  if(
+    !purchaseLines.length
+  ){
+
+    setStatus(
+      'No hay productos en la compra.',
+      true
+    );
+
+    return;
+
+  }
+
+
+  const supplierInput =
+    document.getElementById(
+      'purchaseSupplier'
+    );
+
+
+  const supplier =
+    String(
+      (
+        supplierInput
+        ?
+        supplierInput.value
+        :
+        currentSupplier
+      )
+      ||
+      ''
+    )
+    .trim();
+
+
+  if(
+    !supplier
+  ){
+
+    setStatus(
+      'Debes indicar el proveedor de la compra.',
+      true
+    );
+
+
+    if(
+      supplierInput
+    ){
+
+      supplierInput.focus();
+
+    }
+
+
+    return;
+
+  }
+
+
+  currentSupplier =
+    supplier;
+
+
+  try{
+
+    localStorage.setItem(
+      'cajaLastSupplier',
+      currentSupplier
+    );
+
+  }
+
+  catch(_){
+  }
+
+
+  const items =
+    purchaseLines.map(
+      line => ({
+
+        categoria:
+          String(
+            line.categoria
+            ||
+            ''
+          ),
+
+        cantidad:
+          Number(
+            line.cantidad
+          )
+          ||
+          0,
+
+        item:
+          String(
+            line.item
+            ||
+            ''
+          ),
+
+        costo:
+          Number(
+            line.costo
+          )
+          ||
+          0
+
+      })
+    );
+
+
+  const button =
+    document.querySelector(
+      '.op.equal'
+    );
+
+
+  purchaseSaving =
+    true;
+
+
+  if(
+    button
+  ){
+
+    button.disabled =
+      true;
+
+    button.textContent =
+      'Guardando...';
+
+    button.style.opacity =
+      '.65';
+
+  }
+
+
+  try{
+
+    setStatus(
+      'Guardando compra...'
+    );
+
+
+    const response =
+      await jsonp(
+        'savePurchase',
+        {
+
+          proveedor:
+            supplier,
+
+          items:
+            JSON.stringify(
+              items
+            )
+
+        },
+        20000
+      );
+
+
+    if(
+      !response
+      ||
+      response.ok !==
+      true
+    ){
+
+      throw new Error(
+        (
+          response
+          &&
+          response.error
+        )
+        ||
+        'No fue posible guardar la compra.'
+      );
+
+    }
+
+
+    purchaseLines =
+      [];
+
+    editingLine =
+      -1;
+
+
+    renderReceipt();
+
+    renderItems();
+
+
+    setStatus(
+      'Compra guardada correctamente. Total: '
+      +
+      money(
+        response.total
+      )
+      +
+      '. Proveedor: '
+      +
+      supplier
+      +
+      '.'
+    );
+
+  }
+
+  catch(error){
+
+    console.error(
+      error
+    );
+
+
+    setStatus(
+      error.message
+      ||
+      'No fue posible guardar la compra.',
+      true
+    );
+
+  }
+
+  finally{
+
+    purchaseSaving =
+      false;
+
+
+    updateOperationButtons();
+
+  }
+
+}
+
 
 /* ============================================================
-   ABRIR COBRO
+   ABRIR COBRO DE VENTA
    ============================================================ */
 
 function openCashPayment(){
@@ -6091,14 +8135,11 @@ function openCashPayment(){
 }
 
 
-
 /* ============================================================
-   TECLA NUMERICA
+   TECLADO DE EFECTIVO
    ============================================================ */
 
-function cashKey(
-  key
-){
+function cashKey(key){
 
   if(
     key ===
@@ -6110,9 +8151,7 @@ function cashKey(
         '.'
       )
     ){
-
       return;
-
     }
 
 
@@ -6128,10 +8167,6 @@ function cashKey(
   }
 
 
-  /*
-   * Limitar a dos decimales.
-   */
-
   if(
     cashEntry.includes(
       '.'
@@ -6143,8 +8178,8 @@ function cashKey(
         .split(
           '.'
         )[1]
-        ||
-        '';
+      ||
+      '';
 
 
     if(
@@ -6154,17 +8189,11 @@ function cashKey(
       key !==
       '.'
     ){
-
       return;
-
     }
 
   }
 
-
-  /*
-   * Evitar números absurdamente largos.
-   */
 
   if(
     cashEntry
@@ -6175,9 +8204,7 @@ function cashKey(
       .length >=
       10
   ){
-
     return;
-
   }
 
 
@@ -6190,13 +8217,12 @@ function cashKey(
       'cashReceived'
     )
     .value =
-      cashEntry;
+    cashEntry;
 
 
   updateCashChange();
 
 }
-
 
 
 /* ============================================================
@@ -6217,13 +8243,12 @@ function cashBackspace(){
       'cashReceived'
     )
     .value =
-      cashEntry;
+    cashEntry;
 
 
   updateCashChange();
 
 }
-
 
 
 /* ============================================================
@@ -6241,7 +8266,7 @@ function cashClear(){
       'cashReceived'
     )
     .value =
-      '';
+    '';
 
 
   updateCashChange();
@@ -6249,9 +8274,8 @@ function cashClear(){
 }
 
 
-
 /* ============================================================
-   INGRESO MANUAL DESDE TECLADO
+   INGRESO MANUAL
    ============================================================ */
 
 function cashManualInput(){
@@ -6270,20 +8294,12 @@ function cashManualInput(){
     );
 
 
-  /*
-   * Solo números y punto.
-   */
-
   value =
     value.replace(
       /[^0-9.]/g,
       ''
     );
 
-
-  /*
-   * Solo un punto decimal.
-   */
 
   const parts =
     value.split(
@@ -6307,10 +8323,6 @@ function cashManualInput(){
 
   }
 
-
-  /*
-   * Máximo dos decimales.
-   */
 
   if(
     value.includes(
@@ -6345,7 +8357,6 @@ function cashManualInput(){
   cashEntry =
     value;
 
-
   input.value =
     value;
 
@@ -6355,9 +8366,8 @@ function cashManualInput(){
 }
 
 
-
 /* ============================================================
-   CALCULAR CAMBIO
+   CAMBIO
    ============================================================ */
 
 function updateCashChange(){
@@ -6398,26 +8408,23 @@ function updateCashChange(){
 
   el.classList.toggle(
     'negative',
-    change < 0
+    change <
+    0
   );
 
 }
 
 
-
 /* ============================================================
-   VOLVER A LA CUENTA
+   VOLVER A LA VENTA
    ============================================================ */
 
 function cancelCashPayment(){
 
-  const overlay =
-    document.getElementById(
+  document
+    .getElementById(
       'cashPaymentOverlay'
-    );
-
-
-  overlay
+    )
     .classList
     .remove(
       'show'
@@ -6427,11 +8434,6 @@ function cancelCashPayment(){
   document.body.style.overflow =
     '';
 
-
-  /*
-   * La cuenta vuelve a quedar abierta
-   * por si el cajero necesita corregirla.
-   */
 
   accountClosed =
     false;
@@ -6471,10 +8473,6 @@ async function finishCashPayment(){
     0;
 
 
-  /*
-   * Validar efectivo recibido.
-   */
-
   if(
     received <
     total
@@ -6498,10 +8496,6 @@ async function finishCashPayment(){
   }
 
 
-  /*
-   * La venta debe contener productos.
-   */
-
   if(
     !accountLines.length
   ){
@@ -6521,13 +8515,6 @@ async function finishCashPayment(){
     -
     total;
 
-
-  /*
-   * Botón Nueva venta.
-   * Se deshabilita mientras guarda
-   * para evitar duplicar la venta
-   * por doble clic.
-   */
 
   const finishButton =
     document.querySelector(
@@ -6554,18 +8541,6 @@ async function finishCashPayment(){
   }
 
 
-  /*
-   * Crear copia de la venta.
-   *
-   * IMPORTANTE:
-   * Se guarda el precio que tenía
-   * el producto en esta venta.
-   *
-   * Si mañana cambia el precio
-   * en Menu, esta venta histórica
-   * conserva su valor original.
-   */
-
   const saleItems =
     accountLines.map(
       line => ({
@@ -6591,6 +8566,14 @@ async function finishCashPayment(){
             ''
           ),
 
+        /*
+         * Este sigue siendo
+         * PRECIO DE VENTA.
+         *
+         * Apps Script calculará
+         * por separado el costo
+         * de inventario.
+         */
         valor:
           Number(
             line.valor
@@ -6609,11 +8592,6 @@ async function finishCashPayment(){
     );
 
 
-    /*
-     * Enviar toda la venta
-     * a Apps Script.
-     */
-
     const response =
       await jsonp(
         'saveSale',
@@ -6628,11 +8606,6 @@ async function finishCashPayment(){
         20000
       );
 
-
-    /*
-     * No cerrar la venta
-     * si Google Sheets no confirmó.
-     */
 
     if(
       !response
@@ -6654,17 +8627,6 @@ async function finishCashPayment(){
     }
 
 
-    /*
-     * ========================================================
-     * AQUÍ LA VENTA YA ESTÁ GUARDADA
-     * ========================================================
-     */
-
-
-    /*
-     * Cerrar ventana de cobro.
-     */
-
     document
       .getElementById(
         'cashPaymentOverlay'
@@ -6679,22 +8641,14 @@ async function finishCashPayment(){
       '';
 
 
-    /*
-     * Limpiar la venta anterior
-     * y dejar lista una nueva.
-     */
-
     accountLines =
       [];
-
 
     editingLine =
       -1;
 
-
     accountClosed =
       false;
-
 
     cashEntry =
       '';
@@ -6722,16 +8676,6 @@ async function finishCashPayment(){
     );
 
 
-    /*
-     * MUY IMPORTANTE:
-     *
-     * Si no logró guardar,
-     * NO limpiamos la cuenta.
-     *
-     * De esta manera no se pierde
-     * la venta.
-     */
-
     setStatus(
       error.message
       ||
@@ -6749,10 +8693,6 @@ async function finishCashPayment(){
   }
 
   finally{
-
-    /*
-     * Reactivar Nueva venta.
-     */
 
     if(
       finishButton
@@ -6775,6 +8715,7 @@ async function finishCashPayment(){
   }
 
 }
+  
 </script>
   
 </body>
