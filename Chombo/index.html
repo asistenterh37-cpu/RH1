@@ -1296,7 +1296,7 @@ tr{
 
 <script>
 const SCRIPT_URL =
-'https://script.google.com/macros/s/AKfycbyQAD0eATXvYLqOr3Z10pmAS7Q2jnvZYSgRbcdP7tYqeDxCgno0lr8p_sm8g3czaUiB/exec';
+'https://script.google.com/macros/s/AKfycbyxteoWC0iew4-TXB9wZxZawT6fvVaUp4eY2nWb1rVfCOi8jPCyfUu1hYeIK1TCbLEw/exec';
 </script>
 
 <header class="topbar">
@@ -1345,6 +1345,222 @@ const SCRIPT_URL =
 </header>
 
 <main class="container">
+
+  <!-- ======================================================
+     MENU PRINCIPAL
+====================================================== -->
+
+<section
+  id="menuView"
+  class="view"
+>
+
+  <div class="card menu-home">
+
+    <div class="menu-home-header">
+
+      <h1>
+        Operaciones
+      </h1>
+
+      <p>
+        Selecciona la operación que deseas realizar.
+      </p>
+
+    </div>
+
+
+    <div class="menu-grid">
+
+
+      <button
+        class="menu-card"
+        type="button"
+        data-module="cierre"
+      >
+        <span class="menu-card-icon">CD</span>
+
+        <span class="menu-card-title">
+          Cierres diarios
+        </span>
+
+        <span class="menu-card-text">
+          Formulario completo de cierre diario.
+        </span>
+      </button>
+
+
+      <button
+        class="menu-card"
+        type="button"
+        data-module="recTigo"
+      >
+        <span class="menu-card-icon">TG</span>
+
+        <span class="menu-card-title">
+          Recargas Tigo
+        </span>
+
+        <span class="menu-card-text">
+          Compra de saldo y recargas Tigo.
+        </span>
+      </button>
+
+
+      <button
+        class="menu-card"
+        type="button"
+        data-module="recClaro"
+      >
+        <span class="menu-card-icon">CL</span>
+
+        <span class="menu-card-title">
+          Recargas Claro
+        </span>
+
+        <span class="menu-card-text">
+          Compra de saldo y recargas Claro.
+        </span>
+      </button>
+
+
+      <button
+        class="menu-card"
+        type="button"
+        data-module="banpais"
+      >
+        <span class="menu-card-icon">BP</span>
+
+        <span class="menu-card-title">
+          Banpais
+        </span>
+
+        <span class="menu-card-text">
+          Depósitos y retiros.
+        </span>
+      </button>
+
+
+      <button
+        class="menu-card"
+        type="button"
+        data-module="creditoEmpleados"
+      >
+        <span class="menu-card-icon">CE</span>
+
+        <span class="menu-card-title">
+          Crédito empleados
+        </span>
+
+        <span class="menu-card-text">
+          Cargos y abonos de empleados.
+        </span>
+      </button>
+
+
+      <button
+        class="menu-card"
+        type="button"
+        data-module="creditoClientes"
+      >
+        <span class="menu-card-icon">CC</span>
+
+        <span class="menu-card-title">
+          Crédito clientes
+        </span>
+
+        <span class="menu-card-text">
+          Cargos y abonos de clientes.
+        </span>
+      </button>
+
+
+      <button
+        class="menu-card"
+        type="button"
+        data-module="rapibac"
+      >
+        <span class="menu-card-icon">RB</span>
+
+        <span class="menu-card-title">
+          Rapibac
+        </span>
+
+        <span class="menu-card-text">
+          Entradas y salidas de Rapibac.
+        </span>
+      </button>
+
+
+      <button
+        class="menu-card"
+        type="button"
+        data-module="report"
+      >
+        <span class="menu-card-icon">RP</span>
+
+        <span class="menu-card-title">
+          Reportes
+        </span>
+
+        <span class="menu-card-text">
+          Consulta de cierres diarios.
+        </span>
+      </button>
+
+
+    </div>
+
+  </div>
+
+</section>
+
+
+<!-- ======================================================
+     VISTA REUTILIZABLE PARA OPERACIONES
+====================================================== -->
+
+<section
+  id="moduleView"
+  class="view"
+>
+
+  <div class="card module-card">
+
+    <div class="module-header">
+
+      <button
+        id="moduleBackBtn"
+        class="module-back"
+        type="button"
+      >
+        ← Menú
+      </button>
+
+
+      <div>
+
+        <h2 id="moduleTitle">
+          Operación
+        </h2>
+
+        <p id="moduleSubtitle">
+        </p>
+
+      </div>
+
+    </div>
+
+
+    <div
+      id="moduleContent"
+      class="module-body"
+    >
+    </div>
+
+  </div>
+
+</section>
 
   <section
     id="cierreView"
@@ -5494,7 +5710,1852 @@ function escapeHtml(value){
 /* ======================================================
    INICIAR
 ====================================================== */
+/* ======================================================
+   NUEVO MENU DE OPERACIONES
+====================================================== */
 
+let currentModule = '';
+
+let catalogosData = {
+  ubicaciones:[],
+  responsables:[],
+  empleados:[]
+};
+
+
+/* ======================================================
+   INICIAR - REEMPLAZA LOGICAMENTE EL INIT ANTERIOR
+====================================================== */
+
+function init(){
+
+  renderCierreRows();
+
+  setDates();
+
+  bindMenu();
+
+  bindEvents();
+
+  showView(
+    'menuView'
+  );
+
+  if(
+    $('menuBtn')
+  ){
+    $('menuBtn').textContent =
+      'Menú ▾';
+  }
+
+  loadCatalogos();
+
+  recalc();
+
+}
+
+
+/* ======================================================
+   CARGAR CATALOGOS
+====================================================== */
+
+async function loadCatalogos(){
+
+  try{
+
+    const data =
+      await jsonpRequest(
+        'catalogos'
+      );
+
+
+    if(
+      !data ||
+      data.ok !== true
+    ){
+
+      throw new Error(
+        data &&
+        data.message
+        ?
+        data.message
+        :
+        'No se pudieron cargar los catálogos.'
+      );
+
+    }
+
+
+    catalogosData = {
+
+      ubicaciones:
+        Array.isArray(
+          data.ubicaciones
+        )
+        ?
+        data.ubicaciones
+        :
+        [],
+
+      responsables:
+        Array.isArray(
+          data.responsables
+        )
+        ?
+        data.responsables
+        :
+        [],
+
+      empleados:
+        Array.isArray(
+          data.empleados
+        )
+        ?
+        data.empleados
+        :
+        []
+
+    };
+
+
+    llenarSelectSimple(
+      'ubicacionSelect',
+      catalogosData.ubicaciones,
+      false
+    );
+
+
+    llenarSelectSimple(
+      'responsableSelect',
+      catalogosData.responsables,
+      false
+    );
+
+
+    llenarSelectSimple(
+      'ubicacionReporte',
+      catalogosData.ubicaciones,
+      true,
+      '__TODAS__',
+      'Todas'
+    );
+
+
+    llenarSelectSimple(
+      'responsableReporte',
+      catalogosData.responsables,
+      true,
+      '__TODOS__',
+      'Todos'
+    );
+
+  }
+  catch(error){
+
+    console.error(
+      'ERROR CATÁLOGOS:',
+      error
+    );
+
+    toast(
+      'No se pudieron cargar los catálogos.',
+      false
+    );
+
+  }
+
+}
+
+
+function llenarSelectSimple(
+  id,
+  items,
+  agregarTodos = false,
+  valorTodos = '',
+  textoTodos = ''
+){
+
+  const select =
+    $(id);
+
+
+  if(
+    !select
+  ){
+    return;
+  }
+
+
+  select.innerHTML =
+    '<option value="">Seleccionar</option>';
+
+
+  if(
+    agregarTodos
+  ){
+
+    const optionTodos =
+      document.createElement(
+        'option'
+      );
+
+    optionTodos.value =
+      valorTodos;
+
+    optionTodos.textContent =
+      textoTodos;
+
+    select.appendChild(
+      optionTodos
+    );
+
+  }
+
+
+  items.forEach(
+    item => {
+
+      const option =
+        document.createElement(
+          'option'
+        );
+
+      option.value =
+        item;
+
+      option.textContent =
+        item;
+
+      select.appendChild(
+        option
+      );
+
+    }
+  );
+
+}
+
+
+/* ======================================================
+   MENU
+====================================================== */
+
+function bindMenu(){
+
+  const menuBtn =
+    $('menuBtn');
+
+  const dropdown =
+    $('dropdown');
+
+
+  /*
+  Agregar opción MENU al menú superior actual
+  */
+
+  if(
+    dropdown &&
+    !dropdown.querySelector(
+      '[data-view="menuView"]'
+    )
+  ){
+
+    dropdown.insertAdjacentHTML(
+      'afterbegin',
+      `
+      <button
+        type="button"
+        data-view="menuView"
+      >
+        Menú principal
+      </button>
+      `
+    );
+
+  }
+
+
+  if(
+    menuBtn
+  ){
+
+    menuBtn.addEventListener(
+      'click',
+      e => {
+
+        e.stopPropagation();
+
+        dropdown.classList.toggle(
+          'open'
+        );
+
+      }
+    );
+
+  }
+
+
+  document.addEventListener(
+    'click',
+    () => {
+
+      if(
+        dropdown
+      ){
+
+        dropdown.classList.remove(
+          'open'
+        );
+
+      }
+
+    }
+  );
+
+
+  document
+    .querySelectorAll(
+      '[data-view]'
+    )
+    .forEach(
+      btn => {
+
+        btn.addEventListener(
+          'click',
+          () => {
+
+            const view =
+              btn.dataset.view;
+
+
+            abrirVista(
+              view
+            );
+
+
+            if(
+              dropdown
+            ){
+
+              dropdown.classList.remove(
+                'open'
+              );
+
+            }
+
+          }
+        );
+
+      }
+    );
+
+
+  document
+    .querySelectorAll(
+      '.menu-card[data-module]'
+    )
+    .forEach(
+      btn => {
+
+        btn.addEventListener(
+          'click',
+          () => {
+
+            abrirModulo(
+              btn.dataset.module
+            );
+
+          }
+        );
+
+      }
+    );
+
+
+  if(
+    $('moduleBackBtn')
+  ){
+
+    $('moduleBackBtn')
+      .addEventListener(
+        'click',
+        () => {
+
+          abrirVista(
+            'menuView'
+          );
+
+        }
+      );
+
+  }
+
+}
+
+
+/* ======================================================
+   CAMBIAR VISTA
+====================================================== */
+
+function abrirVista(
+  viewId
+){
+
+  showView(
+    viewId
+  );
+
+
+  let titulo =
+    'Menú';
+
+
+  if(
+    viewId ===
+    'cierreView'
+  ){
+
+    titulo =
+      'Cierres diarios';
+
+  }
+
+
+  if(
+    viewId ===
+    'reportView'
+  ){
+
+    titulo =
+      'Reportes';
+
+  }
+
+
+  if(
+    $('menuBtn')
+  ){
+
+    $('menuBtn').textContent =
+      titulo +
+      ' ▾';
+
+  }
+
+
+  window.scrollTo({
+    top:0,
+    behavior:'smooth'
+  });
+
+}
+
+
+/* ======================================================
+   ABRIR MODULO
+====================================================== */
+
+function abrirModulo(
+  modulo
+){
+
+  if(
+    modulo ===
+    'cierre'
+  ){
+
+    abrirVista(
+      'cierreView'
+    );
+
+    return;
+
+  }
+
+
+  if(
+    modulo ===
+    'report'
+  ){
+
+    abrirVista(
+      'reportView'
+    );
+
+    return;
+
+  }
+
+
+  currentModule =
+    modulo;
+
+
+  renderModuleForm(
+    modulo
+  );
+
+
+  showView(
+    'moduleView'
+  );
+
+
+  if(
+    $('menuBtn')
+  ){
+
+    $('menuBtn').textContent =
+      'Menú ▾';
+
+  }
+
+
+  window.scrollTo({
+    top:0,
+    behavior:'smooth'
+  });
+
+}
+
+
+/* ======================================================
+   OPCIONES HTML
+====================================================== */
+
+function opcionesHTML(
+  items
+){
+
+  let html =
+    '<option value="">Seleccionar</option>';
+
+
+  items.forEach(
+    item => {
+
+      html +=
+        `
+        <option value="${escapeHtml(item)}">
+          ${escapeHtml(item)}
+        </option>
+        `;
+
+    }
+  );
+
+
+  return html;
+
+}
+
+
+/* ======================================================
+   UBICACION / RESPONSABLE COMUN
+====================================================== */
+
+function camposComunesHTML(){
+
+  return `
+    <div class="module-separator"></div>
+
+    <div class="module-grid two">
+
+      <div class="module-field">
+
+        <label>
+          Ubicación
+        </label>
+
+        <select id="movUbicacion">
+          ${opcionesHTML(
+            catalogosData.ubicaciones
+          )}
+        </select>
+
+      </div>
+
+
+      <div class="module-field">
+
+        <label>
+          Responsable
+        </label>
+
+        <select id="movResponsable">
+          ${opcionesHTML(
+            catalogosData.responsables
+          )}
+        </select>
+
+      </div>
+
+    </div>
+  `;
+
+}
+
+
+/* ======================================================
+   BOTON GUARDAR COMUN
+====================================================== */
+
+function botonGuardarHTML(){
+
+  return `
+    <div class="module-actions">
+
+      <button
+        id="movSaveBtn"
+        class="btn btn-primary"
+        type="button"
+        onclick="saveMovimientoActual()"
+      >
+        Guardar
+      </button>
+
+    </div>
+  `;
+
+}
+
+
+/* ======================================================
+   RENDER FORMULARIOS
+====================================================== */
+
+function renderModuleForm(
+  modulo
+){
+
+  const content =
+    $('moduleContent');
+
+
+  if(
+    !content
+  ){
+    return;
+  }
+
+
+  /*
+  --------------------------------------------------------
+  RECARGAS TIGO / CLARO
+  --------------------------------------------------------
+  */
+
+  if(
+    modulo === 'recTigo' ||
+    modulo === 'recClaro'
+  ){
+
+    const esTigo =
+      modulo ===
+      'recTigo';
+
+
+    $('moduleTitle').textContent =
+      esTigo
+      ?
+      'Recargas Tigo'
+      :
+      'Recargas Claro';
+
+
+    $('moduleSubtitle').textContent =
+      'Compra de saldo y registro de recargas.';
+
+
+    content.innerHTML = `
+
+      <div class="module-grid">
+
+        <div class="module-field">
+
+          <label>
+            Selector
+          </label>
+
+          <select
+            id="movTransaccion"
+            onchange="renderCamposRecarga()"
+          >
+
+            <option value="">
+              Seleccionar
+            </option>
+
+            <option value="compraSaldo">
+              Compra saldo
+            </option>
+
+            <option value="recarga">
+              Recarga
+            </option>
+
+          </select>
+
+        </div>
+
+      </div>
+
+
+      <div id="movSpecific">
+      </div>
+
+
+      ${camposComunesHTML()}
+
+      ${botonGuardarHTML()}
+    `;
+
+
+    return;
+
+  }
+
+
+  /*
+  --------------------------------------------------------
+  BANPAIS
+  --------------------------------------------------------
+  */
+
+  if(
+    modulo ===
+    'banpais'
+  ){
+
+    $('moduleTitle').textContent =
+      'Banpais';
+
+
+    $('moduleSubtitle').textContent =
+      'Registro de depósitos y retiros.';
+
+
+    content.innerHTML = `
+
+      <div class="module-grid">
+
+        <div class="module-field">
+
+          <label>
+            Transacción
+          </label>
+
+          <select id="movTransaccion">
+
+            <option value="">
+              Seleccionar
+            </option>
+
+            <option value="deposito">
+              Depósito
+            </option>
+
+            <option value="retiro">
+              Retiro
+            </option>
+
+          </select>
+
+        </div>
+
+
+        <div class="module-field">
+
+          <label>
+            Nombre
+          </label>
+
+          <input
+            id="movNombre"
+            type="text"
+            maxlength="250"
+          >
+
+        </div>
+
+
+        <div class="module-field">
+
+          <label>
+            Valor
+          </label>
+
+          <input
+            id="movValor"
+            type="number"
+            min="0"
+            step="0.01"
+            placeholder="0.00"
+          >
+
+        </div>
+
+      </div>
+
+
+      ${camposComunesHTML()}
+
+      ${botonGuardarHTML()}
+    `;
+
+
+    return;
+
+  }
+
+
+  /*
+  --------------------------------------------------------
+  CREDITO EMPLEADOS
+  --------------------------------------------------------
+  */
+
+  if(
+    modulo ===
+    'creditoEmpleados'
+  ){
+
+    $('moduleTitle').textContent =
+      'Crédito empleados';
+
+
+    $('moduleSubtitle').textContent =
+      'Cargos y abonos por empleado.';
+
+
+    content.innerHTML = `
+
+      <div class="module-grid">
+
+        <div class="module-field">
+
+          <label>
+            Nombre empleado
+          </label>
+
+          <select id="movNombre">
+
+            ${opcionesHTML(
+              catalogosData.empleados
+            )}
+
+          </select>
+
+        </div>
+
+
+        <div class="module-field">
+
+          <label>
+            Transacción
+          </label>
+
+          <select id="movTransaccion">
+
+            <option value="">
+              Seleccionar
+            </option>
+
+            <option value="cargo">
+              Cargo
+            </option>
+
+            <option value="abono">
+              Abono
+            </option>
+
+          </select>
+
+        </div>
+
+
+        <div class="module-field">
+
+          <label>
+            Valor
+          </label>
+
+          <input
+            id="movValor"
+            type="number"
+            min="0"
+            step="0.01"
+            placeholder="0.00"
+          >
+
+        </div>
+
+
+        <div class="module-field full">
+
+          <label>
+            Descripción
+          </label>
+
+          <input
+            id="movDescripcion"
+            type="text"
+            maxlength="250"
+          >
+
+        </div>
+
+      </div>
+
+
+      ${camposComunesHTML()}
+
+      ${botonGuardarHTML()}
+    `;
+
+
+    return;
+
+  }
+
+
+  /*
+  --------------------------------------------------------
+  CREDITO CLIENTES
+  --------------------------------------------------------
+  */
+
+  if(
+    modulo ===
+    'creditoClientes'
+  ){
+
+    $('moduleTitle').textContent =
+      'Crédito clientes';
+
+
+    $('moduleSubtitle').textContent =
+      'Cargos y abonos por cliente.';
+
+
+    content.innerHTML = `
+
+      <div class="module-grid">
+
+        <div class="module-field">
+
+          <label>
+            Nombre
+          </label>
+
+          <input
+            id="movNombre"
+            type="text"
+            maxlength="250"
+          >
+
+        </div>
+
+
+        <div class="module-field">
+
+          <label>
+            Transacción
+          </label>
+
+          <select id="movTransaccion">
+
+            <option value="">
+              Seleccionar
+            </option>
+
+            <option value="cargo">
+              Cargo
+            </option>
+
+            <option value="abono">
+              Abono
+            </option>
+
+          </select>
+
+        </div>
+
+
+        <div class="module-field">
+
+          <label>
+            Valor
+          </label>
+
+          <input
+            id="movValor"
+            type="number"
+            min="0"
+            step="0.01"
+            placeholder="0.00"
+          >
+
+        </div>
+
+
+        <div class="module-field full">
+
+          <label>
+            Descripción
+          </label>
+
+          <input
+            id="movDescripcion"
+            type="text"
+            maxlength="250"
+          >
+
+        </div>
+
+      </div>
+
+
+      ${camposComunesHTML()}
+
+      ${botonGuardarHTML()}
+    `;
+
+
+    return;
+
+  }
+
+
+  /*
+  --------------------------------------------------------
+  RAPIBAC
+  --------------------------------------------------------
+  */
+
+  if(
+    modulo ===
+    'rapibac'
+  ){
+
+    $('moduleTitle').textContent =
+      'Rapibac';
+
+
+    $('moduleSubtitle').textContent =
+      'Registro de entradas y salidas.';
+
+
+    content.innerHTML = `
+
+      <div class="module-grid">
+
+        <div class="module-field">
+
+          <label>
+            Transacción
+          </label>
+
+          <select id="movTransaccion">
+
+            <option value="">
+              Seleccionar
+            </option>
+
+            <option value="entrada">
+              Entrada
+            </option>
+
+            <option value="salida">
+              Salida
+            </option>
+
+          </select>
+
+        </div>
+
+
+        <div class="module-field">
+
+          <label>
+            Descripción
+          </label>
+
+          <input
+            id="movDescripcion"
+            type="text"
+            maxlength="250"
+          >
+
+        </div>
+
+
+        <div class="module-field">
+
+          <label>
+            Valor
+          </label>
+
+          <input
+            id="movValor"
+            type="number"
+            min="0"
+            step="0.01"
+            placeholder="0.00"
+          >
+
+        </div>
+
+      </div>
+
+
+      ${camposComunesHTML()}
+
+      ${botonGuardarHTML()}
+    `;
+
+  }
+
+}
+
+
+/* ======================================================
+   CAMPOS DE RECARGA
+====================================================== */
+
+function renderCamposRecarga(){
+
+  const selector =
+    $('movTransaccion');
+
+  const area =
+    $('movSpecific');
+
+
+  if(
+    !selector ||
+    !area
+  ){
+    return;
+  }
+
+
+  const tipo =
+    selector.value;
+
+
+  if(
+    tipo ===
+    'compraSaldo'
+  ){
+
+    area.innerHTML = `
+
+      <div class="module-grid">
+
+        <div class="module-field">
+
+          <label>
+            Valor
+          </label>
+
+          <input
+            id="movValor"
+            type="number"
+            min="0"
+            step="0.01"
+            placeholder="0.00"
+          >
+
+        </div>
+
+      </div>
+    `;
+
+
+    return;
+
+  }
+
+
+  if(
+    tipo ===
+    'recarga'
+  ){
+
+    area.innerHTML = `
+
+      <div class="module-grid">
+
+        <div class="module-field">
+
+          <label>
+            Tipo
+          </label>
+
+          <input
+            id="movTipoRecarga"
+            type="text"
+            maxlength="50"
+          >
+
+        </div>
+
+
+        <div class="module-field">
+
+          <label>
+            No.
+          </label>
+
+          <div class="numero-recarga">
+
+            <input
+              id="movNo1"
+              type="text"
+              inputmode="numeric"
+              maxlength="2"
+              oninput="this.value=this.value.replace(/\\D/g,'').slice(0,2)"
+            >
+
+            <span>/</span>
+
+            <input
+              id="movNo2"
+              type="text"
+              inputmode="numeric"
+              maxlength="2"
+              oninput="this.value=this.value.replace(/\\D/g,'').slice(0,2)"
+            >
+
+            <span>/</span>
+
+            <input
+              id="movNo3"
+              type="text"
+              inputmode="numeric"
+              maxlength="2"
+              oninput="this.value=this.value.replace(/\\D/g,'').slice(0,2)"
+            >
+
+            <span>/</span>
+
+            <input
+              id="movNo4"
+              type="text"
+              inputmode="numeric"
+              maxlength="2"
+              oninput="this.value=this.value.replace(/\\D/g,'').slice(0,2)"
+            >
+
+          </div>
+
+          <div class="module-help">
+            Dos dígitos en cada campo.
+          </div>
+
+        </div>
+
+
+        <div class="module-field">
+
+          <label>
+            Valor
+          </label>
+
+          <input
+            id="movValor"
+            type="number"
+            min="0"
+            step="0.01"
+            placeholder="0.00"
+          >
+
+        </div>
+
+      </div>
+    `;
+
+
+    return;
+
+  }
+
+
+  area.innerHTML =
+    '';
+
+}
+
+
+/* ======================================================
+   VALIDACION
+====================================================== */
+
+function valorCampo(
+  id
+){
+
+  const el =
+    $(id);
+
+  return el
+    ?
+    String(
+      el.value || ''
+    ).trim()
+    :
+    '';
+
+}
+
+
+function validarComunes(){
+
+  const ubicacion =
+    valorCampo(
+      'movUbicacion'
+    );
+
+
+  const responsable =
+    valorCampo(
+      'movResponsable'
+    );
+
+
+  if(
+    !ubicacion
+  ){
+
+    toast(
+      'Selecciona una Ubicación.',
+      false
+    );
+
+    return null;
+
+  }
+
+
+  if(
+    !responsable
+  ){
+
+    toast(
+      'Selecciona un Responsable.',
+      false
+    );
+
+    return null;
+
+  }
+
+
+  return {
+    ubicacion:
+      ubicacion,
+
+    responsable:
+      responsable
+  };
+
+}
+
+
+/* ======================================================
+   GUARDAR MOVIMIENTO
+====================================================== */
+
+async function saveMovimientoActual(){
+
+  if(
+    !assertScriptUrl()
+  ){
+    return;
+  }
+
+
+  const comunes =
+    validarComunes();
+
+
+  if(
+    !comunes
+  ){
+    return;
+  }
+
+
+  const valor =
+    Number(
+      valorCampo(
+        'movValor'
+      )
+    );
+
+
+  if(
+    !Number.isFinite(
+      valor
+    ) ||
+    valor <= 0
+  ){
+
+    toast(
+      'Ingresa un Valor mayor que cero.',
+      false
+    );
+
+    return;
+
+  }
+
+
+  const payload = {
+
+    ubicacion:
+      comunes.ubicacion,
+
+    responsable:
+      comunes.responsable,
+
+    valor:
+      valor
+
+  };
+
+
+  /*
+  --------------------------------------------------------
+  TIGO / CLARO
+  --------------------------------------------------------
+  */
+
+  if(
+    currentModule ===
+      'recTigo' ||
+    currentModule ===
+      'recClaro'
+  ){
+
+    const transaccion =
+      valorCampo(
+        'movTransaccion'
+      );
+
+
+    if(
+      !transaccion
+    ){
+
+      toast(
+        'Selecciona Compra saldo o Recarga.',
+        false
+      );
+
+      return;
+
+    }
+
+
+    payload.tipoMovimiento =
+      transaccion;
+
+
+    if(
+      transaccion ===
+      'recarga'
+    ){
+
+      const tipoRecarga =
+        valorCampo(
+          'movTipoRecarga'
+        );
+
+
+      const partes = [
+        valorCampo('movNo1'),
+        valorCampo('movNo2'),
+        valorCampo('movNo3'),
+        valorCampo('movNo4')
+      ];
+
+
+      if(
+        !tipoRecarga
+      ){
+
+        toast(
+          'Ingresa el Tipo.',
+          false
+        );
+
+        return;
+
+      }
+
+
+      const numeroValido =
+        partes.every(
+          parte =>
+            /^\d{2}$/.test(
+              parte
+            )
+        );
+
+
+      if(
+        !numeroValido
+      ){
+
+        toast(
+          'El número debe tener 2 dígitos en cada campo.',
+          false
+        );
+
+        return;
+
+      }
+
+
+      payload.tipoRecarga =
+        tipoRecarga;
+
+
+      payload.numero =
+        partes.join(
+          '/'
+        );
+
+    }
+
+  }
+
+
+  /*
+  --------------------------------------------------------
+  BANPAIS
+  --------------------------------------------------------
+  */
+
+  if(
+    currentModule ===
+    'banpais'
+  ){
+
+    payload.tipoMovimiento =
+      valorCampo(
+        'movTransaccion'
+      );
+
+
+    payload.nombre =
+      valorCampo(
+        'movNombre'
+      );
+
+
+    if(
+      !payload.tipoMovimiento
+    ){
+
+      toast(
+        'Selecciona Depósito o Retiro.',
+        false
+      );
+
+      return;
+
+    }
+
+
+    if(
+      !payload.nombre
+    ){
+
+      toast(
+        'Ingresa el Nombre.',
+        false
+      );
+
+      return;
+
+    }
+
+  }
+
+
+  /*
+  --------------------------------------------------------
+  CREDITOS
+  --------------------------------------------------------
+  */
+
+  if(
+    currentModule ===
+      'creditoEmpleados' ||
+    currentModule ===
+      'creditoClientes'
+  ){
+
+    payload.nombre =
+      valorCampo(
+        'movNombre'
+      );
+
+
+    payload.descripcion =
+      valorCampo(
+        'movDescripcion'
+      );
+
+
+    payload.tipoMovimiento =
+      valorCampo(
+        'movTransaccion'
+      );
+
+
+    if(
+      !payload.nombre
+    ){
+
+      toast(
+        'Selecciona o ingresa el Nombre.',
+        false
+      );
+
+      return;
+
+    }
+
+
+    if(
+      !payload.descripcion
+    ){
+
+      toast(
+        'Ingresa una Descripción.',
+        false
+      );
+
+      return;
+
+    }
+
+
+    if(
+      !payload.tipoMovimiento
+    ){
+
+      toast(
+        'Selecciona Cargo o Abono.',
+        false
+      );
+
+      return;
+
+    }
+
+  }
+
+
+  /*
+  --------------------------------------------------------
+  RAPIBAC
+  --------------------------------------------------------
+  */
+
+  if(
+    currentModule ===
+    'rapibac'
+  ){
+
+    payload.tipoMovimiento =
+      valorCampo(
+        'movTransaccion'
+      );
+
+
+    payload.descripcion =
+      valorCampo(
+        'movDescripcion'
+      );
+
+
+    if(
+      !payload.tipoMovimiento
+    ){
+
+      toast(
+        'Selecciona Entrada o Salida.',
+        false
+      );
+
+      return;
+
+    }
+
+
+    if(
+      !payload.descripcion
+    ){
+
+      toast(
+        'Ingresa una Descripción.',
+        false
+      );
+
+      return;
+
+    }
+
+  }
+
+
+  const btn =
+    $('movSaveBtn');
+
+
+  if(
+    btn
+  ){
+
+    btn.disabled =
+      true;
+
+    btn.innerHTML =
+      '<span class="loading"></span>Guardando...';
+
+  }
+
+
+  try{
+
+    const data =
+      await jsonpRequest(
+        'movimiento',
+        {
+
+          modulo:
+            currentModule,
+
+          payload:
+            JSON.stringify(
+              payload
+            )
+
+        }
+      );
+
+
+    if(
+      !data ||
+      data.ok !== true
+    ){
+
+      throw new Error(
+        data &&
+        data.message
+        ?
+        data.message
+        :
+        'No se pudo guardar.'
+      );
+
+    }
+
+
+    const ubicacionAnterior =
+      comunes.ubicacion;
+
+    const responsableAnterior =
+      comunes.responsable;
+
+
+    toast(
+      (
+        data.message ||
+        'Movimiento guardado correctamente.'
+      ) +
+      (
+        typeof data.saldo ===
+        'number'
+        ?
+        ' Saldo: ' +
+        money.format(
+          data.saldo
+        )
+        :
+        ''
+      ),
+      true
+    );
+
+
+    renderModuleForm(
+      currentModule
+    );
+
+
+    if(
+      $('movUbicacion')
+    ){
+
+      $('movUbicacion').value =
+        ubicacionAnterior;
+
+    }
+
+
+    if(
+      $('movResponsable')
+    ){
+
+      $('movResponsable').value =
+        responsableAnterior;
+
+    }
+
+  }
+  catch(error){
+
+    console.error(
+      'ERROR MOVIMIENTO:',
+      error
+    );
+
+
+    toast(
+      'Error al guardar: ' +
+      error.message,
+      false
+    );
+
+  }
+  finally{
+
+    const nuevoBtn =
+      $('movSaveBtn');
+
+
+    if(
+      nuevoBtn
+    ){
+
+      nuevoBtn.disabled =
+        false;
+
+      nuevoBtn.textContent =
+        'Guardar';
+
+    }
+
+  }
+
+}
+  
 init();
 
 </script>
