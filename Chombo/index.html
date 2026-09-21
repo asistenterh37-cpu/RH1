@@ -2036,7 +2036,7 @@ tr{
 
 <script>
 const SCRIPT_URL =
-'https://script.google.com/macros/s/AKfycbzr8jV18RhSL15o5994cPqEYFIHkR20bRuh-b8eyEBQ14eyWBtn_QS40GZelkAKoh6-/exec';
+'https://script.google.com/macros/s/AKfycbywK395epNlaMp0pPcN9PHmVBCVyhZzrZ5zBCIsBpT1aLcwRY5J1qveqTJ-nFcHvPjW/exec';
 </script>
 
 <header class="topbar">
@@ -2591,21 +2591,37 @@ const SCRIPT_URL =
 ====================================================== -->
 
 <section
-  id="cierreView"
-  class="view"
+ id="cierreView"
+ class="view"
 >
 
-  <button
-    class="module-back cierre-menu-back"
-    type="button"
-    onclick="showView('menuView')"
-  >
-    ← Volver al menú
-  </button>
+ <div
+   class="footer-buttons cierre-menu-back"
+   style="justify-content:flex-start;"
+ >
+
+   <button
+     class="module-back"
+     type="button"
+     onclick="showView('menuView')"
+   >
+     Volver al menú ←
+   </button>
 
 
-  <div class="card">
-      <div class="card-header">
+   <button
+     id="aplicarMovimientosBtn"
+     class="btn btn-primary"
+     type="button"
+     onclick="aplicarMovimientosTurno()"
+   >
+     Aplicar movimientos
+   </button>
+
+ </div>
+
+ <div class="card">
+  <div class="card-header">
 
         <div>
 
@@ -5586,7 +5602,470 @@ function showView(
 
 }
 
+/* ======================================================
+ APLICAR MOVIMIENTOS DEL TURNO AL CIERRE
+====================================================== */
 
+async function aplicarMovimientosTurno(){
+
+  if(
+    !turnoActivo ||
+    !turnoActivo.turnoId
+  ){
+
+    toast(
+      'No hay un turno activo.',
+      false
+    );
+
+    return;
+
+  }
+
+
+  if(
+    !assertScriptUrl()
+  ){
+
+    return;
+
+  }
+
+
+  const btn =
+    $('aplicarMovimientosBtn');
+
+
+  if(btn){
+
+    btn.disabled =
+      true;
+
+    btn.textContent =
+      'Aplicando...';
+
+  }
+
+
+  try{
+
+    const data =
+      await jsonpRequest(
+        'turno_movimientos',
+        {
+          turnoId:
+            turnoActivo.turnoId
+        }
+      );
+
+
+    if(
+      !data ||
+      data.ok !== true
+    ){
+
+      throw new Error(
+        data &&
+        data.message
+        ?
+        data.message
+        :
+        'No se pudieron cargar los movimientos.'
+      );
+
+    }
+
+
+    const mov =
+      data.movimientos ||
+      {};
+
+
+    /* ==================================================
+       RECARGAS TIGO
+    ================================================== */
+
+    aplicarValorMovimiento(
+      'recargaTigoEntrada',
+      mov.recTigo
+      ?
+      mov.recTigo.entrada
+      :
+      0
+    );
+
+
+    aplicarValorMovimiento(
+      'recargaTigoSalida',
+      mov.recTigo
+      ?
+      mov.recTigo.salida
+      :
+      0
+    );
+
+
+    /* ==================================================
+       RECARGAS CLARO
+    ================================================== */
+
+    aplicarValorMovimiento(
+      'recargasClaroEntrada',
+      mov.recClaro
+      ?
+      mov.recClaro.entrada
+      :
+      0
+    );
+
+
+    aplicarValorMovimiento(
+      'recargasClaroSalida',
+      mov.recClaro
+      ?
+      mov.recClaro.salida
+      :
+      0
+    );
+
+
+    /* ==================================================
+       BANPAIS
+    ================================================== */
+
+    aplicarValorMovimiento(
+      'banpaisEntrada',
+      mov.banpais
+      ?
+      mov.banpais.entrada
+      :
+      0
+    );
+
+
+    aplicarValorMovimiento(
+      'banpaisSalida',
+      mov.banpais
+      ?
+      mov.banpais.salida
+      :
+      0
+    );
+
+
+    /* ==================================================
+       RAPIBAC
+    ================================================== */
+
+    aplicarValorMovimiento(
+      'rapiBacEntrada',
+      mov.rapibac
+      ?
+      mov.rapibac.entrada
+      :
+      0
+    );
+
+
+    aplicarValorMovimiento(
+      'rapiBacSalida',
+      mov.rapibac
+      ?
+      mov.rapibac.salida
+      :
+      0
+    );
+
+
+    /* ==================================================
+       CREDITOS
+       SOLO ABONOS → PAGOS RECIBIDOS
+    ================================================== */
+
+    aplicarAbonosCreditoTurno(
+
+      mov.creditoClientes
+      ?
+      mov.creditoClientes.abono
+      :
+      0,
+
+      mov.creditoEmpleados
+      ?
+      mov.creditoEmpleados.abono
+      :
+      0
+
+    );
+
+
+    recalc();
+
+
+    toast(
+      'Movimientos del turno ' +
+      turnoActivo.turnoId +
+      ' aplicados.',
+      true
+    );
+
+  }
+  catch(error){
+
+    console.error(
+      error
+    );
+
+
+    toast(
+      'Error: ' +
+      error.message,
+      false
+    );
+
+  }
+  finally{
+
+    if(btn){
+
+      btn.disabled =
+        false;
+
+      btn.textContent =
+        'Aplicar movimientos';
+
+    }
+
+  }
+
+}
+
+
+/* ======================================================
+ COLOCAR VALOR AUTOMATICO
+====================================================== */
+
+function aplicarValorMovimiento(
+  id,
+  valor
+){
+
+  const campo =
+    $(id);
+
+
+  if(!campo){
+
+    return;
+
+  }
+
+
+  const numero =
+    Number(
+      valor || 0
+    );
+
+
+  campo.value =
+    numero > 0
+    ?
+    numero.toFixed(2)
+    :
+    '';
+
+
+  /*
+    Viene directamente de las operaciones
+    registradas durante el turno.
+  */
+
+  campo.readOnly =
+    true;
+
+}
+
+
+/* ======================================================
+ ABONOS CREDITOS → PAGOS RECIBIDOS
+====================================================== */
+
+function aplicarAbonosCreditoTurno(
+  clientes,
+  empleados
+){
+
+  /*
+    Quitar solamente las filas automáticas
+    creadas anteriormente.
+  */
+
+  document
+    .querySelectorAll(
+      '.turno-credit-row'
+    )
+    .forEach(
+      row => {
+
+        row.remove();
+
+      }
+    );
+
+
+  const filas = [];
+
+
+  function agregarFila(
+    key,
+    descripcion,
+    valor
+  ){
+
+    valor =
+      Number(
+        valor || 0
+      );
+
+
+    if(
+      valor <= 0
+    ){
+
+      return;
+
+    }
+
+
+    filas.push(`
+
+      <tr
+        class="
+          dynamic-row
+          dynamic-client-row
+          turno-credit-row
+        "
+        data-row-key="${key}"
+        data-dynamic-type="cliente"
+      >
+
+        <td>
+          ↳ ${descripcion}
+        </td>
+
+
+        <td>
+
+          <input
+            id="${key}"
+            class="
+              cell-input
+              partial-input
+              dynamic-partial
+            "
+            type="number"
+            step="0.01"
+            min="0"
+            value="${valor.toFixed(2)}"
+            data-dynamic-type="cliente"
+            readonly
+          >
+
+        </td>
+
+
+        <td></td>
+
+        <td></td>
+
+
+        <td>
+
+          <input
+            class="check-revisado"
+            type="checkbox"
+            data-check-key="${key}"
+            checked
+          >
+
+        </td>
+
+
+        <td>
+
+          <input
+            id="obs_${key}"
+            class="
+              cell-input
+              observacion
+              dynamic-observacion
+            "
+            type="text"
+            value="${descripcion}"
+            readonly
+          >
+
+        </td>
+
+      </tr>
+
+    `);
+
+  }
+
+
+  /* CRÉDITO CLIENTES */
+
+  agregarFila(
+    'creditoClientesTurno',
+    'Crédito clientes',
+    clientes
+  );
+
+
+  /* CRÉDITO EMPLEADOS */
+
+  agregarFila(
+    'creditoEmpleadosTurno',
+    'Crédito empleados',
+    empleados
+  );
+
+
+  if(
+    filas.length
+  ){
+
+    $('rowPagosRecibidos')
+      .insertAdjacentHTML(
+        'afterend',
+        filas.join('')
+      );
+
+  }
+
+
+  clienteCount =
+    document
+      .querySelectorAll(
+        '.dynamic-client-row'
+      )
+      .length;
+
+
+  const btnAgregar =
+    $('addClienteBtn');
+
+
+  if(btnAgregar){
+
+    btnAgregar.disabled =
+      clienteCount >=
+      MAX_DETALLES;
+
+  }
+
+}
 /* ======================================================
  ABRIR MODULO
 ====================================================== */
