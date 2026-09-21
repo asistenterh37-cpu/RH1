@@ -1735,7 +1735,7 @@ tr{
 
 <script>
 const SCRIPT_URL =
-'https://script.google.com/macros/s/AKfycbyQAD0eATXvYLqOr3Z10pmAS7Q2jnvZYSgRbcdP7tYqeDxCgno0lr8p_sm8g3czaUiB/exec';
+'https://script.google.com/macros/s/AKfycbxzUz8PK6cGAFpSRTJffJL0VUxl8VpNz3Bc98AhTXksUFziz-neHbIbr7oEqkdrtG3k/exec';
 </script>
 
 <header class="topbar">
@@ -3445,18 +3445,14 @@ function renderCierreRows(){
     })}
 
 
-    <tr class="computed-row">
-
-      <td>
-        Ventas
-      </td>
-
-      <td></td>
-
-      <td>
-
-        <input
-          id="ventasTotal"
+   <tr class="computed-row">
+ <td>
+ Ventas totales
+ </td>
+ <td></td>
+ <td>
+ <input
+ id="ventasTotal"
           class="readonly-total"
           value="0.00"
           readonly
@@ -3719,12 +3715,51 @@ function renderCierreRows(){
     </tr>
 
 
- ${directRow({
-  key:'cajaAperturaSigTurno',
-  descripcion:'Caja apertura sig turno',
-  tipo:'salida'
+${directRow({
+ key:'cajaAperturaSigTurno',
+ descripcion:'Caja apertura sig turno',
+ tipo:'salida'
 })}
 
+<tr
+ id="rowAjustes"
+ class="group-row"
+ data-row-key="ajustes"
+>
+ <td>
+ Ajuste
+ </td>
+
+ <td></td>
+
+ <td></td>
+
+ <td></td>
+
+ <td></td>
+
+ <td>
+
+  <div class="obs-actions">
+
+   <span class="mini-note">
+    Agregar ajuste
+   </span>
+
+   <button
+    id="addAjusteBtn"
+    class="add-row-btn"
+    type="button"
+    data-add-row="ajuste"
+   >
+    +
+   </button>
+
+  </div>
+
+ </td>
+
+</tr>
 
 <tr class="computed-row total-movimientos-row">
 
@@ -3799,9 +3834,9 @@ function renderCierreRows(){
 
 `;
 }
-
 /* ======================================================
-   CLIENTES / PROVEEDORES
+ FILAS DINAMICAS:
+ CLIENTES / PROVEEDORES / AJUSTES
 ====================================================== */
 
 function addDynamicRow(tipo){
@@ -3809,28 +3844,48 @@ function addDynamicRow(tipo){
   const esCliente =
     tipo === 'cliente';
 
+  const esProveedor =
+    tipo === 'proveedor';
 
-  const rowClass =
+  const esAjuste =
+    tipo === 'ajuste';
+
+
+  if(
+    !esCliente &&
+    !esProveedor &&
+    !esAjuste
+  ){
+    return;
+  }
+
+
+  const selectorFila =
     esCliente
-      ? 'dynamic-client-row'
-      : 'dynamic-provider-row';
+    ? '.dynamic-client-row'
+    : esProveedor
+      ? '.dynamic-provider-row'
+      : '.dynamic-adjustment-row';
 
 
   const filasActuales =
     document.querySelectorAll(
-      `.${rowClass}`
+      selectorFila
     );
 
 
   if(
-    filasActuales.length >= MAX_DETALLES
+    filasActuales.length >=
+    MAX_DETALLES
   ){
 
     toast(
       `Máximo ${MAX_DETALLES} ${
         esCliente
-          ? 'clientes'
-          : 'proveedores'
+        ? 'clientes'
+        : esProveedor
+          ? 'proveedores'
+          : 'ajustes'
       }.`,
       false
     );
@@ -3840,13 +3895,9 @@ function addDynamicRow(tipo){
   }
 
 
-  /* ==================================================
-     BUSCAR PRIMER NÚMERO DISPONIBLE
-
-     Esto permite borrar, por ejemplo Cliente 2,
-     y volver a utilizar Cliente 2 sin crear IDs
-     duplicados.
-  ================================================== */
+  /* ===============================================
+     BUSCAR PRIMER NUMERO DISPONIBLE
+  =============================================== */
 
   let numero = 1;
 
@@ -3857,18 +3908,14 @@ function addDynamicRow(tipo){
       `[data-row-key="${tipo}_${numero}"]`
     )
   ){
-
     numero++;
-
   }
 
 
   if(
     numero > MAX_DETALLES
   ){
-
     return;
-
   }
 
 
@@ -3876,101 +3923,234 @@ function addDynamicRow(tipo){
     `${tipo}_${numero}`;
 
 
-  const placeholder =
-    esCliente
+  let parentId = '';
+
+  let html = '';
+
+
+  /* ===============================================
+     AJUSTE
+     PUEDE SER ENTRADA O SALIDA
+  =============================================== */
+
+  if(esAjuste){
+
+    parentId =
+      'rowAjustes';
+
+
+    /*
+      Incorporar el ajuste a los movimientos
+      que participan en Entradas / Salidas.
+    */
+
+    if(
+      !DUAL_MOVEMENTS.some(
+        item =>
+          item.key === key
+      )
+    ){
+
+      DUAL_MOVEMENTS.push({
+        key:key,
+        descripcion:'Ajuste'
+      });
+
+    }
+
+
+    html = `
+
+      <tr
+        class="dynamic-row dynamic-adjustment-row"
+        data-row-key="${key}"
+        data-dynamic-type="ajuste"
+      >
+
+        <td>
+          ↳ Ajuste
+        </td>
+
+
+        <td></td>
+
+
+        <td>
+
+          ${moneyInput(
+            `${key}Entrada`,
+            'entrada-directa dual-entrada'
+          )}
+
+        </td>
+
+
+        <td>
+
+          ${moneyInput(
+            `${key}Salida`,
+            'salida-directa dual-salida'
+          )}
+
+        </td>
+
+
+        <td>
+
+          ${checkInput(key)}
+
+        </td>
+
+
+        <td>
+
+          <div class="dynamic-obs-wrap">
+
+            <input
+              id="obs_${key}"
+              class="cell-input observacion dynamic-observacion"
+              type="text"
+              maxlength="250"
+              placeholder="Detalle del ajuste"
+            >
+
+
+            <button
+              class="remove-row-btn"
+              type="button"
+              data-remove-row="${key}"
+              title="Eliminar este ajuste"
+            >
+              −
+            </button>
+
+          </div>
+
+        </td>
+
+      </tr>
+
+    `;
+
+  }
+
+
+  /* ===============================================
+     CLIENTE / PROVEEDOR
+  =============================================== */
+
+  else{
+
+    const placeholder =
+      esCliente
       ? `Cliente ${numero}`
       : `Proveedor ${numero}`;
 
 
-  const parentId =
-    esCliente
+    parentId =
+      esCliente
       ? 'rowPagosRecibidos'
       : 'rowPagosProveedores';
 
 
-  const descripcion =
-    esCliente
+    const descripcion =
+      esCliente
       ? '↳ Pago recibido'
       : '↳ Pago a proveedor';
 
 
-  const html = `
-
-    <tr
-      class="dynamic-row ${rowClass}"
-      data-row-key="${key}"
-      data-dynamic-type="${tipo}"
-    >
-
-      <td>
-        ${descripcion}
-      </td>
+    const rowClass =
+      esCliente
+      ? 'dynamic-client-row'
+      : 'dynamic-provider-row';
 
 
-      <td>
+    html = `
 
-        ${moneyInput(
-          key,
-          'partial-input dynamic-partial',
-          `data-dynamic-type="${tipo}"`
-        )}
+      <tr
+        class="dynamic-row ${rowClass}"
+        data-row-key="${key}"
+        data-dynamic-type="${tipo}"
+      >
 
-      </td>
-
-
-      <td></td>
-
-      <td></td>
+        <td>
+          ${descripcion}
+        </td>
 
 
-      <td>
-        ${checkInput(key)}
-      </td>
+        <td>
+
+          ${moneyInput(
+            key,
+            'partial-input dynamic-partial',
+            `data-dynamic-type="${tipo}"`
+          )}
+
+        </td>
 
 
-      <td>
+        <td></td>
 
-        <div class="dynamic-obs-wrap">
-
-          <input
-            id="obs_${key}"
-            class="cell-input observacion dynamic-observacion"
-            type="text"
-            maxlength="250"
-            placeholder="${placeholder}"
-          >
+        <td></td>
 
 
-          <button
-            class="remove-row-btn"
-            type="button"
-            data-remove-row="${key}"
-            title="Eliminar esta fila"
-          >
-            −
-          </button>
+        <td>
 
-        </div>
+          ${checkInput(key)}
 
-      </td>
+        </td>
 
-    </tr>
 
-  `;
+        <td>
 
+          <div class="dynamic-obs-wrap">
+
+            <input
+              id="obs_${key}"
+              class="cell-input observacion dynamic-observacion"
+              type="text"
+              maxlength="250"
+              placeholder="${placeholder}"
+            >
+
+
+            <button
+              class="remove-row-btn"
+              type="button"
+              data-remove-row="${key}"
+              title="Eliminar esta fila"
+            >
+              −
+            </button>
+
+          </div>
+
+        </td>
+
+      </tr>
+
+    `;
+
+  }
+
+
+  /* ===============================================
+     INSERTAR DESPUES DE LA ULTIMA FILA
+     DEL MISMO TIPO
+  =============================================== */
 
   const rows =
     Array.from(
       document.querySelectorAll(
-        `.${rowClass}`
+        selectorFila
       )
     );
 
 
   const anchor =
     rows.length
-      ? rows[rows.length - 1]
-      : $(parentId);
+    ? rows[rows.length - 1]
+    : $(parentId);
 
 
   anchor.insertAdjacentHTML(
@@ -3979,9 +4159,9 @@ function addDynamicRow(tipo){
   );
 
 
-  /* ==================================================
-     ACTUALIZAR CONTADORES
-  ================================================== */
+  /* ===============================================
+     CONTADORES
+  =============================================== */
 
   clienteCount =
     document.querySelectorAll(
@@ -4007,7 +4187,9 @@ function addDynamicRow(tipo){
 
 
   const input =
-    $(key);
+    esAjuste
+    ? $(`${key}Entrada`)
+    : $(key);
 
 
   if(input){
@@ -4016,8 +4198,7 @@ function addDynamicRow(tipo){
 
   }
 
-}
-  
+}  
 /* ======================================================
    FECHA
 ====================================================== */
@@ -4713,89 +4894,89 @@ function renderModuleForm(
 
   }
 
+/* ==================================================
+ BANPAIS
+================================================== */
 
-  /* ==================================================
-     BANPAIS
-  ================================================== */
+if(
+  modulo === 'banpais'
+){
 
-  if(
-    modulo === 'banpais'
-  ){
-
-    const nombreMovimiento =
-      transaccion === 'deposito'
-      ?
-      'Depósito'
-      :
-      'Retiro';
-
-
-    content.innerHTML = `
-
-      <div class="operation-card">
-
-        <div class="operation-title">
-          Banpais - ${nombreMovimiento}
-        </div>
+  const nombreMovimiento =
+    transaccion === 'deposito'
+    ?
+    'Depósito'
+    :
+    'Retiro';
 
 
-        <div class="operation-body">
+  content.innerHTML = `
 
+    <div class="operation-card">
+
+      <div class="operation-title">
+        Banpais - ${nombreMovimiento}
+      </div>
+
+
+      <div class="operation-body">
+
+
+        <input
+          id="movTransaccion"
+          type="hidden"
+          value="${transaccion}"
+        >
+
+
+        <div class="operation-field">
+
+          <label>
+            Nombre
+          </label>
 
           <input
-            id="movTransaccion"
-            type="hidden"
-            value="${transaccion}"
+            id="movNombre"
+            type="text"
+            maxlength="250"
           >
 
-
-          <div class="operation-field">
-
-            <label>
-              Nombre
-            </label>
-
-            <input
-              id="movNombre"
-              type="text"
-              maxlength="250"
-            >
-
-          </div>
+        </div>
 
 
-          <div class="operation-field">
+        <div class="operation-field">
 
-            <label>
-              Valor
-            </label>
+          <label>
+            Valor
+          </label>
 
-            <input
-              id="movValor"
-              type="number"
-              min="0"
-              step="0.01"
-              placeholder="0.00"
-            >
-
-          </div>
-
-
-          ${botonGuardarModuloHTML()}
-
+          <input
+            id="movValor"
+            type="number"
+            min="0"
+            step="0.01"
+            placeholder="0.00"
+          >
 
         </div>
+
+
+        ${camposComunesModuloHTML()}
+
+
+        ${botonGuardarModuloHTML()}
+
 
       </div>
 
-    `;
+    </div>
+
+  `;
 
 
-    return;
+  return;
 
-  }
-
-
+}
   /* ==================================================
      CREDITO EMPLEADO
   ================================================== */
@@ -6028,12 +6209,12 @@ function collectItems(){
     num('ventasBoton');
 
 
-  pushItem(
-    'Ventas',
-    '',
-    ventas,
-    ''
-  );
+pushItem(
+ 'Ventas totales',
+ '',
+ ventas,
+ ''
+);
 
 
   /* ======================================================
@@ -6275,25 +6456,80 @@ function collectItems(){
       }
     );
 
+/* ======================================================
+ CAJA APERTURA SIGUIENTE TURNO
+====================================================== */
 
-  /* ======================================================
-     ÚLTIMA FILA A GUARDAR
-  ====================================================== */
-
-  pushItem(
-    'Caja apertura sig turno',
-    '',
-    '',
-    valueOrBlank(
-      'cajaAperturaSigTurno'
-    )
-  );
+pushItem(
+ 'Caja apertura sig turno',
+ '',
+ '',
+ valueOrBlank(
+   'cajaAperturaSigTurno'
+ )
+);
 
 
-  return items;
+/* ======================================================
+ AJUSTES
+====================================================== */
 
-}
-  
+document
+.querySelectorAll(
+  '.dynamic-adjustment-row'
+)
+.forEach(
+  row => {
+
+    const key =
+      row.dataset.rowKey;
+
+
+    const entrada =
+      valueOrBlank(
+        `${key}Entrada`
+      );
+
+
+    const salida =
+      valueOrBlank(
+        `${key}Salida`
+      );
+
+
+    const detalle =
+      getObs(key);
+
+
+    /*
+      No guardar una fila completamente vacía.
+    */
+
+    if(
+      entrada === '' &&
+      salida === '' &&
+      !detalle
+    ){
+      return;
+    }
+
+
+    pushItem(
+      detalle
+      ? `Ajuste - ${detalle}`
+      : 'Ajuste',
+      '',
+      entrada,
+      salida
+    );
+
+  }
+);
+
+
+return items;
+
+}  
 /* ======================================================
    VALIDAR INFORMACION
 ====================================================== */
@@ -6741,10 +6977,10 @@ document
     );
 
 
-  document
-    .querySelectorAll(
-      '.dynamic-client-row, .dynamic-provider-row'
-    )
+ document
+ .querySelectorAll(
+ '.dynamic-row'
+ )
     .forEach(
       row =>
         row.remove()
