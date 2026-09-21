@@ -1289,9 +1289,8 @@ tr{
     padding:16px;
   }
 }
-
 /* ======================================================
-   MENU PRINCIPAL DE OPERACIONES
+ MENU PRINCIPAL DE OPERACIONES
 ====================================================== */
 
 .menu-main{
@@ -1322,11 +1321,24 @@ tr{
   display:grid;
   grid-template-columns:repeat(2,1fr);
   gap:14px;
+  align-items:start;
 }
+
+
+/* CONTENEDOR DE CADA TARJETA */
+
+.menu-item{
+  width:100%;
+  min-width:0;
+}
+
+
+/* TARJETA PRINCIPAL */
 
 .menu-card{
   position:relative;
 
+  width:100%;
   min-height:125px;
 
   border:1px solid #dfce00;
@@ -1348,7 +1360,7 @@ tr{
   align-items:center;
   justify-content:center;
 
-  padding:20px;
+  padding:20px 48px 20px 20px;
 
   font-family:inherit;
   font-size:16px;
@@ -1360,7 +1372,8 @@ tr{
 
   transition:
     transform .15s ease,
-    box-shadow .15s ease;
+    box-shadow .15s ease,
+    border-radius .20s ease;
 }
 
 .menu-card:hover{
@@ -1369,6 +1382,9 @@ tr{
   box-shadow:
     0 12px 26px rgba(16,24,40,.16);
 }
+
+
+/* FLECHA */
 
 .menu-card::after{
   content:"›";
@@ -1379,10 +1395,124 @@ tr{
   font-size:26px;
   font-weight:400;
 
-  opacity:.35;
+  opacity:.40;
+
+  transition:
+    transform .20s ease;
 }
 
 
+/* TARJETAS QUE TIENEN SUBMENU */
+
+.menu-card-toggle::after{
+  content:"⌄";
+}
+
+.menu-item.open .menu-card-toggle{
+  border-radius:14px 14px 8px 8px;
+}
+
+.menu-item.open .menu-card-toggle::after{
+  transform:rotate(180deg);
+}
+
+
+/* SUBMENU */
+
+.menu-suboptions{
+  display:grid;
+  grid-template-columns:repeat(2,1fr);
+
+  gap:8px;
+
+  max-height:0;
+
+  opacity:0;
+  overflow:hidden;
+
+  margin-top:0;
+
+  transform:translateY(-5px);
+
+  transition:
+    max-height .22s ease,
+    opacity .18s ease,
+    transform .18s ease,
+    margin .18s ease;
+}
+
+.menu-item.open .menu-suboptions{
+  max-height:110px;
+
+  opacity:1;
+
+  margin-top:8px;
+
+  transform:translateY(0);
+}
+
+
+/* BOTONES DEL SUBMENU */
+
+.menu-option{
+  min-height:48px;
+
+  border:1px solid #d0d5dd;
+  border-radius:9px;
+
+  background:#fff;
+
+  color:#344054;
+
+  padding:9px 10px;
+
+  font-family:inherit;
+  font-size:13px;
+  font-weight:800;
+
+  cursor:pointer;
+
+  box-shadow:
+    0 3px 10px rgba(16,24,40,.05);
+
+  transition:
+    background .15s ease,
+    color .15s ease,
+    border-color .15s ease,
+    transform .15s ease;
+}
+
+.menu-option:hover{
+  background:#1769e0;
+  color:#fff;
+  border-color:#1769e0;
+
+  transform:translateY(-1px);
+}
+
+
+/* CELULAR */
+
+@media(max-width:650px){
+
+  .menu-main{
+    margin-top:15px;
+  }
+
+  .menu-grid{
+    grid-template-columns:1fr;
+  }
+
+  .menu-card{
+    min-height:95px;
+  }
+
+  .menu-suboptions{
+    grid-template-columns:1fr 1fr;
+  }
+
+}
+  
 /* ======================================================
    CONTENEDOR DE MODULOS
 ====================================================== */
@@ -1668,108 +1798,315 @@ const SCRIPT_URL =
   <!-- ======================================================
        MENU PRINCIPAL
   ====================================================== -->
+<section
+  id="menuView"
+  class="view active"
+>
 
-  <section
-    id="menuView"
-    class="view active"
-  >
-
-    <div class="menu-main">
-
-      <div class="menu-main-title">
-
-        <h1>
-          Operaciones
-        </h1>
-
-        <p>
-          Selecciona la operación que deseas realizar
-        </p>
-
-      </div>
+  <div class="menu-main">
 
 
-      <div class="menu-grid">
+    <div class="menu-main-title">
 
+      <h1>
+        Operaciones
+      </h1>
+
+      <p>
+        Selecciona la operación que deseas realizar
+      </p>
+
+    </div>
+
+
+    <div class="menu-grid">
+
+
+      <!-- ==================================================
+           CIERRES - DIRECTO
+      ================================================== -->
+
+      <div class="menu-item">
 
         <button
-          class="menu-card"
+          class="menu-card menu-direct"
           type="button"
           data-module="cierre"
         >
           Cierres diarios
         </button>
 
+      </div>
+
+
+      <!-- ==================================================
+           RECARGAS TIGO
+      ================================================== -->
+
+      <div class="menu-item">
 
         <button
-          class="menu-card"
+          class="menu-card menu-card-toggle"
           type="button"
-          data-module="recTigo"
+          data-menu-toggle
         >
           Recargas Tigo
         </button>
 
 
+        <div class="menu-suboptions">
+
+          <button
+            class="menu-option"
+            type="button"
+            data-module="recTigo"
+            data-transaction="compraSaldo"
+          >
+            Compra saldos
+          </button>
+
+
+          <button
+            class="menu-option"
+            type="button"
+            data-module="recTigo"
+            data-transaction="recarga"
+          >
+            Venta de recargas
+          </button>
+
+        </div>
+
+      </div>
+
+
+      <!-- ==================================================
+           RECARGAS CLARO
+      ================================================== -->
+
+      <div class="menu-item">
+
         <button
-          class="menu-card"
+          class="menu-card menu-card-toggle"
           type="button"
-          data-module="recClaro"
+          data-menu-toggle
         >
           Recargas Claro
         </button>
 
 
+        <div class="menu-suboptions">
+
+          <button
+            class="menu-option"
+            type="button"
+            data-module="recClaro"
+            data-transaction="compraSaldo"
+          >
+            Compra saldos
+          </button>
+
+
+          <button
+            class="menu-option"
+            type="button"
+            data-module="recClaro"
+            data-transaction="recarga"
+          >
+            Venta de recargas
+          </button>
+
+        </div>
+
+      </div>
+
+
+      <!-- ==================================================
+           BANPAIS
+      ================================================== -->
+
+      <div class="menu-item">
+
         <button
-          class="menu-card"
+          class="menu-card menu-card-toggle"
           type="button"
-          data-module="banpais"
+          data-menu-toggle
         >
           Banpais
         </button>
 
 
+        <div class="menu-suboptions">
+
+          <button
+            class="menu-option"
+            type="button"
+            data-module="banpais"
+            data-transaction="deposito"
+          >
+            Depósito
+          </button>
+
+
+          <button
+            class="menu-option"
+            type="button"
+            data-module="banpais"
+            data-transaction="retiro"
+          >
+            Retiro
+          </button>
+
+        </div>
+
+      </div>
+
+
+      <!-- ==================================================
+           CREDITO EMPLEADOS
+      ================================================== -->
+
+      <div class="menu-item">
+
         <button
-          class="menu-card"
+          class="menu-card menu-card-toggle"
           type="button"
-          data-module="creditoEmpleados"
+          data-menu-toggle
         >
           Crédito empleados
         </button>
 
 
+        <div class="menu-suboptions">
+
+          <button
+            class="menu-option"
+            type="button"
+            data-module="creditoEmpleados"
+            data-transaction="cargo"
+          >
+            Cargo
+          </button>
+
+
+          <button
+            class="menu-option"
+            type="button"
+            data-module="creditoEmpleados"
+            data-transaction="abono"
+          >
+            Abono
+          </button>
+
+        </div>
+
+      </div>
+
+
+      <!-- ==================================================
+           CREDITO CLIENTES
+      ================================================== -->
+
+      <div class="menu-item">
+
         <button
-          class="menu-card"
+          class="menu-card menu-card-toggle"
           type="button"
-          data-module="creditoClientes"
+          data-menu-toggle
         >
           Crédito clientes
         </button>
 
 
+        <div class="menu-suboptions">
+
+          <button
+            class="menu-option"
+            type="button"
+            data-module="creditoClientes"
+            data-transaction="cargo"
+          >
+            Cargo
+          </button>
+
+
+          <button
+            class="menu-option"
+            type="button"
+            data-module="creditoClientes"
+            data-transaction="abono"
+          >
+            Abono
+          </button>
+
+        </div>
+
+      </div>
+
+
+      <!-- ==================================================
+           RAPIBAC
+      ================================================== -->
+
+      <div class="menu-item">
+
         <button
-          class="menu-card"
+          class="menu-card menu-card-toggle"
           type="button"
-          data-module="rapibac"
+          data-menu-toggle
         >
           Rapibac
         </button>
 
 
+        <div class="menu-suboptions">
+
+          <button
+            class="menu-option"
+            type="button"
+            data-module="rapibac"
+            data-transaction="entrada"
+          >
+            Entrada
+          </button>
+
+
+          <button
+            class="menu-option"
+            type="button"
+            data-module="rapibac"
+            data-transaction="salida"
+          >
+            Salida
+          </button>
+
+        </div>
+
+      </div>
+
+
+      <!-- ==================================================
+           REPORTES - DIRECTO
+      ================================================== -->
+
+      <div class="menu-item">
+
         <button
-          class="menu-card"
+          class="menu-card menu-direct"
           type="button"
           data-module="report"
         >
           Reportes
         </button>
 
-
       </div>
+
 
     </div>
 
-  </section>
+  </div>
 
+</section>
 
   <!-- ======================================================
        MODULOS
@@ -3722,8 +4059,10 @@ function setDates(){
 /* ======================================================
  MENU Y MODULOS
 ====================================================== */
-
 let currentModule = '';
+
+let currentTransaction = '';
+
 
 let catalogosData = {
 
@@ -3748,6 +4087,10 @@ function bindMenu(){
   const dropdown =
     $('dropdown');
 
+
+  /* ==================================================
+     MENU SUPERIOR
+  ================================================== */
 
   if(
     menuBtn &&
@@ -3790,8 +4133,6 @@ function bindMenu(){
   );
 
 
-  /* MENÚ SUPERIOR EXISTENTE */
-
   document
     .querySelectorAll(
       '[data-view]'
@@ -3806,6 +4147,7 @@ function bindMenu(){
             showView(
               btn.dataset.view
             );
+
 
             if(dropdown){
 
@@ -3822,11 +4164,14 @@ function bindMenu(){
     );
 
 
-  /* TARJETAS DEL MENÚ */
+  /* ==================================================
+     CIERRES Y REPORTES
+     ABREN DIRECTAMENTE
+  ================================================== */
 
   document
     .querySelectorAll(
-      '.menu-card[data-module]'
+      '.menu-direct[data-module]'
     )
     .forEach(
       btn => {
@@ -3846,7 +4191,108 @@ function bindMenu(){
     );
 
 
-  /* VOLVER AL MENÚ */
+  /* ==================================================
+     TARJETAS CON SUBMENU
+  ================================================== */
+
+  document
+    .querySelectorAll(
+      '[data-menu-toggle]'
+    )
+    .forEach(
+      btn => {
+
+        btn.addEventListener(
+          'click',
+          e => {
+
+            e.stopPropagation();
+
+
+            const item =
+              btn.closest(
+                '.menu-item'
+              );
+
+
+            if(!item){
+              return;
+            }
+
+
+            const abrir =
+              !item.classList.contains(
+                'open'
+              );
+
+
+            /* CERRAR LAS DEMAS */
+
+            document
+              .querySelectorAll(
+                '.menu-item.open'
+              )
+              .forEach(
+                otro => {
+
+                  otro.classList.remove(
+                    'open'
+                  );
+
+                }
+              );
+
+
+            /* ABRIR LA SELECCIONADA */
+
+            if(abrir){
+
+              item.classList.add(
+                'open'
+              );
+
+            }
+
+          }
+        );
+
+      }
+    );
+
+
+  /* ==================================================
+     OPCIONES INTERNAS
+  ================================================== */
+
+  document
+    .querySelectorAll(
+      '.menu-option[data-module][data-transaction]'
+    )
+    .forEach(
+      btn => {
+
+        btn.addEventListener(
+          'click',
+          e => {
+
+            e.stopPropagation();
+
+
+            abrirModulo(
+              btn.dataset.module,
+              btn.dataset.transaction
+            );
+
+          }
+        );
+
+      }
+    );
+
+
+  /* ==================================================
+     VOLVER AL MENU
+  ================================================== */
 
   const backBtn =
     $('moduleBackBtn');
@@ -3857,6 +4303,28 @@ function bindMenu(){
     backBtn.addEventListener(
       'click',
       () => {
+
+        currentModule =
+          '';
+
+        currentTransaction =
+          '';
+
+
+        document
+          .querySelectorAll(
+            '.menu-item.open'
+          )
+          .forEach(
+            item => {
+
+              item.classList.remove(
+                'open'
+              );
+
+            }
+          );
+
 
         showView(
           'menuView'
@@ -3907,8 +4375,11 @@ function showView(
 
 
   window.scrollTo({
+
     top:0,
+
     behavior:'smooth'
+
   });
 
 }
@@ -3919,8 +4390,11 @@ function showView(
 ====================================================== */
 
 function abrirModulo(
-  modulo
+  modulo,
+  transaccion = ''
 ){
+
+  /* CIERRES */
 
   if(
     modulo === 'cierre'
@@ -3935,6 +4409,8 @@ function abrirModulo(
   }
 
 
+  /* REPORTES */
+
   if(
     modulo === 'report'
   ){
@@ -3948,12 +4424,28 @@ function abrirModulo(
   }
 
 
+  /* MODULOS DE OPERACION */
+
+  if(
+    !transaccion
+  ){
+
+    return;
+
+  }
+
+
   currentModule =
     modulo;
 
 
+  currentTransaction =
+    transaccion;
+
+
   renderModuleForm(
-    modulo
+    modulo,
+    transaccion
   );
 
 
@@ -3962,8 +4454,7 @@ function abrirModulo(
   );
 
 }
-
-
+  
 /* ======================================================
  OPCIONES DE SELECT
 ====================================================== */
@@ -4059,13 +4550,13 @@ function botonGuardarModuloHTML(){
 
 }
 
-
 /* ======================================================
  RENDER DE MODULOS
 ====================================================== */
 
 function renderModuleForm(
-  modulo
+  modulo,
+  transaccion = currentTransaction
 ){
 
   const content =
@@ -4086,7 +4577,7 @@ function renderModuleForm(
     modulo === 'recClaro'
   ){
 
-    const titulo =
+    const empresa =
       modulo === 'recTigo'
       ?
       'Recargas Tigo'
@@ -4094,67 +4585,225 @@ function renderModuleForm(
       'Recargas Claro';
 
 
-    content.innerHTML = `
+    /* ================================================
+       COMPRA DE SALDOS
+    ================================================ */
 
-      <div class="operation-card">
+    if(
+      transaccion ===
+      'compraSaldo'
+    ){
 
-        <div class="operation-title">
-          ${titulo}
-        </div>
+      content.innerHTML = `
+
+        <div class="operation-card">
+
+          <div class="operation-title">
+            ${empresa} - Compra saldos
+          </div>
 
 
-        <div class="operation-body">
+          <div class="operation-body">
 
 
-          <div class="operation-field">
-
-            <label>
-              Transacción
-            </label>
-
-            <select
+            <input
               id="movTransaccion"
-              onchange="renderCamposRecarga()"
+              type="hidden"
+              value="compraSaldo"
             >
 
-              <option value="">
-                Seleccionar
-              </option>
 
-              <option value="compraSaldo">
-                Compra saldos
-              </option>
+            <div class="operation-field">
 
-              <option value="recarga">
-                Venta de recargas
-              </option>
+              <label>
+                Valor
+              </label>
 
-            </select>
+              <input
+                id="movValor"
+                type="number"
+                min="0"
+                step="0.01"
+                placeholder="0.00"
+              >
 
-          </div>
-
-
-          <div class="operation-separator">
-          </div>
-
-
-          <div id="movSpecific">
-
-            <div class="module-placeholder">
-              Selecciona Compra saldos o Venta de recargas
             </div>
 
-          </div>
 
+            ${camposComunesModuloHTML()}
+
+
+            ${botonGuardarModuloHTML()}
+
+
+          </div>
 
         </div>
 
-      </div>
-
-    `;
+      `;
 
 
-    return;
+      return;
+
+    }
+
+
+    /* ================================================
+       VENTA DE RECARGAS
+    ================================================ */
+
+    if(
+      transaccion ===
+      'recarga'
+    ){
+
+      content.innerHTML = `
+
+        <div class="operation-card">
+
+          <div class="operation-title">
+            ${empresa} - Venta de recargas
+          </div>
+
+
+          <div class="operation-body">
+
+
+            <input
+              id="movTransaccion"
+              type="hidden"
+              value="recarga"
+            >
+
+
+            <div class="operation-field">
+
+              <label>
+                Tipo
+              </label>
+
+              <input
+                id="movTipoRecarga"
+                type="text"
+                maxlength="50"
+              >
+
+            </div>
+
+
+            <div class="operation-field">
+
+              <label>
+                No.
+              </label>
+
+
+              <div class="numero-recarga">
+
+
+                <input
+                  id="movNo1"
+                  type="text"
+                  inputmode="numeric"
+                  maxlength="2"
+                  oninput="
+                    this.value =
+                    this.value
+                    .replace(/\D/g,'')
+                    .slice(0,2)
+                  "
+                >
+
+
+                <span>/</span>
+
+
+                <input
+                  id="movNo2"
+                  type="text"
+                  inputmode="numeric"
+                  maxlength="2"
+                  oninput="
+                    this.value =
+                    this.value
+                    .replace(/\D/g,'')
+                    .slice(0,2)
+                  "
+                >
+
+
+                <span>/</span>
+
+
+                <input
+                  id="movNo3"
+                  type="text"
+                  inputmode="numeric"
+                  maxlength="2"
+                  oninput="
+                    this.value =
+                    this.value
+                    .replace(/\D/g,'')
+                    .slice(0,2)
+                  "
+                >
+
+
+                <span>/</span>
+
+
+                <input
+                  id="movNo4"
+                  type="text"
+                  inputmode="numeric"
+                  maxlength="2"
+                  oninput="
+                    this.value =
+                    this.value
+                    .replace(/\D/g,'')
+                    .slice(0,2)
+                  "
+                >
+
+
+              </div>
+
+            </div>
+
+
+            <div class="operation-field">
+
+              <label>
+                Valor
+              </label>
+
+              <input
+                id="movValor"
+                type="number"
+                min="0"
+                step="0.01"
+                placeholder="0.00"
+              >
+
+            </div>
+
+
+            ${camposComunesModuloHTML()}
+
+
+            ${botonGuardarModuloHTML()}
+
+
+          </div>
+
+        </div>
+
+      `;
+
+
+      return;
+
+    }
 
   }
 
@@ -4167,41 +4816,31 @@ function renderModuleForm(
     modulo === 'banpais'
   ){
 
+    const nombreMovimiento =
+      transaccion === 'deposito'
+      ?
+      'Depósito'
+      :
+      'Retiro';
+
+
     content.innerHTML = `
 
       <div class="operation-card">
 
         <div class="operation-title">
-          Banpais
+          Banpais - ${nombreMovimiento}
         </div>
 
 
         <div class="operation-body">
 
 
-          <div class="operation-field">
-
-            <label>
-              Transacción
-            </label>
-
-            <select id="movTransaccion">
-
-              <option value="">
-                Seleccionar
-              </option>
-
-              <option value="deposito">
-                Depósito
-              </option>
-
-              <option value="retiro">
-                Retiro
-              </option>
-
-            </select>
-
-          </div>
+          <input
+            id="movTransaccion"
+            type="hidden"
+            value="${transaccion}"
+          >
 
 
           <div class="operation-field">
@@ -4260,41 +4899,31 @@ function renderModuleForm(
     'creditoEmpleados'
   ){
 
+    const nombreMovimiento =
+      transaccion === 'cargo'
+      ?
+      'Cargo'
+      :
+      'Abono';
+
+
     content.innerHTML = `
 
       <div class="operation-card">
 
         <div class="operation-title">
-          Crédito empleado
+          Crédito empleado - ${nombreMovimiento}
         </div>
 
 
         <div class="operation-body">
 
 
-          <div class="operation-field">
-
-            <label>
-              Transacción
-            </label>
-
-            <select id="movTransaccion">
-
-              <option value="">
-                Seleccionar
-              </option>
-
-              <option value="cargo">
-                Cargo
-              </option>
-
-              <option value="abono">
-                Abono
-              </option>
-
-            </select>
-
-          </div>
+          <input
+            id="movTransaccion"
+            type="hidden"
+            value="${transaccion}"
+          >
 
 
           <div class="operation-field">
@@ -4373,41 +5002,31 @@ function renderModuleForm(
     'creditoClientes'
   ){
 
+    const nombreMovimiento =
+      transaccion === 'cargo'
+      ?
+      'Cargo'
+      :
+      'Abono';
+
+
     content.innerHTML = `
 
       <div class="operation-card">
 
         <div class="operation-title">
-          Crédito cliente
+          Crédito cliente - ${nombreMovimiento}
         </div>
 
 
         <div class="operation-body">
 
 
-          <div class="operation-field">
-
-            <label>
-              Transacción
-            </label>
-
-            <select id="movTransaccion">
-
-              <option value="">
-                Seleccionar
-              </option>
-
-              <option value="cargo">
-                Cargo
-              </option>
-
-              <option value="abono">
-                Abono
-              </option>
-
-            </select>
-
-          </div>
+          <input
+            id="movTransaccion"
+            type="hidden"
+            value="${transaccion}"
+          >
 
 
           <div class="operation-field">
@@ -4483,41 +5102,31 @@ function renderModuleForm(
     modulo === 'rapibac'
   ){
 
+    const nombreMovimiento =
+      transaccion === 'entrada'
+      ?
+      'Entrada'
+      :
+      'Salida';
+
+
     content.innerHTML = `
 
       <div class="operation-card">
 
         <div class="operation-title">
-          Rapibac
+          Rapibac - ${nombreMovimiento}
         </div>
 
 
         <div class="operation-body">
 
 
-          <div class="operation-field">
-
-            <label>
-              Transacción
-            </label>
-
-            <select id="movTransaccion">
-
-              <option value="">
-                Seleccionar
-              </option>
-
-              <option value="entrada">
-                Entrada
-              </option>
-
-              <option value="salida">
-                Salida
-              </option>
-
-            </select>
-
-          </div>
+          <input
+            id="movTransaccion"
+            type="hidden"
+            value="${transaccion}"
+          >
 
 
           <div class="operation-field">
@@ -4564,241 +5173,13 @@ function renderModuleForm(
 
     `;
 
-  }
-
-}
-
-
-/* ======================================================
- TIGO / CLARO:
- CAMBIA LOS CAMPOS EN LA MISMA TARJETA
-====================================================== */
-
-function renderCamposRecarga(){
-
-  const selector =
-    $('movTransaccion');
-
-
-  const area =
-    $('movSpecific');
-
-
-  if(
-    !selector ||
-    !area
-  ){
-    return;
-  }
-
-
-  const tipo =
-    selector.value;
-
-
-  if(
-    !tipo
-  ){
-
-    area.innerHTML = `
-
-      <div class="module-placeholder">
-        Selecciona Compra saldos o Venta de recargas
-      </div>
-
-    `;
 
     return;
-
-  }
-
-
-  /* ==================================================
-     COMPRA SALDOS
-  ================================================== */
-
-  if(
-    tipo ===
-    'compraSaldo'
-  ){
-
-    area.innerHTML = `
-
-      <div class="operation-section-title">
-        Compra de saldos
-      </div>
-
-
-      <div class="operation-field">
-
-        <label>
-          Valor
-        </label>
-
-        <input
-          id="movValor"
-          type="number"
-          min="0"
-          step="0.01"
-          placeholder="0.00"
-        >
-
-      </div>
-
-
-      ${camposComunesModuloHTML()}
-
-
-      ${botonGuardarModuloHTML()}
-
-    `;
-
-
-    return;
-
-  }
-
-
-  /* ==================================================
-     VENTA DE RECARGAS
-  ================================================== */
-
-  if(
-    tipo ===
-    'recarga'
-  ){
-
-    area.innerHTML = `
-
-      <div class="operation-section-title">
-        Venta de recargas
-      </div>
-
-
-      <div class="operation-field">
-
-        <label>
-          Tipo
-        </label>
-
-        <input
-          id="movTipoRecarga"
-          type="text"
-          maxlength="50"
-        >
-
-      </div>
-
-
-      <div class="operation-field">
-
-        <label>
-          No.
-        </label>
-
-
-        <div class="numero-recarga">
-
-
-          <input
-            id="movNo1"
-            type="text"
-            inputmode="numeric"
-            maxlength="2"
-            oninput="
-              this.value =
-              this.value
-              .replace(/\D/g,'')
-              .slice(0,2)
-            "
-          >
-
-
-          <span>/</span>
-
-
-          <input
-            id="movNo2"
-            type="text"
-            inputmode="numeric"
-            maxlength="2"
-            oninput="
-              this.value =
-              this.value
-              .replace(/\D/g,'')
-              .slice(0,2)
-            "
-          >
-
-
-          <span>/</span>
-
-
-          <input
-            id="movNo3"
-            type="text"
-            inputmode="numeric"
-            maxlength="2"
-            oninput="
-              this.value =
-              this.value
-              .replace(/\D/g,'')
-              .slice(0,2)
-            "
-          >
-
-
-          <span>/</span>
-
-
-          <input
-            id="movNo4"
-            type="text"
-            inputmode="numeric"
-            maxlength="2"
-            oninput="
-              this.value =
-              this.value
-              .replace(/\D/g,'')
-              .slice(0,2)
-            "
-          >
-
-
-        </div>
-
-      </div>
-
-
-      <div class="operation-field">
-
-        <label>
-          Valor
-        </label>
-
-        <input
-          id="movValor"
-          type="number"
-          min="0"
-          step="0.01"
-          placeholder="0.00"
-        >
-
-      </div>
-
-
-      ${camposComunesModuloHTML()}
-
-
-      ${botonGuardarModuloHTML()}
-
-    `;
 
   }
 
 }
-
-
+  
 /* ======================================================
  OBTENER VALOR
 ====================================================== */
