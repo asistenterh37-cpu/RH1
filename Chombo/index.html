@@ -1647,17 +1647,158 @@ tr{
 
 
 .saldo-credito-box strong{
+ color:#1769e0;
+ font-size:20px;
+ font-weight:900;
+}
 
-  color:#1769e0;
 
-  font-size:20px;
-  font-weight:900;
+/* ======================================================
+ MOVIMIENTOS FLOTANTES EN CIERRE DIARIO
+====================================================== */
+
+.cierre-mov-cell{
+ position:relative;
+}
+
+.cierre-mov-cell .cell-input{
+ padding-right:40px;
+}
+
+.cierre-mov-btn{
+ position:absolute;
+ top:50%;
+ right:5px;
+ transform:translateY(-50%);
+ width:28px;
+ height:28px;
+ display:flex;
+ align-items:center;
+ justify-content:center;
+ border:1px solid #9dbceb;
+ border-radius:7px;
+ background:#eef4ff;
+ color:#1769e0;
+ font-size:17px;
+ font-weight:900;
+ cursor:pointer;
+ z-index:5;
+}
+
+.cierre-mov-btn:hover,
+.cierre-mov-btn:focus{
+ background:#1769e0;
+ color:#fff;
+ border-color:#1769e0;
+ outline:none;
+}
+
+.cierre-mov-cell-solo{
+ position:relative;
+ min-height:36px;
+}
+
+
+/* TARJETA FLOTANTE */
+
+.cierre-mov-popover{
+ display:none;
+ position:fixed;
+ width:min(540px,calc(100vw - 24px));
+ max-height:360px;
+ overflow:auto;
+ z-index:9999;
+ background:#fff;
+ border:1px solid #d0d5dd;
+ border-radius:13px;
+ box-shadow:
+ 0 18px 45px rgba(16,24,40,.25);
+ padding:14px;
+ color:#172033;
+}
+
+.cierre-mov-popover.open{
+ display:block;
+}
+
+.cierre-mov-popover-header{
+ display:flex;
+ align-items:center;
+ justify-content:space-between;
+ gap:15px;
+ margin-bottom:11px;
+}
+
+.cierre-mov-popover-title{
+ font-size:14px;
+ font-weight:900;
+ color:#172033;
+}
+
+.cierre-mov-close{
+ width:28px;
+ height:28px;
+ border:0;
+ border-radius:7px;
+ background:#eef2f6;
+ color:#344054;
+ font-size:18px;
+ font-weight:900;
+ cursor:pointer;
+}
+
+.cierre-mov-close:hover{
+ background:#e4e7ec;
+}
+
+.cierre-mov-tabla{
+ width:100%;
+ border-collapse:collapse;
+ font-size:12px;
+}
+
+.cierre-mov-tabla th,
+.cierre-mov-tabla td{
+ padding:7px 8px;
+ border:1px solid #e1e5eb;
+ background:#fff;
+ text-align:right;
+ white-space:nowrap;
+}
+
+.cierre-mov-tabla th{
+ background:#f2f4f7;
+ font-weight:900;
+ position:sticky;
+ top:0;
+}
+
+.cierre-mov-tabla th:first-child,
+.cierre-mov-tabla td:first-child{
+ text-align:left;
+ white-space:normal;
+ min-width:180px;
+}
+
+.cierre-mov-vacio{
+ padding:20px 10px;
+ text-align:center;
+ color:#667085;
+ font-size:13px;
+}
+
+
+@media print{
+
+ .cierre-mov-btn,
+ .cierre-mov-popover{
+  display:none !important;
+ }
 
 }
 
 
 @media(max-width:650px){
-
   .movimientos-popover{
 
     position:fixed;
@@ -4042,64 +4183,154 @@ function directRow({
   `;
 
 }
-
-
 /* ======================================================
-   FILA CON ENTRADA Y SALIDA
+ MODULO DE MOVIMIENTOS SEGUN FILA
 ====================================================== */
 
-function dualRow({
-  key,
-  descripcion
-}){
+function moduloMovimientosCierre(
+ key
+){
 
-  return `
+ const mapa = {
 
-    <tr
-      class="dual-row"
-      data-row-key="${key}"
-      data-row-type="entrada-salida"
-    >
+  recargaTigo:
+   'recTigo',
 
-      <td>
-        ${escapeHtml(descripcion)}
-      </td>
+  recargasClaro:
+   'recClaro',
 
-      <td></td>
+  rapiBac:
+   'rapibac',
 
-      <td>
+  banpais:
+   'banpais'
 
-        ${moneyInput(
-          `${key}Entrada`,
-          'entrada-directa dual-entrada'
-        )}
+ };
 
-      </td>
 
-      <td>
-
-        ${moneyInput(
-          `${key}Salida`,
-          'salida-directa dual-salida'
-        )}
-
-      </td>
-
-      <td>
-        ${checkInput(key)}
-      </td>
-
-      <td>
-        ${obsInput(key)}
-      </td>
-
-    </tr>
-
-  `;
+ return mapa[key] || '';
 
 }
 
 
+/* ======================================================
+ BOTON MOVIMIENTOS EN CELDA SALIDA
+====================================================== */
+
+function botonMovimientosCierreHTML(
+ modulo
+){
+
+ if(!modulo){
+
+  return '';
+
+ }
+
+
+ return `
+
+ <button
+   class="cierre-mov-btn"
+   type="button"
+   title="Ver movimientos del turno"
+   aria-label="Ver movimientos del turno"
+   onmouseenter="abrirMovimientosCierre(event,'${modulo}')"
+   onfocus="abrirMovimientosCierre(event,'${modulo}')"
+   onclick="abrirMovimientosCierre(event,'${modulo}')"
+ >
+   ≡
+ </button>
+
+ `;
+
+}
+
+
+/* ======================================================
+ FILA CON ENTRADA Y SALIDA
+====================================================== */
+
+function dualRow({
+ key,
+ descripcion
+}){
+
+ const modulo =
+  moduloMovimientosCierre(
+   key
+  );
+
+
+ return `
+
+ <tr
+ class="dual-row"
+ data-row-key="${key}"
+ data-row-type="entrada-salida"
+ >
+
+ <td>
+
+ ${escapeHtml(descripcion)}
+
+ </td>
+
+
+ <td></td>
+
+
+ <td>
+
+ ${moneyInput(
+  `${key}Entrada`,
+  'entrada-directa dual-entrada'
+ )}
+
+ </td>
+
+
+ <td
+   class="${
+    modulo
+    ?
+    'cierre-mov-cell'
+    :
+    ''
+   }"
+ >
+
+ ${moneyInput(
+  `${key}Salida`,
+  'salida-directa dual-salida'
+ )}
+
+ ${botonMovimientosCierreHTML(
+  modulo
+ )}
+
+ </td>
+
+
+ <td>
+
+ ${checkInput(key)}
+
+ </td>
+
+
+ <td>
+
+ ${obsInput(key)}
+
+ </td>
+
+ </tr>
+
+ `;
+
+}
+  
 /* ======================================================
    FILA PARCIAL
 ====================================================== */
@@ -6021,24 +6252,45 @@ async function aplicarMovimientosTurno(){
        SOLO ABONOS → PAGOS RECIBIDOS
     ================================================== */
 
-    aplicarAbonosCreditoTurno(
-
-      mov.creditoClientes
-      ?
-      mov.creditoClientes.abono
-      :
-      0,
-
-      mov.creditoEmpleados
-      ?
-      mov.creditoEmpleados.abono
-      :
-      0
-
-    );
+    const detalles =
+ data.detalles ||
+ {};
 
 
-    recalc();
+aplicarAbonosCreditoTurno(
+
+ mov.creditoClientes
+ ?
+ mov.creditoClientes.abono
+ :
+ 0,
+
+ mov.creditoEmpleados
+ ?
+ mov.creditoEmpleados.abono
+ :
+ 0,
+
+ Array.isArray(
+  detalles.creditoClientes
+ )
+ ?
+ detalles.creditoClientes
+ :
+ [],
+
+ Array.isArray(
+  detalles.creditoEmpleados
+ )
+ ?
+ detalles.creditoEmpleados
+ :
+ []
+
+);
+
+
+recalc();
 
 
     toast(
@@ -7544,240 +7796,243 @@ if(
   return;
 
 }
-  /* ==================================================
-     CREDITO EMPLEADO
-  ================================================== */
+/* ==================================================
+ CREDITO EMPLEADO
+================================================== */
 
-  if(
-    modulo ===
-    'creditoEmpleados'
-  ){
+if(
+ modulo ===
+ 'creditoEmpleados'
+){
 
-    const nombreMovimiento =
-      transaccion === 'cargo'
-      ?
-      'Cargo'
-      :
-      'Abono';
+ const nombreMovimiento =
+  transaccion === 'cargo'
+  ?
+  'Cargo'
+  :
+  'Abono';
 
 
-    content.innerHTML = `
+ content.innerHTML = `
 
-      <div class="operation-card">
+  <div class="operation-card">
 
-        <div class="operation-title">
-          Crédito empleado - ${nombreMovimiento}
-        </div>
+   <div class="operation-title">
 
+    Crédito empleado - ${nombreMovimiento}
 
-        <div class="operation-body">
+   </div>
 
 
-          <input
-            id="movTransaccion"
-            type="hidden"
-            value="${transaccion}"
-          >
+   <div class="operation-body">
 
 
-          <div class="operation-field">
+    <input
+     id="movTransaccion"
+     type="hidden"
+     value="${transaccion}"
+    >
 
- <label>
- Nombre
- </label>
 
- <select
-   id="movNombre"
-   onchange="cargarSaldoCreditoActual('creditoEmpleados')"
- >
+    <div class="operation-field">
 
-   ${opcionesModuloHTML(
-     catalogosData.empleados
-   )}
+     <label>
+      Nombre
+     </label>
 
- </select>
 
-</div>
+     <select
+      id="movNombre"
+      onchange="cargarSaldoCreditoActual('creditoEmpleados')"
+     >
 
+      ${opcionesModuloHTML(
+       catalogosData.empleados
+      )}
 
-<div class="saldo-credito-box">
+     </select>
 
- <span>
-   Saldo a la fecha
- </span>
+    </div>
 
- <strong id="movSaldoActual">
-   L 0.00
- </strong>
 
-</div>
+    <div class="saldo-credito-box">
 
+     <span>
+      Saldo a la fecha
+     </span>
 
-<div class="operation-field">
+     <strong id="movSaldoActual">
+      L 0.00
+     </strong>
 
- <label>
- Descripción
-            </label>
+    </div>
 
-            <input
-              id="movDescripcion"
-              type="text"
-              maxlength="250"
-            >
 
-          </div>
+    <div class="operation-field">
 
+     <label>
+      Descripción
+     </label>
 
-          <div class="operation-field">
+     <input
+      id="movDescripcion"
+      type="text"
+      maxlength="250"
+     >
 
-            <label>
-              Valor
-            </label>
+    </div>
 
-            <input
-              id="movValor"
-              type="number"
-              min="0"
-              step="0.01"
-              placeholder="0.00"
-            >
 
-          </div>
+    <div class="operation-field">
 
+     <label>
+      Valor
+     </label>
 
-          ${camposComunesModuloHTML()}
+     <input
+      id="movValor"
+      type="number"
+      min="0"
+      step="0.01"
+      placeholder="0.00"
+     >
 
+    </div>
 
-          ${botonGuardarModuloHTML()}
 
+    ${camposComunesModuloHTML()}
 
-        </div>
+    ${botonGuardarModuloHTML()}
 
-      </div>
 
-    `;
+   </div>
 
+  </div>
 
-    return;
+ `;
 
-  }
 
+ return;
 
-  /* ==================================================
-     CREDITO CLIENTE
-  ================================================== */
+}
 
-  if(
-    modulo ===
-    'creditoClientes'
-  ){
 
-    const nombreMovimiento =
-      transaccion === 'cargo'
-      ?
-      'Cargo'
-      :
-      'Abono';
+/* ==================================================
+ CREDITO CLIENTE
+================================================== */
 
+if(
+ modulo ===
+ 'creditoClientes'
+){
 
-    content.innerHTML = `
+ const nombreMovimiento =
+  transaccion === 'cargo'
+  ?
+  'Cargo'
+  :
+  'Abono';
 
-      <div class="operation-card">
 
-        <div class="operation-title">
-          Crédito cliente - ${nombreMovimiento}
-        </div>
+ content.innerHTML = `
 
+  <div class="operation-card">
 
-        <div class="operation-body">
+   <div class="operation-title">
 
+    Crédito cliente - ${nombreMovimiento}
 
-          <input
-            id="movTransaccion"
-            type="hidden"
-            value="${transaccion}"
-          >
+   </div>
 
 
-          <div class="operation-field">
-            </label>
+   <div class="operation-body">
 
-            <input
-              id="movDescripcion"
-              type="text"
-              maxlength="250"
-            >
 
-          </div>
+    <input
+     id="movTransaccion"
+     type="hidden"
+     value="${transaccion}"
+    >
 
-<div class="operation-field">
 
- <label>
- Nombre
- </label>
+    <div class="operation-field">
 
- <input
-   id="movNombre"
-   type="text"
-   maxlength="250"
-   onchange="cargarSaldoCreditoActual('creditoClientes')"
- >
+     <label>
+      Nombre
+     </label>
 
-</div>
+     <input
+      id="movNombre"
+      type="text"
+      maxlength="250"
+      onchange="cargarSaldoCreditoActual('creditoClientes')"
+      onblur="cargarSaldoCreditoActual('creditoClientes')"
+     >
 
+    </div>
 
-<div class="saldo-credito-box">
 
- <span>
-   Saldo a la fecha
- </span>
+    <div class="saldo-credito-box">
 
- <strong id="movSaldoActual">
-   L 0.00
- </strong>
+     <span>
+      Saldo a la fecha
+     </span>
 
-</div>
+     <strong id="movSaldoActual">
+      L 0.00
+     </strong>
 
+    </div>
 
-<div class="operation-field">
 
- <label>
- Descripción
-          <div class="operation-field">
+    <div class="operation-field">
 
-            <label>
-              Valor
-            </label>
+     <label>
+      Descripción
+     </label>
 
-            <input
-              id="movValor"
-              type="number"
-              min="0"
-              step="0.01"
-              placeholder="0.00"
-            >
+     <input
+      id="movDescripcion"
+      type="text"
+      maxlength="250"
+     >
 
-          </div>
+    </div>
 
 
-          ${camposComunesModuloHTML()}
+    <div class="operation-field">
 
+     <label>
+      Valor
+     </label>
 
-          ${botonGuardarModuloHTML()}
+     <input
+      id="movValor"
+      type="number"
+      min="0"
+      step="0.01"
+      placeholder="0.00"
+     >
 
+    </div>
 
-        </div>
 
-      </div>
+    ${camposComunesModuloHTML()}
 
-    `;
+    ${botonGuardarModuloHTML()}
 
 
-    return;
+   </div>
 
-  }
+  </div>
 
+ `;
 
+
+ return;
+
+}
+  
   /* ==================================================
      RAPIBAC
   ================================================== */
