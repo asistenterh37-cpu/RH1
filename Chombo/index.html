@@ -2160,7 +2160,7 @@ const SCRIPT_URL =
       <div class="turno-grid">
 
 
-      <div class="turno-field">
+    <div class="turno-field">
 
   <label>
     Fecha
@@ -2169,7 +2169,6 @@ const SCRIPT_URL =
   <input
     id="turnoFecha"
     type="text"
-    value="HOY"
     readonly
     tabindex="-1"
   >
@@ -3496,7 +3495,6 @@ function llenarSelectCatalogo(
 
 }
 
-
 /* ======================================================
  CATALOGOS
 ====================================================== */
@@ -3527,6 +3525,14 @@ async function loadCatalogos(){
 
     }
 
+
+    /* ===============================================
+       CATÁLOGOS RECIBIDOS DEL GS
+
+       A = UBICACIÓN
+       B = RESPONSABLE
+       E = EMPLEADOS
+    =============================================== */
 
     catalogosData = {
 
@@ -3560,21 +3566,9 @@ async function loadCatalogos(){
     };
 
 
-    /* CIERRE */
-
-    llenarSelectCatalogo(
-      'ubicacionSelect',
-      catalogosData.ubicaciones
-    );
-
-
-    llenarSelectCatalogo(
-      'responsableSelect',
-      catalogosData.responsables
-    );
-
-
-    /* INICIAR TURNO */
+    /* ===============================================
+       INICIAR TURNO
+    =============================================== */
 
     llenarSelectCatalogo(
       'turnoUbicacion',
@@ -3588,7 +3582,25 @@ async function loadCatalogos(){
     );
 
 
-    /* REPORTES */
+    /* ===============================================
+       CIERRE DIARIO
+    =============================================== */
+
+    llenarSelectCatalogo(
+      'ubicacionSelect',
+      catalogosData.ubicaciones
+    );
+
+
+    llenarSelectCatalogo(
+      'responsableSelect',
+      catalogosData.responsables
+    );
+
+
+    /* ===============================================
+       REPORTES
+    =============================================== */
 
     llenarSelectCatalogo(
       'ubicacionReporte',
@@ -3605,6 +3617,32 @@ async function loadCatalogos(){
       'Todos'
     );
 
+
+    /* ===============================================
+       VALIDAR QUE LLEGARON DATOS
+    =============================================== */
+
+    if(
+      !catalogosData.ubicaciones.length
+    ){
+
+      throw new Error(
+        'No se encontraron Ubicaciones en Catálogos columna A.'
+      );
+
+    }
+
+
+    if(
+      !catalogosData.responsables.length
+    ){
+
+      throw new Error(
+        'No se encontraron Responsables en Catálogos columna B.'
+      );
+
+    }
+
   }
   catch(error){
 
@@ -3615,6 +3653,7 @@ async function loadCatalogos(){
 
 
     toast(
+      error.message ||
       'No se pudieron cargar los catálogos.',
       false
     );
@@ -4649,15 +4688,13 @@ function setDates(){
     new Date();
 
 
-  const fecha =
+  const fechaSistema =
     localYMD(
       now
     );
 
 
-  /* CIERRE DIARIO */
-
-  $('todayChip').textContent =
+  const fechaVisible =
     now.toLocaleDateString(
       'es-HN',
       {
@@ -4668,19 +4705,25 @@ function setDates(){
     );
 
 
+  /* CIERRE DIARIO */
+
+  $('todayChip').textContent =
+    fechaVisible;
+
+
   /* REPORTES */
 
   $('desde').value =
-    fecha;
+    fechaSistema;
 
 
   $('hasta').value =
-    fecha;
+    fechaSistema;
 
 
   /* TURNO
-     La fecha no se selecciona.
-     El servidor siempre utiliza HOY.
+     Solo se muestra HOY.
+     No puede editarse.
   */
 
   if(
@@ -4688,12 +4731,11 @@ function setDates(){
   ){
 
     $('turnoFecha').value =
-      'HOY';
+      fechaVisible;
 
   }
 
-}
-  
+}  
 /* ======================================================
  ESTADO GENERAL
 ====================================================== */
@@ -4870,9 +4912,15 @@ function prepararIniciarTurno(){
   }
 
 
- $('turnoFecha').value =
-'HOY';
-
+$('turnoFecha').value =
+new Date().toLocaleDateString(
+  'es-HN',
+  {
+    day:'2-digit',
+    month:'2-digit',
+    year:'numeric'
+  }
+);
 
   if(
     $('ubicacionSelect')
@@ -5240,7 +5288,14 @@ function abrirCambioTurno(){
 
 
  $('turnoFecha').value =
-'HOY';
+new Date().toLocaleDateString(
+  'es-HN',
+  {
+    day:'2-digit',
+    month:'2-digit',
+    year:'numeric'
+  }
+);
 
 
   showView(
