@@ -1436,6 +1436,244 @@ tr{
     0 6px 14px rgba(23,105,224,.22);
 }
 
+/* ======================================================
+ MOVIMIENTOS EN ESQUINA DE TARJETAS
+====================================================== */
+
+.menu-operation-card{
+  position:relative;
+  overflow:visible;
+}
+
+
+.movimientos-corner{
+
+  position:absolute;
+
+  top:9px;
+  right:9px;
+
+  width:32px;
+  height:32px;
+
+  display:flex;
+  align-items:center;
+  justify-content:center;
+
+  border:1px solid rgba(0,0,0,.18);
+
+  border-radius:9px;
+
+  background:rgba(255,255,255,.60);
+
+  color:#172033;
+
+  font-size:18px;
+  font-weight:900;
+
+  cursor:pointer;
+
+  opacity:.70;
+
+  z-index:20;
+
+}
+
+
+.movimientos-corner:hover,
+.movimientos-corner:focus{
+
+  opacity:1;
+
+  background:#1769e0;
+
+  color:#fff;
+
+  border-color:#1769e0;
+
+  outline:none;
+
+}
+
+
+.movimientos-popover{
+
+  display:none;
+
+  position:absolute;
+
+  top:44px;
+  right:9px;
+
+  width:520px;
+  max-width:calc(100vw - 55px);
+
+  max-height:330px;
+
+  overflow:auto;
+
+  z-index:500;
+
+  background:#fff;
+
+  border:1px solid #d0d5dd;
+
+  border-radius:12px;
+
+  box-shadow:
+    0 18px 40px
+    rgba(16,24,40,.22);
+
+  padding:13px;
+
+  color:#172033;
+
+}
+
+
+.movimientos-popover.open{
+  display:block;
+}
+
+
+.movimientos-popover-title{
+
+  margin-bottom:10px;
+
+  font-size:13px;
+  font-weight:900;
+
+  color:#344054;
+
+}
+
+
+.movimientos-tabla{
+
+  width:100%;
+
+  border-collapse:collapse;
+
+  font-size:12px;
+
+}
+
+
+.movimientos-tabla th,
+.movimientos-tabla td{
+
+  padding:7px 8px;
+
+  border:1px solid #e2e5ea;
+
+  text-align:right;
+
+  background:#fff;
+
+}
+
+
+.movimientos-tabla th{
+
+  position:sticky;
+
+  top:0;
+
+  background:#f2f4f7;
+
+  font-weight:900;
+
+}
+
+
+.movimientos-tabla th:first-child,
+.movimientos-tabla td:first-child{
+
+  text-align:left;
+
+  min-width:170px;
+
+}
+
+
+.movimientos-sin-datos{
+
+  padding:18px;
+
+  text-align:center;
+
+  color:#667085;
+
+  font-size:13px;
+
+}
+
+
+/* ======================================================
+ SALDO DE CREDITO EN FORMULARIO
+====================================================== */
+
+.saldo-credito-box{
+
+  display:flex;
+
+  align-items:center;
+
+  justify-content:space-between;
+
+  gap:15px;
+
+  padding:11px 13px;
+
+  margin-top:3px;
+
+  border:1px solid #b7d3ff;
+
+  border-radius:10px;
+
+  background:#f5f9ff;
+
+}
+
+
+.saldo-credito-box span{
+
+  color:#475467;
+
+  font-size:12px;
+  font-weight:800;
+
+}
+
+
+.saldo-credito-box strong{
+
+  color:#1769e0;
+
+  font-size:20px;
+  font-weight:900;
+
+}
+
+
+@media(max-width:650px){
+
+  .movimientos-popover{
+
+    position:fixed;
+
+    left:14px;
+    right:14px;
+    top:90px;
+
+    width:auto;
+    max-width:none;
+
+    max-height:65vh;
+
+  }
+
+}
 
 /* ======================================================
    CIERRES Y REPORTES
@@ -2036,7 +2274,7 @@ tr{
 
 <script>
 const SCRIPT_URL =
-'https://script.google.com/macros/s/AKfycbywK395epNlaMp0pPcN9PHmVBCVyhZzrZ5zBCIsBpT1aLcwRY5J1qveqTJ-nFcHvPjW/exec';
+'https://script.google.com/macros/s/AKfycbyxU1CV6f0H3zhNoiURNsvHSktP2fgxwzYIhIIG_6zmk6PWwy2hNUO3nl58Gb8KSHnN/exec';
 </script>
 
 <header class="topbar">
@@ -3425,6 +3663,8 @@ async function init(){
 
   bindEvents();
 
+  configurarTarjetasMovimientos();
+
   recalc();
 
   await loadCatalogos();
@@ -3432,7 +3672,6 @@ async function init(){
   await restaurarTurno();
 
 }
-
 
 /* ======================================================
  LLENAR SELECT
@@ -6067,6 +6306,694 @@ function aplicarAbonosCreditoTurno(
 
 }
 /* ======================================================
+ ESQUINAS - MOVIMIENTOS DEL TURNO
+====================================================== */
+
+function configurarTarjetasMovimientos(){
+
+  document
+    .querySelectorAll(
+      '.menu-operation-card'
+    )
+    .forEach(
+      card => {
+
+        if(
+          card.querySelector(
+            '.movimientos-corner'
+          )
+        ){
+
+          return;
+
+        }
+
+
+        const opcion =
+          card.querySelector(
+            '.menu-option[data-module]'
+          );
+
+
+        if(!opcion){
+
+          return;
+
+        }
+
+
+        const modulo =
+          opcion.dataset.module;
+
+
+        const boton =
+          document.createElement(
+            'button'
+          );
+
+
+        boton.type =
+          'button';
+
+
+        boton.className =
+          'movimientos-corner';
+
+
+        boton.innerHTML =
+          '≡';
+
+
+        boton.title =
+          'Movimientos del turno';
+
+
+        boton.setAttribute(
+          'aria-label',
+          'Ver movimientos del turno'
+        );
+
+
+        const popover =
+          document.createElement(
+            'div'
+          );
+
+
+        popover.className =
+          'movimientos-popover';
+
+
+        popover.innerHTML = `
+
+          <div class="movimientos-sin-datos">
+            Movimientos del turno
+          </div>
+
+        `;
+
+
+        card.appendChild(
+          boton
+        );
+
+
+        card.appendChild(
+          popover
+        );
+
+
+        boton.addEventListener(
+          'mouseenter',
+          () => {
+
+            mostrarMovimientosTarjeta(
+              modulo,
+              card
+            );
+
+          }
+        );
+
+
+        boton.addEventListener(
+          'focus',
+          () => {
+
+            mostrarMovimientosTarjeta(
+              modulo,
+              card
+            );
+
+          }
+        );
+
+
+        boton.addEventListener(
+          'click',
+          e => {
+
+            e.stopPropagation();
+
+
+            mostrarMovimientosTarjeta(
+              modulo,
+              card
+            );
+
+          }
+        );
+
+
+        card.addEventListener(
+          'mouseleave',
+          () => {
+
+            popover
+              .classList
+              .remove(
+                'open'
+              );
+
+          }
+        );
+
+      }
+    );
+
+}
+
+
+/* ======================================================
+ MOSTRAR MOVIMIENTOS
+====================================================== */
+
+async function mostrarMovimientosTarjeta(
+  modulo,
+  card
+){
+
+  const popover =
+    card.querySelector(
+      '.movimientos-popover'
+    );
+
+
+  if(!popover){
+
+    return;
+
+  }
+
+
+  document
+    .querySelectorAll(
+      '.movimientos-popover.open'
+    )
+    .forEach(
+      item => {
+
+        if(
+          item !==
+          popover
+        ){
+
+          item.classList.remove(
+            'open'
+          );
+
+        }
+
+      }
+    );
+
+
+  popover.classList.add(
+    'open'
+  );
+
+
+  if(
+    !turnoActivo ||
+    !turnoActivo.turnoId
+  ){
+
+    popover.innerHTML = `
+
+      <div class="movimientos-sin-datos">
+
+        No hay un turno activo.
+
+      </div>
+
+    `;
+
+    return;
+
+  }
+
+
+  popover.innerHTML = `
+
+    <div class="movimientos-sin-datos">
+
+      Cargando movimientos...
+
+    </div>
+
+  `;
+
+
+  try{
+
+    const data =
+      await jsonpRequest(
+        'turno_movimientos',
+        {
+          turnoId:
+            turnoActivo.turnoId
+        }
+      );
+
+
+    if(
+      !data ||
+      data.ok !== true
+    ){
+
+      throw new Error(
+        data &&
+        data.message
+        ?
+        data.message
+        :
+        'No se pudieron cargar los movimientos.'
+      );
+
+    }
+
+
+    const detalles =
+      data.detalles ||
+      {};
+
+
+    const filas =
+      Array.isArray(
+        detalles[modulo]
+      )
+      ?
+      detalles[modulo]
+      :
+      [];
+
+
+    const titulos = {
+
+      recTigo:
+        'Recargas Tigo',
+
+      recClaro:
+        'Recargas Claro',
+
+      banpais:
+        'Banpais',
+
+      rapibac:
+        'Rapibac',
+
+      creditoEmpleados:
+        'Crédito empleados',
+
+      creditoClientes:
+        'Crédito clientes'
+
+    };
+
+
+    if(
+      !filas.length
+    ){
+
+      popover.innerHTML = `
+
+        <div class="movimientos-popover-title">
+
+          ${escapeHtml(
+            titulos[modulo] ||
+            modulo
+          )}
+
+          · Turno
+          ${escapeHtml(
+            turnoActivo.turnoId
+          )}
+
+        </div>
+
+
+        <div class="movimientos-sin-datos">
+
+          No hay movimientos en este turno.
+
+        </div>
+
+      `;
+
+      return;
+
+    }
+
+
+    const esCredito =
+      modulo ===
+        'creditoEmpleados' ||
+      modulo ===
+        'creditoClientes';
+
+
+    let tabla = '';
+
+
+    if(esCredito){
+
+      tabla = `
+
+        <table class="movimientos-tabla">
+
+          <thead>
+
+            <tr>
+
+              <th>
+                Descripción
+              </th>
+
+              <th>
+                Cargo
+              </th>
+
+              <th>
+                Abono
+              </th>
+
+              <th>
+                Saldo
+              </th>
+
+            </tr>
+
+          </thead>
+
+          <tbody>
+
+            ${filas
+              .map(
+                fila => `
+
+                  <tr>
+
+                    <td>
+
+                      ${escapeHtml(
+                        fila.descripcion ||
+                        ''
+                      )}
+
+                    </td>
+
+                    <td>
+
+                      ${formatoMontoMovimiento(
+                        fila.cargo
+                      )}
+
+                    </td>
+
+                    <td>
+
+                      ${formatoMontoMovimiento(
+                        fila.abono
+                      )}
+
+                    </td>
+
+                    <td>
+
+                      ${formatoMontoMovimiento(
+                        fila.saldo
+                      )}
+
+                    </td>
+
+                  </tr>
+
+                `
+              )
+              .join('')}
+
+          </tbody>
+
+        </table>
+
+      `;
+
+    }
+    else{
+
+      tabla = `
+
+        <table class="movimientos-tabla">
+
+          <thead>
+
+            <tr>
+
+              <th>
+                Descripción
+              </th>
+
+              <th>
+                Entrada
+              </th>
+
+              <th>
+                Salida
+              </th>
+
+              <th>
+                Saldo
+              </th>
+
+            </tr>
+
+          </thead>
+
+          <tbody>
+
+            ${filas
+              .map(
+                fila => `
+
+                  <tr>
+
+                    <td>
+
+                      ${escapeHtml(
+                        fila.descripcion ||
+                        ''
+                      )}
+
+                    </td>
+
+                    <td>
+
+                      ${formatoMontoMovimiento(
+                        fila.entrada
+                      )}
+
+                    </td>
+
+                    <td>
+
+                      ${formatoMontoMovimiento(
+                        fila.salida
+                      )}
+
+                    </td>
+
+                    <td>
+
+                      ${formatoMontoMovimiento(
+                        fila.saldo
+                      )}
+
+                    </td>
+
+                  </tr>
+
+                `
+              )
+              .join('')}
+
+          </tbody>
+
+        </table>
+
+      `;
+
+    }
+
+
+    popover.innerHTML = `
+
+      <div class="movimientos-popover-title">
+
+        ${escapeHtml(
+          titulos[modulo] ||
+          modulo
+        )}
+
+        · Turno
+        ${escapeHtml(
+          turnoActivo.turnoId
+        )}
+
+      </div>
+
+      ${tabla}
+
+    `;
+
+  }
+  catch(error){
+
+    popover.innerHTML = `
+
+      <div class="movimientos-sin-datos">
+
+        ${escapeHtml(
+          error.message
+        )}
+
+      </div>
+
+    `;
+
+  }
+
+}
+
+
+/* ======================================================
+ FORMATO MONTO MOVIMIENTOS
+====================================================== */
+
+function formatoMontoMovimiento(
+  valor
+){
+
+  if(
+    valor === '' ||
+    valor === null ||
+    typeof valor ===
+      'undefined'
+  ){
+
+    return '';
+
+  }
+
+
+  const numero =
+    Number(
+      valor
+    );
+
+
+  if(
+    !isFinite(
+      numero
+    )
+  ){
+
+    return '';
+
+  }
+
+
+  return money.format(
+    numero
+  );
+
+}
+
+
+/* ======================================================
+ SALDO ACTUAL DE CREDITO
+====================================================== */
+
+async function cargarSaldoCreditoActual(
+  modulo
+){
+
+  const saldoEl =
+    $('movSaldoActual');
+
+
+  if(!saldoEl){
+
+    return;
+
+  }
+
+
+  const nombre =
+    valorModulo(
+      'movNombre'
+    );
+
+
+  if(!nombre){
+
+    saldoEl.textContent =
+      'L 0.00';
+
+    return;
+
+  }
+
+
+  saldoEl.textContent =
+    'Cargando...';
+
+
+  try{
+
+    const data =
+      await jsonpRequest(
+        'credito_saldo',
+        {
+          modulo:
+            modulo,
+
+          nombre:
+            nombre
+        }
+      );
+
+
+    if(
+      !data ||
+      data.ok !== true
+    ){
+
+      throw new Error(
+        'No se pudo consultar el saldo.'
+      );
+
+    }
+
+
+    saldoEl.textContent =
+      'L ' +
+      money.format(
+        Number(
+          data.saldo || 0
+        )
+      );
+
+  }
+  catch(error){
+
+    saldoEl.textContent =
+      'No disponible';
+
+  }
+
+}
+
+/* ======================================================
  ABRIR MODULO
 ====================================================== */
 
@@ -6655,25 +7582,41 @@ if(
 
           <div class="operation-field">
 
-            <label>
-              Nombre
-            </label>
+ <label>
+ Nombre
+ </label>
 
-            <select id="movNombre">
+ <select
+   id="movNombre"
+   onchange="cargarSaldoCreditoActual('creditoEmpleados')"
+ >
 
-              ${opcionesModuloHTML(
-                catalogosData.empleados
-              )}
+   ${opcionesModuloHTML(
+     catalogosData.empleados
+   )}
 
-            </select>
+ </select>
 
-          </div>
+</div>
 
 
-          <div class="operation-field">
+<div class="saldo-credito-box">
 
-            <label>
-              Descripción
+ <span>
+   Saldo a la fecha
+ </span>
+
+ <strong id="movSaldoActual">
+   L 0.00
+ </strong>
+
+</div>
+
+
+<div class="operation-field">
+
+ <label>
+ Descripción
             </label>
 
             <input
@@ -6757,24 +7700,6 @@ if(
 
 
           <div class="operation-field">
-
-            <label>
-              Nombre
-            </label>
-
-            <input
-              id="movNombre"
-              type="text"
-              maxlength="250"
-            >
-
-          </div>
-
-
-          <div class="operation-field">
-
-            <label>
-              Descripción
             </label>
 
             <input
@@ -6785,7 +7710,39 @@ if(
 
           </div>
 
+<div class="operation-field">
 
+ <label>
+ Nombre
+ </label>
+
+ <input
+   id="movNombre"
+   type="text"
+   maxlength="250"
+   onchange="cargarSaldoCreditoActual('creditoClientes')"
+ >
+
+</div>
+
+
+<div class="saldo-credito-box">
+
+ <span>
+   Saldo a la fecha
+ </span>
+
+ <strong id="movSaldoActual">
+   L 0.00
+ </strong>
+
+</div>
+
+
+<div class="operation-field">
+
+ <label>
+ Descripción
           <div class="operation-field">
 
             <label>
