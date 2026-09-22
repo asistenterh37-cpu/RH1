@@ -3310,7 +3310,7 @@ const CONFIG = {
    */
 
   GAS_WEB_APP_URL:
-    'https://script.google.com/macros/s/AKfycbzNQcNAU8VzktIALcmksLBErPom3lpqQsvvCoGQv0zK7vlIxQT9gzhMNEai8FLo_ZzD/exec'
+    'https://script.google.com/macros/s/AKfycbxTT6bqvvtLmS7lm9AZAUv8wKTpbvuA9AdT1vDk7_IkeYJ6MJR5XFFo__JC9IW4Je-g/exec'
 
 };
 
@@ -7511,6 +7511,12 @@ const MODE_INFO = {
     color:'#be123c',
     text:'Modo Devoluciones activo. Toca un ítem para registrar una devolución.'
   },
+
+  expenses:{
+  label:'💳 Modo Gastos',
+  color:'#9333ea',
+  text:'Modo Gastos activo. Selecciona el gasto que deseas registrar.'
+},
 
   margin:{
     label:'📈 Modo Margen',
@@ -19992,6 +19998,1200 @@ async function(){
 })();
 
 </script>
-  
+
+<!-- ============================================================
+     MODO GASTOS - NEGOCIOS360
+     ============================================================ -->
+
+<script>
+
+(function(){
+
+  const expenseState = {
+
+    catalog:[],
+
+    selected:'',
+
+    saving:false
+
+  };
+
+
+  /* ==========================================================
+     CARGAR CATALOGO
+     ========================================================== */
+
+  async function loadExpenseCatalog(
+    force = false
+  ){
+
+    if(
+      expenseState.catalog.length
+      &&
+      !force
+    ){
+
+      return;
+
+    }
+
+
+    const response =
+      await jsonp(
+        'expenseCatalog',
+        {},
+        20000
+      );
+
+
+    if(
+      !response
+      ||
+      response.ok !==
+      true
+    ){
+
+      throw new Error(
+        (
+          response
+          &&
+          response.error
+        )
+        ||
+        'No fue posible cargar el catálogo de gastos.'
+      );
+
+    }
+
+
+    expenseState.catalog =
+      Array.isArray(
+        response.items
+      )
+      ?
+      response.items
+        .map(
+          value =>
+            String(
+              value
+              ||
+              ''
+            )
+            .trim()
+        )
+        .filter(
+          Boolean
+        )
+      :
+      [];
+
+  }
+
+
+  /* ==========================================================
+     RESTAURAR MENU NORMAL
+     ========================================================== */
+
+  function restoreExpenseMenu(){
+
+    const panel =
+      document
+      .getElementById(
+        'itemsGrid'
+      )
+      ?.closest(
+        'section.panel'
+      );
+
+
+    if(
+      !panel
+    ){
+
+      return;
+
+    }
+
+
+    const title =
+      panel.querySelector(
+        '.section-title h2'
+      );
+
+
+    const info =
+      document.getElementById(
+        'categoryInfo'
+      );
+
+
+    const categoryBar =
+      document.getElementById(
+        'categoryBar'
+      );
+
+
+    const search =
+      document.getElementById(
+        'searchInput'
+      );
+
+
+    if(
+      title
+    ){
+
+      title.textContent =
+        'Categorías';
+
+    }
+
+
+    if(
+      categoryBar
+    ){
+
+      categoryBar.style.display =
+        'flex';
+
+    }
+
+
+    if(
+      search
+    ){
+
+      search.placeholder =
+        'Buscar ítem...';
+
+    }
+
+
+    if(
+      info
+      &&
+      typeof getCategories ===
+      'function'
+    ){
+
+      const total =
+        getCategories()
+        .length;
+
+
+      info.textContent =
+        total
+        +
+        (
+          total ===
+          1
+          ?
+          ' categoría'
+          :
+          ' categorías'
+        );
+
+    }
+
+  }
+
+
+  /* ==========================================================
+     MOSTRAR BOTONES DE GASTOS
+     ========================================================== */
+
+  function renderExpenseItems(){
+
+    const grid =
+      document.getElementById(
+        'itemsGrid'
+      );
+
+
+    const panel =
+      grid
+      ?
+      grid.closest(
+        'section.panel'
+      )
+      :
+      null;
+
+
+    if(
+      !grid
+      ||
+      !panel
+    ){
+
+      return;
+
+    }
+
+
+    const title =
+      panel.querySelector(
+        '.section-title h2'
+      );
+
+
+    const info =
+      document.getElementById(
+        'categoryInfo'
+      );
+
+
+    const categoryBar =
+      document.getElementById(
+        'categoryBar'
+      );
+
+
+    const search =
+      document.getElementById(
+        'searchInput'
+      );
+
+
+    if(
+      title
+    ){
+
+      title.textContent =
+        'Gastos';
+
+    }
+
+
+    if(
+      categoryBar
+    ){
+
+      categoryBar.style.display =
+        'none';
+
+    }
+
+
+    if(
+      search
+    ){
+
+      search.placeholder =
+        'Buscar gasto...';
+
+    }
+
+
+    const query =
+      normalizeText(
+        (
+          search
+          &&
+          search.value
+        )
+        ||
+        ''
+      );
+
+
+    let items =
+      expenseState.catalog
+      .slice();
+
+
+    if(
+      query
+    ){
+
+      items =
+        items.filter(
+          item =>
+            normalizeText(
+              item
+            )
+            .includes(
+              query
+            )
+        );
+
+    }
+
+
+    if(
+      info
+    ){
+
+      info.textContent =
+        items.length
+        +
+        (
+          items.length ===
+          1
+          ?
+          ' gasto'
+          :
+          ' gastos'
+        );
+
+    }
+
+
+    if(
+      !items.length
+    ){
+
+      grid.innerHTML =
+        `
+        <div class="loader">
+          No hay gastos para mostrar.
+        </div>
+        `;
+
+      return;
+
+    }
+
+
+    grid.innerHTML =
+      items
+      .map(
+        (
+          item,
+          index
+        ) =>
+          `
+          <button
+            type="button"
+            class="item-btn"
+            data-expense-index="${index}"
+          >
+
+            <span
+              style="
+                width:52px;
+                height:52px;
+                display:grid;
+                place-items:center;
+                align-self:center;
+                margin-bottom:3px;
+                border-radius:15px;
+                background:#f3e8ff;
+                border:1px solid #d8b4fe;
+                font-size:28px;
+              "
+            >
+              💳
+            </span>
+
+            <span
+              class="item-name"
+              style="
+                width:100%;
+                text-align:center;
+              "
+            >
+              ${escapeHtml(item)}
+            </span>
+
+            <span
+              class="item-bottom"
+              style="width:100%;"
+            >
+
+              <span
+                class="item-price"
+                style="color:#7e22ce;"
+              >
+                Registrar
+              </span>
+
+            </span>
+
+          </button>
+          `
+      )
+      .join(
+        ''
+      );
+
+
+    grid
+      .querySelectorAll(
+        '[data-expense-index]'
+      )
+      .forEach(
+        button => {
+
+          button.addEventListener(
+            'click',
+            () => {
+
+              const index =
+                Number(
+                  button.dataset.expenseIndex
+                );
+
+
+              const account =
+                items[
+                  index
+                ];
+
+
+              if(
+                account
+              ){
+
+                openExpenseForm(
+                  account
+                );
+
+              }
+
+            }
+          );
+
+        }
+      );
+
+  }
+
+
+  /* ==========================================================
+     CREAR FORMULARIO
+     ========================================================== */
+
+  function ensureExpenseForm(){
+
+    let overlay =
+      document.getElementById(
+        'expenseOverlay'
+      );
+
+
+    if(
+      overlay
+    ){
+
+      return overlay;
+
+    }
+
+
+    overlay =
+      document.createElement(
+        'div'
+      );
+
+
+    overlay.id =
+      'expenseOverlay';
+
+
+    overlay.style.cssText =
+      `
+      position:fixed;
+      inset:0;
+      z-index:20000;
+      display:none;
+      align-items:center;
+      justify-content:center;
+      padding:16px;
+      background:rgba(10,18,14,.72);
+      backdrop-filter:blur(5px);
+      `;
+
+
+    overlay.innerHTML =
+      `
+      <div
+        style="
+          width:min(440px,100%);
+          background:#fff;
+          border-radius:20px;
+          padding:20px;
+          box-shadow:0 25px 70px rgba(0,0,0,.35);
+        "
+      >
+
+        <div
+          style="
+            display:flex;
+            justify-content:space-between;
+            align-items:center;
+            gap:12px;
+            margin-bottom:18px;
+          "
+        >
+
+          <div>
+
+            <div
+              style="
+                font-size:12px;
+                font-weight:900;
+                color:#6b7280;
+                text-transform:uppercase;
+              "
+            >
+              Registrar gasto
+            </div>
+
+            <strong
+              id="expenseAccountLabel"
+              style="
+                display:block;
+                margin-top:4px;
+                font-size:21px;
+                color:#7e22ce;
+              "
+            >
+            </strong>
+
+          </div>
+
+          <button
+            id="expenseCloseButton"
+            type="button"
+            style="
+              width:40px;
+              height:40px;
+              border:0;
+              border-radius:50%;
+              font-size:22px;
+            "
+          >
+            ×
+          </button>
+
+        </div>
+
+
+        <div
+          class="field"
+          style="margin-bottom:14px;"
+        >
+
+          <label>
+            Descripción
+          </label>
+
+          <input
+            id="expenseDescription"
+            type="text"
+            autocomplete="off"
+            placeholder="Descripción del gasto"
+          >
+
+        </div>
+
+
+        <div
+          class="field"
+          style="margin-bottom:18px;"
+        >
+
+          <label>
+            Valor
+          </label>
+
+          <input
+            id="expenseValue"
+            type="text"
+            inputmode="decimal"
+            autocomplete="off"
+            placeholder="0.00"
+          >
+
+        </div>
+
+
+        <div
+          style="
+            display:grid;
+            grid-template-columns:1fr 1fr;
+            gap:10px;
+          "
+        >
+
+          <button
+            id="expenseCancelButton"
+            type="button"
+            class="op clear"
+            style="
+              font-size:14px;
+            "
+          >
+            Cancelar
+          </button>
+
+          <button
+            id="expenseSaveButton"
+            type="button"
+            class="op equal"
+            style="
+              font-size:14px;
+            "
+          >
+            Aceptar
+          </button>
+
+        </div>
+
+      </div>
+      `;
+
+
+    document.body
+      .appendChild(
+        overlay
+      );
+
+
+    document
+      .getElementById(
+        'expenseCloseButton'
+      )
+      .addEventListener(
+        'click',
+        closeExpenseForm
+      );
+
+
+    document
+      .getElementById(
+        'expenseCancelButton'
+      )
+      .addEventListener(
+        'click',
+        closeExpenseForm
+      );
+
+
+    document
+      .getElementById(
+        'expenseSaveButton'
+      )
+      .addEventListener(
+        'click',
+        saveExpense
+      );
+
+
+    overlay.addEventListener(
+      'click',
+      event => {
+
+        if(
+          event.target ===
+          overlay
+        ){
+
+          closeExpenseForm();
+
+        }
+
+      }
+    );
+
+
+    return overlay;
+
+  }
+
+
+  /* ==========================================================
+     ABRIR FORMULARIO
+     ========================================================== */
+
+  function openExpenseForm(
+    account
+  ){
+
+    expenseState.selected =
+      String(
+        account
+        ||
+        ''
+      )
+      .trim();
+
+
+    const overlay =
+      ensureExpenseForm();
+
+
+    document
+      .getElementById(
+        'expenseAccountLabel'
+      )
+      .textContent =
+        expenseState.selected;
+
+
+    document
+      .getElementById(
+        'expenseDescription'
+      )
+      .value =
+        '';
+
+
+    document
+      .getElementById(
+        'expenseValue'
+      )
+      .value =
+        '';
+
+
+    overlay.style.display =
+      'flex';
+
+
+    document.body.style.overflow =
+      'hidden';
+
+
+    setTimeout(
+      () => {
+
+        document
+          .getElementById(
+            'expenseDescription'
+          )
+          .focus();
+
+      },
+      80
+    );
+
+  }
+
+
+  /* ==========================================================
+     CERRAR FORMULARIO
+     ========================================================== */
+
+  function closeExpenseForm(){
+
+    const overlay =
+      document.getElementById(
+        'expenseOverlay'
+      );
+
+
+    if(
+      overlay
+    ){
+
+      overlay.style.display =
+        'none';
+
+    }
+
+
+    document.body.style.overflow =
+      '';
+
+
+    expenseState.selected =
+      '';
+
+  }
+
+
+  /* ==========================================================
+     GUARDAR
+     ========================================================== */
+
+  async function saveExpense(){
+
+    if(
+      expenseState.saving
+    ){
+
+      return;
+
+    }
+
+
+    const cuenta =
+      String(
+        expenseState.selected
+        ||
+        ''
+      )
+      .trim();
+
+
+    const descripcion =
+      String(
+        document
+        .getElementById(
+          'expenseDescription'
+        )
+        .value
+        ||
+        ''
+      )
+      .trim();
+
+
+    const valor =
+      parseMoneyInput(
+        document
+        .getElementById(
+          'expenseValue'
+        )
+        .value
+      );
+
+
+    if(
+      !cuenta
+    ){
+
+      setStatus(
+        'Debes seleccionar un gasto.',
+        true
+      );
+
+      return;
+
+    }
+
+
+    if(
+      !descripcion
+    ){
+
+      setStatus(
+        'Debes escribir la descripción.',
+        true
+      );
+
+      document
+        .getElementById(
+          'expenseDescription'
+        )
+        .focus();
+
+      return;
+
+    }
+
+
+    if(
+      valor ===
+      null
+      ||
+      valor <=
+      0
+    ){
+
+      setStatus(
+        'Debes indicar un valor mayor que 0.',
+        true
+      );
+
+      document
+        .getElementById(
+          'expenseValue'
+        )
+        .focus();
+
+      return;
+
+    }
+
+
+    const button =
+      document.getElementById(
+        'expenseSaveButton'
+      );
+
+
+    expenseState.saving =
+      true;
+
+
+    button.disabled =
+      true;
+
+
+    button.textContent =
+      'Guardando...';
+
+
+    try{
+
+      const response =
+        await jsonp(
+          'saveExpense',
+          {
+
+            cuenta:
+              cuenta,
+
+            descripcion:
+              descripcion,
+
+            valor:
+              valor
+
+          },
+          20000
+        );
+
+
+      if(
+        !response
+        ||
+        response.ok !==
+        true
+      ){
+
+        throw new Error(
+          (
+            response
+            &&
+            response.error
+          )
+          ||
+          'No fue posible guardar el gasto.'
+        );
+
+      }
+
+
+      closeExpenseForm();
+
+
+      setStatus(
+        'Gasto guardado: '
+        +
+        cuenta
+        +
+        ' · '
+        +
+        money(
+          valor
+        )
+      );
+
+    }
+    catch(error){
+
+      console.error(
+        error
+      );
+
+
+      setStatus(
+        error.message
+        ||
+        'No fue posible guardar el gasto.',
+        true
+      );
+
+    }
+    finally{
+
+      expenseState.saving =
+        false;
+
+
+      button.disabled =
+        false;
+
+
+      button.textContent =
+        'Aceptar';
+
+    }
+
+  }
+
+
+  /* ==========================================================
+     INTERCEPTAR SELECCION DE MODO
+     ========================================================== */
+
+  const baseSelectModeExpense =
+    selectMode;
+
+
+  selectMode =
+    async function(
+      mode
+    ){
+
+      if(
+        mode ===
+        'expenses'
+      ){
+
+        try{
+
+          await loadExpenseCatalog(
+            true
+          );
+
+        }
+        catch(error){
+
+          console.error(
+            error
+          );
+
+
+          setStatus(
+            error.message
+            ||
+            'No fue posible cargar los gastos.',
+            true
+          );
+
+
+          return;
+
+        }
+
+      }
+
+
+      return baseSelectModeExpense(
+        mode
+      );
+
+    };
+
+
+  /* ==========================================================
+     INTERCEPTAR ITEMS
+     ========================================================== */
+
+  const baseRenderItemsExpense =
+    renderItems;
+
+
+  renderItems =
+    function(){
+
+      if(
+        appMode ===
+        'expenses'
+      ){
+
+        renderExpenseItems();
+
+        return;
+
+      }
+
+
+      restoreExpenseMenu();
+
+
+      return baseRenderItemsExpense();
+
+    };
+
+
+  /* ==========================================================
+     DESHABILITAR C Y = EN GASTOS
+     ========================================================== */
+
+  const baseUpdateOperationButtonsExpense =
+    updateOperationButtons;
+
+
+  updateOperationButtons =
+    function(){
+
+      baseUpdateOperationButtonsExpense();
+
+
+      if(
+        appMode !==
+        'expenses'
+      ){
+
+        return;
+
+      }
+
+
+      const clearButton =
+        document.querySelector(
+          '.operations .op.clear'
+        );
+
+
+      const equalButton =
+        document.querySelector(
+          '.operations .op.equal'
+        );
+
+
+      [
+        clearButton,
+        equalButton
+      ]
+      .filter(
+        Boolean
+      )
+      .forEach(
+        button => {
+
+          button.disabled =
+            true;
+
+
+          button.style.opacity =
+            '.45';
+
+
+          button.style.cursor =
+            'not-allowed';
+
+        }
+      );
+
+    };
+
+
+  /* ==========================================================
+     = NO HACE NADA EN GASTOS
+     ========================================================== */
+
+  const baseCloseAccountExpense =
+    closeAccount;
+
+
+  closeAccount =
+    function(){
+
+      if(
+        appMode ===
+        'expenses'
+      ){
+
+        return;
+
+      }
+
+
+      return baseCloseAccountExpense();
+
+    };
+
+
+})();
+
+</script>  
 </body>
 </html>
