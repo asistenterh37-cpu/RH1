@@ -7491,256 +7491,340 @@ function pcCartKey(key){
 
 async function pcInitBusinessSelectors(){
 
- const availableKeys =
- pcAvailableBusinessKeys();
+  const availableKeys =
+    pcAvailableBusinessKeys();
 
 
- /*
-  * ==========================================================
-  * SELECTOR DEL ADMINISTRADOR
-  * ==========================================================
-  */
+  /*************************************************
+   * SELECTOR ADMINISTRADOR
+   *************************************************/
 
- const adminSelector =
- document.getElementById(
-  'pRubro'
- );
-
-
- if(
-  adminSelector
- ){
-
-  const productKeys =
-
-  availableKeys
-
-  .filter(
-   key =>
-   PC_SECTORS[
-    key
-   ]
-   .adminProduct
-   !==
-   false
-  );
-
-
-  adminSelector.innerHTML =
-
-  productKeys
-
-  .map(
-   key =>
-   `
-    <option value="${attr(key)}">
-
-     ${esc(
-      PC_SECTORS[
-       key
-      ].label
-     )}
-
-    </option>
-   `
-  )
-
-  .join('');
-
-
-  adminSelector.value =
-
-  productKeys.includes(
-   'general'
-  )
-
-  ?
-
-  'general'
-
-  :
-
-  (
-   productKeys[0]
-   ||
-   ''
-  );
-
- }
-
-
- /*
-  * En administrador no necesitamos
-  * cargar Tipos del catálogo.
-  */
-
- if(
-  isAdmin
- ){
-  return;
- }
-
-
- /*
-  * ==========================================================
-  * SELECTOR DEL CLIENTE
-  *
-  * AHORA VIENE DE:
-  *
-  * Productos → Tipo
-  * ==========================================================
-  */
-
- const selector =
- document.getElementById(
-  'businessTypeSelector'
- );
-
-
- if(
-  !selector
- ){
-  return;
- }
-
-
- selector.innerHTML =
- `
-  <option value="">
-   Cargando tipos de negocio...
-  </option>
- `;
-
-
- try{
-
-  /*
-   * Pedimos TODO el catálogo
-   * solamente para conocer los Tipos.
-   */
-
-  const r =
-  await jsonp(
-   'products',
-   {
-    rubro:'',
-    tipo:'',
-    t:Date.now()
-   }
-  );
+  const adminSelector =
+    document.getElementById(
+      'pRubro'
+    );
 
 
   if(
-   !r
-   ||
-   r.ok !==
-   true
+    adminSelector
   ){
 
-   throw new Error(
-    'No pude cargar los tipos de negocio.'
-   );
+    const productKeys =
+
+      availableKeys
+
+        .filter(
+          key =>
+
+            PC_SECTORS[
+              key
+            ]
+
+            .adminProduct
+
+            !==
+
+            false
+        );
+
+
+    adminSelector.innerHTML =
+
+      productKeys
+
+        .map(
+          key =>
+            `
+              <option value="${attr(key)}">
+
+                ${esc(
+                  PC_SECTORS[
+                    key
+                  ].label
+                )}
+
+              </option>
+            `
+        )
+
+        .join('');
+
+
+    adminSelector.value =
+
+      productKeys.includes(
+        'general'
+      )
+
+      ?
+
+      'general'
+
+      :
+
+      (
+        productKeys[0]
+        ||
+        ''
+      );
 
   }
 
 
-  const types =
+  /*
+   * Si estamos en administrador,
+   * aquí terminamos.
+   */
 
-  [
-   ...new Set(
+  if(
+    isAdmin
+  ){
 
-    (
-     r.products
-     ||
-     []
-    )
+    return;
 
-    .map(
-     p =>
-     String(
-      p.tipo
+  }
+
+
+  /*************************************************
+   * SELECTOR DEL CLIENTE
+   *************************************************/
+
+  const selector =
+    document.getElementById(
+      'businessTypeSelector'
+    );
+
+
+  if(
+    !selector
+  ){
+
+    throw new Error(
+      'No existe businessTypeSelector.'
+    );
+
+  }
+
+
+  selector.disabled =
+    true;
+
+
+  selector.innerHTML =
+    `
+      <option value="">
+        Cargando tipos de negocio...
+      </option>
+    `;
+
+
+  try{
+
+
+    /***********************************************
+     * CONSULTAR TODO PRODUCTOS UNA SOLA VEZ
+     *
+     * No enviamos Tipo ni Rubro,
+     * porque primero necesitamos descubrir
+     * qué Tipos existen.
+     ***********************************************/
+
+    const r =
+
+      await jsonpOnce(
+
+        'products',
+
+        {
+          rubro:'',
+          tipo:'',
+          t:Date.now()
+        },
+
+        12000
+
+      );
+
+
+    if(
+      !r
       ||
-      ''
-     )
-     .trim()
-    )
+      r.ok !==
+      true
+    ){
 
-    .filter(
-     Boolean
-    )
+      throw new Error(
 
-   )
-  ];
+        (
+          r
+          &&
+          r.error
+        )
+
+        ||
+
+        'Apps Script no devolvió el catálogo.'
+
+      );
+
+    }
 
 
-  if(
-   !types.length
-  ){
+    /***********************************************
+     * PRODUCTOS RECIBIDOS
+     ***********************************************/
 
-   throw new Error(
-    'No existen valores en la columna Tipo.'
-   );
+    const receivedProducts =
+
+      normalizeLoadedProducts(
+
+        r.products
+        ||
+        []
+
+      );
+
+
+    /***********************************************
+     * EXTRAER TIPO
+     *
+     * Productos → Tipo
+     ***********************************************/
+
+    const types =
+
+      [
+
+        ...new Set(
+
+          receivedProducts
+
+            .map(
+              p =>
+                String(
+                  p.tipo
+                  ||
+                  ''
+                )
+                .trim()
+            )
+
+            .filter(
+              Boolean
+            )
+
+        )
+
+      ]
+
+
+      .sort(
+        (
+          a,
+          b
+        ) =>
+
+          a.localeCompare(
+            b,
+            'es',
+            {
+              sensitivity:'base'
+            }
+          )
+      );
+
+
+    if(
+      !types.length
+    ){
+
+      throw new Error(
+        'La columna Tipo de Productos no contiene valores.'
+      );
+
+    }
+
+
+    /***********************************************
+     * CONSTRUIR SELECTOR
+     ***********************************************/
+
+    selector.innerHTML =
+
+      types
+
+        .map(
+          tipo =>
+            `
+              <option value="${attr(tipo)}">
+
+                ${esc(
+                  tipo
+                )}
+
+              </option>
+            `
+        )
+
+        .join('');
+
+
+    /***********************************************
+     * PRIMER TIPO
+     ***********************************************/
+
+    activeProductType =
+      types[0];
+
+
+    activeBusiness =
+      pcSectorKeyFromTipo(
+        activeProductType
+      );
+
+
+    selector.value =
+      activeProductType;
+
+
+    selector.disabled =
+      false;
+
+
+    /*
+     * Todo correcto.
+     */
+
+    return types;
+
 
   }
+  catch(error){
 
 
-  selector.innerHTML =
-
-  types
-
-  .map(
-   tipo =>
-   `
-    <option value="${attr(tipo)}">
-
-     ${esc(
-      tipo
-     )}
-
-    </option>
-   `
-  )
-
-  .join('');
+    activeProductType =
+      '';
 
 
-  /*
-   * Primer Tipo encontrado.
-   */
-
-  activeProductType =
-  types[0];
+    activeBusiness =
+      'general';
 
 
-  activeBusiness =
-  pcSectorKeyFromTipo(
-   activeProductType
-  );
+    selector.innerHTML =
+      `
+        <option value="">
+          ⚠️ No se pudieron cargar los tipos
+        </option>
+      `;
 
 
-  selector.value =
-  activeProductType;
-
- }
- catch(error){
-
-  selector.innerHTML =
-  `
-   <option value="">
-    No se pudieron cargar los tipos
-   </option>
-  `;
+    selector.disabled =
+      true;
 
 
-  activeProductType =
-  '';
+    throw error;
 
-
-  console.error(
-   error
-  );
-
- }
+  }
 
 }
   /*************************************************
@@ -10471,17 +10555,11 @@ function pcProductSpecialSummary(p){
 
 
 <script>
-
 /*************************************************
  * CONFIGURACIÓN
  *************************************************/
 
 const CONFIG = {
-
-  /*
-   * AQUÍ PEGAS LA URL /exec
-   * QUE TE DARÁ APPS SCRIPT
-   */
 
   GAS_WEB_APP_URL:
     'https://script.google.com/macros/s/AKfycbz3kvUz5_FnoysNvxCzKx94mfCOz6N8wGZzwc9c-9xunvJlYBVZKy75FhDzf7GxWB_D_A/exec',
@@ -10493,12 +10571,14 @@ const CONFIG = {
 
 
 /*************************************************
- * VARIABLES
+ * VARIABLES GENERALES
  *************************************************/
 
 const $ =
   id =>
-    document.getElementById(id);
+    document.getElementById(
+      id
+    );
 
 
 const isAdmin =
@@ -10512,249 +10592,338 @@ const isAdmin =
   '1';
 
 
-let allProducts = [];
+let allProducts =
+  [];
 
-let shownProducts = [];
+
+let shownProducts =
+  [];
 
 
 /*
- * Ya no existe categoría Todos.
+ * Ya NO existe categoría Todos.
+ *
+ * Al cargar productos,
+ * seleccionaremos la primera categoría.
  */
-
 let selectedCategory =
- '';
+  '';
 
 
 /*
- * Valor REAL que viene de
- * Productos → Tipo.
+ * Tipo real tomado de:
+ *
+ * Productos → Tipo
+ *
+ * Ejemplos:
+ *
+ * Pulperia
+ * Ferreteria
+ * Repuestos
+ * Muebles
+ * Mascotas
  */
-
 let activeProductType =
- '';
+  '';
 
 
 /*
- * Clave interna utilizada para
- * módulos especializados.
+ * Negocio interno.
+ *
+ * Se utiliza solamente para decidir
+ * qué módulo especializado mostrar.
  */
-
 let activeBusiness =
- 'general';
+  'general';
 
 
-let draftQty = {};
+let draftQty =
+  {};
 
 
 /*
- * El carrito se carga cuando
- * ya conocemos el Tipo.
+ * Se cargará cuando sepamos
+ * cuál Tipo está seleccionado.
  */
+let cart =
+  {};
 
-let cart = {};
+
 let searchTimer =
   null;
+
 
 let searchSeq =
   0;
 
+
 let photoData =
   '';
 
+
 let pendingOrderId =
+
   localStorage.getItem(
     'ventaswp_pending_order_id'
   )
+
   ||
+
   '';
+
 
 let adminOrders =
   [];
 
+
 let adminOrderFilter =
   'Pendiente';
-  
+
+
 /*************************************************
- * INICIO
+ * INICIO UNICO DEL SISTEMA
+ *
+ * IMPORTANTE:
+ *
+ * Debe existir SOLAMENTE este
+ * DOMContentLoaded.
  *************************************************/
 
 window.addEventListener(
- 'DOMContentLoaded',
 
- async () => {
+  'DOMContentLoaded',
 
+  async () => {
 
-  if(
-   isAdmin
-  ){
-
-   $('clientApp')
-   .classList
-   .add(
-    'hide'
-   );
+    try{
 
 
-   $('cartbar')
-   .classList
-   .add(
-    'hide'
-   );
+      /********************************************
+       * ADMINISTRADOR
+       ********************************************/
+
+      if(
+        isAdmin
+      ){
+
+        const clientApp =
+          $('clientApp');
 
 
-   $('adminApp')
-   .classList
-   .remove(
-    'hide'
-   );
+        const cartbar =
+          $('cartbar');
 
 
-   initAdmin();
-
-   return;
-
-  }
+        const adminApp =
+          $('adminApp');
 
 
-  $('adminApp')
-  .classList
-  .add(
-   'hide'
-  );
+        if(
+          clientApp
+        ){
+
+          clientApp
+            .classList
+            .add(
+              'hide'
+            );
+
+        }
 
 
-  /*
-   * Cargar Tipos desde
-   * la hoja Productos.
-   */
+        if(
+          cartbar
+        ){
 
-  await pcInitBusinessSelectors();
+          cartbar
+            .classList
+            .add(
+              'hide'
+            );
 
-
-  pcArrangeClientLayout();
-
-
-  $('search')
-  .addEventListener(
-   'input',
-   onSearch
-  );
+        }
 
 
-  /*
-   * Abrir automáticamente
-   * el primer Tipo.
-   */
+        if(
+          adminApp
+        ){
 
-  if(
-   activeProductType
-  ){
+          adminApp
+            .classList
+            .remove(
+              'hide'
+            );
 
-   pcChangeBusiness(
-    activeProductType
-   );
-
-  }
-  else{
-
-   setStatus(
-    'No hay tipos de negocio configurados.'
-   );
-
-  }
+        }
 
 
-  prefillCustomerFromWhatsApp();
+        initAdmin();
 
- }
 
-);
-    if(
-      isAdmin
-    ){
+        return;
 
-      $('clientApp')
-        .classList
-        .add(
-          'hide'
+      }
+
+
+      /********************************************
+       * CLIENTE
+       ********************************************/
+
+      const adminApp =
+        $('adminApp');
+
+
+      if(
+        adminApp
+      ){
+
+        adminApp
+          .classList
+          .add(
+            'hide'
+          );
+
+      }
+
+
+      /*
+       * Acomodar:
+       *
+       * Tipo de negocio
+       * Encabezado
+       * Detalle cuenta
+       * Categorías
+       * Productos
+       */
+
+      pcArrangeClientLayout();
+
+
+      /*
+       * Activar búsqueda.
+       */
+
+      const search =
+        $('search');
+
+
+      if(
+        search
+      ){
+
+        search.addEventListener(
+          'input',
+          onSearch
         );
 
-      $('cartbar')
-        .classList
-        .add(
-          'hide'
+      }
+
+
+      /*
+       * ==========================================
+       * CARGAR TIPOS DESDE PRODUCTOS
+       * ==========================================
+       */
+
+      await pcInitBusinessSelectors();
+
+
+      /*
+       * Si no encontramos ningún Tipo,
+       * detener aquí.
+       */
+
+      if(
+        !activeProductType
+      ){
+
+        throw new Error(
+          'No hay tipos de negocio configurados en la columna Tipo de Productos.'
         );
 
-      $('adminApp')
-        .classList
-        .remove(
-          'hide'
+      }
+
+
+      /*
+       * Abrir automáticamente
+       * el primer Tipo encontrado.
+       */
+
+      pcChangeBusiness(
+        activeProductType
+      );
+
+
+      /*
+       * Precargar datos provenientes
+       * de WhatsApp, si existen.
+       */
+
+      prefillCustomerFromWhatsApp();
+
+
+    }
+    catch(error){
+
+
+      console.error(
+        'Error iniciando VentasWp:',
+        error
+      );
+
+
+      /*
+       * Nunca dejar la pantalla
+       * eternamente diciendo Cargando.
+       */
+
+      const selector =
+        $('businessTypeSelector');
+
+
+      if(
+        selector
+        &&
+        (
+          !activeProductType
+        )
+      ){
+
+        selector.innerHTML =
+          `
+            <option value="">
+              ⚠️ Error cargando tipos de negocio
+            </option>
+          `;
+
+      }
+
+
+      if(
+        typeof setStatus ===
+        'function'
+      ){
+
+        setStatus(
+
+          '⚠️ '
+
+          +
+
+          (
+            error.message
+            ||
+            'No fue posible iniciar el sistema.'
+          )
+
         );
 
-      initAdmin();
-
-      return;
+      }
 
     }
 
-
-    $('adminApp')
-      .classList
-      .add(
-        'hide'
-      );
-
- pcInitBusinessSelectors();
-
-
-/*
- * Acomodar visualmente:
- *
- * Tipo de negocio
- * ↓
- * Soy de Honduras
- * ↓
- * Cómo recorrer la tienda
- * ↓
- * Funcionalidad del rubro
- */
-
-pcArrangeClientLayout();
-
-
-activeBusiness =
-  'general';
-
-
-const businessSelector =
-  $('businessTypeSelector');
-
-
-if(
-  businessSelector
-){
-
-  businessSelector.value =
-    'general';
-
-}
-
-
-renderSectorOrderFields();  
-
-    $('search')
-      .addEventListener(
-        'input',
-        onSearch
-      );
-
-
-    loadProducts();
-
-refreshCartUI();
-
-prefillCustomerFromWhatsApp();
   }
+
 );
 
 
@@ -10766,20 +10935,22 @@ function assertConfigured(){
 
   if(
     !CONFIG.GAS_WEB_APP_URL
+
     ||
+
     CONFIG.GAS_WEB_APP_URL.includes(
       'PEGA_AQUI'
     )
   ){
 
     throw new Error(
-      'Falta pegar la URL /exec de Apps Script en CONFIG.GAS_WEB_APP_URL.'
+      'Falta configurar la URL /exec de Apps Script.'
     );
 
   }
 
 }
-
+  
 /*************************************************
  * PRECARGAR CLIENTE DESDE WHATSAPP
  *
