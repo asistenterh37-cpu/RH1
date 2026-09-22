@@ -6376,19 +6376,19 @@ function aplicarValorMovimiento(
 
 }
 
-
 /* ======================================================
  ABONOS CREDITOS → PAGOS RECIBIDOS
 ====================================================== */
 
 function aplicarAbonosCreditoTurno(
   clientes,
-  empleados
+  empleados,
+  detalleClientes = [],
+  detalleEmpleados = []
 ){
 
   /*
-    Quitar solamente las filas automáticas
-    creadas anteriormente.
+    Quitar filas automáticas anteriores
   */
 
   document
@@ -6407,20 +6407,36 @@ function aplicarAbonosCreditoTurno(
   const filas = [];
 
 
-  function agregarFila(
+  function agregarFilaCredito(
     key,
     descripcion,
-    valor
+    abono,
+    modulo,
+    detalles
   ){
 
-    valor =
+    const valorAbono =
       Number(
-        valor || 0
+        abono || 0
       );
 
 
+    const hayMovimientos =
+      Array.isArray(
+        detalles
+      )
+      &&
+      detalles.length > 0;
+
+
+    /*
+      Si no hubo ningún movimiento,
+      no mostramos la fila.
+    */
+
     if(
-      valor <= 0
+      !hayMovimientos &&
+      valorAbono <= 0
     ){
 
       return;
@@ -6441,7 +6457,9 @@ function aplicarAbonosCreditoTurno(
       >
 
         <td>
+
           ↳ ${descripcion}
+
         </td>
 
 
@@ -6457,7 +6475,13 @@ function aplicarAbonosCreditoTurno(
             type="number"
             step="0.01"
             min="0"
-            value="${valor.toFixed(2)}"
+            value="${
+              valorAbono > 0
+              ?
+              valorAbono.toFixed(2)
+              :
+              ''
+            }"
             data-dynamic-type="cliente"
             readonly
           >
@@ -6467,7 +6491,21 @@ function aplicarAbonosCreditoTurno(
 
         <td></td>
 
-        <td></td>
+
+        <!-- COLUMNA SALIDA -->
+
+        <td
+          class="
+            cierre-mov-cell
+            cierre-mov-cell-solo
+          "
+        >
+
+          ${botonMovimientosCierreHTML(
+            modulo
+          )}
+
+        </td>
 
 
         <td>
@@ -6507,19 +6545,23 @@ function aplicarAbonosCreditoTurno(
 
   /* CRÉDITO CLIENTES */
 
-  agregarFila(
+  agregarFilaCredito(
     'creditoClientesTurno',
     'Crédito clientes',
-    clientes
+    clientes,
+    'creditoClientes',
+    detalleClientes
   );
 
 
   /* CRÉDITO EMPLEADOS */
 
-  agregarFila(
+  agregarFilaCredito(
     'creditoEmpleadosTurno',
     'Crédito empleados',
-    empleados
+    empleados,
+    'creditoEmpleados',
+    detalleEmpleados
   );
 
 
@@ -6557,7 +6599,753 @@ function aplicarAbonosCreditoTurno(
   }
 
 }
+
+
 /* ======================================================
+ OBTENER / CREAR TARJETA FLOTANTE
+====================================================== */
+
+function obtenerPopoverMovimientosCierre(){
+
+  let popover =
+    $('cierreMovPopover');
+
+
+  if(popover){
+
+    return popover;
+
+  }
+
+
+  popover =
+    document.createElement(
+      'div'
+    );
+
+
+  popover.id =
+    'cierreMovPopover';
+
+
+  popover.className =
+    'cierre-mov-popover';
+
+
+  document.body.appendChild(
+    popover
+  );
+
+
+  return popover;
+
+}
+
+
+/* ======================================================
+ CERRAR TARJETA
+====================================================== */
+
+function cerrarMovimientosCierre(){
+
+  const popover =
+    $('cierreMovPopover');
+
+
+  if(popover){
+
+    popover
+      .classList
+      .remove(
+        'open'
+      );
+
+  }
+
+}
+
+
+/* ======================================================
+ POSICIONAR TARJETA JUNTO AL BOTÓN
+====================================================== */
+
+function posicionarMovimientosCierre(
+  popover,
+  boton
+){
+
+  if(
+    !popover ||
+    !boton
+  ){
+
+    return;
+
+  }
+
+
+  popover
+    .classList
+    .add(
+      'open'
+    );
+
+
+  const botonRect =
+    boton.getBoundingClientRect();
+
+
+  const panelRect =
+    popover.getBoundingClientRect();
+
+
+  let left =
+    botonRect.right -
+    panelRect.width;
+
+
+  let top =
+    botonRect.bottom +
+    7;
+
+
+  if(
+    left < 12
+  ){
+
+    left = 12;
+
+  }
+
+
+  if(
+    left +
+    panelRect.width >
+    window.innerWidth -
+    12
+  ){
+
+    left =
+      window.innerWidth -
+      panelRect.width -
+      12;
+
+  }
+
+
+  /*
+    Si no cabe debajo,
+    abrir encima.
+  */
+
+  if(
+    top +
+    panelRect.height >
+    window.innerHeight -
+    12
+  ){
+
+    top =
+      botonRect.top -
+      panelRect.height -
+      7;
+
+  }
+
+
+  if(
+    top < 12
+  ){
+
+    top = 12;
+
+  }
+
+
+  popover.style.left =
+    left + 'px';
+
+
+  popover.style.top =
+    top + 'px';
+
+}
+
+
+/* ======================================================
+ FORMATO MONTO
+====================================================== */
+
+function montoMovimientoCierre(
+  valor
+){
+
+  if(
+    valor === '' ||
+    valor === null ||
+    typeof valor === 'undefined'
+  ){
+
+    return '';
+
+  }
+
+
+  const numero =
+    Number(
+      valor
+    );
+
+
+  if(
+    !isFinite(
+      numero
+    )
+  ){
+
+    return '';
+
+  }
+
+
+  return (
+    'L ' +
+    numero.toLocaleString(
+      'es-HN',
+      {
+        minimumFractionDigits:2,
+        maximumFractionDigits:2
+      }
+    )
+  );
+
+}
+
+
+/* ======================================================
+ ABRIR MOVIMIENTOS EN CIERRE DIARIO
+====================================================== */
+
+async function abrirMovimientosCierre(
+  event,
+  modulo
+){
+
+  if(event){
+
+    event.preventDefault();
+
+    event.stopPropagation();
+
+  }
+
+
+  const boton =
+    event &&
+    event.currentTarget
+    ?
+    event.currentTarget
+    :
+    null;
+
+
+  if(!boton){
+
+    return;
+
+  }
+
+
+  const popover =
+    obtenerPopoverMovimientosCierre();
+
+
+  /* CARGANDO */
+
+  popover.innerHTML = `
+
+    <div class="cierre-mov-popover-header">
+
+      <div class="cierre-mov-popover-title">
+
+        Movimientos del turno
+
+      </div>
+
+
+      <button
+        class="cierre-mov-close"
+        type="button"
+        onclick="cerrarMovimientosCierre()"
+      >
+        ×
+      </button>
+
+    </div>
+
+
+    <div class="cierre-mov-vacio">
+
+      Cargando...
+
+    </div>
+
+  `;
+
+
+  posicionarMovimientosCierre(
+    popover,
+    boton
+  );
+
+
+  /* VALIDAR TURNO */
+
+  if(
+    !turnoActivo ||
+    !turnoActivo.turnoId
+  ){
+
+    popover.innerHTML = `
+
+      <div class="cierre-mov-popover-header">
+
+        <div class="cierre-mov-popover-title">
+
+          Movimientos
+
+        </div>
+
+        <button
+          class="cierre-mov-close"
+          type="button"
+          onclick="cerrarMovimientosCierre()"
+        >
+          ×
+        </button>
+
+      </div>
+
+
+      <div class="cierre-mov-vacio">
+
+        No hay un turno activo.
+
+      </div>
+
+    `;
+
+
+    posicionarMovimientosCierre(
+      popover,
+      boton
+    );
+
+
+    return;
+
+  }
+
+
+  try{
+
+    const data =
+      await jsonpRequest(
+        'turno_movimientos',
+        {
+          turnoId:
+            turnoActivo.turnoId
+        }
+      );
+
+
+    if(
+      !data ||
+      data.ok !== true
+    ){
+
+      throw new Error(
+        data &&
+        data.message
+        ?
+        data.message
+        :
+        'No se pudieron consultar los movimientos.'
+      );
+
+    }
+
+
+    const detalles =
+      data.detalles ||
+      {};
+
+
+    const filas =
+      Array.isArray(
+        detalles[modulo]
+      )
+      ?
+      detalles[modulo]
+      :
+      [];
+
+
+    const titulos = {
+
+      recTigo:
+        'Ventas de recarga Tigo',
+
+      recClaro:
+        'Ventas de recarga Claro',
+
+      banpais:
+        'Banpais',
+
+      rapibac:
+        'RapiBac',
+
+      creditoClientes:
+        'Crédito clientes',
+
+      creditoEmpleados:
+        'Crédito empleados'
+
+    };
+
+
+    /* SIN MOVIMIENTOS */
+
+    if(
+      !filas.length
+    ){
+
+      popover.innerHTML = `
+
+        <div class="cierre-mov-popover-header">
+
+          <div class="cierre-mov-popover-title">
+
+            ${escapeHtml(
+              titulos[modulo] ||
+              modulo
+            )}
+
+          </div>
+
+
+          <button
+            class="cierre-mov-close"
+            type="button"
+            onclick="cerrarMovimientosCierre()"
+          >
+            ×
+          </button>
+
+        </div>
+
+
+        <div class="cierre-mov-vacio">
+
+          No hay movimientos registrados
+          en el turno
+          ${escapeHtml(
+            turnoActivo.turnoId
+          )}.
+
+        </div>
+
+      `;
+
+
+      posicionarMovimientosCierre(
+        popover,
+        boton
+      );
+
+
+      return;
+
+    }
+
+
+    const esCredito =
+      modulo === 'creditoClientes'
+      ||
+      modulo === 'creditoEmpleados';
+
+
+    /* ==================================================
+       ENCABEZADOS
+    ================================================== */
+
+    const encabezados =
+      esCredito
+      ?
+      `
+
+        <th>
+          Descripción
+        </th>
+
+        <th>
+          Cargo
+        </th>
+
+        <th>
+          Abono
+        </th>
+
+        <th>
+          Saldo
+        </th>
+
+      `
+      :
+      `
+
+        <th>
+          Descripción
+        </th>
+
+        <th>
+          Entrada
+        </th>
+
+        <th>
+          Salida
+        </th>
+
+        <th>
+          Saldo
+        </th>
+
+      `;
+
+
+    /* ==================================================
+       FILAS
+    ================================================== */
+
+    const cuerpo =
+      filas
+        .map(
+          fila => {
+
+            if(esCredito){
+
+              return `
+
+                <tr>
+
+                  <td>
+
+                    ${escapeHtml(
+                      fila.descripcion ||
+                      ''
+                    )}
+
+                  </td>
+
+
+                  <td>
+
+                    ${montoMovimientoCierre(
+                      fila.cargo
+                    )}
+
+                  </td>
+
+
+                  <td>
+
+                    ${montoMovimientoCierre(
+                      fila.abono
+                    )}
+
+                  </td>
+
+
+                  <td>
+
+                    ${montoMovimientoCierre(
+                      fila.saldo
+                    )}
+
+                  </td>
+
+                </tr>
+
+              `;
+
+            }
+
+
+            return `
+
+              <tr>
+
+                <td>
+
+                  ${escapeHtml(
+                    fila.descripcion ||
+                    ''
+                  )}
+
+                </td>
+
+
+                <td>
+
+                  ${montoMovimientoCierre(
+                    fila.entrada
+                  )}
+
+                </td>
+
+
+                <td>
+
+                  ${montoMovimientoCierre(
+                    fila.salida
+                  )}
+
+                </td>
+
+
+                <td>
+
+                  ${montoMovimientoCierre(
+                    fila.saldo
+                  )}
+
+                </td>
+
+              </tr>
+
+            `;
+
+          }
+        )
+        .join('');
+
+
+    /* ==================================================
+       MOSTRAR TARJETA
+    ================================================== */
+
+    popover.innerHTML = `
+
+      <div class="cierre-mov-popover-header">
+
+        <div class="cierre-mov-popover-title">
+
+          ${escapeHtml(
+            titulos[modulo] ||
+            modulo
+          )}
+
+          · Turno
+
+          ${escapeHtml(
+            turnoActivo.turnoId
+          )}
+
+        </div>
+
+
+        <button
+          class="cierre-mov-close"
+          type="button"
+          onclick="cerrarMovimientosCierre()"
+        >
+          ×
+        </button>
+
+      </div>
+
+
+      <table class="cierre-mov-tabla">
+
+        <thead>
+
+          <tr>
+
+            ${encabezados}
+
+          </tr>
+
+        </thead>
+
+
+        <tbody>
+
+          ${cuerpo}
+
+        </tbody>
+
+      </table>
+
+    `;
+
+
+    posicionarMovimientosCierre(
+      popover,
+      boton
+    );
+
+  }
+  catch(error){
+
+    console.error(
+      'ERROR MOVIMIENTOS CIERRE:',
+      error
+    );
+
+
+    popover.innerHTML = `
+
+      <div class="cierre-mov-popover-header">
+
+        <div class="cierre-mov-popover-title">
+
+          Movimientos
+
+        </div>
+
+
+        <button
+          class="cierre-mov-close"
+          type="button"
+          onclick="cerrarMovimientosCierre()"
+        >
+          ×
+        </button>
+
+      </div>
+
+
+      <div class="cierre-mov-vacio">
+
+        ${escapeHtml(
+          error.message ||
+          'No se pudieron consultar los movimientos.'
+        )}
+
+      </div>
+
+    `;
+
+
+    posicionarMovimientosCierre(
+      popover,
+      boton
+    );
+
+  }
+
+}
+  /* ======================================================
  ESQUINAS - MOVIMIENTOS DEL TURNO
 ====================================================== */
 
