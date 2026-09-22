@@ -7496,7 +7496,7 @@ async function pcInitBusinessSelectors(){
 
 
   /*************************************************
-   * SELECTOR ADMINISTRADOR
+   * ADMINISTRADOR
    *************************************************/
 
   const adminSelector =
@@ -7511,43 +7511,33 @@ async function pcInitBusinessSelectors(){
 
     const productKeys =
 
-      availableKeys
-
-        .filter(
-          key =>
-
-            PC_SECTORS[
-              key
-            ]
-
-            .adminProduct
-
-            !==
-
-            false
-        );
+      availableKeys.filter(
+        key =>
+          PC_SECTORS[key]
+          .adminProduct
+          !==
+          false
+      );
 
 
     adminSelector.innerHTML =
 
       productKeys
 
-        .map(
-          key =>
-            `
-              <option value="${attr(key)}">
+      .map(
+        key =>
+          `
+            <option value="${attr(key)}">
 
-                ${esc(
-                  PC_SECTORS[
-                    key
-                  ].label
-                )}
+              ${esc(
+                PC_SECTORS[key].label
+              )}
 
-              </option>
-            `
-        )
+            </option>
+          `
+      )
 
-        .join('');
+      .join('');
 
 
     adminSelector.value =
@@ -7571,22 +7561,15 @@ async function pcInitBusinessSelectors(){
   }
 
 
-  /*
-   * Si estamos en administrador,
-   * aquí terminamos.
-   */
-
   if(
     isAdmin
   ){
-
     return;
-
   }
 
 
   /*************************************************
-   * SELECTOR DEL CLIENTE
+   * SELECTOR CLIENTE
    *************************************************/
 
   const selector =
@@ -7600,34 +7583,200 @@ async function pcInitBusinessSelectors(){
   ){
 
     throw new Error(
-      'No existe businessTypeSelector.'
+      'No existe el selector de Tipo de negocio.'
     );
 
   }
 
 
-  selector.disabled =
-    true;
+  const CACHE_KEY =
+    'ventaswp_business_types_v2';
 
 
-  selector.innerHTML =
-    `
-      <option value="">
-        Cargando tipos de negocio...
-      </option>
-    `;
+  let cachedTypes =
+    [];
 
+
+  /*************************************************
+   * LEER TIPOS GUARDADOS
+   *
+   * Esto hace que celular pueda pintar
+   * inmediatamente si ya entró antes.
+   *************************************************/
 
   try{
 
+    const raw =
+      localStorage.getItem(
+        CACHE_KEY
+      );
 
-    /***********************************************
-     * CONSULTAR TODO PRODUCTOS UNA SOLA VEZ
-     *
-     * No enviamos Tipo ni Rubro,
-     * porque primero necesitamos descubrir
-     * qué Tipos existen.
-     ***********************************************/
+
+    if(
+      raw
+    ){
+
+      const parsed =
+        JSON.parse(
+          raw
+        );
+
+
+      if(
+        Array.isArray(
+          parsed
+        )
+      ){
+
+        cachedTypes =
+
+          parsed
+
+          .map(
+            x =>
+              String(
+                x
+                ||
+                ''
+              )
+              .trim()
+          )
+
+          .filter(
+            Boolean
+          );
+
+      }
+
+    }
+
+  }
+  catch(error){
+
+    cachedTypes =
+      [];
+
+  }
+
+
+  /*************************************************
+   * FUNCIÓN PARA PINTAR EL SELECTOR
+   *************************************************/
+
+  function showTypes(
+    types
+  ){
+
+    if(
+      !types.length
+    ){
+      return;
+    }
+
+
+    selector.innerHTML =
+
+      types
+
+      .map(
+        tipo =>
+          `
+            <option value="${attr(tipo)}">
+
+              ${esc(tipo)}
+
+            </option>
+          `
+      )
+
+      .join('');
+
+
+    /*
+     * Conservar el Tipo actual
+     * cuando todavía exista.
+     */
+
+    if(
+      activeProductType
+
+      &&
+
+      types.includes(
+        activeProductType
+      )
+    ){
+
+      selector.value =
+        activeProductType;
+
+    }
+    else{
+
+      activeProductType =
+        types[0];
+
+
+      selector.value =
+        activeProductType;
+
+    }
+
+
+    activeBusiness =
+      pcSectorKeyFromTipo(
+        activeProductType
+      );
+
+
+    selector.disabled =
+      false;
+
+  }
+
+
+  /*************************************************
+   * SI TENEMOS CACHE
+   * MOSTRARLO INMEDIATAMENTE
+   *************************************************/
+
+  if(
+    cachedTypes.length
+  ){
+
+    showTypes(
+      cachedTypes
+    );
+
+  }
+  else{
+
+    selector.disabled =
+      true;
+
+
+    selector.innerHTML =
+      `
+        <option value="">
+          Cargando tipos de negocio...
+        </option>
+      `;
+
+  }
+
+
+  /*************************************************
+   * CONSULTAR PRODUCTOS
+   *
+   * UNA SOLA LLAMADA.
+   * Máximo 12 segundos.
+   *
+   * No usamos jsonp() aquí porque
+   * esa función puede hacer 3 intentos
+   * y en celular se siente eterno.
+   *************************************************/
+
+  try{
 
     const r =
 
@@ -7663,33 +7812,16 @@ async function pcInitBusinessSelectors(){
 
         ||
 
-        'Apps Script no devolvió el catálogo.'
+        'Apps Script no devolvió los productos.'
 
       );
 
     }
 
 
-    /***********************************************
-     * PRODUCTOS RECIBIDOS
-     ***********************************************/
-
-    const receivedProducts =
-
-      normalizeLoadedProducts(
-
-        r.products
-        ||
-        []
-
-      );
-
-
-    /***********************************************
-     * EXTRAER TIPO
-     *
-     * Productos → Tipo
-     ***********************************************/
+    /*************************************************
+     * EXTRAER TIPOS ÚNICOS
+     *************************************************/
 
     const types =
 
@@ -7697,33 +7829,35 @@ async function pcInitBusinessSelectors(){
 
         ...new Set(
 
-          receivedProducts
+          (
+            r.products
+            ||
+            []
+          )
 
-            .map(
-              p =>
-                String(
-                  p.tipo
-                  ||
-                  ''
-                )
-                .trim()
-            )
+          .map(
+            p =>
+              String(
+                p.tipo
+                ||
+                ''
+              )
+              .trim()
+          )
 
-            .filter(
-              Boolean
-            )
+          .filter(
+            Boolean
+          )
 
         )
 
       ]
-
 
       .sort(
         (
           a,
           b
         ) =>
-
           a.localeCompare(
             b,
             'es',
@@ -7739,67 +7873,63 @@ async function pcInitBusinessSelectors(){
     ){
 
       throw new Error(
-        'La columna Tipo de Productos no contiene valores.'
+        'No hay datos en la columna Tipo de Productos.'
       );
 
     }
 
 
-    /***********************************************
-     * CONSTRUIR SELECTOR
-     ***********************************************/
+    /*************************************************
+     * GUARDAR PARA PRÓXIMA ENTRADA
+     *************************************************/
 
-    selector.innerHTML =
+    try{
 
-      types
+      localStorage.setItem(
 
-        .map(
-          tipo =>
-            `
-              <option value="${attr(tipo)}">
+        CACHE_KEY,
 
-                ${esc(
-                  tipo
-                )}
-
-              </option>
-            `
+        JSON.stringify(
+          types
         )
 
-        .join('');
-
-
-    /***********************************************
-     * PRIMER TIPO
-     ***********************************************/
-
-    activeProductType =
-      types[0];
-
-
-    activeBusiness =
-      pcSectorKeyFromTipo(
-        activeProductType
       );
 
-
-    selector.value =
-      activeProductType;
-
-
-    selector.disabled =
-      false;
+    }
+    catch(error){
+      // No bloqueamos la página.
+    }
 
 
-    /*
-     * Todo correcto.
-     */
+    showTypes(
+      types
+    );
+
 
     return types;
 
-
   }
   catch(error){
+
+
+    console.error(
+      'Error cargando Tipos:',
+      error
+    );
+
+
+    /*
+     * Si ya mostramos cache,
+     * NO dejamos la pantalla bloqueada.
+     */
+
+    if(
+      cachedTypes.length
+    ){
+
+      return cachedTypes;
+
+    }
 
 
     activeProductType =
@@ -7810,16 +7940,16 @@ async function pcInitBusinessSelectors(){
       'general';
 
 
+    selector.disabled =
+      true;
+
+
     selector.innerHTML =
       `
         <option value="">
-          ⚠️ No se pudieron cargar los tipos
+          ⚠️ Error cargando tipos
         </option>
       `;
-
-
-    selector.disabled =
-      true;
 
 
     throw error;
@@ -10571,7 +10701,7 @@ const CONFIG = {
 
 
 /*************************************************
- * VARIABLES GENERALES
+ * VARIABLES
  *************************************************/
 
 const $ =
@@ -10582,12 +10712,15 @@ const $ =
 
 
 const isAdmin =
+
   new URLSearchParams(
     location.search
   )
+
   .get(
     'admin'
   )
+
   ===
   '1';
 
@@ -10601,37 +10734,21 @@ let shownProducts =
 
 
 /*
- * Ya NO existe categoría Todos.
- *
- * Al cargar productos,
- * seleccionaremos la primera categoría.
+ * Ya no utilizamos Todos.
  */
 let selectedCategory =
   '';
 
 
 /*
- * Tipo real tomado de:
- *
- * Productos → Tipo
- *
- * Ejemplos:
- *
- * Pulperia
- * Ferreteria
- * Repuestos
- * Muebles
- * Mascotas
+ * Tipo REAL de la columna Tipo.
  */
 let activeProductType =
   '';
 
 
 /*
- * Negocio interno.
- *
- * Se utiliza solamente para decidir
- * qué módulo especializado mostrar.
+ * Módulo interno.
  */
 let activeBusiness =
   'general';
@@ -10641,10 +10758,6 @@ let draftQty =
   {};
 
 
-/*
- * Se cargará cuando sepamos
- * cuál Tipo está seleccionado.
- */
 let cart =
   {};
 
@@ -10681,12 +10794,35 @@ let adminOrderFilter =
 
 
 /*************************************************
- * INICIO UNICO DEL SISTEMA
+ * VALIDAR CONFIGURACIÓN
+ *************************************************/
+
+function assertConfigured(){
+
+  if(
+    !CONFIG.GAS_WEB_APP_URL
+
+    ||
+
+    CONFIG.GAS_WEB_APP_URL.includes(
+      'PEGA_AQUI'
+    )
+  ){
+
+    throw new Error(
+      'Falta configurar la URL de Apps Script.'
+    );
+
+  }
+
+}
+
+
+/*************************************************
+ * INICIO ÚNICO
  *
- * IMPORTANTE:
- *
- * Debe existir SOLAMENTE este
- * DOMContentLoaded.
+ * ESTE ES EL ÚNICO DOMContentLoaded
+ * QUE DEBE EXISTIR.
  *************************************************/
 
 window.addEventListener(
@@ -10694,6 +10830,7 @@ window.addEventListener(
   'DOMContentLoaded',
 
   async () => {
+
 
     try{
 
@@ -10706,7 +10843,7 @@ window.addEventListener(
         isAdmin
       ){
 
-        const clientApp =
+        const client =
           $('clientApp');
 
 
@@ -10714,19 +10851,17 @@ window.addEventListener(
           $('cartbar');
 
 
-        const adminApp =
+        const admin =
           $('adminApp');
 
 
         if(
-          clientApp
+          client
         ){
 
-          clientApp
-            .classList
-            .add(
-              'hide'
-            );
+          client.classList.add(
+            'hide'
+          );
 
         }
 
@@ -10735,24 +10870,20 @@ window.addEventListener(
           cartbar
         ){
 
-          cartbar
-            .classList
-            .add(
-              'hide'
-            );
+          cartbar.classList.add(
+            'hide'
+          );
 
         }
 
 
         if(
-          adminApp
+          admin
         ){
 
-          adminApp
-            .classList
-            .remove(
-              'hide'
-            );
+          admin.classList.remove(
+            'hide'
+          );
 
         }
 
@@ -10769,38 +10900,30 @@ window.addEventListener(
        * CLIENTE
        ********************************************/
 
-      const adminApp =
+      const admin =
         $('adminApp');
 
 
       if(
-        adminApp
+        admin
       ){
 
-        adminApp
-          .classList
-          .add(
-            'hide'
-          );
+        admin.classList.add(
+          'hide'
+        );
 
       }
 
 
       /*
-       * Acomodar:
-       *
-       * Tipo de negocio
-       * Encabezado
-       * Detalle cuenta
-       * Categorías
-       * Productos
+       * Primero organizar pantalla.
        */
 
       pcArrangeClientLayout();
 
 
       /*
-       * Activar búsqueda.
+       * Activar buscador.
        */
 
       const search =
@@ -10820,17 +10943,14 @@ window.addEventListener(
 
 
       /*
-       * ==========================================
-       * CARGAR TIPOS DESDE PRODUCTOS
-       * ==========================================
+       * Cargar Tipo de negocio.
        */
 
       await pcInitBusinessSelectors();
 
 
       /*
-       * Si no encontramos ningún Tipo,
-       * detener aquí.
+       * Verificar que exista.
        */
 
       if(
@@ -10838,15 +10958,18 @@ window.addEventListener(
       ){
 
         throw new Error(
-          'No hay tipos de negocio configurados en la columna Tipo de Productos.'
+          'No se encontró ningún Tipo de negocio.'
         );
 
       }
 
 
       /*
-       * Abrir automáticamente
-       * el primer Tipo encontrado.
+       * Abrir primer Tipo.
+       *
+       * pcChangeBusiness()
+       * se encargará de cargar
+       * los productos correspondientes.
        */
 
       pcChangeBusiness(
@@ -10855,8 +10978,7 @@ window.addEventListener(
 
 
       /*
-       * Precargar datos provenientes
-       * de WhatsApp, si existen.
+       * WhatsApp.
        */
 
       prefillCustomerFromWhatsApp();
@@ -10872,39 +10994,41 @@ window.addEventListener(
       );
 
 
-      /*
-       * Nunca dejar la pantalla
-       * eternamente diciendo Cargando.
-       */
-
       const selector =
         $('businessTypeSelector');
 
 
       if(
         selector
+
         &&
-        (
-          !activeProductType
-        )
+
+        !activeProductType
       ){
+
+        selector.disabled =
+          true;
+
 
         selector.innerHTML =
           `
             <option value="">
-              ⚠️ Error cargando tipos de negocio
+              ⚠️ No fue posible iniciar
             </option>
           `;
 
       }
 
 
+      const status =
+        $('status');
+
+
       if(
-        typeof setStatus ===
-        'function'
+        status
       ){
 
-        setStatus(
+        status.textContent =
 
           '⚠️ '
 
@@ -10913,10 +11037,8 @@ window.addEventListener(
           (
             error.message
             ||
-            'No fue posible iniciar el sistema.'
-          )
-
-        );
+            'No fue posible conectar con el sistema.'
+          );
 
       }
 
@@ -10924,33 +11046,7 @@ window.addEventListener(
 
   }
 
-);
-
-
-/*************************************************
- * CONEXIÓN APPS SCRIPT
- *************************************************/
-
-function assertConfigured(){
-
-  if(
-    !CONFIG.GAS_WEB_APP_URL
-
-    ||
-
-    CONFIG.GAS_WEB_APP_URL.includes(
-      'PEGA_AQUI'
-    )
-  ){
-
-    throw new Error(
-      'Falta configurar la URL /exec de Apps Script.'
-    );
-
-  }
-
-}
-  
+);  
 /*************************************************
  * PRECARGAR CLIENTE DESDE WHATSAPP
  *
