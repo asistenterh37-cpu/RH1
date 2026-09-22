@@ -3310,7 +3310,7 @@ const CONFIG = {
    */
 
   GAS_WEB_APP_URL:
-    'https://script.google.com/macros/s/AKfycbzcjvAonRxU9B9G8YgAfSom24NC9raFNOSop18z1TfE_4j_lVfbGUdCAt8Hb-SNkEgI/exec'
+    'https://script.google.com/macros/s/AKfycbzNQcNAU8VzktIALcmksLBErPom3lpqQsvvCoGQv0zK7vlIxQT9gzhMNEai8FLo_ZzD/exec'
 
 };
 
@@ -18725,5 +18725,1273 @@ openCashPayment =
   };
 
 </script>  
+<!-- ============================================================
+     NEGOCIOS360
+     PARCHE FINAL COBRO PC + CELULAR
+     ============================================================ -->
+
+<style>
+
+/* Permite desplazamiento correcto en celular */
+
+.cash-payment-overlay.show{
+  overflow-y:auto;
+  overscroll-behavior:contain;
+  -webkit-overflow-scrolling:touch;
+}
+
+.cash-payment-card{
+  max-height:calc(100vh - 20px);
+  max-height:calc(100dvh - 20px);
+
+  overscroll-behavior:contain;
+  -webkit-overflow-scrolling:touch;
+}
+
+
+/* Mejor respuesta táctil */
+
+.payment-action,
+.cash-key,
+.op.equal{
+  touch-action:manipulation;
+  -webkit-tap-highlight-color:transparent;
+}
+
+
+/* Mensaje de estado dentro del cobro */
+
+.n360-payment-status{
+
+  display:none;
+
+  margin-top:12px;
+
+  padding:
+    10px
+    12px;
+
+  border-radius:10px;
+
+  font-size:12px;
+
+  font-weight:800;
+
+  line-height:1.35;
+
+  background:#eef7f1;
+
+  color:#24543a;
+
+  border:
+    1px solid
+    #cfe4d7;
+}
+
+
+.n360-payment-status.show{
+  display:block;
+}
+
+
+.n360-payment-status.error{
+
+  background:#fff1ef;
+
+  color:#9b241a;
+
+  border-color:#f0c7c2;
+}
+
+
+/* ============================================================
+   CELULAR
+   ============================================================ */
+
+@media(max-width:560px), (pointer:coarse){
+
+  .cash-payment-overlay{
+
+    align-items:flex-start;
+
+    padding:
+      max(8px,env(safe-area-inset-top))
+      8px
+      max(8px,env(safe-area-inset-bottom));
+
+  }
+
+
+  .cash-payment-card{
+
+    width:100%;
+
+    max-height:
+      calc(100dvh - 16px);
+
+    border-radius:18px;
+
+    padding:14px;
+
+  }
+
+
+  /*
+   * Botones Volver / Confirmar siempre visibles.
+   */
+
+  .payment-actions{
+
+    position:sticky;
+
+    bottom:0;
+
+    z-index:30;
+
+    padding:
+      10px 0
+      calc(
+        6px +
+        env(safe-area-inset-bottom)
+      );
+
+    background:#fff;
+
+    box-shadow:
+      0 -8px 16px
+      rgba(255,255,255,.96);
+
+  }
+
+
+  #cashReceived{
+    font-size:26px;
+  }
+
+}
+
+</style>
+
+
+<script>
+
+(function(){
+
+
+/* ============================================================
+   ESTADO
+   ============================================================ */
+
+window.N360PaymentState =
+  window.N360PaymentState
+  ||
+  {
+
+    saving:false,
+
+    saleId:'',
+
+    payload:''
+
+  };
+
+
+/* ============================================================
+   DETECTAR CELULAR
+   ============================================================ */
+
+function n360IsMobile(){
+
+  return (
+
+    window.matchMedia
+
+    &&
+
+    window.matchMedia(
+      '(max-width:560px), (pointer:coarse)'
+    )
+    .matches
+
+  );
+
+}
+
+
+/* ============================================================
+   ID UNICO DE VENTA
+   ============================================================ */
+
+function n360CreateSaleId(){
+
+  try{
+
+    if(
+      window.crypto
+      &&
+      typeof window.crypto.randomUUID ===
+        'function'
+    ){
+
+      return window.crypto.randomUUID();
+
+    }
+
+  }
+  catch(_){}
+
+
+  return (
+
+    'sale_'
+
+    +
+
+    Date.now()
+
+    +
+
+    '_'
+
+    +
+
+    Math.random()
+      .toString(36)
+      .slice(2,12)
+
+  );
+
+}
+
+
+/* ============================================================
+   MENSAJE DENTRO DE COBRO
+   ============================================================ */
+
+function n360EnsurePaymentStatus(){
+
+  const card =
+    document.querySelector(
+      '.cash-payment-card'
+    );
+
+
+  if(!card){
+
+    return null;
+
+  }
+
+
+  let box =
+    document.getElementById(
+      'n360PaymentStatus'
+    );
+
+
+  if(box){
+
+    return box;
+
+  }
+
+
+  box =
+    document.createElement(
+      'div'
+    );
+
+
+  box.id =
+    'n360PaymentStatus';
+
+
+  box.className =
+    'n360-payment-status';
+
+
+  box.setAttribute(
+    'role',
+    'status'
+  );
+
+
+  box.setAttribute(
+    'aria-live',
+    'polite'
+  );
+
+
+  const actions =
+    card.querySelector(
+      '.payment-actions'
+    );
+
+
+  if(actions){
+
+    actions.insertAdjacentElement(
+      'beforebegin',
+      box
+    );
+
+  }
+  else{
+
+    card.appendChild(
+      box
+    );
+
+  }
+
+
+  return box;
+
+}
+
+
+function n360PaymentMessage(
+  message,
+  error = false
+){
+
+  const box =
+    n360EnsurePaymentStatus();
+
+
+  if(!box){
+
+    return;
+
+  }
+
+
+  box.textContent =
+    String(
+      message
+      ||
+      ''
+    );
+
+
+  box.classList.toggle(
+    'show',
+    Boolean(message)
+  );
+
+
+  box.classList.toggle(
+    'error',
+    Boolean(error)
+  );
+
+}
+
+
+/* ============================================================
+   EN PC DAR FOCO.
+   EN CELULAR NO ABRIR TECLADO AUTOMATICAMENTE.
+   ============================================================ */
+
+function n360FocusCash(){
+
+  if(
+    n360IsMobile()
+  ){
+
+    return;
+
+  }
+
+
+  const input =
+    document.getElementById(
+      'cashReceived'
+    );
+
+
+  if(!input){
+
+    return;
+
+  }
+
+
+  setTimeout(
+    () => {
+
+      try{
+
+        input.focus({
+          preventScroll:true
+        });
+
+      }
+      catch(_){
+
+        input.focus();
+
+      }
+
+    },
+    80
+  );
+
+}
+
+
+/* ============================================================
+   ABRIR COBRO
+   ============================================================ */
+
+openCashPayment =
+function(){
+
+
+  if(
+    typeof installInvoiceUI ===
+      'function'
+  ){
+
+    installInvoiceUI();
+
+  }
+
+
+  if(
+    typeof resetInvoicePaymentUI ===
+      'function'
+  ){
+
+    resetInvoicePaymentUI();
+
+  }
+
+
+  cashEntry =
+    '';
+
+
+  const overlay =
+    document.getElementById(
+      'cashPaymentOverlay'
+    );
+
+
+  const totalElement =
+    document.getElementById(
+      'paymentTotal'
+    );
+
+
+  const input =
+    document.getElementById(
+      'cashReceived'
+    );
+
+
+  if(
+    !overlay
+    ||
+    !totalElement
+    ||
+    !input
+  ){
+
+    setStatus(
+      'No fue posible abrir la ventana de cobro.',
+      true
+    );
+
+    return;
+
+  }
+
+
+  totalElement.textContent =
+    money(
+      accountTotal()
+    );
+
+
+  input.value =
+    '';
+
+
+  updateCashChange();
+
+
+  overlay
+    .classList
+    .add(
+      'show'
+    );
+
+
+  document.body.style.overflow =
+    'hidden';
+
+
+  n360PaymentMessage(
+    ''
+  );
+
+
+  /*
+   * Mostrar detalle ISV.
+   */
+
+  if(
+    typeof isv360RenderPaymentSummary ===
+      'function'
+  ){
+
+    isv360RenderPaymentSummary();
+
+  }
+
+
+  const card =
+    overlay.querySelector(
+      '.cash-payment-card'
+    );
+
+
+  if(card){
+
+    card.scrollTop =
+      0;
+
+  }
+
+
+  /*
+   * CELULAR:
+   * no abrir automáticamente el teclado.
+   */
+
+  if(
+    n360IsMobile()
+  ){
+
+    try{
+
+      input.blur();
+
+    }
+    catch(_){}
+
+  }
+  else{
+
+    n360FocusCash();
+
+  }
+
+};
+
+
+/* ============================================================
+   CONFIRMAR PAGO Y GENERAR FACTURA
+   ============================================================ */
+
+finishCashPayment =
+async function(){
+
+
+  const state =
+    window.N360PaymentState;
+
+
+  if(
+    state.saving
+    ||
+    (
+      typeof invoiceSaleCompleted !==
+        'undefined'
+      &&
+      invoiceSaleCompleted
+    )
+  ){
+
+    return;
+
+  }
+
+
+  const received =
+    Number(
+      cashEntry
+      ||
+      0
+    );
+
+
+  const total =
+    Number(
+      accountTotal()
+    )
+    ||
+    0;
+
+
+  if(
+    received <
+    total
+  ){
+
+    const message =
+      'El efectivo recibido es menor que el total.';
+
+
+    setStatus(
+      message,
+      true
+    );
+
+
+    n360PaymentMessage(
+      message,
+      true
+    );
+
+
+    n360FocusCash();
+
+
+    return;
+
+  }
+
+
+  if(
+    !Array.isArray(accountLines)
+    ||
+    !accountLines.length
+  ){
+
+    const message =
+      'No hay productos para guardar.';
+
+
+    setStatus(
+      message,
+      true
+    );
+
+
+    n360PaymentMessage(
+      message,
+      true
+    );
+
+
+    return;
+
+  }
+
+
+  const change =
+    typeof invoiceRound ===
+      'function'
+    ?
+    invoiceRound(
+      received -
+      total
+    )
+    :
+    Math.round(
+      (
+        received -
+        total
+      )
+      *
+      100
+    )
+    /
+    100;
+
+
+  const button =
+    document.querySelector(
+      '.payment-action.finish'
+    );
+
+
+  state.saving =
+    true;
+
+
+  if(button){
+
+    button.disabled =
+      true;
+
+    button.textContent =
+      'Guardando...';
+
+    button.style.opacity =
+      '.65';
+
+  }
+
+
+  /*
+   * CREAR PRODUCTOS
+   */
+
+  const saleItems =
+    accountLines.map(
+      line => {
+
+
+        let tax15 =
+          0;
+
+
+        let tax18 =
+          0;
+
+
+        /*
+         * Mandamos impuestos calculados.
+         */
+
+        if(
+          typeof isv360LineTaxes ===
+            'function'
+        ){
+
+          const taxes =
+            isv360LineTaxes(
+              line
+            );
+
+
+          tax15 =
+            Number(
+              taxes.isv15
+            )
+            ||
+            0;
+
+
+          tax18 =
+            Number(
+              taxes.isv18
+            )
+            ||
+            0;
+
+        }
+
+
+        return {
+
+          categoria:
+            String(
+              line.categoria
+              ||
+              ''
+            ),
+
+
+          cantidad:
+            Number(
+              line.cantidad
+            )
+            ||
+            0,
+
+
+          item:
+            String(
+              line.item
+              ||
+              ''
+            ),
+
+
+          valor:
+            Number(
+              line.valor
+            )
+            ||
+            0,
+
+
+          isv15:
+            tax15,
+
+
+          isv18:
+            tax18
+
+        };
+
+      }
+    );
+
+
+  /*
+   * ID DE ESTA VENTA
+   */
+
+  const payload =
+    JSON.stringify(
+      saleItems
+    );
+
+
+  if(
+    !state.saleId
+    ||
+    state.payload !==
+      payload
+  ){
+
+    state.saleId =
+      n360CreateSaleId();
+
+
+    state.payload =
+      payload;
+
+  }
+
+
+  try{
+
+
+    const savingMessage =
+      'Guardando venta y actualizando inventario...';
+
+
+    setStatus(
+      savingMessage
+    );
+
+
+    n360PaymentMessage(
+      savingMessage
+    );
+
+
+    /*
+     * ENVIAR A APPS SCRIPT
+     *
+     * 60 segundos:
+     * celular puede tardar más que PC.
+     */
+
+    const response =
+      await jsonp(
+
+        'saveSale',
+
+        {
+
+          items:
+            JSON.stringify(
+              saleItems
+            ),
+
+
+          saleId:
+            state.saleId,
+
+
+          rangoDesde:
+            String(
+              INVOICE_CONFIG.rangoDesde
+              ||
+              ''
+            ),
+
+
+          rangoHasta:
+            String(
+              INVOICE_CONFIG.rangoHasta
+              ||
+              ''
+            )
+
+        },
+
+        60000
+
+      );
+
+
+    if(
+      !response
+      ||
+      response.ok !==
+        true
+    ){
+
+      throw new Error(
+
+        (
+          response
+          &&
+          response.error
+        )
+
+        ||
+
+        'No fue posible guardar la venta.'
+
+      );
+
+    }
+
+
+    /*
+     * NUMERO FACTURA
+     */
+
+    const number =
+
+      response.invoiceNumber
+
+      ?
+
+      String(
+        response.invoiceNumber
+      )
+
+      :
+
+      reserveInvoiceNumber();
+
+
+    const commercialName =
+      String(
+
+        INVOICE_CONFIG.nombreComercial
+
+        ||
+
+        currentBusiness
+
+        ||
+
+        'Negocios360'
+
+      )
+      .trim();
+
+
+    /*
+     * CREAR FACTURA
+     */
+
+    lastInvoice = {
+
+      numero:
+        number,
+
+
+      razonSocial:
+        String(
+          INVOICE_CONFIG.razonSocial
+          ||
+          commercialName
+        ),
+
+
+      nombreComercial:
+        commercialName,
+
+
+      rtn:
+        String(
+          INVOICE_CONFIG.rtn
+          ||
+          ''
+        ),
+
+
+      direccion:
+        String(
+          INVOICE_CONFIG.direccion
+          ||
+          ''
+        ),
+
+
+      telefono:
+        String(
+          INVOICE_CONFIG.telefono
+          ||
+          ''
+        ),
+
+
+      correo:
+        String(
+          INVOICE_CONFIG.correo
+          ||
+          ''
+        ),
+
+
+      cai:
+        String(
+          INVOICE_CONFIG.cai
+          ||
+          ''
+        ),
+
+
+      rangoDesde:
+        String(
+          INVOICE_CONFIG.rangoDesde
+          ||
+          ''
+        ),
+
+
+      rangoHasta:
+        String(
+          INVOICE_CONFIG.rangoHasta
+          ||
+          ''
+        ),
+
+
+      fechaLimite:
+        String(
+          INVOICE_CONFIG.fechaLimite
+          ||
+          ''
+        ),
+
+
+      fecha:
+        response.fecha
+        ||
+        new Date()
+          .toISOString(),
+
+
+      fechaTexto:
+        invoiceDateText(
+          response.fecha
+          ||
+          new Date()
+        ),
+
+
+      cliente:
+        'CONSUMIDOR FINAL',
+
+
+      clienteRTN:
+        '',
+
+
+      items:
+        saleItems.map(
+          item => ({
+            ...item
+          })
+        ),
+
+
+      total:
+        invoiceRound(
+          total
+        ),
+
+
+      recibido:
+        invoiceRound(
+          received
+        ),
+
+
+      cambio:
+        change
+
+    };
+
+
+    invoiceSaleCompleted =
+      true;
+
+
+    invalidateInventory();
+
+
+    n360PaymentMessage(
+      ''
+    );
+
+
+    /*
+     * MOSTRAR FACTURA
+     */
+
+    showInvoiceResult(
+      lastInvoice
+    );
+
+
+    setStatus(
+
+      'Venta guardada. Factura '
+
+      +
+
+      number
+
+      +
+
+      ' lista.'
+
+    );
+
+
+    /*
+     * CELULAR:
+     * desplazarse hasta la factura.
+     */
+
+    const card =
+      document.querySelector(
+        '.cash-payment-card'
+      );
+
+
+    if(card){
+
+      requestAnimationFrame(
+        () => {
+
+          try{
+
+            card.scrollTo({
+
+              top:0,
+
+              behavior:
+                n360IsMobile()
+                ?
+                'auto'
+                :
+                'smooth'
+
+            });
+
+          }
+          catch(_){
+
+            card.scrollTop =
+              0;
+
+          }
+
+        }
+      );
+
+    }
+
+
+    /*
+     * Venta finalizada.
+     */
+
+    state.saleId =
+      '';
+
+
+    state.payload =
+      '';
+
+
+  }
+  catch(error){
+
+
+    console.error(
+      error
+    );
+
+
+    const message =
+      (
+        error
+        &&
+        error.message
+      )
+      ||
+      'No fue posible guardar la venta.';
+
+
+    setStatus(
+      message,
+      true
+    );
+
+
+    n360PaymentMessage(
+      message,
+      true
+    );
+
+
+    /*
+     * No eliminamos saleId.
+     *
+     * Si el celular perdió únicamente
+     * la respuesta, puede volver a
+     * Confirmar pago sin duplicar.
+     */
+
+    n360FocusCash();
+
+
+  }
+  finally{
+
+
+    state.saving =
+      false;
+
+
+    if(
+      button
+      &&
+      !invoiceSaleCompleted
+    ){
+
+      button.disabled =
+        false;
+
+
+      button.textContent =
+        'Confirmar pago';
+
+
+      button.style.opacity =
+        '1';
+
+
+      button.style.cursor =
+        'pointer';
+
+    }
+
+  }
+
+};
+
+
+})();
+
+</script>
+  
 </body>
 </html>
