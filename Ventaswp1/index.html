@@ -1146,50 +1146,90 @@
  */
 
 .chips{
-  display:grid;
-  grid-template-columns:repeat(4,minmax(0,1fr));
 
-  gap:8px;
+ display:flex;
 
-  padding:0;
+ flex-direction:row;
 
-  overflow:visible;
+ flex-wrap:nowrap;
+
+ align-items:stretch;
+
+ gap:8px;
+
+ width:100%;
+
+ padding:
+ 0
+ 2px
+ 7px;
+
+ overflow-x:auto;
+
+ overflow-y:hidden;
+
+ scrollbar-width:thin;
+
+ -webkit-overflow-scrolling:touch;
+
 }
+
+
+/*
+ * Cada categoría ocupa
+ * solamente lo necesario
+ * según el texto.
+ */
 
 .chip{
-  width:100%;
-  min-width:0;
-  min-height:46px;
 
-  padding:8px 5px;
+ flex:
+ 0
+ 0
+ auto;
 
-  border:1px solid #cfd8d3;
-  border-radius:8px;
+ width:max-content;
 
-  background:
-    linear-gradient(
-      145deg,
-      #ffffff,
-      #edf2ef
-    );
+ min-width:max-content;
 
-  color:#263238;
+ min-height:42px;
 
-  white-space:normal;
+ padding:
+ 8px
+ 13px;
 
-  font-size:12px;
-  font-weight:900;
-  line-height:1.15;
+ border:
+ 1px solid
+ #cfd8d3;
 
-  box-shadow:
-    0 4px 0 #b7c2bc,
-    0 6px 9px rgba(0,0,0,.12);
+ border-radius:8px;
 
-  transition:
-    transform .07s ease,
-    box-shadow .07s ease;
+ background:
+ linear-gradient(
+ 145deg,
+ #ffffff,
+ #edf2ef
+ );
+
+ color:#263238;
+
+ white-space:nowrap;
+
+ font-size:12px;
+
+ font-weight:900;
+
+ line-height:1;
+
+ box-shadow:
+ 0 4px 0 #b7c2bc,
+ 0 6px 9px rgba(0,0,0,.12);
+
+ transition:
+ transform .07s ease,
+ box-shadow .07s ease;
+
 }
-
 .chip:active{
   transform:translateY(3px);
 
@@ -1303,30 +1343,54 @@
 /* FOTO */
 
 .calc-key-photo{
-  width:100%;
-  height:88px;
 
-  display:grid;
-  place-items:center;
+ width:100%;
 
-  background:#fff;
+ aspect-ratio:
+ 4 / 3;
 
-  border-radius:7px;
+ min-height:105px;
 
-  overflow:hidden;
+ display:flex;
 
-  font-size:35px;
+ align-items:center;
+
+ justify-content:center;
+
+ background:#fff;
+
+ border-radius:7px;
+
+ overflow:hidden;
+
+ font-size:35px;
+
+ padding:6px;
+
 }
+
 
 .calc-key-photo img{
-  width:100%;
-  height:100%;
 
-  object-fit:contain;
+ display:block;
 
-  padding:4px;
+ width:100%;
+
+ height:100%;
+
+ max-width:100%;
+
+ max-height:100%;
+
+ object-fit:contain;
+
+ object-position:center center;
+
+ padding:0;
+
+ margin:auto;
+
 }
-
 
 /* INFORMACION */
 
@@ -1881,38 +1945,14 @@
   </label>
 
   <select
-    id="businessTypeSelector"
-    onchange="pcChangeBusiness(this.value)">
+ id="businessTypeSelector"
+ onchange="pcChangeBusiness(this.value)">
 
-    <option value="general" selected>
-      🛒 Tienda general
-    </option>
+ <option value="">
+  Cargando tipos de negocio...
+ </option>
 
-    <option value="ferreteria">
-      🔨 Ferretería
-    </option>
-
-    <option value="repuestos">
-      🚗 Repuestos / Yonker
-    </option>
-
-    <option value="distribuidora">
-      📦 Distribuidora / Mayorista
-    </option>
-
-    <option value="electronica">
-      📱 Electrónica
-    </option>
-
-    <option value="MUEBLES">
-      🛋️ Muebles
-    </option>
-
-    <option value="mascotas">
-      🐶 Mascotas
-    </option>
-
-  </select>
+</select>
 
 </section>
 <!-- ============================================================
@@ -7040,6 +7080,89 @@ calculadora:{
 
 };
 
+/*
+ * ============================================================
+ * CONVERTIR TIPO DE PRODUCTOS
+ * AL MODULO INTERNO CORRESPONDIENTE
+ * ============================================================
+ */
+
+function pcSectorKeyFromTipo(
+ tipo
+){
+
+ const t =
+ norm(
+  tipo
+ );
+
+
+ if(
+  t.includes(
+   'ferreter'
+  )
+ ){
+  return 'ferreteria';
+ }
+
+
+ if(
+  t.includes(
+   'repuesto'
+  )
+  ||
+  t.includes(
+   'yonker'
+  )
+ ){
+  return 'repuestos';
+ }
+
+
+ if(
+  t.includes(
+   'distribuid'
+  )
+ ){
+  return 'distribuidora';
+ }
+
+
+ if(
+  t.includes(
+   'electron'
+  )
+ ){
+  return 'electronica';
+ }
+
+
+ if(
+  t.includes(
+   'mueble'
+  )
+ ){
+  return 'MUEBLES';
+ }
+
+
+ if(
+  t.includes(
+   'mascota'
+  )
+ ){
+  return 'mascotas';
+ }
+
+
+ /*
+  * Pulperia y cualquier
+  * negocio general.
+  */
+
+ return 'general';
+
+}
 
 /* ENCABEZADOS EXACTOS DE PRODUCTOS */
 
@@ -7366,128 +7489,261 @@ function pcCartKey(key){
 }
 
 
-function pcInitBusinessSelectors(){
+async function pcInitBusinessSelectors(){
 
-  const availableKeys =
-    pcAvailableBusinessKeys();
+ const availableKeys =
+ pcAvailableBusinessKeys();
 
+
+ /*
+  * ==========================================================
+  * SELECTOR DEL ADMINISTRADOR
+  * ==========================================================
+  */
+
+ const adminSelector =
+ document.getElementById(
+  'pRubro'
+ );
+
+
+ if(
+  adminSelector
+ ){
+
+  const productKeys =
+
+  availableKeys
+
+  .filter(
+   key =>
+   PC_SECTORS[
+    key
+   ]
+   .adminProduct
+   !==
+   false
+  );
+
+
+  adminSelector.innerHTML =
+
+  productKeys
+
+  .map(
+   key =>
+   `
+    <option value="${attr(key)}">
+
+     ${esc(
+      PC_SECTORS[
+       key
+      ].label
+     )}
+
+    </option>
+   `
+  )
+
+  .join('');
+
+
+  adminSelector.value =
+
+  productKeys.includes(
+   'general'
+  )
+
+  ?
+
+  'general'
+
+  :
+
+  (
+   productKeys[0]
+   ||
+   ''
+  );
+
+ }
+
+
+ /*
+  * En administrador no necesitamos
+  * cargar Tipos del catálogo.
+  */
+
+ if(
+  isAdmin
+ ){
+  return;
+ }
+
+
+ /*
+  * ==========================================================
+  * SELECTOR DEL CLIENTE
+  *
+  * AHORA VIENE DE:
+  *
+  * Productos → Tipo
+  * ==========================================================
+  */
+
+ const selector =
+ document.getElementById(
+  'businessTypeSelector'
+ );
+
+
+ if(
+  !selector
+ ){
+  return;
+ }
+
+
+ selector.innerHTML =
+ `
+  <option value="">
+   Cargando tipos de negocio...
+  </option>
+ `;
+
+
+ try{
 
   /*
-   * ==========================================================
-   * SELECTOR DEL CLIENTE
-   * ==========================================================
-   *
-   * Se construye automáticamente desde PC_SECTORS.
-   *
-   * Si borras un módulo HTML,
-   * también desaparecerá del selector.
+   * Pedimos TODO el catálogo
+   * solamente para conocer los Tipos.
    */
 
-  const selector =
-    document.getElementById(
-      'businessTypeSelector'
-    );
+  const r =
+  await jsonp(
+   'products',
+   {
+    rubro:'',
+    tipo:'',
+    t:Date.now()
+   }
+  );
 
 
-  if(selector){
+  if(
+   !r
+   ||
+   r.ok !==
+   true
+  ){
 
-    const previousValue =
-      selector.value;
-
-
-    selector.innerHTML =
-      availableKeys
-      .map(
-        key =>
-          `
-          <option value="${attr(key)}">
-            ${esc(
-              PC_SECTORS[key].label
-            )}
-          </option>
-          `
-      )
-      .join('');
-
-
-    selector.value =
-      availableKeys.includes(
-        previousValue
-      )
-      ?
-      previousValue
-      :
-      'general';
+   throw new Error(
+    'No pude cargar los tipos de negocio.'
+   );
 
   }
 
 
-  /*
-   * ==========================================================
-   * SELECTOR DEL ADMINISTRADOR
-   * ==========================================================
-   *
-   * Solamente incluye módulos que manejan Productos.
-   *
-   * Caja registradora tiene:
-   *
-   * adminProduct:false
-   *
-   * por eso NO aparece aquí.
-   */
+  const types =
 
-  const adminSelector =
-    document.getElementById(
-      'pRubro'
-    );
+  [
+   ...new Set(
 
+    (
+     r.products
+     ||
+     []
+    )
 
-  if(adminSelector){
+    .map(
+     p =>
+     String(
+      p.tipo
+      ||
+      ''
+     )
+     .trim()
+    )
 
-    const productKeys =
-      availableKeys
-      .filter(
-        key =>
-          PC_SECTORS[key]
-            .adminProduct
-          !==
-          false
-      );
+    .filter(
+     Boolean
+    )
+
+   )
+  ];
 
 
-    adminSelector.innerHTML =
-      productKeys
-      .map(
-        key =>
-          `
-          <option value="${attr(key)}">
-            ${esc(
-              PC_SECTORS[key].label
-            )}
-          </option>
-          `
-      )
-      .join('');
+  if(
+   !types.length
+  ){
 
-
-    adminSelector.value =
-      productKeys.includes(
-        'general'
-      )
-      ?
-      'general'
-      :
-      (
-        productKeys[0]
-        ||
-        ''
-      );
+   throw new Error(
+    'No existen valores en la columna Tipo.'
+   );
 
   }
+
+
+  selector.innerHTML =
+
+  types
+
+  .map(
+   tipo =>
+   `
+    <option value="${attr(tipo)}">
+
+     ${esc(
+      tipo
+     )}
+
+    </option>
+   `
+  )
+
+  .join('');
+
+
+  /*
+   * Primer Tipo encontrado.
+   */
+
+  activeProductType =
+  types[0];
+
+
+  activeBusiness =
+  pcSectorKeyFromTipo(
+   activeProductType
+  );
+
+
+  selector.value =
+  activeProductType;
+
+ }
+ catch(error){
+
+  selector.innerHTML =
+  `
+   <option value="">
+    No se pudieron cargar los tipos
+   </option>
+  `;
+
+
+  activeProductType =
+  '';
+
+
+  console.error(
+   error
+  );
+
+ }
 
 }
-  
-/*************************************************
+  /*************************************************
  * ORDENAR PANTALLA DEL CLIENTE
  *
  * ORDEN:
@@ -7556,155 +7812,147 @@ function pcArrangeClientLayout(){
     );
 
 }
-function pcChangeBusiness(type){
+function pcChangeBusiness(
+ tipo
+){
 
-  if(
-    !PC_SECTORS[type]
-  ){
-
-    type =
-      'general';
-
-  }
-
-
-  /*
-   * Guardar el carrito del negocio anterior,
-   * solamente si ese negocio usa carrito.
-   */
-
-  if(
-    typeof activeBusiness !==
-      'undefined'
-  ){
-
-    const previousCfg =
-      PC_SECTORS[
-        activeBusiness
-      ]
-      ||
-      PC_SECTORS.general;
+ tipo =
+ String(
+  tipo
+  ||
+  ''
+ )
+ .trim();
 
 
-    if(
-      previousCfg.standalone !==
-        true
-      &&
-      typeof saveCart ===
-        'function'
-    ){
-
-      saveCart();
-
-    }
-
-  }
+ if(
+  !tipo
+ ){
+  return;
+ }
 
 
-  /*
-   * Ocultar todos los módulos especializados.
-   */
-
-  Object
-    .values(
-      PC_SECTORS
-    )
-    .forEach(
-      cfg => {
-
-        if(
-          !cfg.module
-        ){
-
-          return;
-
-        }
+ const sectorKey =
+ pcSectorKeyFromTipo(
+  tipo
+ );
 
 
-        const el =
-          document.getElementById(
-            cfg.module
-          );
+ /*
+  * Guardar carrito anterior.
+  */
+
+ if(
+  activeProductType
+  &&
+  typeof saveCart ===
+  'function'
+ ){
+
+  saveCart();
+
+ }
 
 
-        if(el){
+ /*
+  * Ocultar módulos especializados.
+  */
 
-          el.classList.remove(
-            'pc-show'
-          );
+ Object
+ .values(
+  PC_SECTORS
+ )
+ .forEach(
+  cfg => {
 
-        }
-
-      }
-    );
-
-
-  /*
-   * Cerrar herramientas internas abiertas.
-   */
-
-  document
-    .querySelectorAll(
-      '.pc-tool'
-    )
-    .forEach(
-      el =>
-        el.classList.remove(
-          'pc-show'
-        )
-    );
+   if(
+    !cfg.module
+   ){
+    return;
+   }
 
 
-  const cfg =
-    PC_SECTORS[type];
-
-
-  /*
-   * Mostrar módulo seleccionado.
-   */
-
-  if(
+   const el =
+   document.getElementById(
     cfg.module
+   );
+
+
+   if(
+    el
+   ){
+
+    el.classList.remove(
+     'pc-show'
+    );
+
+   }
+
+  }
+ );
+
+
+ /*
+  * Cerrar herramientas internas.
+  */
+
+ document
+ .querySelectorAll(
+  '.pc-tool'
+ )
+ .forEach(
+  el =>
+  el.classList.remove(
+   'pc-show'
+  )
+ );
+
+
+ const cfg =
+
+ PC_SECTORS[
+  sectorKey
+ ]
+
+ ||
+
+ PC_SECTORS.general;
+
+
+ /*
+  * Mostrar módulo correspondiente.
+  */
+
+ if(
+  cfg.module
+ ){
+
+  const module =
+  document.getElementById(
+   cfg.module
+  );
+
+
+  if(
+   module
   ){
 
-    const module =
-      document.getElementById(
-        cfg.module
-      );
-
-
-    if(module){
-
-      module.classList.add(
-        'pc-show'
-      );
-
-    }
+   module.classList.add(
+    'pc-show'
+   );
 
   }
 
+ }
 
-  /*
-   * ==========================================================
-   * MODO STANDALONE
-   * ==========================================================
-   *
-   * Caja registradora no necesita:
-   *
-   * Hero
-   * Buscador
-   * Categorías
-   * Catálogo
-   * Góndola
-   * Pasillos
-   * Productos
-   * Carrito
-   */
 
-  const standalone =
-    cfg.standalone ===
-    true;
-
+ /*
+  * Ya no seleccionamos
+  * Catálogo/Góndola/Pasillos.
+  *
+  * Siempre es la interfaz
+  * de teclas.
+  */
 
  [
   '.hero',
@@ -7712,131 +7960,106 @@ function pcChangeBusiness(type){
   '#status',
   '#products',
   '#cartbar'
-]
-  .forEach(
-    selector => {
+ ]
 
-      const el =
-        document.querySelector(
-          selector
-        );
+ .forEach(
+  selector => {
 
-
-      if(el){
-
-        el.classList.toggle(
-          'hide',
-          standalone
-        );
-
-      }
-
-    }
-  );
+   const el =
+   document.querySelector(
+    selector
+   );
 
 
-  /*
-   * Buscador normal para negocios con catálogo.
-   */
+   if(
+    el
+   ){
 
-  const search =
-    document.getElementById(
-      'search'
+    el.classList.remove(
+     'hide'
     );
 
-
-  if(
-    search
-    &&
-    cfg.search
-  ){
-
-    search.placeholder =
-      cfg.search;
+   }
 
   }
+ );
 
 
-  if(
-    typeof activeBusiness ===
-      'undefined'
-  ){
-
-    return;
-
-  }
+ const search =
+ document.getElementById(
+  'search'
+ );
 
 
-  activeBusiness =
-    type;
+ if(
+  search
+ ){
+
+  search.placeholder =
+  cfg.search
+  ||
+  'Buscar Item...';
 
 
-  selectedCategory =
-    'Todos';
+  search.value =
+  '';
+
+ }
 
 
-  if(search){
+ /*
+  * ==========================================================
+  * TIPO REAL
+  * ==========================================================
+  */
 
-    search.value =
-      '';
-
-  }
-
-
-  /*
-   * ==========================================================
-   * Caja registradora
-   * ==========================================================
-   */
-
-  if(standalone){
-
-    if(
-      type ===
-        'calculadora'
-      &&
-      typeof pcCalcBusinessOpen ===
-        'function'
-    ){
-
-      pcCalcBusinessOpen();
-
-    }
+ activeProductType =
+ tipo;
 
 
-    return;
+ /*
+  * Clave interna.
+  */
 
-  }
-
-
-  /*
-   * ==========================================================
-   * NEGOCIOS NORMALES
-   * ==========================================================
-   */
-
-  cart =
-    loadJson(
-      pcCartKey(
-        activeBusiness
-      ),
-      {}
-    );
+ activeBusiness =
+ sectorKey;
 
 
-  renderSectorOrderFields();
+ /*
+  * La primera categoría
+  * se seleccionará automáticamente.
+  */
+
+ selectedCategory =
+ '';
 
 
-  refreshCartUI();
+ /*
+  * Carrito independiente
+  * por Tipo.
+  */
+
+ cart =
+ loadJson(
+  pcCartKey(
+   activeProductType
+  ),
+  {}
+ );
 
 
-  if(
-    !isAdmin
-  ){
+ renderSectorOrderFields();
 
-    loadProducts();
+ refreshCartUI();
 
-  }
+
+ if(
+  !isAdmin
+ ){
+
+  loadProducts();
+
+ }
 
 }
   
@@ -10261,7 +10484,7 @@ const CONFIG = {
    */
 
   GAS_WEB_APP_URL:
-    'https://script.google.com/macros/s/AKfycbwsPQIlbGa9f_77Viun5XKKSfnaD2HTqIdhnJ8qHOabXplSxeuEsTbZFy7hOxuGrggqXg/exec',
+    'https://script.google.com/macros/s/AKfycbz3kvUz5_FnoysNvxCzKx94mfCOz6N8wGZzwc9c-9xunvJlYBVZKy75FhDzf7GxWB_D_A/exec',
 
   CURRENCY:
     'L'
@@ -10293,23 +10516,42 @@ let allProducts = [];
 
 let shownProducts = [];
 
-let selectedCategory =
-  'Todos';
 
-  let activeBusiness =
-  'general';
+/*
+ * Ya no existe categoría Todos.
+ */
+
+let selectedCategory =
+ '';
+
+
+/*
+ * Valor REAL que viene de
+ * Productos → Tipo.
+ */
+
+let activeProductType =
+ '';
+
+
+/*
+ * Clave interna utilizada para
+ * módulos especializados.
+ */
+
+let activeBusiness =
+ 'general';
 
 
 let draftQty = {};
 
-let cart =
-  loadJson(
-    pcCartKey(
-      activeBusiness
-    ),
-    {}
-  );
 
+/*
+ * El carrito se carga cuando
+ * ya conocemos el Tipo.
+ */
+
+let cart = {};
 let searchTimer =
   null;
 
@@ -10337,9 +10579,96 @@ let adminOrderFilter =
  *************************************************/
 
 window.addEventListener(
-  'DOMContentLoaded',
-  () => {
+ 'DOMContentLoaded',
 
+ async () => {
+
+
+  if(
+   isAdmin
+  ){
+
+   $('clientApp')
+   .classList
+   .add(
+    'hide'
+   );
+
+
+   $('cartbar')
+   .classList
+   .add(
+    'hide'
+   );
+
+
+   $('adminApp')
+   .classList
+   .remove(
+    'hide'
+   );
+
+
+   initAdmin();
+
+   return;
+
+  }
+
+
+  $('adminApp')
+  .classList
+  .add(
+   'hide'
+  );
+
+
+  /*
+   * Cargar Tipos desde
+   * la hoja Productos.
+   */
+
+  await pcInitBusinessSelectors();
+
+
+  pcArrangeClientLayout();
+
+
+  $('search')
+  .addEventListener(
+   'input',
+   onSearch
+  );
+
+
+  /*
+   * Abrir automáticamente
+   * el primer Tipo.
+   */
+
+  if(
+   activeProductType
+  ){
+
+   pcChangeBusiness(
+    activeProductType
+   );
+
+  }
+  else{
+
+   setStatus(
+    'No hay tipos de negocio configurados.'
+   );
+
+  }
+
+
+  prefillCustomerFromWhatsApp();
+
+ }
+
+);
     if(
       isAdmin
     ){
@@ -11120,6 +11449,9 @@ async function loadProducts(){
   const requestedBusiness =
     activeBusiness;
 
+  const requestedType =
+ activeProductType;
+
 
   const requestedSheet =
     PC_SECTORS[
@@ -11141,36 +11473,35 @@ async function loadProducts(){
     );
 
 
-    const r =
-      await jsonp(
+  const r =
+ await jsonp(
+  'products',
+  {
 
-        'products',
+   rubro:
+   pcBusinessSheetValue(
+    requestedBusiness
+   ),
 
-        {
+   tipo:
+   requestedType
 
-          rubro:
-            pcBusinessSheetValue(
-              requestedBusiness
-            )
-
-        }
-
-      );
-
+  }
+ );
 
     /*
      * El usuario pudo cambiar
      * de negocio mientras esperábamos.
      */
-
-    if(
-      requestedBusiness !==
-      activeBusiness
-    ){
-
-      return;
-
-    }
+if(
+ requestedBusiness !==
+ activeBusiness
+ ||
+ requestedType !==
+ activeProductType
+){
+ return;
+}
 
 
     if(
@@ -11218,13 +11549,10 @@ async function loadProducts(){
      * tiene un fallo temporal.
      */
 
-    saveCatalogCache(
-
-      requestedBusiness,
-
-      allProducts
-
-    );
+   saveCatalogCache(
+ requestedType,
+ allProducts
+);
 
 
     renderChips();
@@ -11283,14 +11611,15 @@ async function loadProducts(){
        * si el usuario ya cambió de negocio.
        */
 
-      if(
-        requestedBusiness !==
-        activeBusiness
-      ){
-
-        return;
-
-      }
+    if(
+ requestedBusiness !==
+ activeBusiness
+ ||
+ requestedType !==
+ activeProductType
+){
+ return;
+}
 
 
       allProducts =
@@ -11447,44 +11776,133 @@ async function loadProducts(){
 
 function renderChips(){
 
-  const cats = [
+ const cats =
 
-    'Todos',
+ [
+  ...new Set(
 
-    ...new Set(
-      allProducts
-        .map(
-          p =>
-            p.categoria
-        )
-        .filter(
-          Boolean
-        )
+   allProducts
+
+   .map(
+    p =>
+    String(
+     p.categoria
+     ||
+     ''
     )
+    .trim()
+   )
 
-  ];
+   .filter(
+    Boolean
+   )
+
+  )
+ ];
+
+
+ /*
+  * No existen categorías.
+  */
+
+ if(
+  !cats.length
+ ){
+
+  selectedCategory =
+  '';
+
+
+  shownProducts =
+  [];
 
 
   $('chips').innerHTML =
-    cats
-      .map(
-        c => `
+  '';
 
-        <button
-          class="chip ${c === selectedCategory ? 'on' : ''}"
-          onclick="selectCategory('${attr(c)}')">
 
-          ${esc(c)}
+  return;
 
-        </button>
+ }
 
-      `
-      )
-      .join('');
+
+ /*
+  * Si todavía no se ha seleccionado
+  * una categoría, seleccionar
+  * automáticamente la primera.
+  */
+
+ if(
+  !selectedCategory
+  ||
+  !cats.includes(
+   selectedCategory
+  )
+ ){
+
+  selectedCategory =
+  cats[0];
+
+ }
+
+
+ /*
+  * Al entrar mostramos solamente
+  * los productos de la primera
+  * categoría.
+  */
+
+ shownProducts =
+
+ allProducts.filter(
+  p =>
+  p.categoria ===
+  selectedCategory
+ );
+
+
+ /*
+  * Crear botones.
+  *
+  * NO EXISTE "Todos".
+  */
+
+ $('chips').innerHTML =
+
+ cats
+
+ .map(
+  c =>
+  `
+   <button
+
+    type="button"
+
+    class="chip ${
+     c === selectedCategory
+     ?
+     'on'
+     :
+     ''
+    }"
+
+    onclick="
+     selectCategory(
+      '${attr(c)}'
+     )
+    "
+   >
+
+    ${esc(c)}
+
+   </button>
+  `
+ )
+
+ .join('');
 
 }
-
-
+  
 function selectCategory(
   c
 ){
@@ -11553,20 +11971,7 @@ function buscarProductoPrincipal(){
     return;
   }
 
-
-  /*
-   * Al buscar manualmente,
-   * buscamos en todas las categorías.
-   */
-
-  selectedCategory =
-    'Todos';
-
-
-  renderChips();
-
-
-  /*
+   /*
    * Filtrar productos.
    */
 
@@ -11646,12 +12051,14 @@ function filterLocal(){
     allProducts.filter(
       p => {
 
-        const categoryOk =
-          selectedCategory ===
-          'Todos'
-          ||
-          p.categoria ===
-          selectedCategory;
+       const categoryOk =
+
+ !selectedCategory
+
+ ||
+
+ p.categoria ===
+ selectedCategory;
 
 
         if(
