@@ -10645,35 +10645,7 @@ function pcProductSpecialSummary(p){
   </div>
 
 </div>
-     <div class="search">
-
-  <span>
-    🔎
-  </span>
-
-  <input
-    id="search"
-    placeholder="Buscar producto..."
-    autocomplete="off"
-    onkeydown="
-      if(event.key === 'Enter'){
-        event.preventDefault();
-        buscarProductoPrincipal();
-      }
-    "
-  >
-
-  <button
-    type="button"
-    class="primary search-main-btn"
-    onclick="buscarProductoPrincipal()">
-
-    🔍 Buscar
-
-  </button>
-
-</div>
-      </section>
+           </section>
 
 <!-- =========================================================
      INTERFAZ UNICA TIPO CALCULADORA
@@ -11410,7 +11382,7 @@ function pcProductSpecialSummary(p){
 const CONFIG = {
 
   GAS_WEB_APP_URL:
-    'https://script.google.com/macros/s/AKfycbz3kvUz5_FnoysNvxCzKx94mfCOz6N8wGZzwc9c-9xunvJlYBVZKy75FhDzf7GxWB_D_A/exec',
+    'https://script.google.com/macros/s/AKfycbyol07p28tIgEg2tgknV7CAGvnJRGcvPc1PQ3hmt3qf2St5hxuxWFl6kOd8jZWOiikGnA/exec',
 
   CURRENCY:
     'L'
@@ -13163,81 +13135,40 @@ if(
 
 function filterLocal(){
 
-  const q =
-    norm(
-      $('search').value
-    );
-
+  /*
+   * Ya no existe buscador principal.
+   *
+   * La pantalla se filtra únicamente
+   * por la categoría seleccionada.
+   */
 
   shownProducts =
+
     allProducts.filter(
       p => {
 
-       const categoryOk =
+        /*
+         * "Todos" puede seguir existiendo
+         * internamente para algunas herramientas,
+         * pero NO se muestra como categoría.
+         */
 
- !selectedCategory
+        const categoryOk =
 
- ||
+          !selectedCategory
 
- p.categoria ===
- selectedCategory;
+          ||
 
+          selectedCategory ===
+          'Todos'
 
-        if(
-          !categoryOk
-        ){
+          ||
 
-          return false;
-
-        }
-
-
-        if(
-          !q
-        ){
-
-          return true;
-
-        }
+          p.categoria ===
+          selectedCategory;
 
 
-        const data =
-          norm(
-            [
-
-              p.codigo,
-
-              p.producto,
-
-              p.categoria,
-
-              p.descripcion,
-
-              p.palabrasClave,
-              Object.values(
-  p.especializados
-  ||
-  {}
-).join(' ')
-
-            ]
-            
-            .join(
-              ' '
-            )
-          );
-
-
-        return q
-          .split(
-            /\s+/
-          )
-          .every(
-            t =>
-              data.includes(
-                t
-              )
-          );
+        return categoryOk;
 
       }
     );
@@ -13245,30 +13176,8 @@ function filterLocal(){
 
   renderProducts();
 
-
-  setStatus(
-
-    shownProducts.length
-
-      ?
-
-      `${shownProducts.length} producto${shownProducts.length === 1 ? '' : 's'} mostrado${shownProducts.length === 1 ? '' : 's'}.`
-
-      :
-
-      (
-        q
-          ?
-          'No encontré coincidencia literal. Probando IA…'
-          :
-          'No hay productos.'
-      )
-
-  );
-
 }
-
-
+  
 /*************************************************
  * BÚSQUEDA OPENAI
  *************************************************/
@@ -14648,45 +14557,80 @@ renderProducts();
 
 async function submitOrder(){
 
+  /*
+   * ========================================================
+   * DATOS DEL CLIENTE
+   * ========================================================
+   */
+
   const client =
-    $('customerName')
+
+    String(
+      $('customerName')
       .value
-      .trim();
+      ||
+      ''
+    )
+    .trim();
 
 
   const address =
-    $('customerAddress')
+
+    String(
+      $('customerAddress')
       .value
-      .trim();
+      ||
+      ''
+    )
+    .trim();
 
 
   const phone =
-    $('customerPhone')
-      .value
-      .trim();
 
+    String(
+      $('customerPhone')
+      .value
+      ||
+      ''
+    )
+    .trim();
+
+
+  /*
+   * ========================================================
+   * ITEMS
+   * ========================================================
+   */
 
   const items =
+
     cartItems()
-      .map(
-        x => ({
 
-          code:
-            x.p.codigo,
+    .map(
+      x => ({
 
-          quantity:
-            x.qty
+        code:
+          x.p.codigo,
 
-        })
-      );
+        quantity:
+          x.qty
 
+      })
+    );
+
+
+  /*
+   * ========================================================
+   * VALIDACIONES
+   * ========================================================
+   */
 
   if(
     !items.length
   ){
 
     return orderMsg(
-      'Agrega productos al pedido.',
+      'Agrega Items al pedido.',
       false
     );
 
@@ -14718,7 +14662,10 @@ async function submitOrder(){
 
 
   if(
-    phone.replace(/\D/g,'').length < 7
+    phone.replace(
+      /\D/g,
+      ''
+    ).length < 7
   ){
 
     return orderMsg(
@@ -14729,28 +14676,85 @@ async function submitOrder(){
   }
 
 
+  /*
+   * ========================================================
+   * TIPO DE NEGOCIO
+   *
+   * Viene de:
+   *
+   * Productos → Tipo
+   *
+   * Ejemplo:
+   * Pulperia
+   * Ferreteria
+   * Repuestos
+   * ========================================================
+   */
+
+  const tipoNegocio =
+
+    String(
+      activeProductType
+      ||
+      ''
+    )
+    .trim();
+
+
+  /*
+   * ========================================================
+   * RUBRO INTERNO
+   * ========================================================
+   */
+
   const rubro =
+
     pcBusinessSheetValue(
       activeBusiness
     );
 
 
-  const tipoDocumento =
-    $('orderDocumentType')
-      .value;
+  /*
+   * ========================================================
+   * TIPO DOCUMENTO
+   * ========================================================
+   */
 
+  const tipoDocumento =
+
+    $('orderDocumentType')
+    .value;
+
+
+  /*
+   * ========================================================
+   * OBSERVACIONES
+   * ========================================================
+   */
 
   const observaciones =
-    $('orderObservations')
-      .value
-      .trim();
 
+    String(
+      $('orderObservations')
+      .value
+      ||
+      ''
+    )
+    .trim();
+
+
+  /*
+   * ========================================================
+   * CAMPOS ESPECIALES
+   * ========================================================
+   */
 
   const orderExtra =
     collectSectorOrderFields();
 
 
   try{
+
 
     assertConfigured();
 
@@ -14763,9 +14767,18 @@ async function submitOrder(){
       'Enviando…';
 
 
+    /*
+     * ======================================================
+     * ENVIAR PEDIDO COMPLETO
+     * ======================================================
+     */
+
     const r =
+
       await sendJob(
+
         'createOrder',
+
         {
 
           client:
@@ -14776,6 +14789,13 @@ async function submitOrder(){
 
           phone:
             phone,
+
+          /*
+           * Tipo real del negocio.
+           */
+
+          tipoNegocio:
+            tipoNegocio,
 
           rubro:
             rubro,
@@ -14797,37 +14817,74 @@ async function submitOrder(){
             )
 
         }
+
       );
 
 
     if(
-      !r.ok
+      !r
+      ||
+      r.ok !==
+      true
     ){
 
       throw new Error(
-        r.error
+
+        (
+          r
+          &&
+          r.error
+        )
+
         ||
+
         'No pude registrar el pedido.'
+
       );
 
     }
 
 
- orderMsg(
-  '✓ '
-  +
-  tipoDocumento
-  +
-  ' '
-  +
-  r.orderId
-  +
-  ' registrado correctamente.',
-  true
-);
+    /*
+     * ======================================================
+     * PEDIDO CORRECTO
+     * ======================================================
+     */
 
+    orderMsg(
+
+      '✓ '
+
+      +
+
+      tipoDocumento
+
+      +
+
+      ' '
+
+      +
+
+      r.orderId
+
+      +
+
+      ' registrado correctamente.',
+
+      true
+
+    );
+
+
+    /*
+     * Vaciar cuenta.
+     */
 
     cart =
+      {};
+
+
+    draftQty =
       {};
 
 
@@ -14843,6 +14900,10 @@ async function submitOrder(){
     saveCart();
 
 
+    /*
+     * Limpiar observaciones.
+     */
+
     $('orderObservations').value =
       '';
 
@@ -14854,7 +14915,12 @@ async function submitOrder(){
     renderSectorOrderFields();
 
 
+    /*
+     * Recargar existencias.
+     */
+
     await loadProducts();
+
 
     renderCart();
 
@@ -14868,8 +14934,10 @@ async function submitOrder(){
     $('confirmBtn').textContent =
       'Confirmar pedido';
 
+
   }
-  catch(e){
+  catch(error){
+
 
     $('confirmBtn').disabled =
       false;
@@ -14880,14 +14948,18 @@ async function submitOrder(){
 
 
     orderMsg(
-      e.message,
+
+      error.message
+      ||
+      'No fue posible registrar el pedido.',
+
       false
+
     );
 
   }
 
-}
-  
+}  
 /*************************************************
  * COMPROBAR QUE PEDIDO SE GUARDÓ
  *************************************************/
