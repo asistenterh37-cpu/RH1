@@ -1,0 +1,1999 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1, viewport-fit=cover"
+  />
+
+  <meta name="theme-color" content="#0f766e" />
+
+  <title>Tabulador de Facturas</title>
+
+  <style>
+    :root {
+      --bg: #f4f7f6;
+      --card: #ffffff;
+      --text: #17201f;
+      --muted: #667573;
+      --primary: #0f766e;
+      --primary2: #115e59;
+      --line: #dce6e4;
+      --danger: #b42318;
+      --ok: #067647;
+      --shadow: 0 12px 30px rgba(20, 45, 42, .08);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family:
+        Inter,
+        system-ui,
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        sans-serif;
+
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    .app {
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 18px 14px 40px;
+    }
+
+    .hero {
+      background: linear-gradient(
+        135deg,
+        #0f766e,
+        #134e4a
+      );
+
+      color: white;
+      border-radius: 22px;
+      padding: 22px 20px;
+      box-shadow: var(--shadow);
+      margin-bottom: 14px;
+    }
+
+    .hero h1 {
+      margin: 0 0 6px;
+      font-size: 1.55rem;
+    }
+
+    .hero p {
+      margin: 0;
+      opacity: .88;
+      line-height: 1.4;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 16px;
+      margin: 12px 0;
+      box-shadow: var(--shadow);
+    }
+
+    .label {
+      font-size: .82rem;
+      color: var(--muted);
+      margin-bottom: 6px;
+      display: block;
+    }
+
+    input,
+    button {
+      font: inherit;
+    }
+
+    input[type="password"],
+    input[type="text"],
+    input[type="number"] {
+      width: 100%;
+      border: 1px solid #cfdad8;
+      border-radius: 12px;
+      padding: 12px;
+      background: white;
+      color: var(--text);
+      outline: none;
+    }
+
+    input:focus {
+      border-color: var(--primary);
+
+      box-shadow:
+        0 0 0 3px rgba(15, 118, 110, .10);
+    }
+
+    .mode-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .mode {
+      min-height: 120px;
+      border: 0;
+      border-radius: 18px;
+      padding: 18px 12px;
+
+      background: white;
+      color: var(--text);
+
+      box-shadow: var(--shadow);
+
+      border: 1px solid var(--line);
+
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+
+      gap: 7px;
+
+      cursor: pointer;
+    }
+
+    .mode:active {
+      transform: scale(.985);
+    }
+
+    .mode .icon {
+      font-size: 2.2rem;
+    }
+
+    .mode strong {
+      font-size: 1.05rem;
+    }
+
+    .mode small {
+      color: var(--muted);
+      text-align: center;
+    }
+
+    .mode.recording {
+      background: #fff1f0;
+      border-color: #f2b8b5;
+      color: var(--danger);
+    }
+
+    .preview-img {
+      width: 100%;
+      max-height: 330px;
+      object-fit: contain;
+
+      border-radius: 14px;
+      background: #eef3f2;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .status {
+      display: none;
+      align-items: center;
+      gap: 10px;
+
+      padding: 12px 14px;
+      border-radius: 12px;
+
+      background: #ecfdf3;
+      color: var(--ok);
+
+      margin: 10px 0;
+    }
+
+    .status.show {
+      display: flex;
+    }
+
+    .status.error {
+      background: #fff1f0;
+      color: var(--danger);
+    }
+
+    .spinner {
+      width: 18px;
+      height: 18px;
+
+      border: 2px solid currentColor;
+      border-right-color: transparent;
+
+      border-radius: 50%;
+
+      animation: spin .8s linear infinite;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 560px;
+    }
+
+    th,
+    td {
+      padding: 8px 6px;
+      border-bottom: 1px solid var(--line);
+      vertical-align: middle;
+    }
+
+    th {
+      color: var(--muted);
+      font-size: .8rem;
+      text-align: left;
+    }
+
+    td:nth-child(1),
+    th:nth-child(1) {
+      width: 115px;
+    }
+
+    td:nth-child(3),
+    th:nth-child(3) {
+      width: 140px;
+    }
+
+    td:nth-child(4),
+    th:nth-child(4) {
+      width: 52px;
+      text-align: center;
+    }
+
+    .remove {
+      border: 0;
+
+      background: #fff1f0;
+      color: var(--danger);
+
+      width: 36px;
+      height: 36px;
+
+      border-radius: 10px;
+      cursor: pointer;
+    }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .btn {
+      border: 0;
+      border-radius: 13px;
+
+      padding: 13px 16px;
+
+      cursor: pointer;
+      font-weight: 700;
+    }
+
+    .btn-primary {
+      flex: 1;
+      background: var(--primary);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: var(--primary2);
+    }
+
+    .btn-secondary {
+      background: #edf4f3;
+      color: var(--primary2);
+    }
+
+    .transcript {
+      background: #f8faf9;
+
+      border: 1px dashed #c8d5d2;
+      border-radius: 12px;
+
+      padding: 12px;
+      line-height: 1.45;
+
+      white-space: pre-wrap;
+    }
+
+    .foot {
+      color: var(--muted);
+      font-size: .78rem;
+      text-align: center;
+      margin-top: 18px;
+    }
+
+    @media (max-width: 480px) {
+
+      .app {
+        padding: 12px 10px 28px;
+      }
+
+      .hero {
+        border-radius: 18px;
+      }
+
+      .mode {
+        min-height: 112px;
+      }
+
+    }
+  </style>
+</head>
+
+<body>
+
+  <main class="app">
+
+    <section class="hero">
+
+      <h1>📄 Tabulador de Facturas</h1>
+
+      <p>
+        Toma una foto de la factura o dicta los productos.
+        Revisa la información antes de guardarla.
+      </p>
+
+    </section>
+
+
+    <!-- PIN OPCIONAL -->
+
+    <section class="card">
+
+      <label
+        class="label"
+        for="pin"
+      >
+        PIN de acceso
+      </label>
+
+      <input
+        id="pin"
+        type="password"
+        inputmode="numeric"
+        autocomplete="off"
+        placeholder="PIN"
+      />
+
+    </section>
+
+
+    <!-- BOTONES PRINCIPALES -->
+
+    <section class="mode-grid">
+
+      <button
+        id="photoBtn"
+        class="mode"
+        type="button"
+      >
+
+        <span class="icon">
+          📷
+        </span>
+
+        <strong>
+          Foto
+        </strong>
+
+        <small>
+          Tomar foto de factura
+        </small>
+
+      </button>
+
+
+      <button
+        id="voiceBtn"
+        class="mode"
+        type="button"
+      >
+
+        <span class="icon">
+          🎙️
+        </span>
+
+        <strong id="voiceTitle">
+          Voz
+        </strong>
+
+        <small id="voiceHint">
+          Dictar productos y valores
+        </small>
+
+      </button>
+
+    </section>
+
+
+    <!-- CÁMARA -->
+
+    <input
+      id="cameraInput"
+      class="hidden"
+      type="file"
+      accept="image/*"
+      capture="environment"
+    />
+
+
+    <!-- ESTADO -->
+
+    <div
+      id="status"
+      class="status"
+    >
+
+      <span
+        id="statusSpin"
+        class="spinner"
+      ></span>
+
+      <span id="statusText">
+      </span>
+
+    </div>
+
+
+    <!-- FOTO / TRANSCRIPCIÓN -->
+
+    <section
+      id="sourceCard"
+      class="card hidden"
+    >
+
+      <img
+        id="photoPreview"
+        class="preview-img hidden"
+        alt="Factura"
+      />
+
+
+      <div
+        id="voicePreview"
+        class="hidden"
+      >
+
+        <span class="label">
+          Texto reconocido
+        </span>
+
+        <div
+          id="transcript"
+          class="transcript"
+        ></div>
+
+      </div>
+
+    </section>
+
+
+    <!-- RESULTADOS -->
+
+    <section
+      id="resultsCard"
+      class="card hidden"
+    >
+
+      <div
+        style="
+          display:flex;
+          align-items:center;
+          justify-content:space-between;
+          gap:10px;
+          margin-bottom:8px;
+        "
+      >
+
+        <div>
+
+          <strong>
+            Datos de la factura
+          </strong>
+
+          <div
+            class="label"
+            style="margin:3px 0 0;"
+          >
+            Revisa o modifica los datos antes de guardar.
+          </div>
+
+        </div>
+
+
+        <button
+          id="addRowBtn"
+          class="btn btn-secondary"
+          type="button"
+        >
+          + Fila
+        </button>
+
+      </div>
+
+
+      <div class="table-wrap">
+
+        <table>
+
+          <thead>
+
+            <tr>
+
+              <th>
+                Cantidad
+              </th>
+
+              <th>
+                Producto
+              </th>
+
+              <th>
+                Valor
+              </th>
+
+              <th>
+              </th>
+
+            </tr>
+
+          </thead>
+
+
+          <tbody id="itemsBody">
+          </tbody>
+
+        </table>
+
+      </div>
+
+
+      <div class="actions">
+
+        <button
+          id="clearBtn"
+          class="btn btn-secondary"
+          type="button"
+        >
+          Limpiar
+        </button>
+
+
+        <button
+          id="saveBtn"
+          class="btn btn-primary"
+          type="button"
+        >
+          Guardar en Facturas
+        </button>
+
+      </div>
+
+    </section>
+
+
+    <div class="foot">
+
+      Fecha y número se generan automáticamente al guardar.
+
+    </div>
+
+  </main>
+
+
+
+  <script>
+
+    /*
+    ========================================================
+    IMPORTANTE
+    ========================================================
+
+    Después de publicar Apps Script como aplicación web,
+    pega aquí la URL que termina en /exec.
+
+    Ejemplo:
+
+    const API_URL =
+    'https://script.google.com/macros/s/AKfycbw-DWXRRiUo7JUBB28T19MxUtTy_EChPB3pi7fGUWLCjrzDvUzMNP4GBKvgrW3jqhD-/exec';
+
+    ========================================================
+    */
+
+    const API_URL =
+      'PEGA_AQUI_LA_URL_DEL_WEB_APP';
+
+
+
+    const $ = id =>
+      document.getElementById(id);
+
+
+
+    const state = {
+
+      recorder: null,
+
+      stream: null,
+
+      chunks: [],
+
+      isRecording: false
+
+    };
+
+
+
+    document.addEventListener(
+      'DOMContentLoaded',
+      () => {
+
+        $('pin').value =
+          sessionStorage.getItem('facturas_pin') || '';
+
+
+        $('photoBtn')
+          .addEventListener(
+            'click',
+            () => $('cameraInput').click()
+          );
+
+
+        $('cameraInput')
+          .addEventListener(
+            'change',
+            handlePhoto
+          );
+
+
+        $('voiceBtn')
+          .addEventListener(
+            'click',
+            toggleVoice
+          );
+
+
+        $('addRowBtn')
+          .addEventListener(
+            'click',
+            () => addRow({
+              cantidad: 1,
+              producto: '',
+              valor: ''
+            })
+          );
+
+
+        $('clearBtn')
+          .addEventListener(
+            'click',
+            clearAll
+          );
+
+
+        $('saveBtn')
+          .addEventListener(
+            'click',
+            saveItems
+          );
+
+
+        $('pin')
+          .addEventListener(
+            'change',
+            () => {
+
+              sessionStorage.setItem(
+                'facturas_pin',
+                $('pin').value.trim()
+              );
+
+            }
+          );
+
+      }
+    );
+
+
+
+    /*
+    ========================================================
+    FOTO
+    ========================================================
+    */
+
+    async function handlePhoto(e) {
+
+      const file =
+        e.target.files?.[0];
+
+
+      e.target.value = '';
+
+
+      if (!file) {
+        return;
+      }
+
+
+      try {
+
+        ensureConfigured();
+
+
+        setStatus(
+          'Preparando fotografía…',
+          false,
+          true
+        );
+
+
+        const dataUrl =
+          await compressImage(
+            file,
+            1600,
+            0.82
+          );
+
+
+        $('photoPreview').src =
+          dataUrl;
+
+
+        $('photoPreview')
+          .classList
+          .remove('hidden');
+
+
+        $('voicePreview')
+          .classList
+          .add('hidden');
+
+
+        $('sourceCard')
+          .classList
+          .remove('hidden');
+
+
+        setStatus(
+          'OpenAI está leyendo la factura…',
+          false,
+          true
+        );
+
+
+        const result =
+          await callApi({
+
+            action:
+              'analyzePhoto',
+
+            image:
+              dataUrl
+
+          });
+
+
+        renderItems(
+          result.items || []
+        );
+
+
+        setStatus(
+          `Factura procesada. ${result.items?.length || 0} producto(s) encontrado(s).`,
+          false,
+          false
+        );
+
+      }
+      catch (err) {
+
+        setStatus(
+          err.message || String(err),
+          true,
+          false
+        );
+
+      }
+
+    }
+
+
+
+    /*
+    ========================================================
+    VOZ
+    ========================================================
+    */
+
+    async function toggleVoice() {
+
+      if (state.isRecording) {
+
+        stopVoice();
+
+        return;
+
+      }
+
+
+      try {
+
+        ensureConfigured();
+
+
+        if (
+          !navigator.mediaDevices?.getUserMedia ||
+          typeof MediaRecorder === 'undefined'
+        ) {
+
+          throw new Error(
+            'Este navegador no permite grabar audio. Utiliza Chrome, Edge o Safari actualizado.'
+          );
+
+        }
+
+
+        state.stream =
+          await navigator.mediaDevices
+            .getUserMedia({
+              audio: true
+            });
+
+
+
+        const candidates = [
+
+          'audio/webm;codecs=opus',
+
+          'audio/mp4',
+
+          'audio/webm',
+
+          'audio/ogg;codecs=opus'
+
+        ];
+
+
+
+        const mimeType =
+          candidates.find(
+            type =>
+              MediaRecorder.isTypeSupported?.(
+                type
+              )
+          ) || '';
+
+
+
+        state.recorder =
+          mimeType
+            ?
+              new MediaRecorder(
+                state.stream,
+                {
+                  mimeType:
+                    mimeType
+                }
+              )
+            :
+              new MediaRecorder(
+                state.stream
+              );
+
+
+
+        state.chunks = [];
+
+
+
+        state.recorder
+          .ondataavailable =
+          event => {
+
+            if (
+              event.data &&
+              event.data.size
+            ) {
+
+              state.chunks.push(
+                event.data
+              );
+
+            }
+
+          };
+
+
+
+        state.recorder
+          .onstop =
+          processVoice;
+
+
+
+        state.recorder.start();
+
+
+
+        state.isRecording =
+          true;
+
+
+
+        $('voiceBtn')
+          .classList
+          .add('recording');
+
+
+
+        $('voiceTitle')
+          .textContent =
+          'Detener';
+
+
+
+        $('voiceHint')
+          .textContent =
+          'Escuchando… toca para terminar';
+
+
+
+        setStatus(
+          '🎙️ Grabando dictado…',
+          false,
+          false
+        );
+
+      }
+      catch (err) {
+
+        setStatus(
+          err.message || String(err),
+          true,
+          false
+        );
+
+      }
+
+    }
+
+
+
+    function stopVoice() {
+
+      if (
+        !state.recorder ||
+        state.recorder.state === 'inactive'
+      ) {
+
+        return;
+
+      }
+
+
+      state.recorder.stop();
+
+
+      state.stream
+        ?.getTracks()
+        .forEach(
+          track =>
+            track.stop()
+        );
+
+
+      state.isRecording =
+        false;
+
+
+      $('voiceBtn')
+        .classList
+        .remove('recording');
+
+
+      $('voiceTitle')
+        .textContent =
+        'Voz';
+
+
+      $('voiceHint')
+        .textContent =
+        'Dictar productos y valores';
+
+    }
+
+
+
+    async function processVoice() {
+
+      try {
+
+        const mimeType =
+          state.recorder?.mimeType ||
+          state.chunks[0]?.type ||
+          'audio/webm';
+
+
+
+        const blob =
+          new Blob(
+            state.chunks,
+            {
+              type:
+                mimeType
+            }
+          );
+
+
+
+        if (!blob.size) {
+
+          throw new Error(
+            'No se recibió audio. Intenta nuevamente.'
+          );
+
+        }
+
+
+
+        setStatus(
+          'Transcribiendo y organizando el dictado…',
+          false,
+          true
+        );
+
+
+
+        const audioDataUrl =
+          await blobToDataUrl(
+            blob
+          );
+
+
+
+        const result =
+          await callApi({
+
+            action:
+              'analyzeVoice',
+
+            audio:
+              audioDataUrl
+
+          });
+
+
+
+        $('photoPreview')
+          .classList
+          .add('hidden');
+
+
+
+        $('voicePreview')
+          .classList
+          .remove('hidden');
+
+
+
+        $('transcript')
+          .textContent =
+          result.transcript || '';
+
+
+
+        $('sourceCard')
+          .classList
+          .remove('hidden');
+
+
+
+        renderItems(
+          result.items || []
+        );
+
+
+
+        setStatus(
+          `Dictado procesado. ${result.items?.length || 0} producto(s) encontrado(s).`,
+          false,
+          false
+        );
+
+      }
+      catch (err) {
+
+        setStatus(
+          err.message || String(err),
+          true,
+          false
+        );
+
+      }
+
+    }
+
+
+
+    /*
+    ========================================================
+    TABLA EDITABLE
+    ========================================================
+    */
+
+    function renderItems(items) {
+
+      $('itemsBody')
+        .innerHTML =
+        '';
+
+
+      (items || [])
+        .forEach(
+          item =>
+            addRow(item)
+        );
+
+
+      if (!items?.length) {
+
+        addRow({
+
+          cantidad: 1,
+
+          producto: '',
+
+          valor: ''
+
+        });
+
+      }
+
+
+      $('resultsCard')
+        .classList
+        .remove('hidden');
+
+    }
+
+
+
+    function addRow(item = {}) {
+
+      const tr =
+        document.createElement(
+          'tr'
+        );
+
+
+      tr.innerHTML = `
+
+        <td>
+
+          <input
+            class="qty"
+            type="number"
+            inputmode="decimal"
+            step="0.001"
+            min="0"
+            value="${escapeAttr(item.cantidad ?? '')}"
+          >
+
+        </td>
+
+
+        <td>
+
+          <input
+            class="product"
+            type="text"
+            value="${escapeAttr(item.producto ?? '')}"
+            placeholder="Producto"
+          >
+
+        </td>
+
+
+        <td>
+
+          <input
+            class="value"
+            type="number"
+            inputmode="decimal"
+            step="0.01"
+            min="0"
+            value="${escapeAttr(item.valor ?? '')}"
+          >
+
+        </td>
+
+
+        <td>
+
+          <button
+            class="remove"
+            type="button"
+            aria-label="Eliminar"
+          >
+            ✕
+          </button>
+
+        </td>
+
+      `;
+
+
+
+      tr
+        .querySelector(
+          '.remove'
+        )
+        .addEventListener(
+          'click',
+          () => tr.remove()
+        );
+
+
+
+      $('itemsBody')
+        .appendChild(
+          tr
+        );
+
+    }
+
+
+
+    /*
+    ========================================================
+    GUARDAR
+    ========================================================
+    */
+
+    async function saveItems() {
+
+      try {
+
+        ensureConfigured();
+
+
+
+        const items = [
+
+          ...$('itemsBody')
+            .querySelectorAll(
+              'tr'
+            )
+
+        ]
+
+        .map(
+          tr => ({
+
+            cantidad:
+              readNumber(
+                tr.querySelector(
+                  '.qty'
+                )
+              ),
+
+            producto:
+              tr
+                .querySelector(
+                  '.product'
+                )
+                .value
+                .trim(),
+
+            valor:
+              readNumber(
+                tr.querySelector(
+                  '.value'
+                )
+              )
+
+          })
+        )
+
+        .filter(
+          item =>
+            item.producto ||
+            Number.isFinite(
+              item.cantidad
+            ) ||
+            Number.isFinite(
+              item.valor
+            )
+        );
+
+
+
+        if (!items.length) {
+
+          throw new Error(
+            'No hay información para guardar.'
+          );
+
+        }
+
+
+
+        const invalid =
+          items.find(
+            item =>
+
+              !item.producto ||
+
+              !Number.isFinite(
+                item.cantidad
+              ) ||
+
+              item.cantidad <= 0 ||
+
+              !Number.isFinite(
+                item.valor
+              ) ||
+
+              item.valor < 0
+
+          );
+
+
+
+        if (invalid) {
+
+          throw new Error(
+            'Revisa las filas. Cantidad, Producto y Valor deben estar completos.'
+          );
+
+        }
+
+
+
+        setStatus(
+          'Guardando en Google Sheets…',
+          false,
+          true
+        );
+
+
+
+        const result =
+          await callApi({
+
+            action:
+              'save',
+
+            items:
+              items
+
+          });
+
+
+
+        let numeros =
+          String(
+            result.firstNo
+          );
+
+
+        if (
+          result.lastNo !==
+          result.firstNo
+        ) {
+
+          numeros +=
+            ' - ' +
+            result.lastNo;
+
+        }
+
+
+
+        setStatus(
+
+          `✅ Guardado correctamente. No. ${numeros} — Fecha ${result.date}`,
+
+          false,
+
+          false
+
+        );
+
+
+
+        clearAll(
+          false
+        );
+
+      }
+      catch (err) {
+
+        setStatus(
+          err.message || String(err),
+          true,
+          false
+        );
+
+      }
+
+    }
+
+
+
+    /*
+    ========================================================
+    COMUNICACIÓN CON APPS SCRIPT
+    ========================================================
+    */
+
+    async function callApi(payload) {
+
+      const pin =
+        $('pin')
+          .value
+          .trim();
+
+
+
+      sessionStorage.setItem(
+        'facturas_pin',
+        pin
+      );
+
+
+
+      payload.pin =
+        pin;
+
+
+
+      const response =
+        await fetch(
+          API_URL,
+          {
+
+            method:
+              'POST',
+
+            headers: {
+
+              /*
+              text/plain evita una solicitud
+              OPTIONS previa en muchos navegadores.
+              */
+
+              'Content-Type':
+                'text/plain;charset=utf-8'
+
+            },
+
+            body:
+              JSON.stringify(
+                payload
+              ),
+
+            redirect:
+              'follow',
+
+            cache:
+              'no-store'
+
+          }
+        );
+
+
+
+      const raw =
+        await response.text();
+
+
+
+      let data;
+
+
+
+      try {
+
+        data =
+          JSON.parse(
+            raw
+          );
+
+      }
+      catch (_) {
+
+        throw new Error(
+          'Apps Script no devolvió una respuesta válida. Revisa la implementación de la aplicación web.'
+        );
+
+      }
+
+
+
+      if (!data.ok) {
+
+        throw new Error(
+          data.error ||
+          'Error en el servidor.'
+        );
+
+      }
+
+
+
+      return data;
+
+    }
+
+
+
+    function ensureConfigured() {
+
+      if (
+        !API_URL ||
+        API_URL.includes(
+          'PEGA_AQUI'
+        )
+      ) {
+
+        throw new Error(
+          'Debes pegar la URL /exec de Apps Script en API_URL dentro del HTML.'
+        );
+
+      }
+
+    }
+
+
+
+    /*
+    ========================================================
+    MENSAJES
+    ========================================================
+    */
+
+    function setStatus(
+      message,
+      isError = false,
+      spinning = false
+    ) {
+
+      $('statusText')
+        .textContent =
+        message;
+
+
+
+      $('status')
+        .classList
+        .toggle(
+          'error',
+          !!isError
+        );
+
+
+
+      $('statusSpin')
+        .classList
+        .toggle(
+          'hidden',
+          !spinning
+        );
+
+
+
+      $('status')
+        .classList
+        .add(
+          'show'
+        );
+
+    }
+
+
+
+    function clearAll(
+      hideStatus = true
+    ) {
+
+      $('itemsBody')
+        .innerHTML =
+        '';
+
+
+
+      $('resultsCard')
+        .classList
+        .add(
+          'hidden'
+        );
+
+
+
+      $('sourceCard')
+        .classList
+        .add(
+          'hidden'
+        );
+
+
+
+      $('photoPreview')
+        .src =
+        '';
+
+
+
+      $('transcript')
+        .textContent =
+        '';
+
+
+
+      if (hideStatus) {
+
+        $('status')
+          .classList
+          .remove(
+            'show'
+          );
+
+      }
+
+    }
+
+
+
+    /*
+    ========================================================
+    UTILIDADES
+    ========================================================
+    */
+
+    function readNumber(input) {
+
+      if (!input) {
+
+        return NaN;
+
+      }
+
+
+      if (
+        Number.isFinite(
+          input.valueAsNumber
+        )
+      ) {
+
+        return input.valueAsNumber;
+
+      }
+
+
+      const value =
+        Number(
+          String(
+            input.value
+          )
+          .replace(
+            ',',
+            '.'
+          )
+        );
+
+
+      return Number.isFinite(
+        value
+      )
+        ?
+          value
+        :
+          NaN;
+
+    }
+
+
+
+    function escapeAttr(value) {
+
+      return String(
+        value ?? ''
+      )
+
+      .replaceAll(
+        '&',
+        '&amp;'
+      )
+
+      .replaceAll(
+        '"',
+        '&quot;'
+      )
+
+      .replaceAll(
+        '<',
+        '&lt;'
+      )
+
+      .replaceAll(
+        '>',
+        '&gt;'
+      );
+
+    }
+
+
+
+    function blobToDataUrl(blob) {
+
+      return new Promise(
+        (
+          resolve,
+          reject
+        ) => {
+
+          const reader =
+            new FileReader();
+
+
+
+          reader.onload =
+            () =>
+              resolve(
+                reader.result
+              );
+
+
+
+          reader.onerror =
+            () =>
+              reject(
+                new Error(
+                  'No se pudo leer el audio.'
+                )
+              );
+
+
+
+          reader.readAsDataURL(
+            blob
+          );
+
+        }
+      );
+
+    }
+
+
+
+    /*
+    ========================================================
+    REDUCIR FOTO ANTES DE ENVIAR
+    ========================================================
+    */
+
+    async function compressImage(
+      file,
+      maxDimension = 1600,
+      quality = 0.82
+    ) {
+
+      let image;
+
+
+
+      try {
+
+        image =
+          await createImageBitmap(
+            file,
+            {
+              imageOrientation:
+                'from-image'
+            }
+          );
+
+      }
+      catch (_) {
+
+        image =
+          await loadImageFallback(
+            file
+          );
+
+      }
+
+
+
+      const widthOriginal =
+        image.width ||
+        image.naturalWidth;
+
+
+
+      const heightOriginal =
+        image.height ||
+        image.naturalHeight;
+
+
+
+      const ratio =
+        Math.min(
+
+          1,
+
+          maxDimension /
+          Math.max(
+            widthOriginal,
+            heightOriginal
+          )
+
+        );
+
+
+
+      const width =
+        Math.max(
+          1,
+          Math.round(
+            widthOriginal *
+            ratio
+          )
+        );
+
+
+
+      const height =
+        Math.max(
+          1,
+          Math.round(
+            heightOriginal *
+            ratio
+          )
+        );
+
+
+
+      const canvas =
+        document.createElement(
+          'canvas'
+        );
+
+
+
+      canvas.width =
+        width;
+
+
+
+      canvas.height =
+        height;
+
+
+
+      const ctx =
+        canvas.getContext(
+          '2d'
+        );
+
+
+
+      ctx.drawImage(
+        image,
+        0,
+        0,
+        width,
+        height
+      );
+
+
+
+      if (
+        typeof image.close ===
+        'function'
+      ) {
+
+        image.close();
+
+      }
+
+
+
+      return canvas.toDataURL(
+        'image/jpeg',
+        quality
+      );
+
+    }
+
+
+
+    function loadImageFallback(
+      file
+    ) {
+
+      return new Promise(
+        (
+          resolve,
+          reject
+        ) => {
+
+          const img =
+            new Image();
+
+
+
+          const url =
+            URL.createObjectURL(
+              file
+            );
+
+
+
+          img.onload =
+            () => {
+
+              URL.revokeObjectURL(
+                url
+              );
+
+              resolve(
+                img
+              );
+
+            };
+
+
+
+          img.onerror =
+            () => {
+
+              URL.revokeObjectURL(
+                url
+              );
+
+              reject(
+                new Error(
+                  'No se pudo abrir la fotografía.'
+                )
+              );
+
+            };
+
+
+
+          img.src =
+            url;
+
+        }
+      );
+
+    }
+
+  </script>
+
+</body>
+</html>
