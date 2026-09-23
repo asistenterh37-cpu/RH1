@@ -2561,717 +2561,669 @@ window.addEventListener(
        RENDER REPORTE
        ======================================================== */
 
-    function renderReportResult(
-      data
-    ){
+    /* ========================================================
+   RENDER REPORTE
+   ======================================================== */
 
-      const receipt =
-        document.getElementById(
-          'receipt'
-        );
-
-
-      const state =
-        document.getElementById(
-          'accountState'
-        );
-
-
-      const grandTotal =
-        document.getElementById(
-          'grandTotal'
-        );
-
-
-      const title =
-        document.querySelector(
-          '.screen-head span:first-child'
-        );
-
-
-      if(
-        !receipt
-      ){
-
-        return;
-
-      }
-
-
-      if(
-        title
-      ){
-
-        title.textContent =
-          String(
-            data.titulo
-            ||
-            'REPORTE'
-          )
-          .toUpperCase();
-
-      }
-
-
-      const summary =
-        data.summary
-        ||
-        {};
-
-
-      const items =
-        Array.isArray(
-          data.items
-        )
-        ?
-        data.items
-        :
-        [];
-
-
-      let summaryHtml =
-        '';
-
-
-      let rowsHtml =
-        '';
-
-
-      let stateText =
-        'REPORTE';
-
-
-      let totalText =
-        '—';
-
-
-      /* ======================================================
-         DIARIO / MENSUAL
-         ====================================================== */
-
-      if(
-        data.tipo ===
-        'daily'
-        ||
-        data.tipo ===
-        'monthly'
-      ){
-
-        stateText =
-          data.periodo
-          ||
-          'VENTAS';
-
-
-        totalText =
-          money(
-            summary.total
-            ||
-            0
-          );
-
-
-        summaryHtml =
-          `
-          <div class="report-summary">
-
-            ${reportStat(
-              'Ventas',
-              String(
-                summary.ventas
-                ||
-                0
-              )
-            )}
-
-            ${reportStat(
-              'Unidades',
-              String(
-                summary.unidades
-                ||
-                0
-              )
-            )}
-
-            ${reportStat(
-              'Total',
-              money(
-                summary.total
-                ||
-                0
-              )
-            )}
-
-          </div>
-          `;
-
-
-        rowsHtml =
-          items
-            .map(
-              row => `
-                <div class="report-row">
-
-                  <div class="report-row-main">
-
-                    <strong>
-                      ${escapeHtml(row.item)}
-                    </strong>
-
-                    <small>
-                      ${escapeHtml(row.categoria)}
-                      ·
-                      ${Number(row.cantidad || 0)}
-                      unidades
-                    </small>
-
-                  </div>
-
-                  <div class="report-row-value">
-                    ${money(row.total || 0)}
-                  </div>
-
-                </div>
-              `
-            )
-            .join('');
-
-      }
-
-/* ======================================================
- GASTOS DEL MES
- ====================================================== */
-
-else if(
-  data.tipo ===
-  'expensesMonthly'
+function renderReportResult(
+  data
 ){
 
-  stateText =
-    data.periodo
-    ||
-    'GASTOS';
-
-
-  totalText =
-    money(
-      summary.total
-      ||
-      0
+  const receipt =
+    document.getElementById(
+      'receipt'
     );
 
 
-  summaryHtml =
-    `
+  const state =
+    document.getElementById(
+      'accountState'
+    );
 
-    <div class="report-summary">
 
-      ${reportStat(
-        'Movimientos',
-        String(
-          summary.movimientos
-          ||
-          0
+  const grandTotal =
+    document.getElementById(
+      'grandTotal'
+    );
+
+
+  const title =
+    document.querySelector(
+      '.screen-head span:first-child'
+    );
+
+
+  if(
+    !receipt
+  ){
+
+    return;
+
+  }
+
+
+  if(
+    title
+  ){
+
+    title.textContent =
+      String(
+        data.titulo
+        ||
+        'REPORTE'
+      )
+      .toUpperCase();
+
+  }
+
+
+  const summary =
+    data.summary
+    ||
+    {};
+
+
+  const items =
+    Array.isArray(
+      data.items
+    )
+    ?
+    data.items
+    :
+    [];
+
+
+  /*
+   * summaryHtml queda vacío por defecto.
+   *
+   * Diario, Mensual, Gastos, Categoría,
+   * Item e Inventario ya NO mostrarán
+   * tarjetas de resumen arriba.
+   *
+   * Rentabilidad sí conserva sus tarjetas.
+   */
+
+  let summaryHtml =
+    '';
+
+
+  let rowsHtml =
+    '';
+
+
+  let stateText =
+    'REPORTE';
+
+
+  let totalText =
+    '—';
+
+
+  /* ======================================================
+     DIARIO / MENSUAL
+     ======================================================
+     NO MOSTRAR:
+     - Ventas
+     - Unidades
+     - Total
+
+     El total permanece abajo de la pantalla.
+     ====================================================== */
+
+  if(
+    data.tipo ===
+    'daily'
+    ||
+    data.tipo ===
+    'monthly'
+  ){
+
+    stateText =
+      data.periodo
+      ||
+      'VENTAS';
+
+
+    totalText =
+      money(
+        summary.total
+        ||
+        0
+      );
+
+
+    summaryHtml =
+      '';
+
+
+    rowsHtml =
+      items
+        .map(
+          row => `
+            <div class="report-row">
+
+              <div class="report-row-main">
+
+                <strong>
+                  ${escapeHtml(row.item)}
+                </strong>
+
+                <small>
+                  ${escapeHtml(row.categoria)}
+                  ·
+                  ${Number(row.cantidad || 0)}
+                  unidades
+                </small>
+
+              </div>
+
+              <div class="report-row-value">
+                ${money(row.total || 0)}
+              </div>
+
+            </div>
+          `
         )
-      )}
+        .join('');
 
-      ${reportStat(
-        'Cuentas',
-        String(
-          summary.cuentas
-          ||
-          0
+  }
+
+
+  /* ======================================================
+     GASTOS DEL MES
+     ======================================================
+     NO MOSTRAR:
+     - Movimientos
+     - Cuentas
+     - Total
+
+     El total permanece abajo de la pantalla.
+     ====================================================== */
+
+  else if(
+    data.tipo ===
+    'expensesMonthly'
+  ){
+
+    stateText =
+      data.periodo
+      ||
+      'GASTOS';
+
+
+    totalText =
+      money(
+        summary.total
+        ||
+        0
+      );
+
+
+    summaryHtml =
+      '';
+
+
+    rowsHtml =
+      items
+        .map(
+          row => `
+
+            <div class="report-row">
+
+              <div class="report-row-main">
+
+                <strong>
+                  ${escapeHtml(row.cuenta)}
+                </strong>
+
+                <small>
+
+                  ${Number(
+                    row.movimientos
+                    ||
+                    0
+                  )}
+
+                  ${
+                    Number(
+                      row.movimientos
+                      ||
+                      0
+                    )
+                    ===
+                    1
+                    ?
+                    'movimiento'
+                    :
+                    'movimientos'
+                  }
+
+                </small>
+
+              </div>
+
+
+              <div class="report-row-value">
+
+                ${money(
+                  row.total
+                  ||
+                  0
+                )}
+
+              </div>
+
+            </div>
+
+          `
         )
-      )}
+        .join('');
 
-      ${reportStat(
-        'Total',
-        money(
-          summary.total
-          ||
-          0
+  }
+
+
+  /* ======================================================
+     VENTAS POR CATEGORIA
+     ======================================================
+     NO MOSTRAR:
+     - Categorías
+     - Unidades
+     - Ventas
+
+     El total permanece abajo de la pantalla.
+     ====================================================== */
+
+  else if(
+    data.tipo ===
+    'category'
+  ){
+
+    stateText =
+      'ACUMULADO';
+
+
+    totalText =
+      money(
+        summary.total
+        ||
+        0
+      );
+
+
+    summaryHtml =
+      '';
+
+
+    rowsHtml =
+      items
+        .map(
+          row => `
+
+            <div class="report-row">
+
+              <div class="report-row-main">
+
+                <strong>
+                  ${escapeHtml(row.categoria)}
+                </strong>
+
+                <small>
+                  ${Number(row.cantidad || 0)}
+                  unidades
+                </small>
+
+              </div>
+
+
+              <div class="report-row-value">
+                ${money(row.total || 0)}
+              </div>
+
+            </div>
+
+          `
         )
-      )}
+        .join('');
 
-    </div>
-
-    `;
+  }
 
 
-  rowsHtml =
-    items
-    .map(
-      row => `
+  /* ======================================================
+     VENTAS POR ITEM
+     ======================================================
+     NO MOSTRAR:
+     - Ítems
+     - Unidades
+     - Ventas
 
-      <div class="report-row">
+     El total permanece abajo de la pantalla.
+     ====================================================== */
 
-        <div class="report-row-main">
+  else if(
+    data.tipo ===
+    'item'
+  ){
 
-          <strong>
-            ${escapeHtml(row.cuenta)}
-          </strong>
+    stateText =
+      'ACUMULADO';
 
-          <small>
-            ${Number(
-              row.movimientos
+
+    totalText =
+      money(
+        summary.total
+        ||
+        0
+      );
+
+
+    summaryHtml =
+      '';
+
+
+    rowsHtml =
+      items
+        .map(
+          row => `
+
+            <div class="report-row">
+
+              <div class="report-row-main">
+
+                <strong>
+                  ${escapeHtml(row.item)}
+                </strong>
+
+                <small>
+                  ${escapeHtml(row.categoria)}
+                  ·
+                  ${Number(row.cantidad || 0)}
+                  unidades
+                </small>
+
+              </div>
+
+
+              <div class="report-row-value">
+                ${money(row.total || 0)}
+              </div>
+
+            </div>
+
+          `
+        )
+        .join('');
+
+  }
+
+
+  /* ======================================================
+     INVENTARIO
+     ======================================================
+     NO MOSTRAR:
+     - Ítems
+     - Unidades
+     - Valor
+
+     El valor total permanece abajo de la pantalla.
+     ====================================================== */
+
+  else if(
+    data.tipo ===
+    'inventory'
+  ){
+
+    stateText =
+      'VALOR INVENTARIO';
+
+
+    totalText =
+      money(
+        summary.total
+        ||
+        0
+      );
+
+
+    summaryHtml =
+      '';
+
+
+    rowsHtml =
+      items
+        .map(
+          row => `
+
+            <div class="report-row">
+
+              <div class="report-row-main">
+
+                <strong>
+                  ${escapeHtml(row.item)}
+                </strong>
+
+                <small>
+
+                  ${escapeHtml(row.categoria)}
+
+                  · Stock:
+                  ${Number(row.cantidad || 0)}
+
+                  · Costo:
+                  ${money(row.costo || 0)}
+
+                </small>
+
+              </div>
+
+
+              <div class="report-row-value">
+                ${money(row.total || 0)}
+              </div>
+
+            </div>
+
+          `
+        )
+        .join('');
+
+  }
+
+
+  /* ======================================================
+     RENTABILIDAD
+     ======================================================
+     ESTE REPORTE SE DEJA COMO ESTÁ.
+
+     Conserva las tarjetas:
+     - Ventas
+     - Costo
+     - Utilidad
+     - Margen
+     ====================================================== */
+
+  else if(
+    data.tipo ===
+    'profitability'
+  ){
+
+    stateText =
+      'UTILIDAD';
+
+
+    totalText =
+      money(
+        summary.utilidad
+        ||
+        0
+      );
+
+
+    summaryHtml =
+      `
+        <div class="report-summary report-summary-4">
+
+          ${reportStat(
+            'Ventas',
+            money(
+              summary.total
               ||
               0
-            )}
-            ${
-              Number(
-                row.movimientos
-                ||
-                0
-              )
-              ===
+            )
+          )}
+
+          ${reportStat(
+            'Costo',
+            money(
+              summary.costo
+              ||
+              0
+            )
+          )}
+
+          ${reportStat(
+            'Utilidad',
+            money(
+              summary.utilidad
+              ||
+              0
+            )
+          )}
+
+          ${reportStat(
+            'Margen',
+            Number(
+              summary.margen
+              ||
+              0
+            )
+            .toFixed(
               1
-              ?
-              'movimiento'
-              :
-              'movimientos'
-            }
-          </small>
-
-        </div>
-
-        <div class="report-row-value">
-
-          ${money(
-            row.total
-            ||
-            0
+            )
+            +
+            '%'
           )}
 
         </div>
+      `;
 
-      </div>
 
+    rowsHtml =
+      items
+        .map(
+          row => `
+
+            <div class="report-row">
+
+              <div class="report-row-main">
+
+                <strong>
+                  ${escapeHtml(row.item)}
+                </strong>
+
+                <small>
+
+                  ${escapeHtml(row.categoria)}
+
+                  · Venta:
+                  ${money(row.total || 0)}
+
+                  · Costo:
+                  ${money(row.costo || 0)}
+
+                </small>
+
+              </div>
+
+
+              <div class="report-row-value">
+                +${money(row.utilidad || 0)}
+              </div>
+
+            </div>
+
+          `
+        )
+        .join('');
+
+  }
+
+
+  /* ======================================================
+     SIN INFORMACION
+     ====================================================== */
+
+  if(
+    !rowsHtml
+  ){
+
+    rowsHtml =
       `
-    )
-    .join('');
-
-}
-      /* ======================================================
-         CATEGORIA
-         ====================================================== */
-
-      else if(
-        data.tipo ===
-        'category'
-      ){
-
-        stateText =
-          'ACUMULADO';
-
-
-        totalText =
-          money(
-            summary.total
-            ||
-            0
-          );
-
-
-        summaryHtml =
-          `
-          <div class="report-summary">
-
-            ${reportStat(
-              'Categorías',
-              String(
-                items.length
-              )
-            )}
-
-            ${reportStat(
-              'Unidades',
-              String(
-                summary.unidades
-                ||
-                0
-              )
-            )}
-
-            ${reportStat(
-              'Ventas',
-              money(
-                summary.total
-                ||
-                0
-              )
-            )}
-
-          </div>
-          `;
-
-
-        rowsHtml =
-          items
-            .map(
-              row => `
-                <div class="report-row">
-
-                  <div class="report-row-main">
-
-                    <strong>
-                      ${escapeHtml(row.categoria)}
-                    </strong>
-
-                    <small>
-                      ${Number(row.cantidad || 0)}
-                      unidades
-                    </small>
-
-                  </div>
-
-                  <div class="report-row-value">
-                    ${money(row.total || 0)}
-                  </div>
-
-                </div>
-              `
-            )
-            .join('');
-
-      }
-
-
-      /* ======================================================
-         ITEM
-         ====================================================== */
-
-      else if(
-        data.tipo ===
-        'item'
-      ){
-
-        stateText =
-          'ACUMULADO';
-
-
-        totalText =
-          money(
-            summary.total
-            ||
-            0
-          );
-
-
-        summaryHtml =
-          `
-          <div class="report-summary">
-
-            ${reportStat(
-              'Ítems',
-              String(
-                items.length
-              )
-            )}
-
-            ${reportStat(
-              'Unidades',
-              String(
-                summary.unidades
-                ||
-                0
-              )
-            )}
-
-            ${reportStat(
-              'Ventas',
-              money(
-                summary.total
-                ||
-                0
-              )
-            )}
-
-          </div>
-          `;
-
-
-        rowsHtml =
-          items
-            .map(
-              row => `
-                <div class="report-row">
-
-                  <div class="report-row-main">
-
-                    <strong>
-                      ${escapeHtml(row.item)}
-                    </strong>
-
-                    <small>
-                      ${escapeHtml(row.categoria)}
-                      ·
-                      ${Number(row.cantidad || 0)}
-                      unidades
-                    </small>
-
-                  </div>
-
-                  <div class="report-row-value">
-                    ${money(row.total || 0)}
-                  </div>
-
-                </div>
-              `
-            )
-            .join('');
-
-      }
-
-
-      /* ======================================================
-         INVENTARIO
-         ====================================================== */
-
-      else if(
-        data.tipo ===
-        'inventory'
-      ){
-
-        stateText =
-          'VALOR INVENTARIO';
-
-
-        totalText =
-          money(
-            summary.total
-            ||
-            0
-          );
-
-
-        summaryHtml =
-          `
-          <div class="report-summary">
-
-            ${reportStat(
-              'Ítems',
-              String(
-                summary.items
-                ||
-                0
-              )
-            )}
-
-            ${reportStat(
-              'Unidades',
-              String(
-                summary.unidades
-                ||
-                0
-              )
-            )}
-
-            ${reportStat(
-              'Valor',
-              money(
-                summary.total
-                ||
-                0
-              )
-            )}
-
-          </div>
-          `;
-
-
-        rowsHtml =
-          items
-            .map(
-              row => `
-                <div class="report-row">
-
-                  <div class="report-row-main">
-
-                    <strong>
-                      ${escapeHtml(row.item)}
-                    </strong>
-
-                    <small>
-                      ${escapeHtml(row.categoria)}
-                      · Stock:
-                      ${Number(row.cantidad || 0)}
-                      · Costo:
-                      ${money(row.costo || 0)}
-                    </small>
-
-                  </div>
-
-                  <div class="report-row-value">
-                    ${money(row.total || 0)}
-                  </div>
-
-                </div>
-              `
-            )
-            .join('');
-
-      }
-
-
-      /* ======================================================
-         RENTABILIDAD
-         ====================================================== */
-
-      else if(
-        data.tipo ===
-        'profitability'
-      ){
-
-        stateText =
-          'UTILIDAD';
-
-
-        totalText =
-          money(
-            summary.utilidad
-            ||
-            0
-          );
-
-
-        summaryHtml =
-          `
-          <div class="report-summary report-summary-4">
-
-            ${reportStat(
-              'Ventas',
-              money(
-                summary.total
-                ||
-                0
-              )
-            )}
-
-            ${reportStat(
-              'Costo',
-              money(
-                summary.costo
-                ||
-                0
-              )
-            )}
-
-            ${reportStat(
-              'Utilidad',
-              money(
-                summary.utilidad
-                ||
-                0
-              )
-            )}
-
-            ${reportStat(
-              'Margen',
-              Number(
-                summary.margen
-                ||
-                0
-              )
-              .toFixed(
-                1
-              )
-              +
-              '%'
-            )}
-
-          </div>
-          `;
-
-
-        rowsHtml =
-          items
-            .map(
-              row => `
-                <div class="report-row">
-
-                  <div class="report-row-main">
-
-                    <strong>
-                      ${escapeHtml(row.item)}
-                    </strong>
-
-                    <small>
-                      ${escapeHtml(row.categoria)}
-                      · Venta:
-                      ${money(row.total || 0)}
-                      · Costo:
-                      ${money(row.costo || 0)}
-                    </small>
-
-                  </div>
-
-                  <div class="report-row-value">
-                    +${money(row.utilidad || 0)}
-                  </div>
-
-                </div>
-              `
-            )
-            .join('');
-
-      }
-
-
-      if(
-        !rowsHtml
-      ){
-
-        rowsHtml =
-          `
-          <div class="report-empty">
-            No hay información registrada para este reporte.
-          </div>
-          `;
-
-      }
-
-
-      receipt.innerHTML =
-        summaryHtml
-        +
-        `
-        <div class="report-list">
-          ${rowsHtml}
+        <div class="report-empty">
+          No hay información registrada para este reporte.
         </div>
-        `;
+      `;
+
+  }
 
 
-      if(
-        state
-      ){
+  /* ======================================================
+     MOSTRAR REPORTE
+     ====================================================== */
 
-        state.textContent =
-          stateText;
-
-      }
-
-
-      if(
-        grandTotal
-      ){
-
-        grandTotal.textContent =
-          totalText;
-
-      }
+  receipt.innerHTML =
+    summaryHtml
+    +
+    `
+      <div class="report-list">
+        ${rowsHtml}
+      </div>
+    `;
 
 
-      requestAnimationFrame(
-        () => {
+  /* ======================================================
+     TEXTO INFERIOR IZQUIERDO
+     ====================================================== */
 
-          receipt.scrollTop =
-            0;
+  if(
+    state
+  ){
 
-        }
-      );
+    state.textContent =
+      stateText;
+
+  }
+
+
+  /* ======================================================
+     TOTAL INFERIOR DERECHO
+     ======================================================
+     SE CONSERVA.
+     ====================================================== */
+
+  if(
+    grandTotal
+  ){
+
+    grandTotal.textContent =
+      totalText;
+
+  }
+
+
+  /* ======================================================
+     REGRESAR SCROLL ARRIBA
+     ====================================================== */
+
+  requestAnimationFrame(
+    () => {
+
+      receipt.scrollTop =
+        0;
 
     }
+  );
 
+}
 
     /* ========================================================
        INTERCEPTAR RENDER ITEMS
