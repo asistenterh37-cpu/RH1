@@ -2723,7 +2723,7 @@ tr{
 
 <script>
 const SCRIPT_URL =
-'https://script.google.com/macros/s/AKfycbzlDvlTUDIK-Va_0oGo7cHUp__iUjXH13rpbSeQjmAWQCCcNzTcRsJ6Jk_t3k3LHNN5/exec';
+'https://script.google.com/macros/s/AKfycbztHokyzVlGaFdyBg_F7SsS9Sk4Rr4UHQtWxjedQLVGVKdvnJJp_pnmifP1Jfr8PQK7/exec';
 </script>
 
 <header class="topbar">
@@ -5855,12 +5855,19 @@ let currentTransaction =
 
 let catalogosData = {
 
- ubicaciones:[],
- responsables:[],
- empleados:[]
+  ubicaciones:[],
+
+  responsables:[],
+
+  empleados:[],
+
+  clientes:[],
+
+  productos:[],
+
+  saldosIniciales:{}
 
 };
-
 
 /*
  Turno usado por ESTE navegador / teléfono
@@ -9044,7 +9051,7 @@ async function cargarSaldoCreditoActual(
   }
 
 }
-/* ======================================================
+  /* ======================================================
    HOJA DE OPERACIONES POR FILAS
 ====================================================== */
 
@@ -9053,7 +9060,7 @@ const FILAS_OPERACION_INICIALES =
 
 
 /* ======================================================
-   OPCIONES DE MODULO
+   OPCIONES DEL SELECT MODULO
 ====================================================== */
 
 function opcionesModulosOperacion(){
@@ -9063,8 +9070,7 @@ function opcionesModulosOperacion(){
 
 
   const modulos =
-    catalogosData
-    &&
+    catalogosData &&
     Array.isArray(
       catalogosData.productos
     )
@@ -9077,14 +9083,30 @@ function opcionesModulosOperacion(){
   modulos.forEach(
     modulo => {
 
+      const nombre =
+        String(
+          modulo || ''
+        )
+        .trim();
+
+
+      if(
+        !nombre ||
+        nombre.toLowerCase() ===
+        'seleccionar'
+      ){
+
+        return;
+
+      }
+
+
       html += `
 
         <option
-          value="${escapeHtml(modulo)}"
+          value="${escapeHtml(nombre)}"
         >
-
-          ${escapeHtml(modulo)}
-
+          ${escapeHtml(nombre)}
         </option>
 
       `;
@@ -9099,10 +9121,12 @@ function opcionesModulosOperacion(){
 
 
 /* ======================================================
-   CREAR UNA FILA
+   CREAR FILA
 ====================================================== */
 
-function crearFilaOperacion(){
+function crearFilaOperacion(
+  datos = {}
+){
 
   const tr =
     document.createElement(
@@ -9126,6 +9150,9 @@ function crearFilaOperacion(){
         type="text"
         readonly
         tabindex="-1"
+        value="${escapeHtml(
+          datos.hora || ''
+        )}"
       >
 
     </td>
@@ -9157,6 +9184,9 @@ function crearFilaOperacion(){
         "
         type="text"
         maxlength="100"
+        value="${escapeHtml(
+          datos.movimiento || ''
+        )}"
         oninput="marcarHoraFilaOperacion(this)"
       >
 
@@ -9172,6 +9202,9 @@ function crearFilaOperacion(){
         "
         type="text"
         maxlength="250"
+        value="${escapeHtml(
+          datos.descripcion || ''
+        )}"
         oninput="marcarHoraFilaOperacion(this)"
       >
 
@@ -9190,6 +9223,9 @@ function crearFilaOperacion(){
         min="0"
         step="0.01"
         inputmode="decimal"
+        value="${escapeHtml(
+          datos.entrada || ''
+        )}"
         oninput="marcarHoraFilaOperacion(this)"
       >
 
@@ -9208,6 +9244,9 @@ function crearFilaOperacion(){
         min="0"
         step="0.01"
         inputmode="decimal"
+        value="${escapeHtml(
+          datos.salida || ''
+        )}"
         oninput="marcarHoraFilaOperacion(this)"
       >
 
@@ -9216,13 +9255,97 @@ function crearFilaOperacion(){
   `;
 
 
+  /*
+    Recuperar módulo si estamos
+    reconstruyendo una fila.
+  */
+
+  if(datos.modulo){
+
+    const select =
+      tr.querySelector(
+        '.operacion-modulo'
+      );
+
+
+    if(select){
+
+      select.value =
+        datos.modulo;
+
+    }
+
+  }
+
+
   return tr;
 
 }
 
 
 /* ======================================================
-   CREAR PANTALLA INICIAL
+   LEER FILAS ACTUALES
+====================================================== */
+
+function obtenerDatosFilasOperacion(){
+
+  const tbody =
+    $('operacionesFilas');
+
+
+  if(!tbody){
+
+    return [];
+
+  }
+
+
+  return Array.from(
+    tbody.querySelectorAll(
+      '.fila-operacion'
+    )
+  )
+  .map(
+    fila => ({
+
+      hora:
+        fila.querySelector(
+          '.operacion-hora'
+        )?.value || '',
+
+      modulo:
+        fila.querySelector(
+          '.operacion-modulo'
+        )?.value || '',
+
+      movimiento:
+        fila.querySelector(
+          '.operacion-movimiento'
+        )?.value || '',
+
+      descripcion:
+        fila.querySelector(
+          '.operacion-descripcion'
+        )?.value || '',
+
+      entrada:
+        fila.querySelector(
+          '.operacion-entrada'
+        )?.value || '',
+
+      salida:
+        fila.querySelector(
+          '.operacion-salida'
+        )?.value || ''
+
+    })
+  );
+
+}
+
+
+/* ======================================================
+   CREAR / RECONSTRUIR LAS 20 FILAS
 ====================================================== */
 
 function crearPantallaOperaciones(){
@@ -9239,31 +9362,48 @@ function crearPantallaOperaciones(){
 
 
   /*
-    Si ya existen filas,
-    no volver a generar otras 20.
+    Guardar cualquier dato que ya exista.
   */
 
+  const datosActuales =
+    obtenerDatosFilasOperacion();
+
+
+  let cantidad =
+    datosActuales.length;
+
+
   if(
-    tbody.children.length
+    cantidad <
+    FILAS_OPERACION_INICIALES
   ){
 
-    actualizarCantidadFilasOperacion();
-
-    actualizarTurnoPantallaOperaciones();
-
-    return;
+    cantidad =
+      FILAS_OPERACION_INICIALES;
 
   }
 
 
+  /*
+    MUY IMPORTANTE:
+    reconstruimos las filas después
+    de recibir Catálogos.
+  */
+
+  tbody.innerHTML =
+    '';
+
+
   for(
     let i = 0;
-    i < FILAS_OPERACION_INICIALES;
+    i < cantidad;
     i++
   ){
 
     tbody.appendChild(
-      crearFilaOperacion()
+      crearFilaOperacion(
+        datosActuales[i] || {}
+      )
     );
 
   }
@@ -9273,6 +9413,40 @@ function crearPantallaOperaciones(){
 
 
   actualizarTurnoPantallaOperaciones();
+
+}
+
+
+/* ======================================================
+   ACTUALIZAR SOLO LOS SELECTORES DE MODULO
+====================================================== */
+
+function actualizarSelectoresModulo(){
+
+  document
+    .querySelectorAll(
+      '.operacion-modulo'
+    )
+    .forEach(
+      select => {
+
+        const valorAnterior =
+          select.value;
+
+
+        select.innerHTML =
+          opcionesModulosOperacion();
+
+
+        if(valorAnterior){
+
+          select.value =
+            valorAnterior;
+
+        }
+
+      }
+    );
 
 }
 
@@ -9301,11 +9475,6 @@ function agregarFilaOperacion(){
 
   actualizarCantidadFilasOperacion();
 
-
-  /*
-    Llevar la vista hacia
-    la nueva fila.
-  */
 
   const ultima =
     tbody.lastElementChild;
@@ -9369,11 +9538,6 @@ function quitarFilaOperacion(){
     ];
 
 
-  /*
-    Si contiene información,
-    pedir confirmación.
-  */
-
   const tieneDatos =
     Array.from(
       ultima.querySelectorAll(
@@ -9410,7 +9574,7 @@ function quitarFilaOperacion(){
 
 
 /* ======================================================
-   CONTADOR
+   CONTADOR DE FILAS
 ====================================================== */
 
 function actualizarCantidadFilasOperacion(){
@@ -9524,8 +9688,7 @@ function actualizarTurnoPantallaOperaciones(){
 
 
   campo.textContent =
-    turnoActivo
-    &&
+    turnoActivo &&
     turnoActivo.turnoId
     ?
     turnoActivo.turnoId
@@ -9533,7 +9696,6 @@ function actualizarTurnoPantallaOperaciones(){
     '-';
 
 }
-  
 /* ======================================================
    RESUMEN DEL TURNO
 ====================================================== */
