@@ -11105,11 +11105,6 @@ function obtenerSaldoInicialResumen(
 
 }
 
-
-/* ======================================================
-   RECALCULAR RESUMEN DE SALDOS
-====================================================== */
-
 function actualizarResumenSaldos(){
 
   const claves = [
@@ -11136,10 +11131,7 @@ function actualizarResumenSaldos(){
         clave
       ] = {
 
-        inicial:
-          obtenerSaldoInicialResumen(
-            clave
-          ),
+        inicial:0,
 
         entradas:0,
 
@@ -11154,7 +11146,7 @@ function actualizarResumenSaldos(){
 
 
   /* ===============================================
-     LEER OPERACIONES
+     LEER TODAS LAS OPERACIONES
   =============================================== */
 
   document
@@ -11170,7 +11162,10 @@ function actualizarResumenSaldos(){
           )?.value || '';
 
 
-        if(!modulo){
+        if(
+          !modulo ||
+          modulo === 'Seleccionar'
+        ){
 
           return;
 
@@ -11180,6 +11175,22 @@ function actualizarResumenSaldos(){
         const clave =
           obtenerClaveSaldoModulo(
             modulo
+          );
+
+
+        const movimiento =
+          normalizarModuloOperacion(
+            fila.querySelector(
+              '.operacion-movimiento'
+            )?.value || ''
+          );
+
+
+        const parcial =
+          Number(
+            fila.querySelector(
+              '.operacion-parcial'
+            )?.value || 0
           );
 
 
@@ -11199,6 +11210,41 @@ function actualizarResumenSaldos(){
           );
 
 
+        /* ===========================================
+           SALDO INICIAL
+
+           El valor viene de PARCIAL cuando
+           Movimiento = Saldo inicial
+        =========================================== */
+
+        if(
+          movimiento ===
+          'saldo inicial'
+        ){
+
+          if(
+            Number.isFinite(
+              parcial
+            )
+          ){
+
+            resumen[
+              clave
+            ].inicial +=
+              parcial;
+
+          }
+
+
+          return;
+
+        }
+
+
+        /* ===========================================
+           SUMATORIA DE ENTRADAS
+        =========================================== */
+
         if(
           Number.isFinite(
             entrada
@@ -11212,6 +11258,10 @@ function actualizarResumenSaldos(){
 
         }
 
+
+        /* ===========================================
+           SUMATORIA DE SALIDAS
+        =========================================== */
 
         if(
           Number.isFinite(
@@ -11231,7 +11281,7 @@ function actualizarResumenSaldos(){
 
 
   /* ===============================================
-     CALCULAR Y MOSTRAR
+     CALCULAR SALDO FINAL
   =============================================== */
 
   claves.forEach(
@@ -11279,77 +11329,77 @@ function actualizarResumenSaldos(){
         );
 
 
-     if(inicialEl){
+      if(inicialEl){
 
-  inicialEl.textContent =
-    Number(
-      dato.inicial || 0
-    )
-    .toLocaleString(
-      'en-US',
-      {
-        minimumFractionDigits:0,
-        maximumFractionDigits:0
+        inicialEl.textContent =
+          Number(
+            dato.inicial || 0
+          )
+          .toLocaleString(
+            'en-US',
+            {
+              minimumFractionDigits:0,
+              maximumFractionDigits:0
+            }
+          );
+
       }
-    );
-
-}
 
 
-if(entradasEl){
+      if(entradasEl){
 
-  entradasEl.textContent =
-    Number(
-      dato.entradas || 0
-    )
-    .toLocaleString(
-      'en-US',
-      {
-        minimumFractionDigits:0,
-        maximumFractionDigits:0
+        entradasEl.textContent =
+          Number(
+            dato.entradas || 0
+          )
+          .toLocaleString(
+            'en-US',
+            {
+              minimumFractionDigits:0,
+              maximumFractionDigits:0
+            }
+          );
+
       }
-    );
-
-}
 
 
-if(salidasEl){
+      if(salidasEl){
 
-  salidasEl.textContent =
-    Number(
-      dato.salidas || 0
-    )
-    .toLocaleString(
-      'en-US',
-      {
-        minimumFractionDigits:0,
-        maximumFractionDigits:0
+        salidasEl.textContent =
+          Number(
+            dato.salidas || 0
+          )
+          .toLocaleString(
+            'en-US',
+            {
+              minimumFractionDigits:0,
+              maximumFractionDigits:0
+            }
+          );
+
       }
-    );
-
-}
 
 
-if(finalEl){
+      if(finalEl){
 
-  finalEl.textContent =
-    Number(
-      dato.final || 0
-    )
-    .toLocaleString(
-      'en-US',
-      {
-        minimumFractionDigits:0,
-        maximumFractionDigits:0
+        finalEl.textContent =
+          Number(
+            dato.final || 0
+          )
+          .toLocaleString(
+            'en-US',
+            {
+              minimumFractionDigits:0,
+              maximumFractionDigits:0
+            }
+          );
+
       }
-    );
 
-}
     }
   );
 
 }
-
   /* ======================================================
    TOTALES DE OPERACIONES + ARQUEO
 ====================================================== */
@@ -11757,15 +11807,36 @@ document.addEventListener(
     }
 
 
-    /*
-      Recalcular cuando cambien:
+    /* ===============================================
+       CAMBIOS EN REGISTRO DE OPERACIONES
 
-      - Entrada
-      - Salida
-      - Apertura de caja
-      - Efectivo
-      - Cantidades del arqueo
-    */
+       Parcial
+       Entrada
+       Salida
+    =============================================== */
+
+    if(
+      campo.classList.contains(
+        'operacion-parcial'
+      )
+      ||
+      campo.classList.contains(
+        'operacion-entrada'
+      )
+      ||
+      campo.classList.contains(
+        'operacion-salida'
+      )
+    ){
+
+      actualizarResumenSaldos();
+
+    }
+
+
+    /* ===============================================
+       TOTALES GENERALES Y ARQUEO
+    =============================================== */
 
     if(
       campo.classList.contains(
