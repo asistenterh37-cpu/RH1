@@ -9361,9 +9361,7 @@ function actualizarMovimientoFila(
         <option
           value="${escapeHtml(movimiento)}"
         >
-
           ${escapeHtml(movimiento)}
-
         </option>
 
       `;
@@ -9383,8 +9381,507 @@ function actualizarMovimientoFila(
 
   }
 
+
+  /*
+    Actualizar también Descripción
+    según módulo + movimiento.
+  */
+
+  actualizarDescripcionFila(
+    selectMovimiento
+  );
+
 }
-  
+
+
+/* ======================================================
+   DESCRIPCION SEGUN MODULO / MOVIMIENTO
+====================================================== */
+
+function actualizarDescripcionFila(
+  elemento,
+  valorAnterior = ''
+){
+
+  const fila =
+    elemento.closest(
+      '.fila-operacion'
+    );
+
+
+  if(!fila){
+
+    return;
+
+  }
+
+
+  const modulo =
+    normalizarModuloOperacion(
+      fila.querySelector(
+        '.operacion-modulo'
+      )?.value || ''
+    );
+
+
+  const movimiento =
+    normalizarModuloOperacion(
+      fila.querySelector(
+        '.operacion-movimiento'
+      )?.value || ''
+    );
+
+
+  const celda =
+    fila.querySelector(
+      '.operacion-descripcion-celda'
+    );
+
+
+  if(!celda){
+
+    return;
+
+  }
+
+
+  /* ==================================================
+     CREDITO CLIENTES
+     CATALOGO COLUMNA F
+  ================================================== */
+
+  if(
+    modulo ===
+    'credito clientes'
+  ){
+
+    let html =
+      '<option value="">Seleccionar</option>';
+
+
+    (
+      catalogosData.clientes || []
+    )
+    .forEach(
+      nombre => {
+
+        html += `
+
+          <option
+            value="${escapeHtml(nombre)}"
+          >
+            ${escapeHtml(nombre)}
+          </option>
+
+        `;
+
+      }
+    );
+
+
+    celda.innerHTML = `
+
+      <select
+        class="
+          operacion-celda-select
+          operacion-descripcion
+        "
+        onchange="marcarHoraFilaOperacion(this)"
+      >
+        ${html}
+      </select>
+
+    `;
+
+
+    if(valorAnterior){
+
+      celda
+        .querySelector(
+          '.operacion-descripcion'
+        )
+        .value =
+        valorAnterior;
+
+    }
+
+
+    return;
+
+  }
+
+
+  /* ==================================================
+     CREDITO EMPLEADOS
+     CATALOGO COLUMNA E
+  ================================================== */
+
+  if(
+    modulo ===
+    'credito empleados'
+  ){
+
+    let html =
+      '<option value="">Seleccionar</option>';
+
+
+    (
+      catalogosData.empleados || []
+    )
+    .forEach(
+      nombre => {
+
+        html += `
+
+          <option
+            value="${escapeHtml(nombre)}"
+          >
+            ${escapeHtml(nombre)}
+          </option>
+
+        `;
+
+      }
+    );
+
+
+    celda.innerHTML = `
+
+      <select
+        class="
+          operacion-celda-select
+          operacion-descripcion
+        "
+        onchange="marcarHoraFilaOperacion(this)"
+      >
+        ${html}
+      </select>
+
+    `;
+
+
+    if(valorAnterior){
+
+      celda
+        .querySelector(
+          '.operacion-descripcion'
+        )
+        .value =
+        valorAnterior;
+
+    }
+
+
+    return;
+
+  }
+
+
+  /* ==================================================
+     RECARGAS TIGO / CLARO
+     NUMERO CELULAR 8 DIGITOS
+
+     EXCEPTO:
+     - Compra saldo
+     - Saldo inicial
+  ================================================== */
+
+  const esRecarga =
+    (
+      modulo === 'recargas tigo'
+      ||
+      modulo === 'recargas claro'
+    );
+
+
+  const requiereTelefono =
+    esRecarga
+    &&
+    movimiento
+    &&
+    movimiento !== 'compra saldo'
+    &&
+    movimiento !== 'saldo inicial';
+
+
+  if(requiereTelefono){
+
+    const numeros =
+      String(
+        valorAnterior || ''
+      )
+      .replace(
+        /\D/g,
+        ''
+      )
+      .substring(
+        0,
+        8
+      );
+
+
+    const parte1 =
+      numeros.substring(
+        0,
+        2
+      );
+
+    const parte2 =
+      numeros.substring(
+        2,
+        4
+      );
+
+    const parte3 =
+      numeros.substring(
+        4,
+        6
+      );
+
+    const parte4 =
+      numeros.substring(
+        6,
+        8
+      );
+
+
+    celda.innerHTML = `
+
+      <div
+        style="
+          display:flex;
+          align-items:center;
+          justify-content:center;
+          gap:5px;
+          width:100%;
+        "
+      >
+
+        <input
+          class="telefono-parte"
+          type="text"
+          inputmode="numeric"
+          maxlength="2"
+          value="${parte1}"
+          style="
+            width:38px;
+            height:30px;
+            text-align:center;
+            border:1px solid #cbd1da;
+            border-radius:5px;
+          "
+          oninput="avanzarTelefono(this)"
+        >
+
+        <span>/</span>
+
+        <input
+          class="telefono-parte"
+          type="text"
+          inputmode="numeric"
+          maxlength="2"
+          value="${parte2}"
+          style="
+            width:38px;
+            height:30px;
+            text-align:center;
+            border:1px solid #cbd1da;
+            border-radius:5px;
+          "
+          oninput="avanzarTelefono(this)"
+        >
+
+        <span>/</span>
+
+        <input
+          class="telefono-parte"
+          type="text"
+          inputmode="numeric"
+          maxlength="2"
+          value="${parte3}"
+          style="
+            width:38px;
+            height:30px;
+            text-align:center;
+            border:1px solid #cbd1da;
+            border-radius:5px;
+          "
+          oninput="avanzarTelefono(this)"
+        >
+
+        <span>/</span>
+
+        <input
+          class="telefono-parte"
+          type="text"
+          inputmode="numeric"
+          maxlength="2"
+          value="${parte4}"
+          style="
+            width:38px;
+            height:30px;
+            text-align:center;
+            border:1px solid #cbd1da;
+            border-radius:5px;
+          "
+          oninput="avanzarTelefono(this)"
+        >
+
+
+        <input
+          class="operacion-descripcion"
+          type="hidden"
+          value="${escapeHtml(
+            numeros
+          )}"
+        >
+
+      </div>
+
+    `;
+
+
+    return;
+
+  }
+
+
+  /* ==================================================
+     DESCRIPCION NORMAL
+  ================================================== */
+
+  celda.innerHTML = `
+
+    <input
+      class="
+        operacion-celda-input
+        operacion-descripcion
+      "
+      type="text"
+      maxlength="250"
+      value="${escapeHtml(
+        valorAnterior || ''
+      )}"
+      oninput="marcarHoraFilaOperacion(this)"
+    >
+
+  `;
+
+}
+
+
+/* ======================================================
+   TELEFONO 2 + 2 + 2 + 2
+====================================================== */
+
+function avanzarTelefono(
+  input
+){
+
+  /*
+    Solo números
+  */
+
+  input.value =
+    String(
+      input.value || ''
+    )
+    .replace(
+      /\D/g,
+      ''
+    )
+    .substring(
+      0,
+      2
+    );
+
+
+  const contenedor =
+    input.parentElement;
+
+
+  if(!contenedor){
+
+    return;
+
+  }
+
+
+  const partes =
+    Array.from(
+      contenedor.querySelectorAll(
+        '.telefono-parte'
+      )
+    );
+
+
+  /*
+    Al completar 2 dígitos,
+    saltar automáticamente al siguiente.
+  */
+
+  if(
+    input.value.length === 2
+  ){
+
+    const indice =
+      partes.indexOf(
+        input
+      );
+
+
+    if(
+      indice >= 0
+      &&
+      indice <
+      partes.length - 1
+    ){
+
+      partes[
+        indice + 1
+      ].focus();
+
+      partes[
+        indice + 1
+      ].select();
+
+    }
+
+  }
+
+
+  /*
+    Construir número final de 8 dígitos
+  */
+
+  const numero =
+    partes
+      .map(
+        campo =>
+          campo.value
+      )
+      .join('');
+
+
+  const hidden =
+    contenedor.querySelector(
+      '.operacion-descripcion'
+    );
+
+
+  if(hidden){
+
+    hidden.value =
+      numero;
+
+  }
+
+
+  marcarHoraFilaOperacion(
+    input
+  );
+
+}  
 function crearFilaOperacion(
   datos = {}
 ){
@@ -9447,6 +9944,7 @@ function crearFilaOperacion(
           operacion-movimiento
         "
         onchange="
+          actualizarDescripcionFila(this);
           marcarHoraFilaOperacion(this);
         "
       >
@@ -9460,7 +9958,11 @@ function crearFilaOperacion(
     </td>
 
 
-    <td>
+    <td
+      class="
+        operacion-descripcion-celda
+      "
+    >
 
       <input
         class="
@@ -9472,7 +9974,9 @@ function crearFilaOperacion(
         value="${escapeHtml(
           datos.descripcion || ''
         )}"
-        oninput="marcarHoraFilaOperacion(this)"
+        oninput="
+          marcarHoraFilaOperacion(this)
+        "
       >
 
     </td>
@@ -9493,7 +9997,9 @@ function crearFilaOperacion(
         value="${escapeHtml(
           datos.entrada || ''
         )}"
-        oninput="marcarHoraFilaOperacion(this)"
+        oninput="
+          marcarHoraFilaOperacion(this)
+        "
       >
 
     </td>
@@ -9514,7 +10020,9 @@ function crearFilaOperacion(
         value="${escapeHtml(
           datos.salida || ''
         )}"
-        oninput="marcarHoraFilaOperacion(this)"
+        oninput="
+          marcarHoraFilaOperacion(this)
+        "
       >
 
     </td>
@@ -9522,7 +10030,9 @@ function crearFilaOperacion(
   `;
 
 
-  /* RECUPERAR MODULO */
+  /* ==================================================
+     RECUPERAR MODULO
+  ================================================== */
 
   const selectModulo =
     tr.querySelector(
@@ -9541,13 +10051,35 @@ function crearFilaOperacion(
   }
 
 
-  /* LLENAR MOVIMIENTOS SEGUN MODULO */
+  /* ==================================================
+     RECUPERAR MOVIMIENTO
+  ================================================== */
 
   if(selectModulo){
 
     actualizarMovimientoFila(
       selectModulo,
       datos.movimiento || ''
+    );
+
+  }
+
+
+  /* ==================================================
+     RECUPERAR DESCRIPCION
+  ================================================== */
+
+  const selectMovimiento =
+    tr.querySelector(
+      '.operacion-movimiento'
+    );
+
+
+  if(selectMovimiento){
+
+    actualizarDescripcionFila(
+      selectMovimiento,
+      datos.descripcion || ''
     );
 
   }
