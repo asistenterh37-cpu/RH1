@@ -2723,7 +2723,7 @@ tr{
 
 <script>
 const SCRIPT_URL =
-'https://script.google.com/macros/s/AKfycbztHokyzVlGaFdyBg_F7SsS9Sk4Rr4UHQtWxjedQLVGVKdvnJJp_pnmifP1Jfr8PQK7/exec';
+'https://script.google.com/macros/s/AKfycbzPX9Zb2Wk4LOL2ZEjZ8E9iH7XoEEIVYLeuC5j86-cko0K6dam5CU2g8jm9liJ6BXs-/exec';
 </script>
 
 <header class="topbar">
@@ -4563,16 +4563,40 @@ async function loadCatalogos(){
     [],
 
 
-  saldosIniciales:
-    data.saldosIniciales
-    &&
-    typeof data.saldosIniciales ===
-    'object'
-    ?
-    data.saldosIniciales
-    :
-    {}
+  movimientos:
+  data.movimientos
+  &&
+  typeof data.movimientos ===
+  'object'
+  ?
+  data.movimientos
+  :
+  {
 
+    recargasTigo:[],
+
+    tigoMoney:[],
+
+    recargasClaro:[],
+
+    bancos:[],
+
+    creditoEmpleados:[],
+
+    creditoClientes:[]
+
+  },
+
+
+saldosIniciales:
+  data.saldosIniciales
+  &&
+  typeof data.saldosIniciales ===
+  'object'
+  ?
+  data.saldosIniciales
+  :
+  {}
 };
 
 
@@ -9123,7 +9147,244 @@ function opcionesModulosOperacion(){
 /* ======================================================
    CREAR FILA
 ====================================================== */
+/* ======================================================
+   NORMALIZAR MODULO
+====================================================== */
 
+function normalizarModuloOperacion(
+  texto
+){
+
+  return String(
+    texto || ''
+  )
+  .trim()
+  .toLowerCase()
+  .normalize(
+    'NFD'
+  )
+  .replace(
+    /[\u0300-\u036f]/g,
+    ''
+  );
+
+}
+
+
+/* ======================================================
+   MOVIMIENTOS SEGUN MODULO
+====================================================== */
+
+function movimientosPorModulo(
+  modulo
+){
+
+  const m =
+    normalizarModuloOperacion(
+      modulo
+    );
+
+
+  const movimientos =
+    catalogosData
+    &&
+    catalogosData.movimientos
+    ?
+    catalogosData.movimientos
+    :
+    {};
+
+
+  /* RECARGAS TIGO */
+
+  if(
+    m ===
+    'recargas tigo'
+  ){
+
+    return movimientos.recargasTigo
+      || [];
+
+  }
+
+
+  /* TIGO MONEY */
+
+  if(
+    m ===
+    'tigo money'
+  ){
+
+    return movimientos.tigoMoney
+      || [];
+
+  }
+
+
+  /* RECARGAS CLARO */
+
+  if(
+    m ===
+    'recargas claro'
+  ){
+
+    return movimientos.recargasClaro
+      || [];
+
+  }
+
+
+  /* BANPAIS */
+
+  if(
+    m ===
+    'banpais'
+  ){
+
+    return movimientos.bancos
+      || [];
+
+  }
+
+
+  /* AGENTE ATLANTIDA */
+
+  if(
+    m ===
+    'agente atlantida'
+  ){
+
+    return movimientos.bancos
+      || [];
+
+  }
+
+
+  /* RAPIBAC */
+
+  if(
+    m ===
+    'rapibac'
+  ){
+
+    return movimientos.bancos
+      || [];
+
+  }
+
+
+  /* CREDITO CLIENTES */
+
+  if(
+    m ===
+    'credito clientes'
+  ){
+
+    return movimientos.creditoClientes
+      || [];
+
+  }
+
+
+  /* CREDITO EMPLEADOS */
+
+  if(
+    m ===
+    'credito empleados'
+  ){
+
+    return movimientos.creditoEmpleados
+      || [];
+
+  }
+
+
+  return [];
+
+}
+
+
+/* ======================================================
+   ACTUALIZAR MOVIMIENTO DE LA FILA
+====================================================== */
+
+function actualizarMovimientoFila(
+  selectModulo,
+  valorAnterior = ''
+){
+
+  const fila =
+    selectModulo.closest(
+      '.fila-operacion'
+    );
+
+
+  if(!fila){
+
+    return;
+
+  }
+
+
+  const selectMovimiento =
+    fila.querySelector(
+      '.operacion-movimiento'
+    );
+
+
+  if(!selectMovimiento){
+
+    return;
+
+  }
+
+
+  const modulo =
+    selectModulo.value;
+
+
+  const lista =
+    movimientosPorModulo(
+      modulo
+    );
+
+
+  let html =
+    '<option value="">Seleccionar</option>';
+
+
+  lista.forEach(
+    movimiento => {
+
+      html += `
+
+        <option
+          value="${escapeHtml(movimiento)}"
+        >
+
+          ${escapeHtml(movimiento)}
+
+        </option>
+
+      `;
+
+    }
+  );
+
+
+  selectMovimiento.innerHTML =
+    html;
+
+
+  if(valorAnterior){
+
+    selectMovimiento.value =
+      valorAnterior;
+
+  }
+
+}
+  
 function crearFilaOperacion(
   datos = {}
 ){
@@ -9165,7 +9426,10 @@ function crearFilaOperacion(
           operacion-celda-select
           operacion-modulo
         "
-        onchange="marcarHoraFilaOperacion(this)"
+        onchange="
+          actualizarMovimientoFila(this);
+          marcarHoraFilaOperacion(this);
+        "
       >
 
         ${opcionesModulosOperacion()}
@@ -9177,18 +9441,21 @@ function crearFilaOperacion(
 
     <td>
 
-      <input
+      <select
         class="
-          operacion-celda-input
+          operacion-celda-select
           operacion-movimiento
         "
-        type="text"
-        maxlength="100"
-        value="${escapeHtml(
-          datos.movimiento || ''
-        )}"
-        oninput="marcarHoraFilaOperacion(this)"
+        onchange="
+          marcarHoraFilaOperacion(this);
+        "
       >
+
+        <option value="">
+          Seleccionar
+        </option>
+
+      </select>
 
     </td>
 
@@ -9255,25 +9522,33 @@ function crearFilaOperacion(
   `;
 
 
-  /*
-    Recuperar módulo si estamos
-    reconstruyendo una fila.
-  */
+  /* RECUPERAR MODULO */
 
-  if(datos.modulo){
-
-    const select =
-      tr.querySelector(
-        '.operacion-modulo'
-      );
+  const selectModulo =
+    tr.querySelector(
+      '.operacion-modulo'
+    );
 
 
-    if(select){
+  if(
+    selectModulo &&
+    datos.modulo
+  ){
 
-      select.value =
-        datos.modulo;
+    selectModulo.value =
+      datos.modulo;
 
-    }
+  }
+
+
+  /* LLENAR MOVIMIENTOS SEGUN MODULO */
+
+  if(selectModulo){
+
+    actualizarMovimientoFila(
+      selectModulo,
+      datos.movimiento || ''
+    );
 
   }
 
@@ -9281,8 +9556,7 @@ function crearFilaOperacion(
   return tr;
 
 }
-
-
+  
 /* ======================================================
    LEER FILAS ACTUALES
 ====================================================== */
