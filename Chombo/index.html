@@ -2723,7 +2723,7 @@ tr{
 
 <script>
 const SCRIPT_URL =
-'https://script.google.com/macros/s/AKfycbzPX9Zb2Wk4LOL2ZEjZ8E9iH7XoEEIVYLeuC5j86-cko0K6dam5CU2g8jm9liJ6BXs-/exec';
+'https://script.google.com/macros/s/AKfycbzoTC09dg5wnVGvLa6YRCPRXBHbcjPLTGmZ4c57amLSUE-uQQcaOHpgKGImUfOenKq6/exec';
 </script>
 
 <header class="topbar">
@@ -3504,7 +3504,29 @@ const SCRIPT_URL =
 
 }
 
+/* ======================================================
+   CELDA BLOQUEADA POR NATURALEZA
+====================================================== */
 
+.operacion-bloqueada{
+
+  background:
+    repeating-linear-gradient(
+      -45deg,
+      #e4e7ec,
+      #e4e7ec 5px,
+      #d7dce5 5px,
+      #d7dce5 10px
+    ) !important;
+
+  color:#98a2b3 !important;
+
+  cursor:not-allowed !important;
+
+  opacity:.85;
+
+}
+  
 /* PIE */
 
 .operaciones-hoja-footer{
@@ -5025,7 +5047,7 @@ async function loadCatalogos(){
     [],
 
 
-  movimientos:
+movimientos:
   data.movimientos
   &&
   typeof data.movimientos ===
@@ -5034,18 +5056,22 @@ async function loadCatalogos(){
   data.movimientos
   :
   {
-
     recargasTigo:[],
-
     tigoMoney:[],
-
     recargasClaro:[],
-
     bancos:[],
-
     creditoEmpleados:[],
-
     creditoClientes:[]
+  },
+      naturalezaMovimientos:
+  data.naturalezaMovimientos
+  &&
+  typeof data.naturalezaMovimientos ===
+  'object'
+  ?
+  data.naturalezaMovimientos
+  :
+  {},
 
   },
 
@@ -10046,10 +10072,19 @@ function actualizarMovimientoFila(
     según módulo + movimiento.
   */
 
-  actualizarDescripcionFila(
-    selectMovimiento
-  );
+actualizarDescripcionFila(
+  selectMovimiento
+);
 
+
+/*
+  Aplicar naturaleza:
+  Entrada / Salida
+*/
+
+aplicarNaturalezaMovimiento(
+  selectMovimiento
+);
 }
 
 
@@ -10541,6 +10576,243 @@ function avanzarTelefono(
   );
 
 }  
+
+/* ======================================================
+   NATURALEZA DEL MOVIMIENTO
+   ENTRADA / SALIDA
+====================================================== */
+
+function aplicarNaturalezaMovimiento(
+  selectMovimiento
+){
+
+  const fila =
+    selectMovimiento.closest(
+      '.fila-operacion'
+    );
+
+
+  if(!fila){
+
+    return;
+
+  }
+
+
+  const entrada =
+    fila.querySelector(
+      '.operacion-entrada'
+    );
+
+
+  const salida =
+    fila.querySelector(
+      '.operacion-salida'
+    );
+
+
+  if(
+    !entrada ||
+    !salida
+  ){
+
+    return;
+
+  }
+
+
+  const movimiento =
+    String(
+      selectMovimiento.value || ''
+    )
+    .trim()
+    .toLowerCase();
+
+
+  const naturalezas =
+    catalogosData
+    &&
+    catalogosData.naturalezaMovimientos
+    ?
+    catalogosData.naturalezaMovimientos
+    :
+    {};
+
+
+  const naturaleza =
+    naturalezas[
+      movimiento
+    ];
+
+
+  /* ==================================================
+     SIN MOVIMIENTO SELECCIONADO
+
+     Bloqueamos ambos hasta saber
+     la naturaleza.
+  ================================================== */
+
+  if(
+    !movimiento ||
+    !naturaleza
+  ){
+
+    bloquearCampoMovimiento(
+      entrada,
+      true
+    );
+
+
+    bloquearCampoMovimiento(
+      salida,
+      true
+    );
+
+
+    return;
+
+  }
+
+
+  /* ==================================================
+     ENTRADA
+  ================================================== */
+
+  if(
+    naturaleza.entrada === true
+    &&
+    naturaleza.salida !== true
+  ){
+
+    bloquearCampoMovimiento(
+      entrada,
+      false
+    );
+
+
+    bloquearCampoMovimiento(
+      salida,
+      true
+    );
+
+
+    salida.value =
+      '';
+
+
+    return;
+
+  }
+
+
+  /* ==================================================
+     SALIDA
+  ================================================== */
+
+  if(
+    naturaleza.salida === true
+    &&
+    naturaleza.entrada !== true
+  ){
+
+    bloquearCampoMovimiento(
+      entrada,
+      true
+    );
+
+
+    bloquearCampoMovimiento(
+      salida,
+      false
+    );
+
+
+    entrada.value =
+      '';
+
+
+    return;
+
+  }
+
+
+  /* ==================================================
+     SI AMBOS TIENEN X
+     permitir ambos
+  ================================================== */
+
+  if(
+    naturaleza.entrada === true
+    &&
+    naturaleza.salida === true
+  ){
+
+    bloquearCampoMovimiento(
+      entrada,
+      false
+    );
+
+
+    bloquearCampoMovimiento(
+      salida,
+      false
+    );
+
+
+    return;
+
+  }
+
+
+  /*
+    Si O tiene movimiento,
+    pero P/Q no tienen X,
+    bloqueamos ambos.
+  */
+
+  bloquearCampoMovimiento(
+    entrada,
+    true
+  );
+
+
+  bloquearCampoMovimiento(
+    salida,
+    true
+  );
+
+}
+
+
+/* ======================================================
+   BLOQUEAR / DESBLOQUEAR CAMPO
+====================================================== */
+
+function bloquearCampoMovimiento(
+  campo,
+  bloquear
+){
+
+  campo.disabled =
+    bloquear;
+
+
+  if(bloquear){
+
+    campo.classList.add(
+      'operacion-bloqueada'
+    );
+
+  }
+  else{
+
+    campo.classList.remove(
+      'operacion-bloqueada'
+    );
+
+  }
+
+}
 function crearFilaOperacion(
   datos = {}
 ){
@@ -10597,16 +10869,17 @@ function crearFilaOperacion(
 
     <td>
 
-      <select
-        class="
-          operacion-celda-select
-          operacion-movimiento
-        "
-        onchange="
-          actualizarDescripcionFila(this);
-          marcarHoraFilaOperacion(this);
-        "
-      >
+   <select
+  class="
+    operacion-celda-select
+    operacion-movimiento
+  "
+  onchange="
+    actualizarDescripcionFila(this);
+    aplicarNaturalezaMovimiento(this);
+    marcarHoraFilaOperacion(this);
+  "
+>
 
         <option value="">
           Seleccionar
