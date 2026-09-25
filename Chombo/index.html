@@ -2716,6 +2716,125 @@ tr{
   }
 
 }  
+
+ /* ======================================================
+   AJUSTES NUEVA PAGINA DE OPERACIONES
+====================================================== */
+
+
+/* =============================================
+   REGISTRAR OPERACION CONGELADO
+============================================= */
+
+.operaciones-section.registro-sticky{
+
+  position:sticky;
+
+  top:70px;
+
+  z-index:30;
+
+  background:#fff;
+
+  box-shadow:
+    0 8px 22px rgba(16,24,40,.12);
+
+}
+
+
+/* =============================================
+   SALDO POR PRODUCTO
+============================================= */
+
+.saldo-producto-panel{
+
+  padding:18px;
+
+  background:#fff;
+
+  border:1px solid #e4e7ec;
+
+  border-radius:16px;
+
+  box-shadow:
+    0 6px 18px rgba(16,24,40,.06);
+
+}
+
+
+.saldo-selector-wrap{
+
+  display:flex;
+
+  align-items:center;
+
+  gap:12px;
+
+  margin-bottom:15px;
+
+}
+
+
+.saldo-selector-wrap label{
+
+  font-size:16px;
+
+  font-weight:900;
+
+}
+
+
+#saldoProductoSelect{
+
+  min-width:220px;
+
+  height:40px;
+
+  padding:0 10px;
+
+  border:1px solid #cbd1da;
+
+  border-radius:9px;
+
+  background:#fff;
+
+  font-size:14px;
+
+}
+
+
+/* =============================================
+   VALOR MAS PEQUEÑO
+   APROXIMADAMENTE 6 DIGITOS
+============================================= */
+
+#movValor{
+
+  width:115px !important;
+
+  max-width:115px !important;
+
+}
+
+
+/* evitar que el campo se expanda */
+
+.operation-field:has(#movValor){
+
+  flex:0 0 auto;
+
+}
+
+
+/* =============================================
+   HISTORIAL DEBAJO DEL STICKY
+============================================= */
+
+#resumenOperacionesBody{
+
+  position:relative;
+
+} 
 </style>
 </head>
 
@@ -2723,7 +2842,7 @@ tr{
 
 <script>
 const SCRIPT_URL =
-'https://script.google.com/macros/s/AKfycbzlDvlTUDIK-Va_0oGo7cHUp__iUjXH13rpbSeQjmAWQCCcNzTcRsJ6Jk_t3k3LHNN5/exec';
+'https://script.google.com/macros/s/AKfycbwukCwRzTPFlxW4ewTuZlPHJWoCNbNQfiHzZ2FF3onBNy1btPFjGda0_LJ-7v38lbCi/exec';
 </script>
 
 <header class="topbar">
@@ -3052,74 +3171,97 @@ const SCRIPT_URL =
 
     </div>
 
+<!-- ==================================================
+     SALDOS
+================================================== -->
 
-    <!-- ==================================================
-         TOTALES
-    ================================================== -->
-
-    <div class="operaciones-totales">
-
-
-      <div class="operaciones-total-card">
-
-        <span>
-          Saldo inicial
-        </span>
-
-        <strong id="resumenSaldoInicial">
-          L 0.00
-        </strong>
-
-      </div>
+<div class="saldo-producto-panel">
 
 
-      <div class="operaciones-total-card">
+  <div class="saldo-selector-wrap">
 
-        <span>
-          Entradas
-        </span>
+    <label>
+      Saldo
+    </label>
 
-        <strong id="resumenEntradas">
-          L 0.00
-        </strong>
+    <select
+      id="saldoProductoSelect"
+      onchange="actualizarSaldoProducto()"
+    >
 
-      </div>
+      <option value="">
+        Seleccionar
+      </option>
 
+    </select>
 
-      <div class="operaciones-total-card">
-
-        <span>
-          Salidas
-        </span>
-
-        <strong id="resumenSalidas">
-          L 0.00
-        </strong>
-
-      </div>
+  </div>
 
 
-      <div
-        class="
-          operaciones-total-card
-          operaciones-saldo-card
-        "
-      >
+  <div class="operaciones-totales">
 
-        <span>
-          Saldo actual
-        </span>
 
-        <strong id="resumenSaldoActual">
-          L 0.00
-        </strong>
+    <div class="operaciones-total-card">
 
-      </div>
+      <span>
+        Saldo inicial
+      </span>
 
+      <strong id="saldoProductoInicial">
+        L 0.00
+      </strong>
 
     </div>
 
 
+    <div class="operaciones-total-card">
+
+      <span>
+        Entradas
+      </span>
+
+      <strong id="saldoProductoEntradas">
+        L 0.00
+      </strong>
+
+    </div>
+
+
+    <div class="operaciones-total-card">
+
+      <span>
+        Salidas
+      </span>
+
+      <strong id="saldoProductoSalidas">
+        L 0.00
+      </strong>
+
+    </div>
+
+
+    <div
+      class="
+        operaciones-total-card
+        operaciones-saldo-card
+      "
+    >
+
+      <span>
+        Saldo final
+      </span>
+
+      <strong id="saldoProductoFinal">
+        L 0.00
+      </strong>
+
+    </div>
+
+
+  </div>
+
+</div>
+    
     <!-- ==================================================
          SALDO INICIAL
     ================================================== -->
@@ -3173,7 +3315,7 @@ const SCRIPT_URL =
          NUEVA OPERACIÓN
     ================================================== -->
 
-    <div class="operaciones-section">
+    <div class="operaciones-section registro-sticky">
 
       <div class="operaciones-section-title">
 
@@ -4446,38 +4588,80 @@ async function loadCatalogos(){
        E = EMPLEADOS
     =============================================== */
 
-    catalogosData = {
+catalogosData = {
 
-      ubicaciones:
-        Array.isArray(
-          data.ubicaciones
-        )
-        ?
-        data.ubicaciones
-        :
-        [],
-
-      responsables:
-        Array.isArray(
-          data.responsables
-        )
-        ?
-        data.responsables
-        :
-        [],
-
-      empleados:
-        Array.isArray(
-          data.empleados
-        )
-        ?
-        data.empleados
-        :
-        []
-
-    };
+  ubicaciones:
+    Array.isArray(
+      data.ubicaciones
+    )
+    ?
+    data.ubicaciones
+    :
+    [],
 
 
+  responsables:
+    Array.isArray(
+      data.responsables
+    )
+    ?
+    data.responsables
+    :
+    [],
+
+
+  empleados:
+    Array.isArray(
+      data.empleados
+    )
+    ?
+    data.empleados
+    :
+    [],
+
+
+  clientes:
+    Array.isArray(
+      data.clientes
+    )
+    ?
+    data.clientes
+    :
+    [],
+
+
+  productos:
+    Array.isArray(
+      data.productos
+    )
+    ?
+    data.productos
+    :
+    [],
+
+
+  saldosIniciales:
+    data.saldosIniciales
+    &&
+    typeof data.saldosIniciales ===
+    'object'
+    ?
+    data.saldosIniciales
+    :
+    {}
+
+};
+
+
+/* ===============================================
+   SELECT SALDOS / PRODUCTOS
+=============================================== */
+
+llenarSelectCatalogo(
+  'saldoProductoSelect',
+  catalogosData.productos
+);
+    
     /* ===============================================
        INICIAR TURNO
     =============================================== */
@@ -8943,6 +9127,275 @@ async function cargarSaldoCreditoActual(
    RESUMEN DEL TURNO
 ====================================================== */
 
+/* ======================================================
+   SALDO POR PRODUCTO
+====================================================== */
+
+function normalizarProductoSaldo(
+  texto
+){
+
+  return String(
+    texto || ''
+  )
+  .trim()
+  .toLowerCase()
+  .normalize(
+    'NFD'
+  )
+  .replace(
+    /[\u0300-\u036f]/g,
+    ''
+  );
+
+}
+
+
+/* ======================================================
+   OBTENER SALDO INICIAL DEL CATALOGO
+====================================================== */
+
+function obtenerSaldoInicialProducto(
+  producto
+){
+
+  if(
+    !catalogosData ||
+    !catalogosData.saldosIniciales
+  ){
+
+    return 0;
+
+  }
+
+
+  const buscado =
+    normalizarProductoSaldo(
+      producto
+    );
+
+
+  /*
+    Equivalencias entre
+    Productos columna G
+    y nombres de columna C.
+  */
+
+  const equivalencias = {
+
+    'recargas tigo':
+      'Ventas de recarga Tigo',
+
+    'recargas claro':
+      'Ventas de recarga Claro',
+
+    'rapibac':
+      'RapiBac',
+
+    'banpais':
+      'Banpais',
+
+    'agente atlantida':
+      'Agente Atlántida',
+
+    'loteria':
+      'Ventas de Lotería',
+
+    'efectivo':
+      'Efectivo respaldo'
+
+  };
+
+
+  const nombreCatalogo =
+    equivalencias[
+      buscado
+    ]
+    ||
+    producto;
+
+
+  const valor =
+    catalogosData
+      .saldosIniciales[
+        nombreCatalogo
+      ];
+
+
+  return Number(
+    valor || 0
+  );
+
+}
+
+
+/* ======================================================
+   CALCULAR SALDO SELECCIONADO
+====================================================== */
+
+function actualizarSaldoProducto(){
+
+  const select =
+    $('saldoProductoSelect');
+
+
+  const producto =
+    select
+    ?
+    select.value
+    :
+    '';
+
+
+  let inicial =
+    0;
+
+
+  let entradas =
+    0;
+
+
+  let salidas =
+    0;
+
+
+  if(producto){
+
+    inicial =
+      obtenerSaldoInicialProducto(
+        producto
+      );
+
+
+    const buscado =
+      normalizarProductoSaldo(
+        producto
+      );
+
+
+    const operaciones =
+      resumenTurnoActual
+      &&
+      Array.isArray(
+        resumenTurnoActual.operaciones
+      )
+      ?
+      resumenTurnoActual.operaciones
+      :
+      [];
+
+
+    operaciones.forEach(
+      operacion => {
+
+        const modulo =
+          normalizarProductoSaldo(
+            operacion.modulo
+          );
+
+
+        /*
+          SALDO_INICIAL GENERAL
+          NO se suma aquí.
+        */
+
+        if(
+          modulo ===
+          'saldo_inicial'
+        ){
+
+          return;
+
+        }
+
+
+        if(
+          modulo !==
+          buscado
+        ){
+
+          return;
+
+        }
+
+
+        entradas +=
+          Number(
+            operacion.entrada || 0
+          );
+
+
+        salidas +=
+          Number(
+            operacion.salida || 0
+          );
+
+      }
+    );
+
+  }
+
+
+  const final =
+    inicial
+    +
+    entradas
+    -
+    salidas;
+
+
+  if(
+    $('saldoProductoInicial')
+  ){
+
+    $('saldoProductoInicial')
+      .textContent =
+      formatoResumen(
+        inicial
+      );
+
+  }
+
+
+  if(
+    $('saldoProductoEntradas')
+  ){
+
+    $('saldoProductoEntradas')
+      .textContent =
+      formatoResumen(
+        entradas
+      );
+
+  }
+
+
+  if(
+    $('saldoProductoSalidas')
+  ){
+
+    $('saldoProductoSalidas')
+      .textContent =
+      formatoResumen(
+        salidas
+      );
+
+  }
+
+
+  if(
+    $('saldoProductoFinal')
+  ){
+
+    $('saldoProductoFinal')
+      .textContent =
+      formatoResumen(
+        final
+      );
+
+  }
+
+}  
 let resumenTurnoActual =
   null;
 
@@ -9340,6 +9793,7 @@ function dibujarResumenTurno(
       )
       .join('');
 
+  actualizarSaldoProducto();
 }
 
 
