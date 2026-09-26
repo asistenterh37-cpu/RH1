@@ -2723,7 +2723,7 @@ tr{
 
 <script>
 const SCRIPT_URL =
-'https://script.google.com/macros/s/AKfycbwHgYI26PdcEJhSHEU88-kbqAf1W44CsTpEczLt1YuOzhPs9EIh0YeOLS99oBRJ9ok/exec';
+'https://script.google.com/macros/s/AKfycbx5UEbBJl2DE7SEh4Qp2HcGZF6VVCeAHWqJKGEjXMshcAcQZxbFPLPE5TO_n5i3WCpx/exec';
 </script>
 
 <header class="topbar">
@@ -6185,54 +6185,25 @@ async function loadCatalogos(){
     [],
 
 
-movimientos:
-  data.movimientos
-  &&
-  typeof data.movimientos ===
-  'object'
-  ?
-  data.movimientos
-  :
-  {
-
-    recargasTigo:[],
-
-    tigoMoney:[],
-
-    recargasClaro:[],
-
-    bancos:[],
-
-    creditoEmpleados:[],
-
-    creditoClientes:[],
-
-    loteria:[],
-
-    proveedores:[]
-
-  },
-
-naturalezaMovimientos:
-  data.naturalezaMovimientos
-  &&
-  typeof data.naturalezaMovimientos ===
-  'object'
-  ?
-  data.naturalezaMovimientos
-  :
-  {},
+  operacionesCatalogo:
+    Array.isArray(
+      data.operacionesCatalogo
+    )
+    ?
+    data.operacionesCatalogo
+    :
+    [],
 
 
-saldosIniciales:
-  data.saldosIniciales
-  &&
-  typeof data.saldosIniciales ===
-  'object'
-  ?
-  data.saldosIniciales
-  :
-  {}
+  saldosIniciales:
+    data.saldosIniciales
+    &&
+    typeof data.saldosIniciales ===
+    'object'
+    ?
+    data.saldosIniciales
+    :
+    {}
 
 };
 
@@ -10924,6 +10895,8 @@ function obtenerClaveSaldoModulo(
 
   if(
     m === 'recargas tigo'
+    ||
+    m === 'tigo recargas'
   ){
 
     return 'recargasTigo';
@@ -10942,6 +10915,8 @@ function obtenerClaveSaldoModulo(
 
   if(
     m === 'recargas claro'
+    ||
+    m === 'claro recargas'
   ){
 
     return 'recargasClaro';
@@ -10960,6 +10935,8 @@ function obtenerClaveSaldoModulo(
 
   if(
     m === 'rapibac'
+    ||
+    m === 'bac'
   ){
 
     return 'rapibac';
@@ -10969,6 +10946,8 @@ function obtenerClaveSaldoModulo(
 
   if(
     m === 'agente atlantida'
+    ||
+    m === 'atlantida'
   ){
 
     return 'agenteAtlantida';
@@ -10985,19 +10964,9 @@ function obtenerClaveSaldoModulo(
   }
 
 
-  /*
-    Todo lo demás:
-    - Crédito clientes
-    - Crédito empleados
-    - Proveedores
-    - cualquier módulo futuro
-  */
-
   return 'otros';
 
 }
-
-
 /* ======================================================
    SALDO INICIAL SEGUN CATALOGO C/D
 ====================================================== */
@@ -11145,10 +11114,6 @@ function actualizarResumenSaldos(){
   );
 
 
-  /* ===============================================
-     LEER TODAS LAS OPERACIONES
-  =============================================== */
-
   document
     .querySelectorAll(
       '#operacionesFilas .fila-operacion'
@@ -11162,10 +11127,30 @@ function actualizarResumenSaldos(){
           )?.value || '';
 
 
+        const movimiento =
+          fila.querySelector(
+            '.operacion-movimiento'
+          )?.value || '';
+
+
         if(
           !modulo ||
-          modulo === 'Seleccionar'
+          !movimiento
         ){
+
+          return;
+
+        }
+
+
+        const config =
+          obtenerConfigOperacion(
+            modulo,
+            movimiento
+          );
+
+
+        if(!config){
 
           return;
 
@@ -11175,14 +11160,6 @@ function actualizarResumenSaldos(){
         const clave =
           obtenerClaveSaldoModulo(
             modulo
-          );
-
-
-        const movimiento =
-          normalizarModuloOperacion(
-            fila.querySelector(
-              '.operacion-movimiento'
-            )?.value || ''
           );
 
 
@@ -11211,27 +11188,109 @@ function actualizarResumenSaldos(){
 
 
         /* ===========================================
-           SALDO INICIAL
+           VALOR REAL DE LA FILA
 
-           El valor viene de PARCIAL cuando
-           Movimiento = Saldo inicial
+           Parcial si está habilitado.
+           Si no:
+           Entrada o Salida.
         =========================================== */
 
+        let valor =
+          0;
+
+
         if(
-          movimiento ===
-          'saldo inicial'
+          !fila.querySelector(
+            '.operacion-parcial'
+          )?.disabled
         ){
 
-          if(
+          valor =
             Number.isFinite(
               parcial
             )
+            ?
+            Math.abs(
+              parcial
+            )
+            :
+            0;
+
+        }
+        else if(
+          Number.isFinite(
+            entrada
+          )
+          &&
+          entrada !== 0
+        ){
+
+          valor =
+            Math.abs(
+              entrada
+            );
+
+        }
+        else if(
+          Number.isFinite(
+            salida
+          )
+          &&
+          salida !== 0
+        ){
+
+          valor =
+            Math.abs(
+              salida
+            );
+
+        }
+
+
+        if(!valor){
+
+          return;
+
+        }
+
+
+        const naturaleza =
+          Number(
+            config.naturaleza || 0
+          );
+
+
+        /* ===========================================
+           PARCIAL
+
+           Cuando I y J están vacíos,
+           lo tratamos como saldo inicial/base.
+        =========================================== */
+
+        if(
+          config.entrada !== true
+          &&
+          config.salida !== true
+        ){
+
+          if(
+            naturaleza > 0
           ){
 
             resumen[
               clave
             ].inicial +=
-              parcial;
+              valor;
+
+          }
+          else if(
+            naturaleza < 0
+          ){
+
+            resumen[
+              clave
+            ].inicial -=
+              valor;
 
           }
 
@@ -11242,37 +11301,37 @@ function actualizarResumenSaldos(){
 
 
         /* ===========================================
-           SUMATORIA DE ENTRADAS
+           K = +
+
+           SUMA AL SALDO
         =========================================== */
 
         if(
-          Number.isFinite(
-            entrada
-          )
+          naturaleza > 0
         ){
 
           resumen[
             clave
           ].entradas +=
-            entrada;
+            valor;
 
         }
 
 
         /* ===========================================
-           SUMATORIA DE SALIDAS
+           K = -
+
+           RESTA DEL SALDO
         =========================================== */
 
         if(
-          Number.isFinite(
-            salida
-          )
+          naturaleza < 0
         ){
 
           resumen[
             clave
           ].salidas +=
-            salida;
+            valor;
 
         }
 
@@ -11280,9 +11339,9 @@ function actualizarResumenSaldos(){
     );
 
 
-  /* ===============================================
-     CALCULAR SALDO FINAL
-  =============================================== */
+  /* ==================================================
+     MOSTRAR SALDOS
+  ================================================== */
 
   claves.forEach(
     clave => {
@@ -11332,15 +11391,11 @@ function actualizarResumenSaldos(){
       if(inicialEl){
 
         inicialEl.textContent =
-          Number(
-            dato.inicial || 0
+          Math.round(
+            dato.inicial
           )
           .toLocaleString(
-            'en-US',
-            {
-              minimumFractionDigits:0,
-              maximumFractionDigits:0
-            }
+            'en-US'
           );
 
       }
@@ -11349,15 +11404,11 @@ function actualizarResumenSaldos(){
       if(entradasEl){
 
         entradasEl.textContent =
-          Number(
-            dato.entradas || 0
+          Math.round(
+            dato.entradas
           )
           .toLocaleString(
-            'en-US',
-            {
-              minimumFractionDigits:0,
-              maximumFractionDigits:0
-            }
+            'en-US'
           );
 
       }
@@ -11366,15 +11417,11 @@ function actualizarResumenSaldos(){
       if(salidasEl){
 
         salidasEl.textContent =
-          Number(
-            dato.salidas || 0
+          Math.round(
+            dato.salidas
           )
           .toLocaleString(
-            'en-US',
-            {
-              minimumFractionDigits:0,
-              maximumFractionDigits:0
-            }
+            'en-US'
           );
 
       }
@@ -11383,15 +11430,11 @@ function actualizarResumenSaldos(){
       if(finalEl){
 
         finalEl.textContent =
-          Number(
-            dato.final || 0
+          Math.round(
+            dato.final
           )
           .toLocaleString(
-            'en-US',
-            {
-              minimumFractionDigits:0,
-              maximumFractionDigits:0
-            }
+            'en-US'
           );
 
       }
@@ -11883,7 +11926,8 @@ function opcionesModulosOperacion(){
 
 
   const modulos =
-    catalogosData &&
+    catalogosData
+    &&
     Array.isArray(
       catalogosData.productos
     )
@@ -11903,11 +11947,7 @@ function opcionesModulosOperacion(){
         .trim();
 
 
-      if(
-        !nombre ||
-        nombre.toLowerCase() ===
-        'seleccionar'
-      ){
+      if(!nombre){
 
         return;
 
@@ -11934,10 +11974,7 @@ function opcionesModulosOperacion(){
 
 
 /* ======================================================
-   CREAR FILA
-====================================================== */
-/* ======================================================
-   NORMALIZAR MODULO
+   NORMALIZAR TEXTO
 ====================================================== */
 
 function normalizarModuloOperacion(
@@ -11962,164 +11999,150 @@ function normalizarModuloOperacion(
 
 /* ======================================================
    MOVIMIENTOS SEGUN MODULO
+
+   G = MODULO
+   H = MOVIMIENTO
 ====================================================== */
 
 function movimientosPorModulo(
   modulo
 ){
 
-  const m =
+  const buscado =
     normalizarModuloOperacion(
       modulo
     );
 
 
-  const movimientos =
+  const catalogo =
     catalogosData
     &&
-    catalogosData.movimientos
+    Array.isArray(
+      catalogosData.operacionesCatalogo
+    )
     ?
-    catalogosData.movimientos
+    catalogosData.operacionesCatalogo
     :
-    {};
+    [];
 
 
-  /* RECARGAS TIGO */
-
-  if(
-    m ===
-    'recargas tigo'
-  ){
-
-    return movimientos.recargasTigo
-      || [];
-
-  }
+  const movimientos = [];
 
 
-  /* TIGO MONEY */
+  catalogo.forEach(
+    item => {
 
-  if(
-    m ===
-    'tigo money'
-  ){
-
-    return movimientos.tigoMoney
-      || [];
-
-  }
+      const moduloItem =
+        normalizarModuloOperacion(
+          item.modulo
+        );
 
 
-  /* RECARGAS CLARO */
+      if(
+        moduloItem !==
+        buscado
+      ){
 
-  if(
-    m ===
-    'recargas claro'
-  ){
+        return;
 
-    return movimientos.recargasClaro
-      || [];
-
-  }
+      }
 
 
-  /* BANPAIS */
-
-  if(
-    m ===
-    'banpais'
-  ){
-
-    return movimientos.bancos
-      || [];
-
-  }
+      const movimiento =
+        String(
+          item.movimiento || ''
+        )
+        .trim();
 
 
-  /* AGENTE ATLANTIDA */
+      if(
+        movimiento &&
+        !movimientos.includes(
+          movimiento
+        )
+      ){
 
-  if(
-    m ===
-    'agente atlantida'
-  ){
+        movimientos.push(
+          movimiento
+        );
 
-    return movimientos.bancos
-      || [];
+      }
 
-  }
-
-
-  /* RAPIBAC */
-
-  if(
-    m ===
-    'rapibac'
-  ){
-
-    return movimientos.bancos
-      || [];
-
-  }
+    }
+  );
 
 
-  /* CREDITO CLIENTES */
-
-  if(
-    m ===
-    'credito clientes'
-  ){
-
-    return movimientos.creditoClientes
-      || [];
-
-  }
-
-
-  /* CREDITO EMPLEADOS */
-
-  if(
-    m ===
-    'credito empleados'
-  ){
-
-    return movimientos.creditoEmpleados
-      || [];
-
-  }
-
-
-  /* LOTERIA */
-
-  if(
-    m ===
-    'loteria'
-  ){
-
-    return movimientos.loteria
-      || [];
-
-  }
-
-
-  /* PROVEEDORES */
-
-  if(
-    m ===
-    'proveedores'
-  ){
-
-    return movimientos.proveedores
-      || [];
-
-  }
-
-
-  return [];
+  return movimientos;
 
 }
-  
+
+
 /* ======================================================
-   ACTUALIZAR MOVIMIENTO DE LA FILA
+   OBTENER CONFIGURACION G:H:I:J:K
+====================================================== */
+
+function obtenerConfigOperacion(
+  modulo,
+  movimiento
+){
+
+  const moduloBuscado =
+    normalizarModuloOperacion(
+      modulo
+    );
+
+
+  const movimientoBuscado =
+    normalizarModuloOperacion(
+      movimiento
+    );
+
+
+  const catalogo =
+    catalogosData
+    &&
+    Array.isArray(
+      catalogosData.operacionesCatalogo
+    )
+    ?
+    catalogosData.operacionesCatalogo
+    :
+    [];
+
+
+  return (
+    catalogo.find(
+      item => {
+
+        return (
+
+          normalizarModuloOperacion(
+            item.modulo
+          )
+          ===
+          moduloBuscado
+
+          &&
+
+          normalizarModuloOperacion(
+            item.movimiento
+          )
+          ===
+          movimientoBuscado
+
+        );
+
+      }
+    )
+    ||
+    null
+  );
+
+}
+
+
+/* ======================================================
+   ACTUALIZAR MOVIMIENTO SEGUN MODULO
 ====================================================== */
 
 function actualizarMovimientoFila(
@@ -12153,13 +12176,9 @@ function actualizarMovimientoFila(
   }
 
 
-  const modulo =
-    selectModulo.value;
-
-
   const lista =
     movimientosPorModulo(
-      modulo
+      selectModulo.value
     );
 
 
@@ -12196,27 +12215,20 @@ function actualizarMovimientoFila(
   }
 
 
-  /*
-    Actualizar también Descripción
-    según módulo + movimiento.
-  */
-
-actualizarDescripcionFila(
-  selectMovimiento
-);
+  actualizarDescripcionFila(
+    selectMovimiento
+  );
 
 
-/*
-  Aplicar naturaleza:
-  Entrada / Salida
-*/
+  aplicarNaturalezaMovimiento(
+    selectMovimiento
+  );
 
-aplicarNaturalezaMovimiento(
-  selectMovimiento
-);
+
+  actualizarResumenSaldos();
+
 }
-
-
+  
 /* ======================================================
    DESCRIPCION SEGUN MODULO / MOVIMIENTO
 ====================================================== */
@@ -12728,6 +12740,12 @@ function aplicarNaturalezaMovimiento(
   }
 
 
+  const parcial =
+    fila.querySelector(
+      '.operacion-parcial'
+    );
+
+
   const entrada =
     fila.querySelector(
       '.operacion-entrada'
@@ -12741,6 +12759,7 @@ function aplicarNaturalezaMovimiento(
 
 
   if(
+    !parcial ||
     !entrada ||
     !salida
   ){
@@ -12750,72 +12769,80 @@ function aplicarNaturalezaMovimiento(
   }
 
 
+  const modulo =
+    fila.querySelector(
+      '.operacion-modulo'
+    )?.value || '';
+
+
   const movimiento =
-    String(
-      selectMovimiento.value || ''
-    )
-    .trim()
-    .toLowerCase();
+    selectMovimiento.value || '';
 
 
-  const naturalezas =
-    catalogosData
-    &&
-    catalogosData.naturalezaMovimientos
-    ?
-    catalogosData.naturalezaMovimientos
-    :
-    {};
-
-
-  const naturaleza =
-    naturalezas[
+  const config =
+    obtenerConfigOperacion(
+      modulo,
       movimiento
-    ];
+    );
 
 
   /* ==================================================
-     SIN MOVIMIENTO SELECCIONADO
+     SIN MOVIMIENTO
 
-     Bloqueamos ambos hasta saber
-     la naturaleza.
+     BLOQUEAMOS TODO
   ================================================== */
 
-  if(
-    !movimiento ||
-    !naturaleza
-  ){
+  if(!config){
+
+    bloquearCampoMovimiento(
+      parcial,
+      true
+    );
 
     bloquearCampoMovimiento(
       entrada,
       true
     );
 
-
     bloquearCampoMovimiento(
       salida,
       true
     );
-
 
     return;
 
   }
 
 
+  const permiteEntrada =
+    config.entrada === true;
+
+
+  const permiteSalida =
+    config.salida === true;
+
+
   /* ==================================================
-     ENTRADA
+     I Y J VACIOS
+
+     HABILITAR PARCIAL
   ================================================== */
 
   if(
-    naturaleza.entrada === true
+    !permiteEntrada
     &&
-    naturaleza.salida !== true
+    !permiteSalida
   ){
 
     bloquearCampoMovimiento(
-      entrada,
+      parcial,
       false
+    );
+
+
+    bloquearCampoMovimiento(
+      entrada,
+      true
     );
 
 
@@ -12823,6 +12850,10 @@ function aplicarNaturalezaMovimiento(
       salida,
       true
     );
+
+
+    entrada.value =
+      '';
 
 
     salida.value =
@@ -12835,86 +12866,61 @@ function aplicarNaturalezaMovimiento(
 
 
   /* ==================================================
-     SALIDA
+     EXISTE X EN I O J
+
+     BLOQUEAR PARCIAL
   ================================================== */
 
-  if(
-    naturaleza.salida === true
-    &&
-    naturaleza.entrada !== true
-  ){
-
-    bloquearCampoMovimiento(
-      entrada,
-      true
-    );
+  bloquearCampoMovimiento(
+    parcial,
+    true
+  );
 
 
-    bloquearCampoMovimiento(
-      salida,
-      false
-    );
+  parcial.value =
+    '';
 
+
+  /* ==================================================
+     I = X
+  ================================================== */
+
+  bloquearCampoMovimiento(
+    entrada,
+    !permiteEntrada
+  );
+
+
+  if(!permiteEntrada){
 
     entrada.value =
       '';
-
-
-    return;
 
   }
 
 
   /* ==================================================
-     SI AMBOS TIENEN X
-     permitir ambos
+     J = X
   ================================================== */
-
-  if(
-    naturaleza.entrada === true
-    &&
-    naturaleza.salida === true
-  ){
-
-    bloquearCampoMovimiento(
-      entrada,
-      false
-    );
-
-
-    bloquearCampoMovimiento(
-      salida,
-      false
-    );
-
-
-    return;
-
-  }
-
-
-  /*
-    Si O tiene movimiento,
-    pero P/Q no tienen X,
-    bloqueamos ambos.
-  */
-
-  bloquearCampoMovimiento(
-    entrada,
-    true
-  );
-
 
   bloquearCampoMovimiento(
     salida,
-    true
+    !permiteSalida
   );
+
+
+  if(!permiteSalida){
+
+    salida.value =
+      '';
+
+  }
 
 }
 
 
 /* ======================================================
-   BLOQUEAR / DESBLOQUEAR CAMPO
+   BLOQUEAR / DESBLOQUEAR
 ====================================================== */
 
 function bloquearCampoMovimiento(
@@ -12941,7 +12947,7 @@ function bloquearCampoMovimiento(
 
   }
 
-}
+} 
 function crearFilaOperacion(
   datos = {}
 ){
