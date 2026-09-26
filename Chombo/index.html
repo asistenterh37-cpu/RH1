@@ -2723,7 +2723,7 @@ tr{
 
 <script>
 const SCRIPT_URL =
-'https://script.google.com/macros/s/AKfycbyxEiUpPyG-GYwY87kCkkm1-raHTm4Zb2QXw9GREwCkvWLK6U75BWg-yYG_KzyfY7Vz/exec';
+'https://script.google.com/macros/s/AKfycbz7HuTOa_LiBZC-x63KsovOTOmq2fzEvc2pJpPWZOcw3hMVna1YdKiwkWi2-xhrmMsr/exec';
 </script>
 
 <header class="topbar">
@@ -11186,67 +11186,89 @@ function actualizarResumenSaldos(){
             )?.value || 0
           );
 
+/* ===========================================
+   VALOR REAL DE LA FILA
 
-        /* ===========================================
-           VALOR REAL DE LA FILA
+   I = Entrada
+   J = Salida
+   I/J vacíos = Parcial
+=========================================== */
 
-           Parcial si está habilitado.
-           Si no:
-           Entrada o Salida.
-        =========================================== */
-
-        let valor =
-          0;
-
-
-        if(
-          !fila.querySelector(
-            '.operacion-parcial'
-          )?.disabled
-        ){
-
-          valor =
-            Number.isFinite(
-              parcial
-            )
-            ?
-            Math.abs(
-              parcial
-            )
-            :
-            0;
-
-        }
-        else if(
-          Number.isFinite(
-            entrada
-          )
-          &&
-          entrada !== 0
-        ){
-
-          valor =
-            Math.abs(
-              entrada
-            );
-
-        }
-        else if(
-          Number.isFinite(
-            salida
-          )
-          &&
-          salida !== 0
-        ){
-
-          valor =
-            Math.abs(
-              salida
-            );
-
-        }
+let valor =
+ 0;
 
 
+/* ===========================================
+   I Y J VACIOS
+   TOMAR PARCIAL
+=========================================== */
+
+if(
+ config.entrada !== true
+ &&
+ config.salida !== true
+){
+
+ if(
+ Number.isFinite(
+ parcial
+ )
+ ){
+
+ valor =
+ Math.abs(
+ parcial
+ );
+
+ }
+
+}
+
+
+/* ===========================================
+   I = X
+   TOMAR ENTRADA
+=========================================== */
+
+else if(
+ config.entrada === true
+ &&
+ Number.isFinite(
+ entrada
+ )
+ &&
+ entrada !== 0
+){
+
+ valor =
+ Math.abs(
+ entrada
+ );
+
+}
+
+
+/* ===========================================
+   J = X
+   TOMAR SALIDA
+=========================================== */
+
+else if(
+ config.salida === true
+ &&
+ Number.isFinite(
+ salida
+ )
+ &&
+ salida !== 0
+){
+
+ valor =
+ Math.abs(
+ salida
+ );
+
+}
         if(!valor){
 
           return;
@@ -11254,11 +11276,46 @@ function actualizarResumenSaldos(){
         }
 
 
-        const naturaleza =
-          Number(
-            config.naturaleza || 0
-          );
+      const naturalezaRaw =
+ config.naturaleza;
 
+
+let naturaleza =
+ 0;
+
+
+if(
+ naturalezaRaw === 1
+ ||
+ naturalezaRaw === '1'
+ ||
+ String(
+ naturalezaRaw || ''
+ )
+ .trim() === '+'
+){
+
+ naturaleza =
+ 1;
+
+}
+
+
+else if(
+ naturalezaRaw === -1
+ ||
+ naturalezaRaw === '-1'
+ ||
+ String(
+ naturalezaRaw || ''
+ )
+ .trim() === '-'
+){
+
+ naturaleza =
+ -1;
+
+}
 
         /* ===========================================
            PARCIAL
@@ -12317,12 +12374,33 @@ function actualizarDescripcionFila(
     celda.innerHTML = `
 
       <select
-        class="
-          operacion-celda-select
-          operacion-descripcion
-        "
-        onchange="marcarHoraFilaOperacion(this)"
-      >
+ class="
+ operacion-celda-select
+ operacion-descripcion
+ "
+
+ onchange="
+ marcarHoraFilaOperacion(this);
+ mostrarResumenCredito(this);
+ guardarCreditoFilaSiAplica(this);
+ "
+
+ onfocus="
+ mostrarResumenCredito(this);
+ "
+
+ onmouseenter="
+ mostrarResumenCredito(this);
+ "
+
+ onmouseleave="
+ programarOcultarResumenCredito();
+ "
+
+ onblur="
+ programarOcultarResumenCredito();
+ "
+>
         ${html}
       </select>
 
@@ -12382,15 +12460,33 @@ function actualizarDescripcionFila(
 
     celda.innerHTML = `
 
-    <select
-  class="
-    operacion-celda-select
-    operacion-descripcion
-  "
-  onchange="
-    marcarHoraFilaOperacion(this);
-    guardarCreditoFilaSiAplica(this);
-  "
+   <select
+ class="
+ operacion-celda-select
+ operacion-descripcion
+ "
+
+ onchange="
+ marcarHoraFilaOperacion(this);
+ mostrarResumenCredito(this);
+ guardarCreditoFilaSiAplica(this);
+ "
+
+ onfocus="
+ mostrarResumenCredito(this);
+ "
+
+ onmouseenter="
+ mostrarResumenCredito(this);
+ "
+
+ onmouseleave="
+ programarOcultarResumenCredito();
+ "
+
+ onblur="
+ programarOcultarResumenCredito();
+ "
 >
         ${html}
       </select>
@@ -12951,6 +13047,413 @@ function bloquearCampoMovimiento(
   }
 
 } 
+
+/* ======================================================
+   RESUMEN FLOTANTE DE CREDITO
+====================================================== */
+
+let timerResumenCredito =
+ null;
+
+
+async function mostrarResumenCredito(
+ elemento
+){
+
+ clearTimeout(
+ timerResumenCredito
+ );
+
+
+ if(
+ !elemento ||
+ !elemento.value
+ ){
+
+ return;
+
+ }
+
+
+ const fila =
+ elemento.closest(
+ '.fila-operacion'
+ );
+
+
+ if(!fila){
+
+ return;
+
+ }
+
+
+ const modulo =
+ normalizarModuloOperacion(
+ fila.querySelector(
+ '.operacion-modulo'
+ )?.value || ''
+ );
+
+
+ let moduloApi =
+ '';
+
+
+ if(
+ modulo ===
+ 'credito empleados'
+ ){
+
+ moduloApi =
+ 'creditoEmpleados';
+
+ }
+ else if(
+ modulo ===
+ 'credito clientes'
+ ){
+
+ moduloApi =
+ 'creditoClientes';
+
+ }
+ else{
+
+ return;
+
+ }
+
+
+ const nombre =
+ String(
+ elemento.value || ''
+ )
+ .trim();
+
+
+ if(
+ !nombre ||
+ nombre.toLowerCase() ===
+ 'seleccionar'
+ ){
+
+ ocultarResumenCredito();
+
+ return;
+
+ }
+
+
+ let box =
+ document.getElementById(
+ 'resumenCreditoFlotante'
+ );
+
+
+ if(!box){
+
+ box =
+ document.createElement(
+ 'div'
+ );
+
+
+ box.id =
+ 'resumenCreditoFlotante';
+
+
+ box.style.cssText = `
+
+ position:fixed;
+ z-index:99999;
+ width:300px;
+ background:#ffffff;
+ border:1px solid #d0d5dd;
+ border-radius:12px;
+ padding:14px 16px;
+ box-shadow:0 12px 30px rgba(16,24,40,.20);
+ font-family:Arial,Helvetica,sans-serif;
+
+ `;
+
+
+ box.onmouseenter =
+ function(){
+
+ clearTimeout(
+ timerResumenCredito
+ );
+
+ };
+
+
+ box.onmouseleave =
+ function(){
+
+ programarOcultarResumenCredito();
+
+ };
+
+
+ document.body.appendChild(
+ box
+ );
+
+ }
+
+
+ const rect =
+ elemento.getBoundingClientRect();
+
+
+ let izquierda =
+ rect.left;
+
+
+ if(
+ izquierda + 300 >
+ window.innerWidth - 10
+ ){
+
+ izquierda =
+ window.innerWidth - 310;
+
+ }
+
+
+ box.style.left =
+ Math.max(
+ 10,
+ izquierda
+ )
+ +
+ 'px';
+
+
+ box.style.top =
+ (
+ rect.bottom + 6
+ )
+ +
+ 'px';
+
+
+ box.style.display =
+ 'block';
+
+
+ box.innerHTML = `
+
+ <div
+ style="
+ font-weight:800;
+ font-size:15px;
+ margin-bottom:9px;
+ "
+ >
+ ${escapeHtml(nombre)}
+ </div>
+
+ <div
+ style="
+ font-size:13px;
+ color:#667085;
+ "
+ >
+ Consultando cuenta...
+ </div>
+
+ `;
+
+
+ try{
+
+
+ const data =
+ await jsonpRequest(
+ 'credito_saldo',
+ {
+
+ modulo:
+ moduloApi,
+
+ nombre:
+ nombre
+
+ }
+ );
+
+
+ if(
+ !data ||
+ data.ok !== true
+ ){
+
+ throw new Error(
+ data?.message ||
+ 'No se pudo consultar la cuenta.'
+ );
+
+ }
+
+
+ const cargo =
+ Number(
+ data.cargo || 0
+ );
+
+
+ const abono =
+ Number(
+ data.abono || 0
+ );
+
+
+ const saldo =
+ Number(
+ data.saldo || 0
+ );
+
+
+ const fmt =
+ valor =>
+ Number(
+ valor || 0
+ )
+ .toLocaleString(
+ 'en-US',
+ {
+ minimumFractionDigits:2,
+ maximumFractionDigits:2
+ }
+ );
+
+
+ box.innerHTML = `
+
+ <div
+ style="
+ font-size:15px;
+ font-weight:800;
+ color:#172033;
+ margin-bottom:11px;
+ "
+ >
+ ${escapeHtml(nombre)}
+ </div>
+
+
+ <div
+ style="
+ display:grid;
+ grid-template-columns:1fr auto;
+ gap:8px 16px;
+ font-size:13px;
+ "
+ >
+
+ <span>
+ Cargos
+ </span>
+
+ <strong>
+ L ${fmt(cargo)}
+ </strong>
+
+
+ <span>
+ Abonos
+ </span>
+
+ <strong>
+ L ${fmt(abono)}
+ </strong>
+
+
+ <span
+ style="
+ margin-top:3px;
+ padding-top:9px;
+ border-top:1px solid #e4e7ec;
+ font-weight:800;
+ "
+ >
+ Saldo
+ </span>
+
+ <strong
+ style="
+ margin-top:3px;
+ padding-top:9px;
+ border-top:1px solid #e4e7ec;
+ font-size:15px;
+ color:${saldo > 0 ? '#c62828' : '#198754'};
+ "
+ >
+ L ${fmt(saldo)}
+ </strong>
+
+ </div>
+
+ `;
+
+
+ }
+ catch(error){
+
+ box.innerHTML = `
+
+ <div
+ style="
+ color:#c62828;
+ font-size:13px;
+ "
+ >
+ ${escapeHtml(
+ error.message
+ )}
+ </div>
+
+ `;
+
+ }
+
+}
+
+
+function ocultarResumenCredito(){
+
+ const box =
+ document.getElementById(
+ 'resumenCreditoFlotante'
+ );
+
+
+ if(box){
+
+ box.style.display =
+ 'none';
+
+ }
+
+}
+
+
+function programarOcultarResumenCredito(){
+
+ clearTimeout(
+ timerResumenCredito
+ );
+
+
+ timerResumenCredito =
+ setTimeout(
+ ocultarResumenCredito,
+ 350
+ );
+
+}
 /* ======================================================
    GUARDAR CREDITO DESDE REGISTRO DE OPERACIONES
 
@@ -13092,84 +13595,106 @@ async function guardarCreditoFilaSiAplica(
     );
 
 
-  const entrada =
-    Number(
-      fila.querySelector(
-        '.operacion-entrada'
-      )?.value || 0
-    );
+const salida =
+ Number(
+ fila.querySelector(
+ '.operacion-salida'
+ )?.value || 0
+ );
 
 
-  let tipoMovimiento =
-    '';
+let tipoMovimiento =
+ '';
 
 
-  let valor =
-    0;
+let valor =
+ 0;
 
 
-  /* ===============================================
-     ABONO
+/* ===============================================
+   ABONO
 
-     SI ENTRA EFECTIVO
+   El dinero entra a caja.
+   En crédito se registra como ABONO.
+=============================================== */
 
-     Registro operaciones:
-     Entrada = valor
+if(
+ movimiento ===
+ 'abono'
+){
 
-     Hoja crédito:
-     Abono = valor
-  =============================================== */
-
-  if(
-    movimiento ===
-    'abono'
-  ){
-
-    tipoMovimiento =
-      'abono';
+ tipoMovimiento =
+ 'abono';
 
 
-    valor =
-      Number.isFinite(
-        entrada
-      )
-      ?
-      entrada
-      :
-      0;
+ valor =
+ Number.isFinite(
+ entrada
+ )
+ ?
+ entrada
+ :
+ 0;
 
-  }
-
-
-  /* ===============================================
-     CARGO
-
-     NO ES ENTRADA DE EFECTIVO
-
-     Registro operaciones:
-     Parcial = valor
-
-     Hoja crédito:
-     Cargo = valor
-  =============================================== */
-
-  else{
-
-    tipoMovimiento =
-      'cargo';
+}
 
 
-    valor =
-      Number.isFinite(
-        parcial
-      )
-      ?
-      parcial
-      :
-      0;
+/* ===============================================
+   VALES
 
-  }
+   El efectivo SALE de caja,
+   pero para el empleado representa un CARGO.
+=============================================== */
 
+else if(
+ esCreditoEmpleado
+ &&
+ movimiento ===
+ 'vales'
+){
+
+ tipoMovimiento =
+ 'cargo';
+
+
+ valor =
+ Number.isFinite(
+ salida
+ )
+ ?
+ salida
+ :
+ 0;
+
+}
+
+
+/* ===============================================
+   DEMÁS CARGOS
+
+   Productos / Recibo
+   Otros
+   etc.
+
+   Se capturan en Parcial.
+=============================================== */
+
+else{
+
+ tipoMovimiento =
+ 'cargo';
+
+
+ valor =
+ Number.isFinite(
+ parcial
+ )
+ ?
+ parcial
+ :
+ 0;
+
+}
 
   if(
     !Number.isFinite(
@@ -13606,28 +14131,33 @@ function crearFilaOperacion(
 
 
     <!-- SALIDA -->
+<td>
 
-    <td>
+<input
+ class="
+ operacion-celda-input
+ operacion-monto
+ operacion-salida
+ "
+ type="number"
+ min="0"
+ step="0.01"
+ inputmode="decimal"
 
-      <input
-        class="
-          operacion-celda-input
-          operacion-monto
-          operacion-salida
-        "
-        type="number"
-        min="0"
-        step="0.01"
-        inputmode="decimal"
-        value="${escapeHtml(
-          datos.salida || ''
-        )}"
-        oninput="
-          marcarHoraFilaOperacion(this)
-        "
-      >
+ value="${escapeHtml(
+ datos.salida || ''
+ )}"
 
-    </td>
+ oninput="
+ marcarHoraFilaOperacion(this)
+ "
+
+ onchange="
+ guardarCreditoFilaSiAplica(this)
+ "
+>
+
+</td>
 
   `;
 
