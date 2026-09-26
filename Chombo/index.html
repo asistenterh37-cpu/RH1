@@ -2723,7 +2723,7 @@ tr{
 
 <script>
 const SCRIPT_URL =
-'https://script.google.com/macros/s/AKfycbx5UEbBJl2DE7SEh4Qp2HcGZF6VVCeAHWqJKGEjXMshcAcQZxbFPLPE5TO_n5i3WCpx/exec';
+'https://script.google.com/macros/s/AKfycbzG5Q1kZ8FIPiMk3FkSmxUJAD5JvDIjU-0QWCGovlgzLjrA2j_hlpJU4eGm415poOQW/exec';
 </script>
 
 <header class="topbar">
@@ -12382,13 +12382,16 @@ function actualizarDescripcionFila(
 
     celda.innerHTML = `
 
-      <select
-        class="
-          operacion-celda-select
-          operacion-descripcion
-        "
-        onchange="marcarHoraFilaOperacion(this)"
-      >
+    <select
+  class="
+    operacion-celda-select
+    operacion-descripcion
+  "
+  onchange="
+    marcarHoraFilaOperacion(this);
+    guardarCreditoFilaSiAplica(this);
+  "
+>
         ${html}
       </select>
 
@@ -12948,6 +12951,473 @@ function bloquearCampoMovimiento(
   }
 
 } 
+/* ======================================================
+   GUARDAR CREDITO DESDE REGISTRO DE OPERACIONES
+
+   CREDITO EMPLEADOS
+   CREDITO CLIENTES
+
+   Cargo  -> Parcial
+   Abono  -> Entrada
+====================================================== */
+
+async function guardarCreditoFilaSiAplica(
+  elemento
+){
+
+  const fila =
+    elemento.closest(
+      '.fila-operacion'
+    );
+
+
+  if(!fila){
+
+    return;
+
+  }
+
+
+  if(
+    !turnoActivo ||
+    !turnoActivo.turnoId
+  ){
+
+    return;
+
+  }
+
+
+  const moduloTexto =
+    fila.querySelector(
+      '.operacion-modulo'
+    )?.value || '';
+
+
+  const modulo =
+    normalizarModuloOperacion(
+      moduloTexto
+    );
+
+
+  /* ===============================================
+     SOLO CREDITOS
+  =============================================== */
+
+  const esCreditoEmpleado =
+    modulo ===
+    'credito empleados';
+
+
+  const esCreditoCliente =
+    modulo ===
+    'credito clientes';
+
+
+  if(
+    !esCreditoEmpleado &&
+    !esCreditoCliente
+  ){
+
+    return;
+
+  }
+
+
+  const movimientoTexto =
+    fila.querySelector(
+      '.operacion-movimiento'
+    )?.value || '';
+
+
+  const movimiento =
+    normalizarModuloOperacion(
+      movimientoTexto
+    );
+
+
+  if(!movimiento){
+
+    return;
+
+  }
+
+
+  /*
+    Saldo inicial no es una operación
+    de la cuenta corriente.
+  */
+
+  if(
+    movimiento ===
+    'saldo inicial'
+  ){
+
+    return;
+
+  }
+
+
+  /* ===============================================
+     NOMBRE DEL EMPLEADO / CLIENTE
+
+     Está en Descripción de Registro operaciones
+  =============================================== */
+
+  const nombre =
+    String(
+      fila.querySelector(
+        '.operacion-descripcion'
+      )?.value || ''
+    )
+    .trim();
+
+
+  if(
+    !nombre ||
+    nombre.toLowerCase() ===
+    'seleccionar'
+  ){
+
+    return;
+
+  }
+
+
+  const parcial =
+    Number(
+      fila.querySelector(
+        '.operacion-parcial'
+      )?.value || 0
+    );
+
+
+  const entrada =
+    Number(
+      fila.querySelector(
+        '.operacion-entrada'
+      )?.value || 0
+    );
+
+
+  let tipoMovimiento =
+    '';
+
+
+  let valor =
+    0;
+
+
+  /* ===============================================
+     ABONO
+
+     SI ENTRA EFECTIVO
+
+     Registro operaciones:
+     Entrada = valor
+
+     Hoja crédito:
+     Abono = valor
+  =============================================== */
+
+  if(
+    movimiento ===
+    'abono'
+  ){
+
+    tipoMovimiento =
+      'abono';
+
+
+    valor =
+      Number.isFinite(
+        entrada
+      )
+      ?
+      entrada
+      :
+      0;
+
+  }
+
+
+  /* ===============================================
+     CARGO
+
+     NO ES ENTRADA DE EFECTIVO
+
+     Registro operaciones:
+     Parcial = valor
+
+     Hoja crédito:
+     Cargo = valor
+  =============================================== */
+
+  else{
+
+    tipoMovimiento =
+      'cargo';
+
+
+    valor =
+      Number.isFinite(
+        parcial
+      )
+      ?
+      parcial
+      :
+      0;
+
+  }
+
+
+  if(
+    !Number.isFinite(
+      valor
+    )
+    ||
+    valor <= 0
+  ){
+
+    return;
+
+  }
+
+
+  /* ===============================================
+     EVITAR DOBLE GUARDADO
+  =============================================== */
+
+  if(
+    fila.dataset.creditoGuardado ===
+    '1'
+  ){
+
+    return;
+
+  }
+
+
+  if(
+    fila.dataset.creditoGuardando ===
+    '1'
+  ){
+
+    return;
+
+  }
+
+
+  fila.dataset.creditoGuardando =
+    '1';
+
+
+  const moduloApi =
+    esCreditoEmpleado
+    ?
+    'creditoEmpleados'
+    :
+    'creditoClientes';
+
+
+  const payload = {
+
+    turnoId:
+      turnoActivo.turnoId,
+
+    nombre:
+      nombre,
+
+    /*
+      En la hoja Crédito, guardaremos
+      el Movimiento como Descripción.
+
+      Ejemplo:
+      Productos / Recibo
+      Abono
+      Otros
+    */
+
+    descripcion:
+      movimientoTexto,
+
+    tipoMovimiento:
+      tipoMovimiento,
+
+    valor:
+      valor
+
+  };
+
+
+  try{
+
+
+    const data =
+      await jsonpRequest(
+        'movimiento',
+        {
+
+          modulo:
+            moduloApi,
+
+          payload:
+            JSON.stringify(
+              payload
+            )
+
+        }
+      );
+
+
+    if(
+      !data ||
+      data.ok !== true
+    ){
+
+      throw new Error(
+        data &&
+        data.message
+        ?
+        data.message
+        :
+        'No se pudo guardar el crédito.'
+      );
+
+    }
+
+
+    /* ===============================================
+       MARCAR FILA COMO GUARDADA
+
+       Esto evita duplicarla.
+    =============================================== */
+
+    fila.dataset.creditoGuardado =
+      '1';
+
+
+    fila.dataset.creditoGuardando =
+      '0';
+
+
+    /* ===============================================
+       BLOQUEAR LA OPERACION YA GUARDADA
+
+       Así no se modifica después y no creamos
+       inconsistencias con la hoja de crédito.
+    =============================================== */
+
+    const moduloCampo =
+      fila.querySelector(
+        '.operacion-modulo'
+      );
+
+
+    const movimientoCampo =
+      fila.querySelector(
+        '.operacion-movimiento'
+      );
+
+
+    const descripcionCampo =
+      fila.querySelector(
+        '.operacion-descripcion'
+      );
+
+
+    const parcialCampo =
+      fila.querySelector(
+        '.operacion-parcial'
+      );
+
+
+    const entradaCampo =
+      fila.querySelector(
+        '.operacion-entrada'
+      );
+
+
+    const salidaCampo =
+      fila.querySelector(
+        '.operacion-salida'
+      );
+
+
+    if(moduloCampo){
+
+      moduloCampo.disabled =
+        true;
+
+    }
+
+
+    if(movimientoCampo){
+
+      movimientoCampo.disabled =
+        true;
+
+    }
+
+
+    if(descripcionCampo){
+
+      descripcionCampo.disabled =
+        true;
+
+    }
+
+
+    if(parcialCampo){
+
+      parcialCampo.readOnly =
+        true;
+
+    }
+
+
+    if(entradaCampo){
+
+      entradaCampo.readOnly =
+        true;
+
+    }
+
+
+    if(salidaCampo){
+
+      salidaCampo.readOnly =
+        true;
+
+    }
+
+
+    toast(
+      tipoMovimiento === 'abono'
+      ?
+      'Abono de crédito guardado.'
+      :
+      'Cargo de crédito guardado.',
+      true
+    );
+
+  }
+  catch(error){
+
+    fila.dataset.creditoGuardando =
+      '0';
+
+
+    toast(
+      'Error guardando crédito: ' +
+      error.message,
+      false
+    );
+
+  }
+
+}
+  
 function crearFilaOperacion(
   datos = {}
 ){
@@ -13051,23 +13521,26 @@ function crearFilaOperacion(
 
     <td>
 
-      <input
-        class="
-          operacion-celda-input
-          operacion-monto
-          operacion-parcial
-        "
-        type="number"
-        min="0"
-        step="0.01"
-        inputmode="decimal"
-        value="${escapeHtml(
-          datos.parcial || ''
-        )}"
-        oninput="
-          marcarHoraFilaOperacion(this)
-        "
-      >
+   <input
+  class="
+    operacion-celda-input
+    operacion-monto
+    operacion-parcial
+  "
+  type="number"
+  min="0"
+  step="0.01"
+  inputmode="decimal"
+  value="${escapeHtml(
+    datos.parcial || ''
+  )}"
+  oninput="
+    marcarHoraFilaOperacion(this)
+  "
+  onchange="
+    guardarCreditoFilaSiAplica(this)
+  "
+>
 
     </td>
 
@@ -13076,23 +13549,26 @@ function crearFilaOperacion(
 
     <td>
 
-      <input
-        class="
-          operacion-celda-input
-          operacion-monto
-          operacion-entrada
-        "
-        type="number"
-        min="0"
-        step="0.01"
-        inputmode="decimal"
-        value="${escapeHtml(
-          datos.entrada || ''
-        )}"
-        oninput="
-          marcarHoraFilaOperacion(this)
-        "
-      >
+    <input
+  class="
+    operacion-celda-input
+    operacion-monto
+    operacion-entrada
+  "
+  type="number"
+  min="0"
+  step="0.01"
+  inputmode="decimal"
+  value="${escapeHtml(
+    datos.entrada || ''
+  )}"
+  oninput="
+    marcarHoraFilaOperacion(this)
+  "
+  onchange="
+    guardarCreditoFilaSiAplica(this)
+  "
+>
 
     </td>
 
