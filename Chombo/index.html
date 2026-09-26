@@ -2723,7 +2723,7 @@ tr{
 
 <script>
 const SCRIPT_URL =
-'https://script.google.com/macros/s/AKfycbzG5Q1kZ8FIPiMk3FkSmxUJAD5JvDIjU-0QWCGovlgzLjrA2j_hlpJU4eGm415poOQW/exec';
+'https://script.google.com/macros/s/AKfycbyxEiUpPyG-GYwY87kCkkm1-raHTm4Zb2QXw9GREwCkvWLK6U75BWg-yYG_KzyfY7Vz/exec';
 </script>
 
 <header class="topbar">
@@ -13253,21 +13253,41 @@ async function guardarCreditoFilaSiAplica(
   try{
 
 
-    const data =
-      await jsonpRequest(
-        'movimiento',
-        {
+    const payloadCredito = {
 
-          modulo:
-            moduloApi,
+  turnoId:
+    turnoActivo.turnoId,
 
-          payload:
-            JSON.stringify(
-              payload
-            )
+  modulo:
+    moduloApi,
 
-        }
-      );
+  nombre:
+    nombre,
+
+  descripcion:
+    movimientoTexto,
+
+  tipoMovimiento:
+    tipoMovimiento,
+
+  valor:
+    valor
+
+};
+
+
+const data =
+  await jsonpRequest(
+    'credito_guardar',
+    {
+
+      payload:
+        JSON.stringify(
+          payloadCredito
+        )
+
+    }
+  );
 
 
     if(
@@ -13392,14 +13412,26 @@ async function guardarCreditoFilaSiAplica(
     }
 
 
-    toast(
-      tipoMovimiento === 'abono'
-      ?
-      'Abono de crédito guardado.'
-      :
-      'Cargo de crédito guardado.',
-      true
-    );
+   toast(
+  (
+    tipoMovimiento === 'abono'
+    ?
+    'Abono'
+    :
+    'Cargo'
+  )
+  +
+  ' guardado en ' +
+  (
+    data.hoja || 'Crédito'
+  )
+  +
+  ' · fila ' +
+  (
+    data.fila || ''
+  ),
+  true
+);
 
   }
   catch(error){
