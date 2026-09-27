@@ -2716,6 +2716,95 @@ tr{
   }
 
 }  
+/* ======================================================
+   IMPRESION DE OPERACIONES DEL TURNO
+====================================================== */
+
+@media print{
+
+  body.imprimir-operaciones{
+
+    background:#fff !important;
+
+  }
+
+
+  body.imprimir-operaciones #turnoBar{
+
+    display:none !important;
+
+  }
+
+
+  body.imprimir-operaciones #turnoView{
+
+    display:none !important;
+
+  }
+
+
+  body.imprimir-operaciones #cierreView{
+
+    display:none !important;
+
+  }
+
+
+  body.imprimir-operaciones #reportView{
+
+    display:none !important;
+
+  }
+
+
+  body.imprimir-operaciones #menuView{
+
+    display:block !important;
+
+    width:100% !important;
+
+    margin:0 !important;
+
+    padding:0 !important;
+
+  }
+
+
+  body.imprimir-operaciones .turno-operaciones-hoja{
+
+    width:100% !important;
+
+    max-width:none !important;
+
+    border:0 !important;
+
+    box-shadow:none !important;
+
+  }
+
+
+  body.imprimir-operaciones .operaciones-lineas-bar{
+
+    display:none !important;
+
+  }
+
+
+  body.imprimir-operaciones .operaciones-hoja-footer{
+
+    display:none !important;
+
+  }
+
+
+  body.imprimir-operaciones .btn-linea{
+
+    display:none !important;
+
+  }
+
+}
+  
 </style>
 </head>
 
@@ -2723,7 +2812,7 @@ tr{
 
 <script>
 const SCRIPT_URL =
-'https://script.google.com/macros/s/AKfycbz7HuTOa_LiBZC-x63KsovOTOmq2fzEvc2pJpPWZOcw3hMVna1YdKiwkWi2-xhrmMsr/exec';
+'https://script.google.com/macros/s/AKfycbzfFwjHR8OWdcDDyU3CnDu64GNrfhPFOyrkZjuGSpbc8dK0iCC4r0aFP5UXDeukbRBe/exec';
 </script>
 
 <header class="topbar">
@@ -2769,14 +2858,43 @@ const SCRIPT_URL =
   </div>
 
 
+<div
+  class="turno-bar-acciones"
+  style="
+    display:flex;
+    align-items:center;
+    gap:8px;
+  "
+>
+
   <button
+    class="btn btn-print"
+    type="button"
+    onclick="imprimirOperacionesTurno()"
+  >
+    Imprimir
+  </button>
+
+
+  <button
+    id="guardarTotalesTurnoBtn"
     class="btn btn-primary"
+    type="button"
+    onclick="guardarTotalesTurno()"
+  >
+    Guardar
+  </button>
+
+
+  <button
+    class="btn btn-print"
     type="button"
     onclick="abrirCambioTurno()"
   >
     Cambiar turno
   </button>
 
+</div>
 </div>
 
 <!-- ======================================================
@@ -3926,6 +4044,7 @@ const SCRIPT_URL =
   }
 
 }
+
 
 </style>
 
@@ -5156,39 +5275,17 @@ const SCRIPT_URL =
 
 
   <!-- PIE -->
-  <div class="operaciones-hoja-footer">
 
-    <div
-      id="cantidadFilasOperacion"
-      class="operaciones-cantidad"
-    >
-      20 filas
-    </div>
+<div class="operaciones-hoja-footer">
 
-
-    <div>
-
-      <button
-        class="btn btn-print"
-        type="button"
-        onclick="abrirCambioTurno()"
-      >
-        Cambiar turno
-      </button>
-
-
-      <button
-        class="btn btn-primary"
-        type="button"
-        onclick="pasarResumenACierre()"
-      >
-        Cierre diario
-      </button>
-
-    </div>
-
+  <div
+    id="cantidadFilasOperacion"
+    class="operaciones-cantidad"
+  >
+    20 filas
   </div>
 
+</div>
 
 </div>
 
@@ -11423,6 +11520,255 @@ else if(
   );
 
 }
+/* ======================================================
+   GUARDAR SOLO TOTALES DEL TURNO
+
+   GUARDA UNA SOLA FILA EN CIERRES:
+
+   Parcial
+   Entradas
+   Salidas
+====================================================== */
+
+async function guardarTotalesTurno(){
+
+  if(
+    !turnoActivo ||
+    !turnoActivo.turnoId
+  ){
+
+    toast(
+      'No hay un turno activo.',
+      false
+    );
+
+    return;
+
+  }
+
+
+  /* ===============================================
+     ASEGURAR CALCULOS ACTUALIZADOS
+  =============================================== */
+
+  recalcularControlVentas();
+
+  recalcularTotalesOperaciones();
+
+
+  /* ===============================================
+     TOTAL PARCIAL
+
+     CONTROL DE VENTAS
+     +
+     PARCIALES DE REGISTRO DE OPERACIONES
+  =============================================== */
+
+  let totalParcial =
+    0;
+
+
+  /* PARCIALES DEL CONTROL DE VENTAS */
+
+  document
+    .querySelectorAll(
+      '.control-ventas-table tbody td:nth-child(2) .control-ventas-input:not([readonly])'
+    )
+    .forEach(
+      campo => {
+
+        totalParcial +=
+          numeroOperacion(
+            campo.value
+          );
+
+      }
+    );
+
+
+  /* PARCIALES DEL REGISTRO DE OPERACIONES */
+
+  document
+    .querySelectorAll(
+      '#operacionesFilas .operacion-parcial'
+    )
+    .forEach(
+      campo => {
+
+        totalParcial +=
+          numeroOperacion(
+            campo.value
+          );
+
+      }
+    );
+
+
+  /* ===============================================
+     TOTAL ENTRADAS
+
+     TOMA EL TOTAL QUE YA CALCULAMOS:
+
+     Registro operaciones
+     +
+     Apertura caja
+     +
+     Efectivo formas de pago
+  =============================================== */
+
+  const totalEntradas =
+    numeroOperacion(
+      $('opTotalEntradas')
+      ?
+      $('opTotalEntradas').value
+      :
+      0
+    );
+
+
+  /* ===============================================
+     TOTAL SALIDAS
+  =============================================== */
+
+  const totalSalidas =
+    numeroOperacion(
+      $('opTotalSalidas')
+      ?
+      $('opTotalSalidas').value
+      :
+      0
+    );
+
+
+  const payload = {
+
+    turnoId:
+      turnoActivo.turnoId,
+
+    parcial:
+      totalParcial,
+
+    entrada:
+      totalEntradas,
+
+    salida:
+      totalSalidas
+
+  };
+
+
+  const boton =
+    $('guardarTotalesTurnoBtn');
+
+
+  if(boton){
+
+    boton.disabled =
+      true;
+
+    boton.textContent =
+      'Guardando...';
+
+  }
+
+
+  try{
+
+
+    const data =
+      await jsonpRequest(
+        'guardar_totales_turno',
+        {
+
+          payload:
+            JSON.stringify(
+              payload
+            )
+
+        }
+      );
+
+
+    if(
+      !data ||
+      data.ok !== true
+    ){
+
+      throw new Error(
+        data?.message ||
+        'No se pudo guardar.'
+      );
+
+    }
+
+
+    toast(
+      'Totales del turno guardados correctamente.',
+      true
+    );
+
+
+  }
+  catch(error){
+
+
+    toast(
+      'Error al guardar: ' +
+      error.message,
+      false
+    );
+
+
+  }
+  finally{
+
+
+    if(boton){
+
+      boton.disabled =
+        false;
+
+      boton.textContent =
+        'Guardar';
+
+    }
+
+  }
+
+}
+
+/* ======================================================
+   IMPRIMIR OPERACIONES DEL TURNO
+====================================================== */
+
+function imprimirOperacionesTurno(){
+
+  recalcularControlVentas();
+
+  recalcularTotalesOperaciones();
+
+
+  document.body.classList.add(
+    'imprimir-operaciones'
+  );
+
+
+  window.print();
+
+
+  setTimeout(
+    () => {
+
+      document.body.classList.remove(
+        'imprimir-operaciones'
+      );
+
+    },
+    500
+  );
+
+}
+  
   /* ======================================================
    TOTALES DE OPERACIONES + ARQUEO
 ====================================================== */
