@@ -4616,39 +4616,15 @@ const SCRIPT_URL =
 </div>
 
 
-<!-- BOTONES + / - -->
-  <div class="operaciones-lineas-bar">
+<!-- TITULO REGISTRO DE OPERACIONES -->
 
-    <span>
-      Registro de operaciones
-    </span>
+<div class="operaciones-lineas-bar">
 
+  <span>
+    Registro de operaciones
+  </span>
 
-    <div class="operaciones-lineas-botones">
-
-      <button
-        type="button"
-        class="btn-linea mas"
-        onclick="agregarFilaOperacion()"
-        title="Agregar fila"
-      >
-        +
-      </button>
-
-
-      <button
-        type="button"
-        class="btn-linea menos"
-        onclick="quitarFilaOperacion()"
-        title="Quitar última fila"
-      >
-        −
-      </button>
-
-    </div>
-
-  </div>
-
+</div>
 
   <!-- TABLA -->
 
@@ -4781,6 +4757,41 @@ const SCRIPT_URL =
 
   </div>
 
+  <!-- BOTONES + / - AL FINAL DEL REGISTRO -->
+
+<div
+  class="operaciones-lineas-bar"
+  style="
+    justify-content:flex-end;
+    border-top:0;
+  "
+>
+
+  <div class="operaciones-lineas-botones">
+
+    <button
+      type="button"
+      class="btn-linea mas"
+      onclick="agregarFilaOperacion()"
+      title="Agregar fila"
+    >
+      +
+    </button>
+
+
+    <button
+      type="button"
+      class="btn-linea menos"
+      onclick="quitarFilaOperacion()"
+      title="Quitar última fila"
+    >
+      −
+    </button>
+
+  </div>
+
+</div>
+  
 
   <!-- ==================================================
        ARQUEO DE CAJA DEL TURNO
@@ -11417,7 +11428,11 @@ function recalcularTotalesOperaciones(){
 
 
   /* ===============================================
-     SUMAR FILAS DE OPERACIONES
+     SUMAR TODAS LAS ENTRADAS
+
+     Se suman todos los valores existentes,
+     incluso si luego la fila quedó bloqueada
+     o en solo lectura.
   =============================================== */
 
   document
@@ -11427,18 +11442,18 @@ function recalcularTotalesOperaciones(){
     .forEach(
       campo => {
 
-        if(!campo.disabled){
-
-          entradasMovimientos +=
-            numeroOperacion(
-              campo.value
-            );
-
-        }
+        entradasMovimientos +=
+          numeroOperacion(
+            campo.value
+          );
 
       }
     );
 
+
+  /* ===============================================
+     SUMAR TODAS LAS SALIDAS
+  =============================================== */
 
   document
     .querySelectorAll(
@@ -11447,14 +11462,10 @@ function recalcularTotalesOperaciones(){
     .forEach(
       campo => {
 
-        if(!campo.disabled){
-
-          salidasMovimientos +=
-            numeroOperacion(
-              campo.value
-            );
-
-        }
+        salidasMovimientos +=
+          numeroOperacion(
+            campo.value
+          );
 
       }
     );
@@ -11471,31 +11482,17 @@ function recalcularTotalesOperaciones(){
 
 
   /* ===============================================
-     EFECTIVO DE FORMAS DE PAGO
-  =============================================== */
-
-  const efectivoFormasPago =
-    numeroControlOperacion(
-      'opPagoEfectivo'
-    );
-
-
-  /* ===============================================
      TOTAL ENTRADAS
 
-     Operaciones Entrada
+     TODAS LAS ENTRADAS
      +
-     Apertura caja
-     +
-     Efectivo formas de pago
+     APERTURA DE CAJA
   =============================================== */
 
   const totalEntradas =
     entradasMovimientos
     +
-    aperturaCaja
-    +
-    efectivoFormasPago;
+    aperturaCaja;
 
 
   /* ===============================================
@@ -11516,7 +11513,9 @@ function recalcularTotalesOperaciones(){
     totalSalidas;
 
 
-  /* MOSTRAR */
+  /* ===============================================
+     MOSTRAR TOTAL ENTRADAS
+  =============================================== */
 
   const campoEntradas =
     $('opTotalEntradas');
@@ -11532,6 +11531,10 @@ function recalcularTotalesOperaciones(){
   }
 
 
+  /* ===============================================
+     MOSTRAR TOTAL SALIDAS
+  =============================================== */
+
   const campoSalidas =
     $('opTotalSalidas');
 
@@ -11545,6 +11548,10 @@ function recalcularTotalesOperaciones(){
 
   }
 
+
+  /* ===============================================
+     MOSTRAR DIFERENCIA
+  =============================================== */
 
   const campoDiferencia =
     $('opDiferenciaEntradasSalidas');
@@ -11561,18 +11568,17 @@ function recalcularTotalesOperaciones(){
 
 
   /* ===============================================
-     RECALCULAR ARQUEO
+     ARQUEO
   =============================================== */
 
   recalcularArqueoOperaciones(
-  diferencia
-);
+    diferencia
+  );
 
-actualizarResumenSaldos();
+
+  actualizarResumenSaldos();
 
 }
-
-
 /* ======================================================
    ARQUEO DEL TURNO
 ====================================================== */
@@ -12256,11 +12262,10 @@ function actualizarDescripcionFila(
  operacion-descripcion
  "
 
- onchange="
+onchange="
  marcarHoraFilaOperacion(this);
  mostrarResumenCredito(this);
- guardarCreditoFilaSiAplica(this);
- "
+"
 
  onfocus="
  mostrarResumenCredito(this);
@@ -13345,6 +13350,76 @@ function programarOcultarResumenCredito(){
    Abono  -> Entrada
 ====================================================== */
 
+/* ======================================================
+   GUARDAR CREDITO SOLO CON ENTER
+====================================================== */
+
+function guardarCreditoConEnter(
+  event,
+  elemento
+){
+
+  if(
+    event.key !==
+    'Enter'
+  ){
+
+    return;
+
+  }
+
+
+  const fila =
+    elemento.closest(
+      '.fila-operacion'
+    );
+
+
+  if(!fila){
+
+    return;
+
+  }
+
+
+  const modulo =
+    normalizarModuloOperacion(
+      fila.querySelector(
+        '.operacion-modulo'
+      )?.value || ''
+    );
+
+
+  const esCredito =
+    modulo ===
+    'credito empleados'
+    ||
+    modulo ===
+    'credito clientes';
+
+
+  if(!esCredito){
+
+    return;
+
+  }
+
+
+  event.preventDefault();
+
+
+  guardarCreditoFilaSiAplica(
+    elemento
+  );
+
+}
+
+
+
+/* ======================================================
+   GUARDAR CREDITO
+====================================================== */
+
 async function guardarCreditoFilaSiAplica(
   elemento
 ){
@@ -13367,6 +13442,11 @@ async function guardarCreditoFilaSiAplica(
     !turnoActivo.turnoId
   ){
 
+    toast(
+      'No hay un turno activo.',
+      false
+    );
+
     return;
 
   }
@@ -13383,10 +13463,6 @@ async function guardarCreditoFilaSiAplica(
       moduloTexto
     );
 
-
-  /* ===============================================
-     SOLO CREDITOS
-  =============================================== */
 
   const esCreditoEmpleado =
     modulo ===
@@ -13420,17 +13496,21 @@ async function guardarCreditoFilaSiAplica(
     );
 
 
-  if(!movimiento){
+  if(
+    !movimiento ||
+    movimiento ===
+    'seleccionar'
+  ){
+
+    toast(
+      'Selecciona el movimiento.',
+      false
+    );
 
     return;
 
   }
 
-
-  /*
-    Saldo inicial no es una operación
-    de la cuenta corriente.
-  */
 
   if(
     movimiento ===
@@ -13443,9 +13523,7 @@ async function guardarCreditoFilaSiAplica(
 
 
   /* ===============================================
-     NOMBRE DEL EMPLEADO / CLIENTE
-
-     Está en Descripción de Registro operaciones
+     NOMBRE
   =============================================== */
 
   const nombre =
@@ -13463,119 +13541,123 @@ async function guardarCreditoFilaSiAplica(
     'seleccionar'
   ){
 
+    toast(
+      esCreditoEmpleado
+      ?
+      'Selecciona el empleado.'
+      :
+      'Selecciona el cliente.',
+      false
+    );
+
     return;
 
   }
 
 
+  /* ===============================================
+     LEER LOS TRES CAMPOS
+  =============================================== */
+
   const parcial =
-    Number(
+    numeroOperacion(
       fila.querySelector(
         '.operacion-parcial'
-      )?.value || 0
+      )?.value
     );
 
 
-const salida =
- Number(
- fila.querySelector(
- '.operacion-salida'
- )?.value || 0
- );
+  const entrada =
+    numeroOperacion(
+      fila.querySelector(
+        '.operacion-entrada'
+      )?.value
+    );
 
 
-let tipoMovimiento =
- '';
+  const salida =
+    numeroOperacion(
+      fila.querySelector(
+        '.operacion-salida'
+      )?.value
+    );
 
 
-let valor =
- 0;
+  let tipoMovimiento =
+    '';
 
 
-/* ===============================================
-   ABONO
-
-   El dinero entra a caja.
-   En crédito se registra como ABONO.
-=============================================== */
-
-if(
- movimiento ===
- 'abono'
-){
-
- tipoMovimiento =
- 'abono';
+  let valor =
+    0;
 
 
- valor =
- Number.isFinite(
- entrada
- )
- ?
- entrada
- :
- 0;
+  /* ===============================================
+     ABONO
 
-}
+     ENTRA EFECTIVO
+     Y REDUCE EL SALDO DEL CREDITO
+  =============================================== */
 
+  if(
+    movimiento ===
+    'abono'
+  ){
 
-/* ===============================================
-   VALES
-
-   El efectivo SALE de caja,
-   pero para el empleado representa un CARGO.
-=============================================== */
-
-else if(
- esCreditoEmpleado
- &&
- movimiento ===
- 'vales'
-){
-
- tipoMovimiento =
- 'cargo';
+    tipoMovimiento =
+      'abono';
 
 
- valor =
- Number.isFinite(
- salida
- )
- ?
- salida
- :
- 0;
+    valor =
+      entrada;
 
-}
+  }
 
 
-/* ===============================================
-   DEMÁS CARGOS
+  /* ===============================================
+     VALES EMPLEADOS
 
-   Productos / Recibo
-   Otros
-   etc.
+     ES SALIDA DE EFECTIVO
+     PERO ES CARGO PARA EL EMPLEADO
+  =============================================== */
 
-   Se capturan en Parcial.
-=============================================== */
+  else if(
+    esCreditoEmpleado
+    &&
+    movimiento ===
+    'vales'
+  ){
 
-else{
-
- tipoMovimiento =
- 'cargo';
+    tipoMovimiento =
+      'cargo';
 
 
- valor =
- Number.isFinite(
- parcial
- )
- ?
- parcial
- :
- 0;
+    valor =
+      salida;
 
-}
+  }
+
+
+  /* ===============================================
+     DEMAS CREDITOS
+
+     PRODUCTOS / RECIBO
+     OTROS
+     ETC.
+
+     SE TOMAN DE PARCIAL
+  =============================================== */
+
+  else{
+
+    tipoMovimiento =
+      'cargo';
+
+
+    valor =
+      parcial;
+
+  }
+
 
   if(
     !Number.isFinite(
@@ -13585,19 +13667,29 @@ else{
     valor <= 0
   ){
 
+    toast(
+      'Ingresa un valor mayor que cero y luego presiona Enter.',
+      false
+    );
+
     return;
 
   }
 
 
   /* ===============================================
-     EVITAR DOBLE GUARDADO
+     EVITAR DOBLE REGISTRO
   =============================================== */
 
   if(
     fila.dataset.creditoGuardado ===
     '1'
   ){
+
+    toast(
+      'Esta operación ya fue guardada.',
+      false
+    );
 
     return;
 
@@ -13626,23 +13718,16 @@ else{
     'creditoClientes';
 
 
-  const payload = {
+  const payloadCredito = {
 
     turnoId:
       turnoActivo.turnoId,
 
+    modulo:
+      moduloApi,
+
     nombre:
       nombre,
-
-    /*
-      En la hoja Crédito, guardaremos
-      el Movimiento como Descripción.
-
-      Ejemplo:
-      Productos / Recibo
-      Abono
-      Otros
-    */
 
     descripcion:
       movimientoTexto,
@@ -13659,41 +13744,18 @@ else{
   try{
 
 
-    const payloadCredito = {
+    const data =
+      await jsonpRequest(
+        'credito_guardar',
+        {
 
-  turnoId:
-    turnoActivo.turnoId,
+          payload:
+            JSON.stringify(
+              payloadCredito
+            )
 
-  modulo:
-    moduloApi,
-
-  nombre:
-    nombre,
-
-  descripcion:
-    movimientoTexto,
-
-  tipoMovimiento:
-    tipoMovimiento,
-
-  valor:
-    valor
-
-};
-
-
-const data =
-  await jsonpRequest(
-    'credito_guardar',
-    {
-
-      payload:
-        JSON.stringify(
-          payloadCredito
-        )
-
-    }
-  );
+        }
+      );
 
 
     if(
@@ -13713,12 +13775,6 @@ const data =
     }
 
 
-    /* ===============================================
-       MARCAR FILA COMO GUARDADA
-
-       Esto evita duplicarla.
-    =============================================== */
-
     fila.dataset.creditoGuardado =
       '1';
 
@@ -13728,10 +13784,7 @@ const data =
 
 
     /* ===============================================
-       BLOQUEAR LA OPERACION YA GUARDADA
-
-       Así no se modifica después y no creamos
-       inconsistencias con la hoja de crédito.
+       BLOQUEAR FILA CONFIRMADA
     =============================================== */
 
     const moduloCampo =
@@ -13818,29 +13871,31 @@ const data =
     }
 
 
-   toast(
-  (
-    tipoMovimiento === 'abono'
-    ?
-    'Abono'
-    :
-    'Cargo'
-  )
-  +
-  ' guardado en ' +
-  (
-    data.hoja || 'Crédito'
-  )
-  +
-  ' · fila ' +
-  (
-    data.fila || ''
-  ),
-  true
-);
+    /* ===============================================
+       RECALCULAR TOTALES DESPUES DE GUARDAR
+    =============================================== */
+
+    recalcularTotalesOperaciones();
+
+
+    toast(
+      (
+        tipoMovimiento ===
+        'abono'
+        ?
+        'Abono'
+        :
+        'Cargo'
+      )
+      +
+      ' guardado correctamente.',
+      true
+    );
+
 
   }
   catch(error){
+
 
     fila.dataset.creditoGuardando =
       '0';
@@ -13855,8 +13910,7 @@ const data =
   }
 
 }
-  
-function crearFilaOperacion(
+  function crearFilaOperacion(
   datos = {}
 ){
 
@@ -13957,31 +14011,95 @@ function crearFilaOperacion(
 
     <!-- PARCIAL -->
 
-    <td>
+<td>
 
-   <input
-  class="
-    operacion-celda-input
-    operacion-monto
-    operacion-parcial
-  "
-  type="number"
-  min="0"
-  step="0.01"
-  inputmode="decimal"
-  value="${escapeHtml(
-    datos.parcial || ''
-  )}"
-  oninput="
-    marcarHoraFilaOperacion(this)
-  "
-  onchange="
-    guardarCreditoFilaSiAplica(this)
-  "
->
+  <input
+    class="
+      operacion-celda-input
+      operacion-monto
+      operacion-parcial
+    "
+    type="number"
+    min="0"
+    step="0.01"
+    inputmode="decimal"
 
-    </td>
+    value="${escapeHtml(
+      datos.parcial || ''
+    )}"
 
+    oninput="
+      marcarHoraFilaOperacion(this)
+    "
+
+    onkeydown="
+      guardarCreditoConEnter(event,this)
+    "
+  >
+
+</td>
+
+
+<!-- ENTRADA -->
+
+<td>
+
+  <input
+    class="
+      operacion-celda-input
+      operacion-monto
+      operacion-entrada
+    "
+    type="number"
+    min="0"
+    step="0.01"
+    inputmode="decimal"
+
+    value="${escapeHtml(
+      datos.entrada || ''
+    )}"
+
+    oninput="
+      marcarHoraFilaOperacion(this)
+    "
+
+    onkeydown="
+      guardarCreditoConEnter(event,this)
+    "
+  >
+
+</td>
+
+
+<!-- SALIDA -->
+
+<td>
+
+  <input
+    class="
+      operacion-celda-input
+      operacion-monto
+      operacion-salida
+    "
+    type="number"
+    min="0"
+    step="0.01"
+    inputmode="decimal"
+
+    value="${escapeHtml(
+      datos.salida || ''
+    )}"
+
+    oninput="
+      marcarHoraFilaOperacion(this)
+    "
+
+    onkeydown="
+      guardarCreditoConEnter(event,this)
+    "
+  >
+
+</td>
 
     <!-- ENTRADA -->
 
