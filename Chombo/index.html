@@ -3487,7 +3487,12 @@ const SCRIPT_URL =
 
 }
 
-/* ANCHOS */
+/* ======================================================
+   ANCHOS REGISTRO DE OPERACIONES
+
+   PARCIAL / ENTRADA / SALIDA
+   ALINEADOS CON CONTROL DE VENTAS
+====================================================== */
 
 .operaciones-grid th:nth-child(1){
   width:75px;
@@ -3506,17 +3511,16 @@ const SCRIPT_URL =
 }
 
 .operaciones-grid th:nth-child(5){
-  width:100px;
+  width:130px;
 }
 
 .operaciones-grid th:nth-child(6){
-  width:110px;
+  width:130px;
 }
 
 .operaciones-grid th:nth-child(7){
-  width:110px;
-}
-  
+  width:130px;
+}  
 .operacion-celda-input,
 .operacion-celda-select{
 
@@ -10582,27 +10586,15 @@ function numeroControlOperacion(
     $(id);
 
 
-  const valor =
-    Number(
-      elemento
-      ?
-      elemento.value
-      :
-      0
-    );
-
-
-  return Number.isFinite(
-    valor
-  )
-  ?
-  valor
-  :
-  0;
+  return numeroOperacion(
+    elemento
+    ?
+    elemento.value
+    :
+    0
+  );
 
 }
-
-
 /* ======================================================
    RECALCULAR VENTAS Y FORMAS DE PAGO
 ====================================================== */
@@ -10651,28 +10643,19 @@ function recalcularControlVentas(){
       '.forma-pago-op'
     )
     .forEach(
-      campo => {
+  campo => {
 
-        const valor =
-          Number(
-            campo.value || 0
-          );
+    const valor =
+      numeroOperacion(
+        campo.value
+      );
 
 
-        if(
-          Number.isFinite(
-            valor
-          )
-        ){
+    totalFormas +=
+      valor;
 
-          totalFormas +=
-            valor;
-
-        }
-
-      }
-    );
-
+  }
+);
 
   const campoFormas =
     $('opTotalFormasPago');
@@ -11050,30 +11033,28 @@ function actualizarResumenSaldos(){
             modulo
           );
 
-
-        const parcial =
-          Number(
-            fila.querySelector(
-              '.operacion-parcial'
-            )?.value || 0
-          );
-
-
-        const entrada =
-          Number(
-            fila.querySelector(
-              '.operacion-entrada'
-            )?.value || 0
-          );
+const parcial =
+  numeroOperacion(
+    fila.querySelector(
+      '.operacion-parcial'
+    )?.value
+  );
 
 
-        const salida =
-          Number(
-            fila.querySelector(
-              '.operacion-salida'
-            )?.value || 0
-          );
+const entrada =
+  numeroOperacion(
+    fila.querySelector(
+      '.operacion-entrada'
+    )?.value
+  );
 
+
+const salida =
+  numeroOperacion(
+    fila.querySelector(
+      '.operacion-salida'
+    )?.value
+  );
 /* ===========================================
    VALOR REAL DE LA FILA
 
@@ -11396,9 +11377,27 @@ function numeroOperacion(
   valor
 ){
 
+  const limpio =
+    String(
+      valor ?? ''
+    )
+    .replace(
+      /,/g,
+      ''
+    )
+    .trim();
+
+
+  if(!limpio){
+
+    return 0;
+
+  }
+
+
   const numero =
     Number(
-      valor || 0
+      limpio
     );
 
 
@@ -11412,6 +11411,82 @@ function numeroOperacion(
 
 }
 
+
+/* ======================================================
+   FORMATO DE MILES
+
+   1500     -> 1,500
+   15000    -> 15,000
+   15000.50 -> 15,000.50
+====================================================== */
+
+function formatearNumeroMiles(
+  valor
+){
+
+  const texto =
+    String(
+      valor ?? ''
+    )
+    .replace(
+      /,/g,
+      ''
+    )
+    .trim();
+
+
+  if(!texto){
+
+    return '';
+
+  }
+
+
+  const numero =
+    Number(
+      texto
+    );
+
+
+  if(
+    !Number.isFinite(
+      numero
+    )
+  ){
+
+    return '';
+
+  }
+
+
+  const decimales =
+    texto.includes('.')
+    ?
+    Math.min(
+      2,
+      (
+        texto.split('.')[1] ||
+        ''
+      ).length
+    )
+    :
+    0;
+
+
+  return numero.toLocaleString(
+    'en-US',
+    {
+
+      minimumFractionDigits:
+        decimales,
+
+      maximumFractionDigits:
+        2
+
+    }
+  );
+
+}
 
 /* ======================================================
    RECALCULAR TOTALES DEL TURNO
@@ -11847,6 +11922,249 @@ document.addEventListener(
 
   }
 );
+
+ /* ======================================================
+   FORMATO NUMERICO GLOBAL
+
+   APLICA A:
+   - Control de ventas
+   - Registro de operaciones
+   - Arqueo de caja
+====================================================== */
+
+function esCampoNumeroChombo(
+  campo
+){
+
+  if(!campo){
+
+    return false;
+
+  }
+
+
+  return (
+
+    campo.classList.contains(
+      'control-ventas-input'
+    )
+
+    ||
+
+    campo.classList.contains(
+      'operacion-monto'
+    )
+
+    ||
+
+    campo.classList.contains(
+      'op-arqueo-cantidad'
+    )
+
+  );
+
+}
+
+
+/* ===============================================
+   AL ENTRAR AL CAMPO
+
+   15,000 -> 15000
+   para facilitar edición
+=============================================== */
+
+document.addEventListener(
+  'focusin',
+  function(
+    event
+  ){
+
+    const campo =
+      event.target;
+
+
+    if(
+      !esCampoNumeroChombo(
+        campo
+      )
+    ){
+
+      return;
+
+    }
+
+
+    if(campo.readOnly){
+
+      return;
+
+    }
+
+
+    /* permite mostrar comas */
+
+    if(
+      campo.type ===
+      'number'
+    ){
+
+      campo.type =
+        'text';
+
+    }
+
+
+    campo.value =
+      String(
+        campo.value || ''
+      )
+      .replace(
+        /,/g,
+        ''
+      );
+
+  }
+);
+
+
+/* ===============================================
+   AL SALIR DEL CAMPO
+
+   15000 -> 15,000
+=============================================== */
+
+document.addEventListener(
+  'focusout',
+  function(
+    event
+  ){
+
+    const campo =
+      event.target;
+
+
+    if(
+      !esCampoNumeroChombo(
+        campo
+      )
+    ){
+
+      return;
+
+    }
+
+
+    campo.value =
+      formatearNumeroMiles(
+        campo.value
+      );
+
+
+    recalcularControlVentas();
+
+    recalcularTotalesOperaciones();
+
+    actualizarResumenSaldos();
+
+  }
+); 
+
+ /* ======================================================
+   ENTER EN CONTROL DE VENTAS
+
+   PASAR AL SIGUIENTE CAMPO EDITABLE
+====================================================== */
+
+document.addEventListener(
+  'keydown',
+  function(
+    event
+  ){
+
+    if(
+      event.key !==
+      'Enter'
+    ){
+
+      return;
+
+    }
+
+
+    const campo =
+      event.target;
+
+
+    if(
+      !campo ||
+      !campo.classList.contains(
+        'control-ventas-input'
+      )
+      ||
+      campo.readOnly
+      ||
+      campo.disabled
+    ){
+
+      return;
+
+    }
+
+
+    event.preventDefault();
+
+
+    /* formatear el actual */
+
+    campo.value =
+      formatearNumeroMiles(
+        campo.value
+      );
+
+
+    recalcularControlVentas();
+
+    recalcularTotalesOperaciones();
+
+
+    const campos =
+      Array.from(
+        document.querySelectorAll(
+          '.control-ventas-input:not([readonly]):not([disabled])'
+        )
+      )
+      .filter(
+        item =>
+          item.offsetParent !== null
+      );
+
+
+    const indice =
+      campos.indexOf(
+        campo
+      );
+
+
+    if(
+      indice >= 0
+      &&
+      indice <
+      campos.length - 1
+    ){
+
+      campos[
+        indice + 1
+      ].focus();
+
+
+      campos[
+        indice + 1
+      ].select();
+
+    }
+
+  }
+); 
   /* ======================================================
    HOJA DE OPERACIONES POR FILAS
 ====================================================== */
@@ -14100,34 +14418,6 @@ async function guardarCreditoFilaSiAplica(
   >
 
 </td>
-
-    <!-- ENTRADA -->
-
-    <td>
-
-    <input
-  class="
-    operacion-celda-input
-    operacion-monto
-    operacion-entrada
-  "
-  type="number"
-  min="0"
-  step="0.01"
-  inputmode="decimal"
-  value="${escapeHtml(
-    datos.entrada || ''
-  )}"
-  oninput="
-    marcarHoraFilaOperacion(this)
-  "
-  onchange="
-    guardarCreditoFilaSiAplica(this)
-  "
->
-
-    </td>
-
 
     <!-- SALIDA -->
 <td>
