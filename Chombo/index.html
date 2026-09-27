@@ -2812,7 +2812,7 @@ tr{
 
 <script>
 const SCRIPT_URL =
-'https://script.google.com/macros/s/AKfycbzfFwjHR8OWdcDDyU3CnDu64GNrfhPFOyrkZjuGSpbc8dK0iCC4r0aFP5UXDeukbRBe/exec';
+'https://script.google.com/macros/s/AKfycbwonU_RapJOsDK0o2GmM0vOd1-sdhoVQvDMIQeLsvLZSuU_6ShdRaOGgXATQmEtf6sD/exec';
 </script>
 
 <header class="topbar">
@@ -11547,112 +11547,514 @@ async function guardarTotalesTurno(){
   }
 
 
-  /* ===============================================
-     ASEGURAR CALCULOS ACTUALIZADOS
-  =============================================== */
-
   recalcularControlVentas();
-
   recalcularTotalesOperaciones();
 
 
-  /* ===============================================
-     TOTAL PARCIAL
+  /* ==================================================
+     LEER UN VALOR DEL CONTROL DE VENTAS
+  ================================================== */
 
-     CONTROL DE VENTAS
-     +
-     PARCIALES DE REGISTRO DE OPERACIONES
-  =============================================== */
+  const valorCampo =
+    id => {
 
-  let totalParcial =
-    0;
+      const campo =
+        $(id);
+
+      return numeroOperacion(
+        campo
+        ?
+        campo.value
+        :
+        0
+      );
+
+    };
 
 
-  /* PARCIALES DEL CONTROL DE VENTAS */
+  /* ==================================================
+     RUBROS DEL CONTROL DE VENTAS
+  ================================================== */
+
+  const items = [
+
+    {
+      descripcion:
+        'Apertura caja',
+
+      parcial:0,
+
+      entrada:
+        valorCampo(
+          'opAperturaCaja'
+        ),
+
+      salida:0
+    },
+
+    {
+      descripcion:
+        'Ventas CAI',
+
+      parcial:
+        valorCampo(
+          'opVentasCai'
+        ),
+
+      entrada:0,
+      salida:0
+    },
+
+    {
+      descripcion:
+        'Ventas botón',
+
+      parcial:
+        valorCampo(
+          'opVentasBoton'
+        ),
+
+      entrada:0,
+      salida:0
+    },
+
+    {
+      descripcion:
+        'Ventas totales',
+
+      parcial:0,
+
+      entrada:
+        valorCampo(
+          'opVentasTotales'
+        ),
+
+      salida:0
+    },
+
+    {
+      descripcion:
+        'Formas de pago',
+
+      parcial:0,
+
+      entrada:
+        valorCampo(
+          'opTotalFormasPago'
+        ),
+
+      salida:0
+    },
+
+    {
+      descripcion:
+        'Efectivo',
+
+      parcial:
+        valorCampo(
+          'opPagoEfectivo'
+        ),
+
+      entrada:0,
+      salida:0
+    },
+
+    {
+      descripcion:
+        'Crédito',
+
+      parcial:
+        valorCampo(
+          'opPagoCredito'
+        ),
+
+      entrada:0,
+      salida:0
+    },
+
+    {
+      descripcion:
+        'Tarjetas de crédito',
+
+      parcial:
+        valorCampo(
+          'opPagoTarjetasCredito'
+        ),
+
+      entrada:0,
+      salida:0
+    },
+
+    {
+      descripcion:
+        'Link de pago',
+
+      parcial:
+        valorCampo(
+          'opPagoLink'
+        ),
+
+      entrada:0,
+      salida:0
+    },
+
+    {
+      descripcion:
+        'Transferencias',
+
+      parcial:
+        valorCampo(
+          'opPagoTransferencias'
+        ),
+
+      entrada:0,
+      salida:0
+    },
+
+    {
+      descripcion:
+        'Tarjetas varias',
+
+      parcial:
+        valorCampo(
+          'opPagoTarjetasVarias'
+        ),
+
+      entrada:0,
+      salida:0
+    },
+
+    {
+      descripcion:
+        'Tigo Money',
+
+      parcial:
+        valorCampo(
+          'opPagoTigoMoney'
+        ),
+
+      entrada:0,
+      salida:0
+    }
+
+  ];
+
+
+  /* ==================================================
+     ACUMULAR REGISTRO DE OPERACIONES POR MODULO
+  ================================================== */
+
+  const acumulados =
+    {};
+
 
   document
     .querySelectorAll(
-      '.control-ventas-table tbody td:nth-child(2) .control-ventas-input:not([readonly])'
+      '#operacionesFilas .fila-operacion'
     )
     .forEach(
-      campo => {
+      fila => {
 
-        totalParcial +=
+        const moduloCampo =
+          fila.querySelector(
+            '.operacion-modulo'
+          );
+
+
+        if(!moduloCampo){
+
+          return;
+
+        }
+
+
+        const modulo =
+          String(
+            moduloCampo.value || ''
+          )
+          .trim();
+
+
+        if(
+          !modulo ||
+          normalizarModuloOperacion(
+            modulo
+          ) ===
+          'seleccionar'
+        ){
+
+          return;
+
+        }
+
+
+        const clave =
+          normalizarModuloOperacion(
+            modulo
+          );
+
+
+        if(
+          !acumulados[
+            clave
+          ]
+        ){
+
+          acumulados[
+            clave
+          ] = {
+
+            parcial:0,
+            entrada:0,
+            salida:0
+
+          };
+
+        }
+
+
+        acumulados[
+          clave
+        ].parcial +=
           numeroOperacion(
-            campo.value
+            fila.querySelector(
+              '.operacion-parcial'
+            )?.value
+          );
+
+
+        acumulados[
+          clave
+        ].entrada +=
+          numeroOperacion(
+            fila.querySelector(
+              '.operacion-entrada'
+            )?.value
+          );
+
+
+        acumulados[
+          clave
+        ].salida +=
+          numeroOperacion(
+            fila.querySelector(
+              '.operacion-salida'
+            )?.value
           );
 
       }
     );
 
 
-  /* PARCIALES DEL REGISTRO DE OPERACIONES */
+  /* ==================================================
+     OBTENER TOTAL DE UNO O MAS NOMBRES EQUIVALENTES
 
-  document
-    .querySelectorAll(
-      '#operacionesFilas .operacion-parcial'
-    )
-    .forEach(
-      campo => {
+     Esto permite, por ejemplo:
 
-        totalParcial +=
-          numeroOperacion(
-            campo.value
-          );
+     Atlántida = Atlántida / Agente Atlántida
+     Bac = Bac / Rapibac
+     Claro recarga = Claro recargas / Recargas Claro
+  ================================================== */
+
+  function totalModulos(
+    nombres
+  ){
+
+    const resultado = {
+
+      parcial:0,
+      entrada:0,
+      salida:0
+
+    };
+
+
+    const claves =
+      new Set(
+        nombres.map(
+          nombre =>
+            normalizarModuloOperacion(
+              nombre
+            )
+        )
+      );
+
+
+    claves.forEach(
+      clave => {
+
+        const total =
+          acumulados[
+            clave
+          ];
+
+
+        if(!total){
+
+          return;
+
+        }
+
+
+        resultado.parcial +=
+          total.parcial;
+
+
+        resultado.entrada +=
+          total.entrada;
+
+
+        resultado.salida +=
+          total.salida;
 
       }
     );
 
 
-  /* ===============================================
-     TOTAL ENTRADAS
+    return resultado;
 
-     TOMA EL TOTAL QUE YA CALCULAMOS:
-
-     Registro operaciones
-     +
-     Apertura caja
-     +
-     Efectivo formas de pago
-  =============================================== */
-
-  const totalEntradas =
-    numeroOperacion(
-      $('opTotalEntradas')
-      ?
-      $('opTotalEntradas').value
-      :
-      0
-    );
+  }
 
 
-  /* ===============================================
-     TOTAL SALIDAS
-  =============================================== */
+  /* ==================================================
+     RUBROS EXACTOS DEL ADJUNTO
+  ================================================== */
 
-  const totalSalidas =
-    numeroOperacion(
-      $('opTotalSalidas')
-      ?
-      $('opTotalSalidas').value
-      :
-      0
-    );
+  const rubrosOperacion = [
 
+    {
+      descripcion:'Atlántida',
+      nombres:[
+        'Atlántida',
+        'Agente Atlántida'
+      ]
+    },
+
+    {
+      descripcion:'Bac',
+      nombres:[
+        'Bac',
+        'Rapibac'
+      ]
+    },
+
+    {
+      descripcion:'Banpais',
+      nombres:[
+        'Banpais'
+      ]
+    },
+
+    {
+      descripcion:'Claro recarga',
+      nombres:[
+        'Claro recarga',
+        'Claro recargas',
+        'Recargas Claro'
+      ]
+    },
+
+    {
+      descripcion:'Crédito clientes',
+      nombres:[
+        'Crédito clientes'
+      ]
+    },
+
+    {
+      descripcion:'Crédito empleados',
+      nombres:[
+        'Crédito empleados'
+      ]
+    },
+
+    {
+      descripcion:'Loteria',
+      nombres:[
+        'Loteria',
+        'Lotería'
+      ]
+    },
+
+    {
+      descripcion:'Otro 1',
+      nombres:[
+        'Otro 1'
+      ]
+    },
+
+    {
+      descripcion:'Otro 2',
+      nombres:[
+        'Otro 2'
+      ]
+    },
+
+    {
+      descripcion:'Proveedores',
+      nombres:[
+        'Proveedores'
+      ]
+    },
+
+    {
+      descripcion:'Tigo money',
+      nombres:[
+        'Tigo money'
+      ]
+    },
+
+    {
+      descripcion:'Tigo recargas',
+      nombres:[
+        'Tigo recargas',
+        'Recargas Tigo'
+      ]
+    }
+
+  ];
+
+
+  rubrosOperacion.forEach(
+    rubro => {
+
+      const total =
+        totalModulos(
+          rubro.nombres
+        );
+
+
+      items.push({
+
+        descripcion:
+          rubro.descripcion,
+
+        parcial:
+          total.parcial,
+
+        entrada:
+          total.entrada,
+
+        salida:
+          total.salida
+
+      });
+
+    }
+  );
+
+
+  /* ==================================================
+     ENVIAR TODO AL GS
+  ================================================== */
 
   const payload = {
 
     turnoId:
       turnoActivo.turnoId,
 
-    parcial:
-      totalParcial,
-
-    entrada:
-      totalEntradas,
-
-    salida:
-      totalSalidas
+    items:
+      items
 
   };
 
@@ -11696,14 +12098,14 @@ async function guardarTotalesTurno(){
 
       throw new Error(
         data?.message ||
-        'No se pudo guardar.'
+        'No se pudieron guardar los movimientos.'
       );
 
     }
 
 
     toast(
-      'Totales del turno guardados correctamente.',
+      'Movimientos guardados correctamente.',
       true
     );
 
@@ -11736,8 +12138,7 @@ async function guardarTotalesTurno(){
   }
 
 }
-
-/* ======================================================
+  /* ======================================================
    IMPRIMIR OPERACIONES DEL TURNO
 ====================================================== */
 
