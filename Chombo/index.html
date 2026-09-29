@@ -2812,7 +2812,7 @@ tr{
 
 <script>
 const SCRIPT_URL =
-'https://script.google.com/macros/s/AKfycby1q09fAcoiNbd_kC7nYWDVBk8D51zMVh801W0Zs53QnrDzHnEyp75-pBOgkSsBb61u/exec';
+'https://script.google.com/macros/s/AKfycbx_vSrLSK3AyWUE7rftuKFwHDkbZlDXawe6XCm8fEzc4jOZdlPe5R3XOfrophiMKz4y/exec';
 </script>
 
 <header class="topbar">
@@ -3108,48 +3108,67 @@ const SCRIPT_URL =
    <div class="turno-grid">
 
 
-    <!-- TURNO -->
+ <!-- FECHA -->
 
-    <div class="turno-field">
+ <div class="turno-field">
 
-     <label>
-      Turno
-     </label>
+  <label>
+   Fecha
+  </label>
 
-     <select
-      id="reporteDiaTurno"
-      onfocus="cargarTurnosReporteDia()"
-     >
+  <input
+   id="reporteDiaFecha"
+   type="date"
+   onchange="
+    reporteDiaCatalogoCargado = false;
+    cargarTurnosReporteDia();
+   "
+  >
 
-      <option value="__TODOS__">
-       Todos los turnos
-      </option>
-
-     </select>
-
-    </div>
+ </div>
 
 
-    <!-- UBICACION -->
+ <!-- TURNO -->
 
-    <div class="turno-field">
+ <div class="turno-field">
 
-     <label>
-      Ubicación
-     </label>
+  <label>
+   Turno
+  </label>
 
-     <select
-      id="reporteDiaUbicacion"
-     >
+  <select
+   id="reporteDiaTurno"
+   onfocus="cargarTurnosReporteDia()"
+  >
 
-      <option value="__TODAS__">
-       Todas
-      </option>
+   <option value="__TODOS__">
+    Todos los turnos
+   </option>
 
-     </select>
+  </select>
 
-    </div>
+ </div>
 
+
+ <!-- UBICACION -->
+
+ <div class="turno-field">
+
+  <label>
+   Ubicación
+  </label>
+
+  <select
+   id="reporteDiaUbicacion"
+  >
+
+   <option value="__TODAS__">
+    Todas
+   </option>
+
+  </select>
+
+ </div>
 
     <!-- TIPO DE REPORTE -->
 
@@ -19773,9 +19792,8 @@ recalc();
   }
 
 }
-
-  /* ======================================================
-   REPORTES DEL DIA EN PANTALLA DE TURNOS
+/* ======================================================
+ REPORTES DEL DIA EN PANTALLA DE TURNOS
 ====================================================== */
 
 let reporteDiaCatalogoCargado =
@@ -19783,7 +19801,72 @@ let reporteDiaCatalogoCargado =
 
 
 /* ======================================================
-   CARGAR TURNOS DEL DIA
+ FECHA DEL REPORTE
+====================================================== */
+
+function obtenerFechaReporteDia(){
+
+ const input =
+  $('reporteDiaFecha');
+
+
+ if(
+  input &&
+  input.value
+ ){
+
+  return input.value;
+
+ }
+
+
+ const hoy =
+  new Date();
+
+
+ const yyyy =
+  hoy.getFullYear();
+
+
+ const mm =
+  String(
+   hoy.getMonth() + 1
+  )
+  .padStart(
+   2,
+   '0'
+  );
+
+
+ const dd =
+  String(
+   hoy.getDate()
+  )
+  .padStart(
+   2,
+   '0'
+  );
+
+
+ const fecha =
+  `${yyyy}-${mm}-${dd}`;
+
+
+ if(input){
+
+  input.value =
+   fecha;
+
+ }
+
+
+ return fecha;
+
+}
+
+
+/* ======================================================
+ CARGAR TURNOS DE LA FECHA SELECCIONADA
 ====================================================== */
 
 async function cargarTurnosReporteDia(){
@@ -19806,14 +19889,23 @@ async function cargarTurnosReporteDia(){
  }
 
 
+ const fecha =
+  obtenerFechaReporteDia();
+
+
  try{
 
   const data =
    await jsonpRequest(
     'reportes_dia',
     {
+
      modo:
-      'catalogo'
+      'catalogo',
+
+     fecha:
+      fecha
+
     }
    );
 
@@ -19946,12 +20038,20 @@ async function cargarTurnosReporteDia(){
 
 
 /* ======================================================
-   MOSTRAR REPORTE
+ MOSTRAR REPORTE
 ====================================================== */
 
 async function mostrarReporteDia(){
 
+ reporteDiaCatalogoCargado =
+  false;
+
+
  await cargarTurnosReporteDia();
+
+
+ const fecha =
+  obtenerFechaReporteDia();
 
 
  const turnoId =
@@ -19997,7 +20097,7 @@ async function mostrarReporteDia(){
  .innerHTML =
   `
    <div class="empty">
-    Consultando cierres del día...
+    Consultando cierres...
    </div>
   `;
 
@@ -20008,6 +20108,9 @@ async function mostrarReporteDia(){
    await jsonpRequest(
     'reportes_dia',
     {
+
+     fecha:
+      fecha,
 
      turnoId:
       turnoId,
@@ -20074,8 +20177,8 @@ async function mostrarReporteDia(){
  }
 
 }
-
-
+  
+  
 /* ======================================================
    RENDER REPORTE DEL DIA
 ====================================================== */
