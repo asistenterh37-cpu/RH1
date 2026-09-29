@@ -2812,7 +2812,7 @@ tr{
 
 <script>
 const SCRIPT_URL =
-'https://script.google.com/macros/s/AKfycbzdntR--4f816YrdTSSuX3IUjc7rhR5I7nEsBuRbkNvllbJjI2wI-jTVuJyRL5T-Y2S/exec';
+'https://script.google.com/macros/s/AKfycby1q09fAcoiNbd_kC7nYWDVBk8D51zMVh801W0Zs53QnrDzHnEyp75-pBOgkSsBb61u/exec';
 </script>
 
 <header class="topbar">
@@ -2896,7 +2896,6 @@ const SCRIPT_URL =
 
 </div>
 </div>
-
 <!-- ======================================================
  TURNOS / CAJAS
 ====================================================== -->
@@ -2912,15 +2911,11 @@ const SCRIPT_URL =
   <div class="turno-card-header">
 
    <h2 id="turnoTitulo">
-
     Turnos de hoy
-
    </h2>
 
    <p id="turnoSubtitulo">
-
     Selecciona una caja activa o abre un nuevo turno.
-
    </p>
 
   </div>
@@ -3083,7 +3078,192 @@ const SCRIPT_URL =
 
  </div>
 
+
+ <!-- ==================================================
+      REPORTES DEL DIA
+ ================================================== -->
+
+ <div
+  class="turno-card"
+  style="margin-top:22px;"
+ >
+
+  <div class="turno-card-header">
+
+   <h2>
+    Reportes del día
+   </h2>
+
+   <p>
+    Consulta cierres por turno, ubicación
+    o un consolidado del día.
+   </p>
+
+  </div>
+
+
+  <div class="turno-card-body">
+
+
+   <div class="turno-grid">
+
+
+    <!-- TURNO -->
+
+    <div class="turno-field">
+
+     <label>
+      Turno
+     </label>
+
+     <select
+      id="reporteDiaTurno"
+      onfocus="cargarTurnosReporteDia()"
+     >
+
+      <option value="__TODOS__">
+       Todos los turnos
+      </option>
+
+     </select>
+
+    </div>
+
+
+    <!-- UBICACION -->
+
+    <div class="turno-field">
+
+     <label>
+      Ubicación
+     </label>
+
+     <select
+      id="reporteDiaUbicacion"
+     >
+
+      <option value="__TODAS__">
+       Todas
+      </option>
+
+     </select>
+
+    </div>
+
+
+    <!-- TIPO DE REPORTE -->
+
+    <div class="turno-field full">
+
+     <label>
+      Mostrar
+     </label>
+
+     <select
+      id="reporteDiaModo"
+     >
+
+      <option value="cierres">
+       Cierres por turno
+      </option>
+
+      <option value="consolidado">
+       Consolidado del día
+      </option>
+
+     </select>
+
+    </div>
+
+
+   </div>
+
+
+   <div class="turno-actions">
+
+    <button
+     id="reporteDiaBtn"
+     class="btn btn-primary"
+     type="button"
+     onclick="mostrarReporteDia()"
+    >
+     Mostrar reporte
+    </button>
+
+   </div>
+
+
+   <div
+    id="reporteDiaResumen"
+    style="
+     display:none;
+     margin-top:22px;
+     grid-template-columns:
+      repeat(3,1fr);
+     gap:12px;
+    "
+   >
+
+    <div class="metric">
+
+     <span>
+      Turnos
+     </span>
+
+     <strong id="reporteDiaCantidad">
+      0
+     </strong>
+
+    </div>
+
+
+    <div class="metric">
+
+     <span>
+      Entradas
+     </span>
+
+     <strong id="reporteDiaEntradas">
+      0.00
+     </strong>
+
+    </div>
+
+
+    <div class="metric">
+
+     <span>
+      Salidas
+     </span>
+
+     <strong id="reporteDiaSalidas">
+      0.00
+     </strong>
+
+    </div>
+
+   </div>
+
+
+   <div
+    id="reporteDiaResultados"
+    style="margin-top:20px;"
+   >
+
+    <div class="empty">
+     Selecciona los filtros y pulsa
+     “Mostrar reporte”.
+    </div>
+
+   </div>
+
+
+  </div>
+
+ </div>
+
 </section>
+  
 <!-- ======================================================
      MENU PRINCIPAL
 ====================================================== -->
@@ -19322,23 +19502,27 @@ async function saveCierre(){
    pagosRecibidos;
 
 
-  const payload =
-   JSON.stringify({
+const payload =
+ JSON.stringify({
 
-    turnoId:
-     turnoCierre.turnoId,
+  turnoId:
+   turnoCierre.turnoId,
 
-    items:
-     items,
+  items:
+   items,
 
-    ubicacion:
-     ubicacion,
+  ubicacion:
+   ubicacion,
 
-    responsable:
-     responsable,
+  responsable:
+   responsable,
 
-    resumen:{
+  efectivoParaDeposito:
+   num(
+    'totalEfectivo'
+   ),
 
+  resumen:{
      ventas:
       ventas,
 
@@ -19590,6 +19774,630 @@ recalc();
 
 }
 
+  /* ======================================================
+   REPORTES DEL DIA EN PANTALLA DE TURNOS
+====================================================== */
+
+let reporteDiaCatalogoCargado =
+ false;
+
+
+/* ======================================================
+   CARGAR TURNOS DEL DIA
+====================================================== */
+
+async function cargarTurnosReporteDia(){
+
+ if(
+  reporteDiaCatalogoCargado
+ ){
+
+  return;
+
+ }
+
+
+ if(
+  !assertScriptUrl()
+ ){
+
+  return;
+
+ }
+
+
+ try{
+
+  const data =
+   await jsonpRequest(
+    'reportes_dia',
+    {
+     modo:
+      'catalogo'
+    }
+   );
+
+
+  if(
+   !data ||
+   data.ok !== true
+  ){
+
+   throw new Error(
+    data?.message ||
+    'No se pudieron cargar los turnos.'
+   );
+
+  }
+
+
+  const selectTurno =
+   $('reporteDiaTurno');
+
+
+  if(selectTurno){
+
+   selectTurno.innerHTML =
+    `
+     <option value="__TODOS__">
+      Todos los turnos
+     </option>
+    `;
+
+
+   (
+    data.turnos || []
+   )
+   .forEach(
+    turno => {
+
+     const option =
+      document.createElement(
+       'option'
+      );
+
+
+     option.value =
+      turno.turnoId;
+
+
+     option.textContent =
+      turno.turnoId
+      +
+      ' · '
+      +
+      turno.ubicacion
+      +
+      ' · '
+      +
+      turno.responsable;
+
+
+     selectTurno.appendChild(
+      option
+     );
+
+    }
+   );
+
+  }
+
+
+  const selectUbicacion =
+   $('reporteDiaUbicacion');
+
+
+  if(selectUbicacion){
+
+   selectUbicacion.innerHTML =
+    `
+     <option value="__TODAS__">
+      Todas
+     </option>
+    `;
+
+
+   (
+    data.ubicaciones || []
+   )
+   .forEach(
+    ubicacion => {
+
+     const option =
+      document.createElement(
+       'option'
+      );
+
+
+     option.value =
+      ubicacion;
+
+
+     option.textContent =
+      ubicacion;
+
+
+     selectUbicacion.appendChild(
+      option
+     );
+
+    }
+   );
+
+  }
+
+
+  reporteDiaCatalogoCargado =
+   true;
+
+ }
+ catch(error){
+
+  toast(
+   'Error cargando turnos: '
+   +
+   error.message,
+   false
+  );
+
+ }
+
+}
+
+
+/* ======================================================
+   MOSTRAR REPORTE
+====================================================== */
+
+async function mostrarReporteDia(){
+
+ await cargarTurnosReporteDia();
+
+
+ const turnoId =
+  $('reporteDiaTurno')
+  ?
+  $('reporteDiaTurno').value
+  :
+  '__TODOS__';
+
+
+ const ubicacion =
+  $('reporteDiaUbicacion')
+  ?
+  $('reporteDiaUbicacion').value
+  :
+  '__TODAS__';
+
+
+ const modo =
+  $('reporteDiaModo')
+  ?
+  $('reporteDiaModo').value
+  :
+  'cierres';
+
+
+ const boton =
+  $('reporteDiaBtn');
+
+
+ if(boton){
+
+  boton.disabled =
+   true;
+
+  boton.textContent =
+   'Consultando...';
+
+ }
+
+
+ $('reporteDiaResultados')
+ .innerHTML =
+  `
+   <div class="empty">
+    Consultando cierres del día...
+   </div>
+  `;
+
+
+ try{
+
+  const data =
+   await jsonpRequest(
+    'reportes_dia',
+    {
+
+     turnoId:
+      turnoId,
+
+     ubicacion:
+      ubicacion,
+
+     modo:
+      modo
+
+    }
+   );
+
+
+  if(
+   !data ||
+   data.ok !== true
+  ){
+
+   throw new Error(
+    data?.message ||
+    'No se pudo cargar el reporte.'
+   );
+
+  }
+
+
+  renderReporteDia(
+   data
+  );
+
+ }
+ catch(error){
+
+  $('reporteDiaResultados')
+  .innerHTML =
+   `
+    <div class="empty">
+     ${escapeHtml(
+      error.message
+     )}
+    </div>
+   `;
+
+
+  toast(
+   error.message,
+   false
+  );
+
+ }
+ finally{
+
+  if(boton){
+
+   boton.disabled =
+    false;
+
+   boton.textContent =
+    'Mostrar reporte';
+
+  }
+
+ }
+
+}
+
+
+/* ======================================================
+   RENDER REPORTE DEL DIA
+====================================================== */
+
+function renderReporteDia(
+ data
+){
+
+ const cierres =
+  Array.isArray(
+   data.cierres
+  )
+  ?
+  data.cierres
+  :
+  [];
+
+
+ const resumen =
+  $('reporteDiaResumen');
+
+
+ if(resumen){
+
+  resumen.style.display =
+   'grid';
+
+ }
+
+
+ $('reporteDiaCantidad')
+ .textContent =
+  data.cantidadTurnos || 0;
+
+
+ $('reporteDiaEntradas')
+ .textContent =
+  money.format(
+   Number(
+    data.totalEntradas || 0
+   )
+  );
+
+
+ $('reporteDiaSalidas')
+ .textContent =
+  money.format(
+   Number(
+    data.totalSalidas || 0
+   )
+  );
+
+
+ if(
+  data.modo ===
+  'consolidado'
+ ){
+
+  const items =
+   Array.isArray(
+    data.consolidado
+   )
+   ?
+   data.consolidado
+   :
+   [];
+
+
+  if(!items.length){
+
+   $('reporteDiaResultados')
+   .innerHTML =
+    `
+     <div class="empty">
+      No hay movimientos para los filtros seleccionados.
+     </div>
+    `;
+
+   return;
+
+  }
+
+
+  $('reporteDiaResultados')
+  .innerHTML =
+   `
+
+    <div class="report-card">
+
+     <div class="report-head">
+
+      <strong>
+       Consolidado del día
+      </strong>
+
+     </div>
+
+
+     <div class="table-scroll">
+
+      <table class="report-table">
+
+       <thead>
+
+        <tr>
+
+         <th>
+          Descripción
+         </th>
+
+         <th class="num">
+          Parcial
+         </th>
+
+         <th class="num">
+          Entradas
+         </th>
+
+         <th class="num">
+          Salidas
+         </th>
+
+        </tr>
+
+       </thead>
+
+
+       <tbody>
+
+        ${
+         items
+         .map(
+          item => `
+
+           <tr>
+
+            <td>
+             ${escapeHtml(
+              item.descripcion || ''
+             )}
+            </td>
+
+            <td class="num">
+             ${formatOptionalMoney(
+              item.parcial
+             )}
+            </td>
+
+            <td class="num">
+             ${formatOptionalMoney(
+              item.entrada
+             )}
+            </td>
+
+            <td class="num">
+             ${formatOptionalMoney(
+              item.salida
+             )}
+            </td>
+
+           </tr>
+
+          `
+         )
+         .join('')
+        }
+
+       </tbody>
+
+      </table>
+
+     </div>
+
+    </div>
+
+   `;
+
+
+  return;
+
+ }
+
+
+ if(!cierres.length){
+
+  $('reporteDiaResultados')
+  .innerHTML =
+   `
+    <div class="empty">
+     No hay cierres para los filtros seleccionados.
+    </div>
+   `;
+
+  return;
+
+ }
+
+
+ $('reporteDiaResultados')
+ .innerHTML =
+
+  cierres
+  .map(
+   cierre => `
+
+    <div
+     class="report-card"
+     style="margin-bottom:16px;"
+    >
+
+     <div class="report-head">
+
+      <strong>
+
+       Turno:
+       ${escapeHtml(
+        cierre.turnoId || ''
+       )}
+
+       &nbsp; | &nbsp;
+
+       Ubicación:
+       ${escapeHtml(
+        cierre.ubicacion || ''
+       )}
+
+       &nbsp; | &nbsp;
+
+       Responsable:
+       ${escapeHtml(
+        cierre.responsable || ''
+       )}
+
+      </strong>
+
+     </div>
+
+
+     <div class="table-scroll">
+
+      <table class="report-table">
+
+       <thead>
+
+        <tr>
+
+         <th>
+          Descripción
+         </th>
+
+         <th class="num">
+          Parcial
+         </th>
+
+         <th class="num">
+          Entradas
+         </th>
+
+         <th class="num">
+          Salidas
+         </th>
+
+        </tr>
+
+       </thead>
+
+
+       <tbody>
+
+        ${
+         (
+          cierre.items || []
+         )
+         .map(
+          item => `
+
+           <tr>
+
+            <td>
+             ${escapeHtml(
+              item.descripcion || ''
+             )}
+            </td>
+
+            <td class="num">
+             ${formatOptionalMoney(
+              item.parcial
+             )}
+            </td>
+
+            <td class="num">
+             ${formatOptionalMoney(
+              item.entrada
+             )}
+            </td>
+
+            <td class="num">
+             ${formatOptionalMoney(
+              item.salida
+             )}
+            </td>
+
+           </tr>
+
+          `
+         )
+         .join('')
+        }
+
+       </tbody>
+
+      </table>
+
+     </div>
+
+    </div>
+
+   `
+  )
+  .join('');
+
+}
 
 /* ======================================================
    REPORTES
