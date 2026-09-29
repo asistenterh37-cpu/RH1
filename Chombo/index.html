@@ -12375,6 +12375,283 @@ function formatearNumeroMiles(
 }
 
 /* ======================================================
+   CALCULADORA EN CELDAS DE OPERACIONES
+   PERMITE + - * / Y PARENTESIS
+====================================================== */
+
+function evaluarOperacionMonto(
+  valor
+){
+
+  let expresion =
+    String(
+      valor ?? ''
+    )
+    .trim()
+    .replace(
+      /,/g,
+      ''
+    )
+    .replace(
+      /\s+/g,
+      ''
+    );
+
+
+  if(!expresion){
+
+    return null;
+
+  }
+
+
+  /*
+    Solo permitir números y operadores matemáticos.
+  */
+
+  if(
+    !/^[0-9+\-*/().]+$/.test(
+      expresion
+    )
+  ){
+
+    throw new Error(
+      'Operación no válida.'
+    );
+
+  }
+
+
+  const resultado =
+    Function(
+      '"use strict"; return (' +
+      expresion +
+      ');'
+    )();
+
+
+  if(
+    !Number.isFinite(
+      resultado
+    )
+  ){
+
+    throw new Error(
+      'El resultado no es válido.'
+    );
+
+  }
+
+
+  return (
+    Math.round(
+      (
+        resultado +
+        Number.EPSILON
+      )
+      *
+      100
+    )
+    /
+    100
+  );
+
+}
+
+
+/* ======================================================
+   ENTER EN CELDA DE MONTO
+====================================================== */
+
+function procesarMontoConEnter(
+  event,
+  elemento
+){
+
+  if(
+    event.key !==
+    'Enter'
+  ){
+
+    return;
+
+  }
+
+
+  event.preventDefault();
+
+
+  try{
+
+    const resultado =
+      evaluarOperacionMonto(
+        elemento.value
+      );
+
+
+    if(
+      resultado === null
+    ){
+
+      elemento.value =
+        '';
+
+      return;
+
+    }
+
+
+    /*
+      Convertir la operación al resultado.
+    */
+
+    elemento.value =
+      resultado.toFixed(
+        2
+      );
+
+
+    marcarHoraFilaOperacion(
+      elemento
+    );
+
+
+    /*
+      Actualizar totales inmediatamente.
+    */
+
+    recalcularTotalesOperaciones();
+
+
+    /*
+      Si pertenece a Crédito Empleados
+      o Crédito Clientes, conserva el
+      funcionamiento actual de guardar
+      con Enter.
+    */
+
+    guardarCreditoFilaSiAplica(
+      elemento
+    );
+
+  }
+  catch(error){
+
+    toast(
+      'Operación matemática inválida.',
+      false
+    );
+
+
+    elemento.focus();
+
+  }
+
+}
+
+
+/* ======================================================
+   HEREDAR ULTIMO MODULO UTILIZADO
+====================================================== */
+
+function heredarUltimoModuloFila(
+  selectModulo
+){
+
+  if(
+    !selectModulo ||
+    selectModulo.value
+  ){
+
+    return;
+
+  }
+
+
+  const filaActual =
+    selectModulo.closest(
+      '.fila-operacion'
+    );
+
+
+  if(!filaActual){
+
+    return;
+
+  }
+
+
+  const filas =
+    Array.from(
+      document.querySelectorAll(
+        '#operacionesFilas .fila-operacion'
+      )
+    );
+
+
+  const indiceActual =
+    filas.indexOf(
+      filaActual
+    );
+
+
+  if(
+    indiceActual <= 0
+  ){
+
+    return;
+
+  }
+
+
+  /*
+    Buscar hacia arriba el último módulo
+    realmente seleccionado.
+  */
+
+  for(
+    let i =
+      indiceActual - 1;
+
+    i >= 0;
+
+    i--
+  ){
+
+    const moduloAnterior =
+      filas[i]
+        .querySelector(
+          '.operacion-modulo'
+        );
+
+
+    const valor =
+      String(
+        moduloAnterior?.value || ''
+      )
+      .trim();
+
+
+    if(valor){
+
+      selectModulo.value =
+        valor;
+
+
+      actualizarMovimientoFila(
+        selectModulo
+      );
+
+
+      return;
+
+    }
+
+  }
+
+}
+  
+/* ======================================================
    RECALCULAR TOTALES DEL TURNO
 ====================================================== */
 
@@ -15166,6 +15443,11 @@ async function guardarCreditoFilaSiAplica(
           operacion-celda-select
           operacion-modulo
         "
+
+        onfocus="
+          heredarUltimoModuloFila(this);
+        "
+
         onchange="
           actualizarMovimientoFila(this);
           marcarHoraFilaOperacion(this);
@@ -15181,17 +15463,18 @@ async function guardarCreditoFilaSiAplica(
 
     <td>
 
-   <select
-  class="
-    operacion-celda-select
-    operacion-movimiento
-  "
-  onchange="
-    actualizarDescripcionFila(this);
-    aplicarNaturalezaMovimiento(this);
-    marcarHoraFilaOperacion(this);
-  "
->
+      <select
+        class="
+          operacion-celda-select
+          operacion-movimiento
+        "
+
+        onchange="
+          actualizarDescripcionFila(this);
+          aplicarNaturalezaMovimiento(this);
+          marcarHoraFilaOperacion(this);
+        "
+      >
 
         <option value="">
           Seleccionar
@@ -15216,6 +15499,7 @@ async function guardarCreditoFilaSiAplica(
         value="${escapeHtml(
           datos.descripcion || ''
         )}"
+
         oninput="
           marcarHoraFilaOperacion(this)
         "
@@ -15226,102 +15510,99 @@ async function guardarCreditoFilaSiAplica(
 
     <!-- PARCIAL -->
 
-<td>
+    <td>
 
-  <input
-    class="
-      operacion-celda-input
-      operacion-monto
-      operacion-parcial
-    "
-    type="number"
-    min="0"
-    step="0.01"
-    inputmode="decimal"
+      <input
+        class="
+          operacion-celda-input
+          operacion-monto
+          operacion-parcial
+        "
 
-    value="${escapeHtml(
-      datos.parcial || ''
-    )}"
+        type="text"
+        inputmode="decimal"
 
-    oninput="
-      marcarHoraFilaOperacion(this)
-    "
+        value="${escapeHtml(
+          datos.parcial || ''
+        )}"
 
-    onkeydown="
-      guardarCreditoConEnter(event,this)
-    "
-  >
+        oninput="
+          marcarHoraFilaOperacion(this)
+        "
 
-</td>
+        onkeydown="
+          procesarMontoConEnter(event,this)
+        "
+      >
 
-
-<!-- ENTRADA -->
-
-<td>
-
-  <input
-    class="
-      operacion-celda-input
-      operacion-monto
-      operacion-entrada
-    "
-    type="number"
-    min="0"
-    step="0.01"
-    inputmode="decimal"
-
-    value="${escapeHtml(
-      datos.entrada || ''
-    )}"
-
-    oninput="
-      marcarHoraFilaOperacion(this)
-    "
-
-    onkeydown="
-      guardarCreditoConEnter(event,this)
-    "
-  >
-
-</td>
+    </td>
 
 
-<!-- SALIDA -->
+    <!-- ENTRADA -->
 
-<td>
+    <td>
 
-  <input
-    class="
-      operacion-celda-input
-      operacion-monto
-      operacion-salida
-    "
-    type="number"
-    min="0"
-    step="0.01"
-    inputmode="decimal"
+      <input
+        class="
+          operacion-celda-input
+          operacion-monto
+          operacion-entrada
+        "
 
-    value="${escapeHtml(
-      datos.salida || ''
-    )}"
+        type="text"
+        inputmode="decimal"
 
-    oninput="
-      marcarHoraFilaOperacion(this)
-    "
+        value="${escapeHtml(
+          datos.entrada || ''
+        )}"
 
-    onkeydown="
-      guardarCreditoConEnter(event,this)
-    "
-  >
+        oninput="
+          marcarHoraFilaOperacion(this)
+        "
 
-</td>
+        onkeydown="
+          procesarMontoConEnter(event,this)
+        "
+      >
 
-    
+    </td>
+
+
+    <!-- SALIDA -->
+
+    <td>
+
+      <input
+        class="
+          operacion-celda-input
+          operacion-monto
+          operacion-salida
+        "
+
+        type="text"
+        inputmode="decimal"
+
+        value="${escapeHtml(
+          datos.salida || ''
+        )}"
+
+        oninput="
+          marcarHoraFilaOperacion(this)
+        "
+
+        onkeydown="
+          procesarMontoConEnter(event,this)
+        "
+      >
+
+    </td>
 
   `;
 
 
-  /* RECUPERAR MODULO */
+  /* ==================================================
+     RECUPERAR MODULO
+  ================================================== */
 
   const selectModulo =
     tr.querySelector(
@@ -15340,7 +15621,9 @@ async function guardarCreditoFilaSiAplica(
   }
 
 
-  /* RECUPERAR MOVIMIENTO */
+  /* ==================================================
+     RECUPERAR MOVIMIENTO
+  ================================================== */
 
   if(selectModulo){
 
@@ -15352,7 +15635,9 @@ async function guardarCreditoFilaSiAplica(
   }
 
 
-  /* RECUPERAR DESCRIPCION */
+  /* ==================================================
+     RECUPERAR DESCRIPCION
+  ================================================== */
 
   const selectMovimiento =
     tr.querySelector(
@@ -15373,7 +15658,6 @@ async function guardarCreditoFilaSiAplica(
   return tr;
 
 }
-  
 /* ======================================================
    LEER FILAS ACTUALES
 ====================================================== */
