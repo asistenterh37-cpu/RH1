@@ -2812,7 +2812,7 @@ tr{
 
 <script>
 const SCRIPT_URL =
-'https://script.google.com/macros/s/AKfycbwonU_RapJOsDK0o2GmM0vOd1-sdhoVQvDMIQeLsvLZSuU_6ShdRaOGgXATQmEtf6sD/exec';
+'https://script.google.com/macros/s/AKfycbz6lKZSvu6wFvusMUtMnm6Swv6Yd4ntdDwbCT2-pokWQIVPoFbK3GDvR6iewAfZ1W8P/exec';
 </script>
 
 <header class="topbar">
@@ -6260,44 +6260,36 @@ function llenarSelectCatalogo(
 
 async function loadCatalogos(){
 
-  try{
+ try{
 
-    const data =
-      await jsonpRequest(
-        'catalogos'
-      );
-
-
-    if(
-      !data ||
-      data.ok !== true
-    ){
-
-      throw new Error(
-        data &&
-        data.message
-        ?
-        data.message
-        :
-        'No se pudieron cargar los catálogos.'
-      );
-
-    }
+  const data =
+   await jsonpRequest(
+    'catalogos'
+   );
 
 
-    /* ===============================================
-       CATÁLOGOS RECIBIDOS DEL GS
+  if(
+   !data ||
+   data.ok !== true
+  ){
 
-       A = UBICACIÓN
-       B = RESPONSABLE
-       E = EMPLEADOS
-    =============================================== */
+   throw new Error(
+    data &&
+    data.message
+    ?
+    data.message
+    :
+    'No se pudieron cargar los catálogos.'
+   );
 
-    catalogosData = {
+  }
 
-  ubicaciones:
+
+  catalogosData = {
+
+   ubicaciones:
     Array.isArray(
-      data.ubicaciones
+     data.ubicaciones
     )
     ?
     data.ubicaciones
@@ -6305,9 +6297,9 @@ async function loadCatalogos(){
     [],
 
 
-  responsables:
+   responsables:
     Array.isArray(
-      data.responsables
+     data.responsables
     )
     ?
     data.responsables
@@ -6315,9 +6307,9 @@ async function loadCatalogos(){
     [],
 
 
-  empleados:
+   empleados:
     Array.isArray(
-      data.empleados
+     data.empleados
     )
     ?
     data.empleados
@@ -6325,9 +6317,9 @@ async function loadCatalogos(){
     [],
 
 
-  clientes:
+   clientes:
     Array.isArray(
-      data.clientes
+     data.clientes
     )
     ?
     data.clientes
@@ -6335,9 +6327,19 @@ async function loadCatalogos(){
     [],
 
 
-  productos:
+   proveedores:
     Array.isArray(
-      data.productos
+     data.proveedores
+    )
+    ?
+    data.proveedores
+    :
+    [],
+
+
+   productos:
+    Array.isArray(
+     data.productos
     )
     ?
     data.productos
@@ -6345,9 +6347,9 @@ async function loadCatalogos(){
     [],
 
 
-  operacionesCatalogo:
+   operacionesCatalogo:
     Array.isArray(
-      data.operacionesCatalogo
+     data.operacionesCatalogo
     )
     ?
     data.operacionesCatalogo
@@ -6355,7 +6357,7 @@ async function loadCatalogos(){
     [],
 
 
-  saldosIniciales:
+   saldosIniciales:
     data.saldosIniciales
     &&
     typeof data.saldosIniciales ===
@@ -6365,108 +6367,90 @@ async function loadCatalogos(){
     :
     {}
 
-};
-
-/*
-  Crear las 20 filas iniciales
-  una vez cargados los módulos.
-*/
-
-crearPantallaOperaciones();
-
-    /* ===============================================
-       INICIAR TURNO
-    =============================================== */
-
-    llenarSelectCatalogo(
-      'turnoUbicacion',
-      catalogosData.ubicaciones
-    );
+  };
 
 
-    llenarSelectCatalogo(
-      'turnoResponsable',
-      catalogosData.responsables
-    );
+  crearPantallaOperaciones();
 
 
-    /* ===============================================
-       CIERRE DIARIO
-    =============================================== */
-
-    llenarSelectCatalogo(
-      'ubicacionSelect',
-      catalogosData.ubicaciones
-    );
+  llenarSelectCatalogo(
+   'turnoUbicacion',
+   catalogosData.ubicaciones
+  );
 
 
-    llenarSelectCatalogo(
-      'responsableSelect',
-      catalogosData.responsables
-    );
+  llenarSelectCatalogo(
+   'turnoResponsable',
+   catalogosData.responsables
+  );
 
 
-    /* ===============================================
-       REPORTES
-    =============================================== */
-
-    llenarSelectCatalogo(
-      'ubicacionReporte',
-      catalogosData.ubicaciones,
-      '__TODAS__',
-      'Todas'
-    );
+  llenarSelectCatalogo(
+   'ubicacionSelect',
+   catalogosData.ubicaciones
+  );
 
 
-    llenarSelectCatalogo(
-      'responsableReporte',
-      catalogosData.responsables,
-      '__TODOS__',
-      'Todos'
-    );
+  llenarSelectCatalogo(
+   'responsableSelect',
+   catalogosData.responsables
+  );
 
 
-    /* ===============================================
-       VALIDAR QUE LLEGARON DATOS
-    =============================================== */
-
-    if(
-      !catalogosData.ubicaciones.length
-    ){
-
-      throw new Error(
-        'No se encontraron Ubicaciones en Catálogos columna A.'
-      );
-
-    }
+  llenarSelectCatalogo(
+   'ubicacionReporte',
+   catalogosData.ubicaciones,
+   '__TODAS__',
+   'Todas'
+  );
 
 
-    if(
-      !catalogosData.responsables.length
-    ){
+  llenarSelectCatalogo(
+   'responsableReporte',
+   catalogosData.responsables,
+   '__TODOS__',
+   'Todos'
+  );
 
-      throw new Error(
-        'No se encontraron Responsables en Catálogos columna B.'
-      );
 
-    }
+  if(
+   !catalogosData.ubicaciones.length
+  ){
+
+   throw new Error(
+    'No se encontraron Ubicaciones en Catálogos columna A.'
+   );
 
   }
-  catch(error){
-
-    console.error(
-      'ERROR CATÁLOGOS:',
-      error
-    );
 
 
-    toast(
-      error.message ||
-      'No se pudieron cargar los catálogos.',
-      false
-    );
+  if(
+   !catalogosData.responsables.length
+  ){
+
+   throw new Error(
+    'No se encontraron Responsables en Catálogos columna B.'
+   );
 
   }
+
+ }
+
+ catch(error){
+
+  console.error(
+   'ERROR CATÁLOGOS:',
+   error
+  );
+
+
+  toast(
+   error.message ||
+   'No se pudieron cargar los catálogos.',
+   false
+  );
+
+ }
 
 }
   /* ======================================================
@@ -13666,422 +13650,686 @@ function actualizarMovimientoFila(
 ====================================================== */
 
 function actualizarDescripcionFila(
-  elemento,
-  valorAnterior = ''
+ elemento,
+ valorAnterior = ''
 ){
 
-  const fila =
-    elemento.closest(
-      '.fila-operacion'
-    );
-
-
-  if(!fila){
-
-    return;
-
-  }
-
-
-  const modulo =
-    normalizarModuloOperacion(
-      fila.querySelector(
-        '.operacion-modulo'
-      )?.value || ''
-    );
-
-
-  const movimiento =
-    normalizarModuloOperacion(
-      fila.querySelector(
-        '.operacion-movimiento'
-      )?.value || ''
-    );
-
-
-  const celda =
-    fila.querySelector(
-      '.operacion-descripcion-celda'
-    );
-
-
-  if(!celda){
-
-    return;
-
-  }
-
-
-  /* ==================================================
-     CREDITO CLIENTES
-     CATALOGO COLUMNA F
-  ================================================== */
-
-  if(
-    modulo ===
-    'credito clientes'
-  ){
-
-    let html =
-      '<option value="">Seleccionar</option>';
-
-
-    (
-      catalogosData.clientes || []
-    )
-    .forEach(
-      nombre => {
-
-        html += `
-
-          <option
-            value="${escapeHtml(nombre)}"
-          >
-            ${escapeHtml(nombre)}
-          </option>
-
-        `;
-
-      }
-    );
-
-
-    celda.innerHTML = `
-
-      <select
- class="
- operacion-celda-select
- operacion-descripcion
- "
-
-onchange="
- marcarHoraFilaOperacion(this);
- mostrarResumenCredito(this);
-"
-
- onfocus="
- mostrarResumenCredito(this);
- "
-
- onmouseenter="
- mostrarResumenCredito(this);
- "
-
- onmouseleave="
- programarOcultarResumenCredito();
- "
-
- onblur="
- programarOcultarResumenCredito();
- "
->
-        ${html}
-      </select>
-
-    `;
-
-
-    if(valorAnterior){
-
-      celda
-        .querySelector(
-          '.operacion-descripcion'
-        )
-        .value =
-        valorAnterior;
-
-    }
-
-
-    return;
-
-  }
-
-
-  /* ==================================================
-     CREDITO EMPLEADOS
-     CATALOGO COLUMNA E
-  ================================================== */
-
-  if(
-    modulo ===
-    'credito empleados'
-  ){
-
-    let html =
-      '<option value="">Seleccionar</option>';
-
-
-    (
-      catalogosData.empleados || []
-    )
-    .forEach(
-      nombre => {
-
-        html += `
-
-          <option
-            value="${escapeHtml(nombre)}"
-          >
-            ${escapeHtml(nombre)}
-          </option>
-
-        `;
-
-      }
-    );
-
-
-    celda.innerHTML = `
-
-   <select
- class="
- operacion-celda-select
- operacion-descripcion
- "
-
- onchange="
- marcarHoraFilaOperacion(this);
- mostrarResumenCredito(this);
- guardarCreditoFilaSiAplica(this);
- "
-
- onfocus="
- mostrarResumenCredito(this);
- "
-
- onmouseenter="
- mostrarResumenCredito(this);
- "
-
- onmouseleave="
- programarOcultarResumenCredito();
- "
-
- onblur="
- programarOcultarResumenCredito();
- "
->
-        ${html}
-      </select>
-
-    `;
-
-
-    if(valorAnterior){
-
-      celda
-        .querySelector(
-          '.operacion-descripcion'
-        )
-        .value =
-        valorAnterior;
-
-    }
-
-
-    return;
-
-  }
-
-
-  /* ==================================================
-     RECARGAS TIGO / CLARO
-     NUMERO CELULAR 8 DIGITOS
-
-     EXCEPTO:
-     - Compra saldo
-     - Saldo inicial
-  ================================================== */
-
-const esRecarga =
-  (
-    modulo === 'tigo recargas'
-    ||
-    modulo === 'recargas tigo'
-    ||
-    modulo === 'claro recargas'
-    ||
-    modulo === 'recargas claro'
+ const fila =
+  elemento.closest(
+   '.fila-operacion'
   );
 
 
-  const requiereTelefono =
-    esRecarga
-    &&
-    movimiento
-    &&
-    movimiento !== 'compra saldo'
-    &&
-    movimiento !== 'saldo inicial';
+ if(!fila){
+
+  return;
+
+ }
 
 
-  if(requiereTelefono){
-
-    const numeros =
-      String(
-        valorAnterior || ''
-      )
-      .replace(
-        /\D/g,
-        ''
-      )
-      .substring(
-        0,
-        8
-      );
+ const modulo =
+  normalizarModuloOperacion(
+   fila.querySelector(
+    '.operacion-modulo'
+   )?.value || ''
+  );
 
 
-    const parte1 =
-      numeros.substring(
-        0,
-        2
-      );
-
-    const parte2 =
-      numeros.substring(
-        2,
-        4
-      );
-
-    const parte3 =
-      numeros.substring(
-        4,
-        6
-      );
-
-    const parte4 =
-      numeros.substring(
-        6,
-        8
-      );
+ const movimiento =
+  normalizarModuloOperacion(
+   fila.querySelector(
+    '.operacion-movimiento'
+   )?.value || ''
+  );
 
 
-    celda.innerHTML = `
-
-      <div
-        style="
-          display:flex;
-          align-items:center;
-          justify-content:center;
-          gap:5px;
-          width:100%;
-        "
-      >
-
-        <input
-          class="telefono-parte"
-          type="text"
-          inputmode="numeric"
-          maxlength="2"
-          value="${parte1}"
-          style="
-            width:38px;
-            height:30px;
-            text-align:center;
-            border:1px solid #cbd1da;
-            border-radius:5px;
-          "
-          oninput="avanzarTelefono(this)"
-        >
-
-        <span>/</span>
-
-        <input
-          class="telefono-parte"
-          type="text"
-          inputmode="numeric"
-          maxlength="2"
-          value="${parte2}"
-          style="
-            width:38px;
-            height:30px;
-            text-align:center;
-            border:1px solid #cbd1da;
-            border-radius:5px;
-          "
-          oninput="avanzarTelefono(this)"
-        >
-
-        <span>/</span>
-
-        <input
-          class="telefono-parte"
-          type="text"
-          inputmode="numeric"
-          maxlength="2"
-          value="${parte3}"
-          style="
-            width:38px;
-            height:30px;
-            text-align:center;
-            border:1px solid #cbd1da;
-            border-radius:5px;
-          "
-          oninput="avanzarTelefono(this)"
-        >
-
-        <span>/</span>
-
-        <input
-          class="telefono-parte"
-          type="text"
-          inputmode="numeric"
-          maxlength="2"
-          value="${parte4}"
-          style="
-            width:38px;
-            height:30px;
-            text-align:center;
-            border:1px solid #cbd1da;
-            border-radius:5px;
-          "
-          oninput="avanzarTelefono(this)"
-        >
+ const celda =
+  fila.querySelector(
+   '.operacion-descripcion-celda'
+  );
 
 
-        <input
-          class="operacion-descripcion"
-          type="hidden"
-          value="${escapeHtml(
-            numeros
-          )}"
-        >
+ if(!celda){
 
-      </div>
+  return;
 
+ }
+
+
+ /* ==================================================
+ CREDITO CLIENTES
+ ================================================== */
+
+ if(
+  modulo ===
+  'credito clientes'
+ ){
+
+  let html =
+   '<option value="">Seleccionar</option>';
+
+
+  (
+   catalogosData.clientes || []
+  )
+  .forEach(
+   nombre => {
+
+    html += `
+     <option
+      value="${escapeHtml(nombre)}"
+     >
+      ${escapeHtml(nombre)}
+     </option>
     `;
 
+   }
+  );
 
-    return;
+
+  celda.innerHTML = `
+
+   <select
+    class="
+     operacion-celda-select
+     operacion-descripcion
+    "
+
+    onchange="
+     marcarHoraFilaOperacion(this);
+     mostrarResumenCredito(this);
+    "
+
+    onfocus="
+     mostrarResumenCredito(this);
+    "
+
+    onmouseenter="
+     mostrarResumenCredito(this);
+    "
+
+    onmouseleave="
+     programarOcultarResumenCredito();
+    "
+
+    onblur="
+     programarOcultarResumenCredito();
+    "
+   >
+
+    ${html}
+
+   </select>
+
+  `;
+
+
+  if(valorAnterior){
+
+   celda
+    .querySelector(
+     '.operacion-descripcion'
+    )
+    .value =
+     valorAnterior;
 
   }
 
 
-  /* ==================================================
-     DESCRIPCION NORMAL
-  ================================================== */
+  return;
+
+ }
+
+
+ /* ==================================================
+ CREDITO EMPLEADOS
+ ================================================== */
+
+ if(
+  modulo ===
+  'credito empleados'
+ ){
+
+  let html =
+   '<option value="">Seleccionar</option>';
+
+
+  (
+   catalogosData.empleados || []
+  )
+  .forEach(
+   nombre => {
+
+    html += `
+     <option
+      value="${escapeHtml(nombre)}"
+     >
+      ${escapeHtml(nombre)}
+     </option>
+    `;
+
+   }
+  );
+
 
   celda.innerHTML = `
 
-    <input
-      class="
-        operacion-celda-input
-        operacion-descripcion
-      "
-      type="text"
-      maxlength="250"
-      value="${escapeHtml(
-        valorAnterior || ''
-      )}"
-      oninput="marcarHoraFilaOperacion(this)"
-    >
+   <select
+    class="
+     operacion-celda-select
+     operacion-descripcion
+    "
+
+    onchange="
+     marcarHoraFilaOperacion(this);
+     mostrarResumenCredito(this);
+     guardarCreditoFilaSiAplica(this);
+    "
+
+    onfocus="
+     mostrarResumenCredito(this);
+    "
+
+    onmouseenter="
+     mostrarResumenCredito(this);
+    "
+
+    onmouseleave="
+     programarOcultarResumenCredito();
+    "
+
+    onblur="
+     programarOcultarResumenCredito();
+    "
+   >
+
+    ${html}
+
+   </select>
 
   `;
+
+
+  if(valorAnterior){
+
+   celda
+    .querySelector(
+     '.operacion-descripcion'
+    )
+    .value =
+     valorAnterior;
+
+  }
+
+
+  return;
+
+ }
+
+
+ /* ==================================================
+ PROVEEDORES
+ ================================================== */
+
+ if(
+  modulo ===
+  'proveedores'
+ ){
+
+  let html =
+   '<option value="">Seleccionar proveedor</option>';
+
+
+  (
+   catalogosData.proveedores || []
+  )
+  .forEach(
+   nombre => {
+
+    html += `
+     <option
+      value="${escapeHtml(nombre)}"
+     >
+      ${escapeHtml(nombre)}
+     </option>
+    `;
+
+   }
+  );
+
+
+  html += `
+   <option
+    value="__NUEVO_PROVEEDOR__"
+   >
+    + Nuevo proveedor
+   </option>
+  `;
+
+
+  celda.innerHTML = `
+
+   <select
+    class="
+     operacion-celda-select
+     operacion-descripcion
+    "
+
+    onchange="
+     manejarProveedorDescripcion(this);
+     marcarHoraFilaOperacion(this);
+    "
+   >
+
+    ${html}
+
+   </select>
+
+  `;
+
+
+  if(valorAnterior){
+
+   const campo =
+    celda.querySelector(
+     '.operacion-descripcion'
+    );
+
+
+   if(campo){
+
+    campo.value =
+     valorAnterior;
+
+   }
+
+  }
+
+
+  return;
+
+ }
+
+
+ /* ==================================================
+ RECARGAS TIGO / CLARO
+ ================================================== */
+
+ const esRecarga =
+  (
+   modulo === 'tigo recargas'
+   ||
+   modulo === 'recargas tigo'
+   ||
+   modulo === 'claro recargas'
+   ||
+   modulo === 'recargas claro'
+  );
+
+
+ const requiereTelefono =
+  esRecarga
+  &&
+  movimiento
+  &&
+  movimiento !==
+  'compra saldo'
+  &&
+  movimiento !==
+  'saldo inicial';
+
+
+ if(requiereTelefono){
+
+  const numeros =
+   String(
+    valorAnterior || ''
+   )
+   .replace(
+    /\D/g,
+    ''
+   )
+   .substring(
+    0,
+    8
+   );
+
+
+  const parte1 =
+   numeros.substring(
+    0,
+    2
+   );
+
+
+  const parte2 =
+   numeros.substring(
+    2,
+    4
+   );
+
+
+  const parte3 =
+   numeros.substring(
+    4,
+    6
+   );
+
+
+  const parte4 =
+   numeros.substring(
+    6,
+    8
+   );
+
+
+  celda.innerHTML = `
+
+   <div
+    style="
+     display:flex;
+     align-items:center;
+     justify-content:center;
+     gap:5px;
+     width:100%;
+    "
+   >
+
+    <input
+     class="telefono-parte"
+     type="text"
+     inputmode="numeric"
+     maxlength="2"
+     value="${parte1}"
+     style="
+      width:38px;
+      height:30px;
+      text-align:center;
+      border:1px solid #cbd1da;
+      border-radius:5px;
+     "
+     oninput="avanzarTelefono(this)"
+    >
+
+    <span>/</span>
+
+    <input
+     class="telefono-parte"
+     type="text"
+     inputmode="numeric"
+     maxlength="2"
+     value="${parte2}"
+     style="
+      width:38px;
+      height:30px;
+      text-align:center;
+      border:1px solid #cbd1da;
+      border-radius:5px;
+     "
+     oninput="avanzarTelefono(this)"
+    >
+
+    <span>/</span>
+
+    <input
+     class="telefono-parte"
+     type="text"
+     inputmode="numeric"
+     maxlength="2"
+     value="${parte3}"
+     style="
+      width:38px;
+      height:30px;
+      text-align:center;
+      border:1px solid #cbd1da;
+      border-radius:5px;
+     "
+     oninput="avanzarTelefono(this)"
+    >
+
+    <span>/</span>
+
+    <input
+     class="telefono-parte"
+     type="text"
+     inputmode="numeric"
+     maxlength="2"
+     value="${parte4}"
+     style="
+      width:38px;
+      height:30px;
+      text-align:center;
+      border:1px solid #cbd1da;
+      border-radius:5px;
+     "
+     oninput="avanzarTelefono(this)"
+    >
+
+    <input
+     class="operacion-descripcion"
+     type="hidden"
+     value="${escapeHtml(
+      numeros
+     )}"
+    >
+
+   </div>
+
+  `;
+
+
+  return;
+
+ }
+
+
+ /* ==================================================
+ DESCRIPCION NORMAL
+ ================================================== */
+
+ celda.innerHTML = `
+
+  <input
+   class="
+    operacion-celda-input
+    operacion-descripcion
+   "
+
+   type="text"
+
+   maxlength="250"
+
+   value="${escapeHtml(
+    valorAnterior || ''
+   )}"
+
+   oninput="
+    marcarHoraFilaOperacion(this)
+   "
+  >
+
+ `;
 
 }
 
 
+/* ======================================================
+ NUEVO PROVEEDOR
+====================================================== */
+
+async function manejarProveedorDescripcion(
+ select
+){
+
+ if(
+  !select ||
+  select.value !==
+  '__NUEVO_PROVEEDOR__'
+ ){
+
+  return;
+
+ }
+
+
+ const nombre =
+  window.prompt(
+   'Nombre del nuevo proveedor:'
+  );
+
+
+ if(
+  !nombre ||
+  !String(
+   nombre
+  ).trim()
+ ){
+
+  select.value =
+   '';
+
+  return;
+
+ }
+
+
+ const nombreLimpio =
+  String(
+   nombre
+  )
+  .trim();
+
+
+ try{
+
+  const data =
+   await jsonpRequest(
+    'proveedor_nuevo',
+    {
+     nombre:
+      nombreLimpio
+    }
+   );
+
+
+  if(
+   !data ||
+   data.ok !== true
+  ){
+
+   throw new Error(
+    data &&
+    data.message
+    ?
+    data.message
+    :
+    'No se pudo crear el proveedor.'
+   );
+
+  }
+
+
+  if(
+   !Array.isArray(
+    catalogosData.proveedores
+   )
+  ){
+
+   catalogosData.proveedores =
+    [];
+
+  }
+
+
+  const existe =
+   catalogosData.proveedores
+    .some(
+     item =>
+      String(
+       item
+      )
+      .trim()
+      .toLowerCase()
+      ===
+      nombreLimpio.toLowerCase()
+    );
+
+
+  if(!existe){
+
+   catalogosData.proveedores.push(
+    nombreLimpio
+   );
+
+
+   catalogosData.proveedores.sort(
+    (
+     a,
+     b
+    ) =>
+     String(
+      a
+     )
+     .localeCompare(
+      String(
+       b
+      ),
+      'es'
+     )
+   );
+
+  }
+
+
+  const fila =
+   select.closest(
+    '.fila-operacion'
+   );
+
+
+  const movimiento =
+   fila
+   ?
+   fila.querySelector(
+    '.operacion-movimiento'
+   )
+   :
+   null;
+
+
+  if(movimiento){
+
+   actualizarDescripcionFila(
+    movimiento,
+    nombreLimpio
+   );
+
+  }
+
+
+  toast(
+   'Proveedor creado correctamente.',
+   true
+  );
+
+ }
+
+ catch(error){
+
+  select.value =
+   '';
+
+
+  toast(
+   'Error creando proveedor: ' +
+   error.message,
+   false
+  );
+
+ }
+
+}
+  
 /* ======================================================
    TELEFONO 2 + 2 + 2 + 2
 ====================================================== */
@@ -14913,493 +15161,575 @@ function guardarCreditoConEnter(
 ====================================================== */
 
 async function guardarCreditoFilaSiAplica(
-  elemento
+ elemento
 ){
 
-  const fila =
-    elemento.closest(
-      '.fila-operacion'
-    );
+ const fila =
+  elemento.closest(
+   '.fila-operacion'
+  );
 
 
-  if(!fila){
+ if(!fila){
 
-    return;
+  return;
 
-  }
+ }
 
+
+ if(
+  !turnoActivo ||
+  !turnoActivo.turnoId
+ ){
+
+  return;
+
+ }
+
+
+ const moduloTexto =
+  fila.querySelector(
+   '.operacion-modulo'
+  )?.value || '';
+
+
+ const modulo =
+  normalizarModuloOperacion(
+   moduloTexto
+  );
+
+
+ const esCreditoEmpleado =
+  modulo ===
+  'credito empleados';
+
+
+ const esCreditoCliente =
+  modulo ===
+  'credito clientes';
+
+
+ const esProveedor =
+  modulo ===
+  'proveedores';
+
+
+ if(
+  !esCreditoEmpleado &&
+  !esCreditoCliente &&
+  !esProveedor
+ ){
+
+  return;
+
+ }
+
+
+ const movimientoTexto =
+  fila.querySelector(
+   '.operacion-movimiento'
+  )?.value || '';
+
+
+ const movimiento =
+  normalizarModuloOperacion(
+   movimientoTexto
+  );
+
+
+ if(
+  !movimiento ||
+  movimiento ===
+  'seleccionar'
+ ){
+
+  toast(
+   'Selecciona el movimiento.',
+   false
+  );
+
+  return;
+
+ }
+
+
+ if(
+  (
+   esCreditoEmpleado ||
+   esCreditoCliente
+  )
+  &&
+  movimiento ===
+  'saldo inicial'
+ ){
+
+  return;
+
+ }
+
+
+ const nombre =
+  String(
+   fila.querySelector(
+    '.operacion-descripcion'
+   )?.value || ''
+  )
+  .trim();
+
+
+ if(
+  !nombre ||
+  nombre.toLowerCase() ===
+  'seleccionar'
+  ||
+  nombre ===
+  '__NUEVO_PROVEEDOR__'
+ ){
+
+  toast(
+   esProveedor
+   ?
+   'Selecciona el proveedor.'
+   :
+   esCreditoEmpleado
+   ?
+   'Selecciona el empleado.'
+   :
+   'Selecciona el cliente.',
+   false
+  );
+
+  return;
+
+ }
+
+
+ const parcial =
+  numeroOperacion(
+   fila.querySelector(
+    '.operacion-parcial'
+   )?.value
+  );
+
+
+ const entrada =
+  numeroOperacion(
+   fila.querySelector(
+    '.operacion-entrada'
+   )?.value
+  );
+
+
+ const salida =
+  numeroOperacion(
+   fila.querySelector(
+    '.operacion-salida'
+   )?.value
+  );
+
+
+ let tipoMovimiento =
+  '';
+
+
+ let valor =
+  0;
+
+
+ /* ==================================================
+ PROVEEDORES
+ Pago / Abono = reduce deuda
+ Cualquier otro movimiento = Cargo
+ ================================================== */
+
+ if(esProveedor){
 
   if(
-    !turnoActivo ||
-    !turnoActivo.turnoId
-  ){
-
-    toast(
-      'No hay un turno activo.',
-      false
-    );
-
-    return;
-
-  }
-
-
-  const moduloTexto =
-    fila.querySelector(
-      '.operacion-modulo'
-    )?.value || '';
-
-
-  const modulo =
-    normalizarModuloOperacion(
-      moduloTexto
-    );
-
-
-  const esCreditoEmpleado =
-    modulo ===
-    'credito empleados';
-
-
-  const esCreditoCliente =
-    modulo ===
-    'credito clientes';
-
-
-  if(
-    !esCreditoEmpleado &&
-    !esCreditoCliente
-  ){
-
-    return;
-
-  }
-
-
-  const movimientoTexto =
-    fila.querySelector(
-      '.operacion-movimiento'
-    )?.value || '';
-
-
-  const movimiento =
-    normalizarModuloOperacion(
-      movimientoTexto
-    );
-
-
-  if(
-    !movimiento ||
-    movimiento ===
-    'seleccionar'
-  ){
-
-    toast(
-      'Selecciona el movimiento.',
-      false
-    );
-
-    return;
-
-  }
-
-
-  if(
-    movimiento ===
-    'saldo inicial'
-  ){
-
-    return;
-
-  }
-
-
-  /* ===============================================
-     NOMBRE
-  =============================================== */
-
-  const nombre =
-    String(
-      fila.querySelector(
-        '.operacion-descripcion'
-      )?.value || ''
-    )
-    .trim();
-
-
-  if(
-    !nombre ||
-    nombre.toLowerCase() ===
-    'seleccionar'
-  ){
-
-    toast(
-      esCreditoEmpleado
-      ?
-      'Selecciona el empleado.'
-      :
-      'Selecciona el cliente.',
-      false
-    );
-
-    return;
-
-  }
-
-
-  /* ===============================================
-     LEER LOS TRES CAMPOS
-  =============================================== */
-
-  const parcial =
-    numeroOperacion(
-      fila.querySelector(
-        '.operacion-parcial'
-      )?.value
-    );
-
-
-  const entrada =
-    numeroOperacion(
-      fila.querySelector(
-        '.operacion-entrada'
-      )?.value
-    );
-
-
-  const salida =
-    numeroOperacion(
-      fila.querySelector(
-        '.operacion-salida'
-      )?.value
-    );
-
-
-  let tipoMovimiento =
-    '';
-
-
-  let valor =
-    0;
-
-
-  /* ===============================================
-     ABONO
-
-     ENTRA EFECTIVO
-     Y REDUCE EL SALDO DEL CREDITO
-  =============================================== */
-
-  if(
-    movimiento ===
+   movimiento.includes(
+    'pago'
+   )
+   ||
+   movimiento.includes(
     'abono'
+   )
   ){
 
-    tipoMovimiento =
-      'abono';
+   tipoMovimiento =
+    'abono';
 
 
-    valor =
-      entrada;
-
-  }
-
-
-  /* ===============================================
-     VALES EMPLEADOS
-
-     ES SALIDA DE EFECTIVO
-     PERO ES CARGO PARA EL EMPLEADO
-  =============================================== */
-
-  else if(
-    esCreditoEmpleado
-    &&
-    movimiento ===
-    'vales'
-  ){
-
-    tipoMovimiento =
-      'cargo';
-
-
-    valor =
-      salida;
+   valor =
+    salida
+    ||
+    parcial
+    ||
+    entrada;
 
   }
-
-
-  /* ===============================================
-     DEMAS CREDITOS
-
-     PRODUCTOS / RECIBO
-     OTROS
-     ETC.
-
-     SE TOMAN DE PARCIAL
-  =============================================== */
 
   else{
 
-    tipoMovimiento =
-      'cargo';
+   tipoMovimiento =
+    'cargo';
 
 
-    valor =
-      parcial;
-
-  }
-
-
-  if(
-    !Number.isFinite(
-      valor
-    )
+   valor =
+    parcial
     ||
-    valor <= 0
-  ){
-
-    toast(
-      'Ingresa un valor mayor que cero y luego presiona Enter.',
-      false
-    );
-
-    return;
+    salida
+    ||
+    entrada;
 
   }
 
-
-  /* ===============================================
-     EVITAR DOBLE REGISTRO
-  =============================================== */
-
-  if(
-    fila.dataset.creditoGuardado ===
-    '1'
-  ){
-
-    toast(
-      'Esta operación ya fue guardada.',
-      false
-    );
-
-    return;
-
-  }
+ }
 
 
-  if(
-    fila.dataset.creditoGuardando ===
-    '1'
-  ){
+ /* ==================================================
+ CREDITOS
+ ================================================== */
 
-    return;
+ else if(
+  movimiento ===
+  'abono'
+ ){
 
-  }
-
-
-  fila.dataset.creditoGuardando =
-    '1';
-
-
-  const moduloApi =
-    esCreditoEmpleado
-    ?
-    'creditoEmpleados'
-    :
-    'creditoClientes';
+  tipoMovimiento =
+   'abono';
 
 
-  const payloadCredito = {
+  valor =
+   entrada;
 
-    turnoId:
-      turnoActivo.turnoId,
+ }
 
-    modulo:
-      moduloApi,
 
-    nombre:
-      nombre,
+ else if(
+  esCreditoEmpleado
+  &&
+  movimiento ===
+  'vales'
+ ){
 
-    descripcion:
-      movimientoTexto,
+  tipoMovimiento =
+   'cargo';
 
-    tipoMovimiento:
-      tipoMovimiento,
 
-    valor:
-      valor
+  valor =
+   salida;
+
+ }
+
+
+ else{
+
+  tipoMovimiento =
+   'cargo';
+
+
+  valor =
+   parcial;
+
+ }
+
+
+ if(
+  !Number.isFinite(
+   valor
+  )
+  ||
+  valor <= 0
+ ){
+
+  toast(
+   'Ingresa un valor mayor que cero y luego presiona Enter.',
+   false
+  );
+
+  return;
+
+ }
+
+
+ const guardadoKey =
+  esProveedor
+  ?
+  'proveedorGuardado'
+  :
+  'creditoGuardado';
+
+
+ const guardandoKey =
+  esProveedor
+  ?
+  'proveedorGuardando'
+  :
+  'creditoGuardando';
+
+
+ if(
+  fila.dataset[
+   guardadoKey
+  ] ===
+  '1'
+ ){
+
+  toast(
+   'Esta operación ya fue guardada.',
+   false
+  );
+
+  return;
+
+ }
+
+
+ if(
+  fila.dataset[
+   guardandoKey
+  ] ===
+  '1'
+ ){
+
+  return;
+
+ }
+
+
+ fila.dataset[
+  guardandoKey
+ ] =
+  '1';
+
+
+ let action = '';
+
+ let payload = {};
+
+
+ if(esProveedor){
+
+  action =
+   'proveedor_guardar';
+
+
+  payload = {
+
+   turnoId:
+    turnoActivo.turnoId,
+
+   nombre:
+    nombre,
+
+   movimiento:
+    movimientoTexto,
+
+   tipoMovimiento:
+    tipoMovimiento,
+
+   valor:
+    valor
 
   };
 
+ }
 
-  try{
+ else{
 
-
-    const data =
-      await jsonpRequest(
-        'credito_guardar',
-        {
-
-          payload:
-            JSON.stringify(
-              payloadCredito
-            )
-
-        }
-      );
+  const moduloApi =
+   esCreditoEmpleado
+   ?
+   'creditoEmpleados'
+   :
+   'creditoClientes';
 
 
-    if(
-      !data ||
-      data.ok !== true
-    ){
-
-      throw new Error(
-        data &&
-        data.message
-        ?
-        data.message
-        :
-        'No se pudo guardar el crédito.'
-      );
-
-    }
+  action =
+   'credito_guardar';
 
 
-    fila.dataset.creditoGuardado =
-      '1';
+  payload = {
+
+   turnoId:
+    turnoActivo.turnoId,
+
+   modulo:
+    moduloApi,
+
+   nombre:
+    nombre,
+
+   descripcion:
+    movimientoTexto,
+
+   tipoMovimiento:
+    tipoMovimiento,
+
+   valor:
+    valor
+
+  };
+
+ }
 
 
-    fila.dataset.creditoGuardando =
-      '0';
+ try{
 
-
-    /* ===============================================
-       BLOQUEAR FILA CONFIRMADA
-    =============================================== */
-
-    const moduloCampo =
-      fila.querySelector(
-        '.operacion-modulo'
-      );
-
-
-    const movimientoCampo =
-      fila.querySelector(
-        '.operacion-movimiento'
-      );
-
-
-    const descripcionCampo =
-      fila.querySelector(
-        '.operacion-descripcion'
-      );
-
-
-    const parcialCampo =
-      fila.querySelector(
-        '.operacion-parcial'
-      );
-
-
-    const entradaCampo =
-      fila.querySelector(
-        '.operacion-entrada'
-      );
-
-
-    const salidaCampo =
-      fila.querySelector(
-        '.operacion-salida'
-      );
-
-
-    if(moduloCampo){
-
-      moduloCampo.disabled =
-        true;
-
-    }
-
-
-    if(movimientoCampo){
-
-      movimientoCampo.disabled =
-        true;
-
-    }
-
-
-    if(descripcionCampo){
-
-      descripcionCampo.disabled =
-        true;
-
-    }
-
-
-    if(parcialCampo){
-
-      parcialCampo.readOnly =
-        true;
-
-    }
-
-
-    if(entradaCampo){
-
-      entradaCampo.readOnly =
-        true;
-
-    }
-
-
-    if(salidaCampo){
-
-      salidaCampo.readOnly =
-        true;
-
-    }
-
-
-    /* ===============================================
-       RECALCULAR TOTALES DESPUES DE GUARDAR
-    =============================================== */
-
-    recalcularTotalesOperaciones();
-
-
-    toast(
-      (
-        tipoMovimiento ===
-        'abono'
-        ?
-        'Abono'
-        :
-        'Cargo'
+  const data =
+   await jsonpRequest(
+    action,
+    {
+     payload:
+      JSON.stringify(
+       payload
       )
-      +
-      ' guardado correctamente.',
-      true
-    );
+    }
+   );
 
 
-  }
-  catch(error){
+  if(
+   !data ||
+   data.ok !== true
+  ){
 
-
-    fila.dataset.creditoGuardando =
-      '0';
-
-
-    toast(
-      'Error guardando crédito: ' +
-      error.message,
-      false
-    );
+   throw new Error(
+    data &&
+    data.message
+    ?
+    data.message
+    :
+    'No se pudo guardar la operación.'
+   );
 
   }
+
+
+  fila.dataset[
+   guardadoKey
+  ] =
+   '1';
+
+
+  fila.dataset[
+   guardandoKey
+  ] =
+   '0';
+
+
+  const moduloCampo =
+   fila.querySelector(
+    '.operacion-modulo'
+   );
+
+
+  const movimientoCampo =
+   fila.querySelector(
+    '.operacion-movimiento'
+   );
+
+
+  const descripcionCampo =
+   fila.querySelector(
+    '.operacion-descripcion'
+   );
+
+
+  const parcialCampo =
+   fila.querySelector(
+    '.operacion-parcial'
+   );
+
+
+  const entradaCampo =
+   fila.querySelector(
+    '.operacion-entrada'
+   );
+
+
+  const salidaCampo =
+   fila.querySelector(
+    '.operacion-salida'
+   );
+
+
+  if(moduloCampo){
+
+   moduloCampo.disabled =
+    true;
+
+  }
+
+
+  if(movimientoCampo){
+
+   movimientoCampo.disabled =
+    true;
+
+  }
+
+
+  if(descripcionCampo){
+
+   descripcionCampo.disabled =
+    true;
+
+  }
+
+
+  if(parcialCampo){
+
+   parcialCampo.readOnly =
+    true;
+
+  }
+
+
+  if(entradaCampo){
+
+   entradaCampo.readOnly =
+    true;
+
+  }
+
+
+  if(salidaCampo){
+
+   salidaCampo.readOnly =
+    true;
+
+  }
+
+
+  recalcularTotalesOperaciones();
+
+
+  toast(
+   tipoMovimiento ===
+   'abono'
+   ?
+   'Abono guardado correctamente.'
+   :
+   'Cargo guardado correctamente.',
+   true
+  );
+
+ }
+
+ catch(error){
+
+  fila.dataset[
+   guardandoKey
+  ] =
+   '0';
+
+
+  toast(
+   'Error guardando operación: ' +
+   error.message,
+   false
+  );
+
+ }
 
 }
   function crearFilaOperacion(
