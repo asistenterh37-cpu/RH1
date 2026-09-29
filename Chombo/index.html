@@ -7828,7 +7828,6 @@ function renderTurnosActivosHoy(){
 
 }
 
-
 /* ======================================================
  CARGAR TURNOS ACTIVOS DE HOY
 ====================================================== */
@@ -7840,6 +7839,12 @@ async function cargarTurnosActivosHoy(){
    'turnos_activos',
    {}
   );
+
+
+ console.log(
+  'RESPUESTA TURNOS ACTIVOS:',
+  data
+ );
 
 
  if(
@@ -7875,7 +7880,7 @@ async function cargarTurnosActivosHoy(){
   '';
 
 
- turnosActivosHoy =
+ const lista =
   Array.isArray(
    data.turnos
   )
@@ -7883,6 +7888,70 @@ async function cargarTurnosActivosHoy(){
   data.turnos
   :
   [];
+
+
+ turnosActivosHoy =
+  lista
+   .map(
+    item => ({
+
+     turnoId:
+      String(
+       item.turnoId ??
+       item.turnoID ??
+       item.TurnoID ??
+       ''
+      ).trim(),
+
+     ubicacion:
+      String(
+       item.ubicacion ??
+       item.Ubicacion ??
+       item['Ubicación'] ??
+       ''
+      ).trim(),
+
+     responsable:
+      String(
+       item.responsable ??
+       item.Responsable ??
+       ''
+      ).trim(),
+
+     inicioTexto:
+      String(
+       item.inicioTexto ??
+       item.inicio ??
+       item.Inicio ??
+       ''
+      ).trim(),
+
+     fecha:
+      item.fecha ??
+      item.Fecha ??
+      '',
+
+     estado:
+      String(
+       item.estado ??
+       item.Estado ??
+       ''
+      )
+      .trim()
+      .toUpperCase()
+
+    })
+   )
+   .filter(
+    turno =>
+     turno.turnoId
+   );
+
+
+ console.log(
+  'TURNOS ACTIVOS NORMALIZADOS:',
+  turnosActivosHoy
+ );
 
 
  /*
@@ -7916,11 +7985,20 @@ async function cargarTurnosActivosHoy(){
     TURNO_STORAGE_KEY
    );
 
-   $('turnoBar')
-    .classList
-    .remove(
-     'active'
-    );
+
+   const barra =
+    $('turnoBar');
+
+
+   if(barra){
+
+    barra
+     .classList
+     .remove(
+      'active'
+     );
+
+   }
 
   }
 
@@ -7961,8 +8039,7 @@ async function cargarTurnosActivosHoy(){
  renderTurnosActivosHoy();
 
 }
-
-
+  
 /* ======================================================
  RESTAURAR TURNO DEL DISPOSITIVO
 ====================================================== */
