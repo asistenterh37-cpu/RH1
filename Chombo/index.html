@@ -9025,12 +9025,12 @@ function renderTurnosActivosHoy(){
   selectorPrincipal
  ){
 
-  const valor =
-   turnoActivo
-   ?
-   turnoActivo.turnoId
-   :
-   selectorPrincipal.value;
+ const valor =
+ turnoActivo
+ ?
+ turnoActivo.turnoId
+ :
+ '';
 
 
   selectorPrincipal.innerHTML =
@@ -9316,74 +9316,67 @@ async function restaurarTurno(){
 
  try{
 
+  /*
+  Siempre cargar los turnos activos,
+  pero NO abrir ninguno automáticamente.
+  */
   await cargarTurnosActivosHoy();
 
-
-  const turnoId =
-   localStorage.getItem(
-    TURNO_STORAGE_KEY
-   );
-
-
-  if(turnoId){
-
-   const turno =
-    turnosActivosHoy.find(
-     item =>
-      item.turnoId ===
-      turnoId
-    );
-
-
-   if(turno){
-
-    activarTurno(
-     turno
-    );
-
-
-    showView(
-     'menuView'
-    );
-
-
-    return;
-
-   }
-
-  }
-
-
-  turnoActivo =
-   null;
-
+  /*
+  Limpiamos únicamente la selección activa
+  del navegador para obligar al usuario
+  a seleccionar el turno.
+  */
+  turnoActivo = null;
 
   localStorage.removeItem(
    TURNO_STORAGE_KEY
   );
 
-
+  /*
+  Mostrar siempre la pantalla
+  Turnos de hoy.
+  */
   prepararIniciarTurno();
+
+  /*
+  Asegurar que el selector quede
+  sin ningún turno seleccionado.
+  */
+  const selector =
+   $('turnoActivoSelect');
+
+  if(selector){
+   selector.value = '';
+  }
+
+  /*
+  Preparar también Reportes del día.
+  */
+  reporteDiaCatalogoCargado = false;
+
+  obtenerFechaReporteDia();
+
+  await cargarTurnosReporteDia();
 
  }
  catch(error){
 
   console.error(
-   'ERROR RESTAURANDO TURNO:',
+   'ERROR CARGANDO PANTALLA INICIAL:',
    error
   );
 
+  turnoActivo = null;
 
-  turnoActivo =
-   null;
-
+  localStorage.removeItem(
+   TURNO_STORAGE_KEY
+  );
 
   prepararIniciarTurno();
 
  }
-
 }
-
 
 /* ======================================================
  PREPARAR PANTALLA TURNOS
