@@ -3058,7 +3058,7 @@ tr{
 
 <script>
 const SCRIPT_URL =
-'https://script.google.com/macros/s/AKfycbx8pFj9NsZiJA4T10HzGuoTOE6G0Oovhj2MwobMcVGdZ4-3P9ZVQL221-BnWCFJGE8Y/exec';
+'https://script.google.com/macros/s/AKfycbwoIB5XcDmCWS4gzcqUZxhwy54VbccLcYqSLl9lpZYH-aSYL64uPSPMWhxXuD4yzW4b/exec';
 </script>
 
 <header class="topbar">
@@ -3076,7 +3076,400 @@ const SCRIPT_URL =
   ====================================================== -->
 <main class="container">
 
+<!-- ======================================================
+     CUADERNOS: RECARGAS Y NOTAS
+====================================================== -->
 
+<style>
+.chombo-cuaderno-fondo{
+  position:fixed;
+  inset:0;
+  z-index:1000;
+  background:rgba(16,24,40,.55);
+  display:none;
+  align-items:center;
+  justify-content:center;
+  padding:18px;
+}
+
+.chombo-cuaderno-fondo.abierto{
+  display:flex;
+}
+
+.chombo-cuaderno{
+  width:min(650px,100%);
+  max-height:90vh;
+  overflow-y:auto;
+  background:#fff;
+  border-radius:16px;
+  box-shadow:0 20px 60px rgba(0,0,0,.2);
+}
+
+.chombo-cuaderno-cabecera{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:18px 22px;
+  border-bottom:1px solid #d7dce5;
+}
+
+.chombo-cuaderno-cabecera h2{
+  margin:0;
+  font-size:21px;
+}
+
+.chombo-cuaderno-cerrar{
+  border:0;
+  background:transparent;
+  font-size:25px;
+  cursor:pointer;
+}
+
+.chombo-cuaderno-cuerpo{
+  padding:22px;
+}
+
+.chombo-cuaderno-campos{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:15px;
+}
+
+.chombo-cuaderno-campo{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  min-width:0;
+}
+
+.chombo-cuaderno-campo label{
+  font-size:13px;
+  font-weight:800;
+}
+
+.chombo-cuaderno-campo input,
+.chombo-cuaderno-campo select,
+.chombo-cuaderno-campo textarea{
+  width:100%;
+  padding:11px;
+  border:1px solid #cbd1da;
+  border-radius:8px;
+  font:inherit;
+}
+
+.chombo-cuaderno-campo input:read-only{
+  background:#f5f7fb;
+}
+
+.chombo-cuaderno-numero{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  margin:20px 0;
+}
+
+.chombo-cuaderno-numero input{
+  width:58px;
+  height:55px;
+  padding:5px;
+  border:2px solid #cbd1da;
+  border-radius:9px;
+  text-align:center;
+  font-size:23px;
+  font-weight:800;
+}
+
+.chombo-cuaderno-numero input:focus{
+  outline:none;
+  border-color:#1769e0;
+}
+
+.chombo-cuaderno-numero span{
+  font-size:20px;
+  color:#667085;
+}
+
+.chombo-cuaderno-acciones{
+  display:flex;
+  justify-content:flex-end;
+  gap:10px;
+  margin-top:22px;
+}
+
+.chombo-cuaderno textarea{
+  min-height:180px;
+  resize:vertical;
+}
+
+@media(max-width:500px){
+  .chombo-cuaderno-campos{
+    grid-template-columns:1fr;
+  }
+
+  .chombo-cuaderno-numero input{
+    width:47px;
+    font-size:19px;
+  }
+}
+
+@media print{
+  .chombo-cuaderno-fondo{
+    display:none !important;
+  }
+}
+</style>
+
+
+<!-- VENTANA RECARGAS -->
+
+<div
+  id="chomboModalRecargas"
+  class="chombo-cuaderno-fondo"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="chomboRecargasTitulo"
+>
+  <div class="chombo-cuaderno">
+
+    <div class="chombo-cuaderno-cabecera">
+      <h2 id="chomboRecargasTitulo">
+        Cuaderno de recargas
+      </h2>
+
+      <button
+        type="button"
+        class="chombo-cuaderno-cerrar"
+        onclick="cerrarCuadernoChombo()"
+        aria-label="Cerrar"
+      >×</button>
+    </div>
+
+    <div class="chombo-cuaderno-cuerpo">
+
+      <div class="chombo-cuaderno-campos">
+
+        <div class="chombo-cuaderno-campo">
+          <label>Fecha</label>
+          <input
+            id="chomboRecargaFecha"
+            readonly
+          >
+        </div>
+
+        <div class="chombo-cuaderno-campo">
+          <label>Hora</label>
+          <input
+            id="chomboRecargaHora"
+            readonly
+          >
+        </div>
+
+        <div class="chombo-cuaderno-campo">
+          <label>Tipo de recarga</label>
+
+          <select id="chomboRecargaTipo">
+            <option value="">Seleccionar</option>
+            <option value="Tigo">Tigo</option>
+            <option value="Claro">Claro</option>
+            <option value="Otro">Otro</option>
+          </select>
+        </div>
+
+        <div class="chombo-cuaderno-campo">
+          <label>Turno</label>
+          <input
+            id="chomboRecargaTurno"
+            readonly
+          >
+        </div>
+
+      </div>
+
+      <div
+        style="
+          text-align:center;
+          font-weight:800;
+          margin-top:22px;
+        "
+      >
+        Número celular
+      </div>
+
+      <div class="chombo-cuaderno-numero">
+
+        <input
+          id="chomboTel1"
+          class="chombo-tel-parte"
+          type="text"
+          inputmode="numeric"
+          maxlength="2"
+          aria-label="Primer par"
+          oninput="avanzarNumeroCuaderno(this,0)"
+        >
+
+        <span>/</span>
+
+        <input
+          id="chomboTel2"
+          class="chombo-tel-parte"
+          type="text"
+          inputmode="numeric"
+          maxlength="2"
+          aria-label="Segundo par"
+          oninput="avanzarNumeroCuaderno(this,1)"
+        >
+
+        <span>/</span>
+
+        <input
+          id="chomboTel3"
+          class="chombo-tel-parte"
+          type="text"
+          inputmode="numeric"
+          maxlength="2"
+          aria-label="Tercer par"
+          oninput="avanzarNumeroCuaderno(this,2)"
+        >
+
+        <span>/</span>
+
+        <input
+          id="chomboTel4"
+          class="chombo-tel-parte"
+          type="text"
+          inputmode="numeric"
+          maxlength="2"
+          aria-label="Cuarto par"
+          oninput="avanzarNumeroCuaderno(this,3)"
+        >
+
+      </div>
+
+      <div class="chombo-cuaderno-acciones">
+
+        <button
+          class="btn btn-print"
+          type="button"
+          onclick="cerrarCuadernoChombo()"
+        >
+          Cancelar
+        </button>
+
+        <button
+          id="chomboGuardarRecargaBtn"
+          class="btn btn-primary"
+          type="button"
+          onclick="guardarRecargaCuaderno()"
+        >
+          Guardar
+        </button>
+
+      </div>
+
+    </div>
+  </div>
+</div>
+
+
+<!-- VENTANA NOTAS -->
+
+<div
+  id="chomboModalNotas"
+  class="chombo-cuaderno-fondo"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="chomboNotasTitulo"
+>
+  <div class="chombo-cuaderno">
+
+    <div class="chombo-cuaderno-cabecera">
+
+      <h2 id="chomboNotasTitulo">
+        Cuaderno de notas
+      </h2>
+
+      <button
+        type="button"
+        class="chombo-cuaderno-cerrar"
+        onclick="cerrarCuadernoChombo()"
+        aria-label="Cerrar"
+      >×</button>
+
+    </div>
+
+    <div class="chombo-cuaderno-cuerpo">
+
+      <div class="chombo-cuaderno-campos">
+
+        <div class="chombo-cuaderno-campo">
+          <label>Turno</label>
+          <input
+            id="chomboNotaTurno"
+            readonly
+          >
+        </div>
+
+        <div class="chombo-cuaderno-campo">
+          <label>Fecha</label>
+          <input
+            id="chomboNotaFecha"
+            readonly
+          >
+        </div>
+
+        <div class="chombo-cuaderno-campo">
+          <label>Hora</label>
+          <input
+            id="chomboNotaHora"
+            readonly
+          >
+        </div>
+
+      </div>
+
+      <div
+        class="chombo-cuaderno-campo"
+        style="margin-top:18px;"
+      >
+
+        <label for="chomboNotaTexto">
+          Nota
+        </label>
+
+        <textarea
+          id="chomboNotaTexto"
+          maxlength="1500"
+          placeholder="Escribe aquí tu nota..."
+        ></textarea>
+
+      </div>
+
+      <div class="chombo-cuaderno-acciones">
+
+        <button
+          class="btn btn-print"
+          type="button"
+          onclick="cerrarCuadernoChombo()"
+        >
+          Cancelar
+        </button>
+
+        <button
+          id="chomboGuardarNotaBtn"
+          class="btn btn-primary"
+          type="button"
+          onclick="guardarNotaCuaderno()"
+        >
+          Guardar en Notas
+        </button>
+
+      </div>
+
+    </div>
+  </div>
+</div>
+  
 <!-- ======================================================
      BARRA TURNO ACTIVO
 ====================================================== -->
@@ -3113,6 +3506,24 @@ const SCRIPT_URL =
   "
 >
 
+<!-- CUADERNOS DEL TURNO -->
+
+<button
+  class="btn btn-primary"
+  type="button"
+  onclick="abrirCuadernoChombo('recargas')"
+>
+  Recargas
+</button>
+
+<button
+  class="btn btn-primary"
+  type="button"
+  onclick="abrirCuadernoChombo('notas')"
+>
+  Notas
+</button>
+  
   <button
     class="btn btn-print"
     type="button"
@@ -22065,6 +22476,330 @@ function escapeHtml(value){
 
 }
 
+ /* ======================================================
+   CUADERNOS INDEPENDIENTES CHOMBO
+   RECARGAS Y NOTAS
+====================================================== */
+
+function fechaHoraCuadernoChombo(){
+
+  const ahora = new Date();
+
+  return {
+    fecha: ahora.toLocaleDateString('es-HN'),
+    hora: ahora.toLocaleTimeString('es-HN', {
+      hour12:false
+    })
+  };
+
+}
+
+
+/* ABRIR VENTANA */
+
+function abrirCuadernoChombo(tipo){
+
+  if(!turnoActivo?.turnoId){
+
+    toast(
+      'Primero debes seleccionar un turno.',
+      false
+    );
+
+    return;
+  }
+
+  const datos = fechaHoraCuadernoChombo();
+
+  cerrarCuadernoChombo();
+
+  if(tipo === 'recargas'){
+
+    $('chomboRecargaFecha').value =
+      datos.fecha;
+
+    $('chomboRecargaHora').value =
+      datos.hora;
+
+    $('chomboRecargaTurno').value =
+      turnoActivo.turnoId;
+
+    $('chomboModalRecargas').classList.add(
+      'abierto'
+    );
+
+    $('chomboTel1').focus();
+
+  }
+  else if(tipo === 'notas'){
+
+    $('chomboNotaTurno').value =
+      turnoActivo.turnoId;
+
+    $('chomboNotaFecha').value =
+      datos.fecha;
+
+    $('chomboNotaHora').value =
+      datos.hora;
+
+    $('chomboModalNotas').classList.add(
+      'abierto'
+    );
+
+    $('chomboNotaTexto').focus();
+
+  }
+
+}
+
+
+/* CERRAR VENTANAS */
+
+function cerrarCuadernoChombo(){
+
+  document.querySelectorAll(
+    '.chombo-cuaderno-fondo'
+  ).forEach(ventana => {
+
+    ventana.classList.remove('abierto');
+
+  });
+
+}
+
+
+/* AVANZAR AL SIGUIENTE PAR DE DÍGITOS */
+
+function avanzarNumeroCuaderno(
+  elemento,
+  indice
+){
+
+  elemento.value = elemento.value
+    .replace(/\D/g,'')
+    .substring(0,2);
+
+  const campos = [
+    $('chomboTel1'),
+    $('chomboTel2'),
+    $('chomboTel3'),
+    $('chomboTel4')
+  ];
+
+  if(
+    elemento.value.length === 2 &&
+    indice < 3
+  ){
+
+    campos[indice + 1].focus();
+
+    campos[indice + 1].select();
+
+  }
+
+}
+
+
+/* GUARDAR RECARGA */
+
+async function guardarRecargaCuaderno(){
+
+  if(!turnoActivo?.turnoId){
+
+    toast(
+      'No hay un turno activo.',
+      false
+    );
+
+    return;
+  }
+
+  const tipo =
+    $('chomboRecargaTipo').value;
+
+  const partes = [
+    $('chomboTel1').value,
+    $('chomboTel2').value,
+    $('chomboTel3').value,
+    $('chomboTel4').value
+  ];
+
+  if(!tipo){
+
+    toast(
+      'Selecciona el tipo de recarga.',
+      false
+    );
+
+    return;
+  }
+
+  if(
+    !partes.every(
+      valor => /^\d{2}$/.test(valor)
+    )
+  ){
+
+    toast(
+      'Completa los cuatro campos con dos dígitos.',
+      false
+    );
+
+    return;
+  }
+
+  const boton =
+    $('chomboGuardarRecargaBtn');
+
+  boton.disabled = true;
+  boton.textContent = 'Guardando...';
+
+  try{
+
+    const respuesta = await jsonpRequest(
+      'cuaderno_recarga',
+      {
+        turnoId:turnoActivo.turnoId,
+        tipo:tipo,
+        parte1:partes[0],
+        parte2:partes[1],
+        parte3:partes[2],
+        parte4:partes[3]
+      }
+    );
+
+    if(
+      !respuesta ||
+      respuesta.ok !== true
+    ){
+
+      throw new Error(
+        respuesta?.message ||
+        'No se pudo guardar la recarga.'
+      );
+
+    }
+
+    toast(
+      'Número registrado correctamente.',
+      true
+    );
+
+    [
+      'chomboTel1',
+      'chomboTel2',
+      'chomboTel3',
+      'chomboTel4'
+    ].forEach(id => {
+
+      $(id).value = '';
+
+    });
+
+    $('chomboRecargaTipo').value = '';
+
+    cerrarCuadernoChombo();
+
+  }
+  catch(error){
+
+    toast(
+      'Error: ' + error.message,
+      false
+    );
+
+  }
+  finally{
+
+    boton.disabled = false;
+    boton.textContent = 'Guardar';
+
+  }
+
+}
+
+
+/* GUARDAR NOTA */
+
+async function guardarNotaCuaderno(){
+
+  if(!turnoActivo?.turnoId){
+
+    toast(
+      'No hay un turno activo.',
+      false
+    );
+
+    return;
+  }
+
+  const nota =
+    $('chomboNotaTexto').value.trim();
+
+  if(!nota){
+
+    toast(
+      'Escribe una nota antes de guardar.',
+      false
+    );
+
+    return;
+  }
+
+  const boton =
+    $('chomboGuardarNotaBtn');
+
+  boton.disabled = true;
+  boton.textContent = 'Guardando...';
+
+  try{
+
+    const respuesta = await jsonpRequest(
+      'cuaderno_nota',
+      {
+        turnoId:turnoActivo.turnoId,
+        nota:nota
+      }
+    );
+
+    if(
+      !respuesta ||
+      respuesta.ok !== true
+    ){
+
+      throw new Error(
+        respuesta?.message ||
+        'No se pudo guardar la nota.'
+      );
+
+    }
+
+    toast(
+      'Nota guardada correctamente.',
+      true
+    );
+
+    $('chomboNotaTexto').value = '';
+
+    cerrarCuadernoChombo();
+
+  }
+  catch(error){
+
+    toast(
+      'Error: ' + error.message,
+      false
+    );
+
+  }
+  finally{
+
+    boton.disabled = false;
+    boton.textContent = 'Guardar en Notas';
+
+  }
+
+} 
 
 /* ======================================================
    INICIAR
