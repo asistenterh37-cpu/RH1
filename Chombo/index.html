@@ -3059,7 +3059,7 @@ tr{
 <script>
 
 const SCRIPT_URL =
-'https://script.google.com/macros/s/AKfycbyQwahmJiCRvZRUq3zmuBdHGavjMpXQiPboFFGyupwosXVWLGTO1u47zeaPF7396tm5/exec';
+'https://script.google.com/macros/s/AKfycbwT0ccyZ62Ic1OgZ4-gH-L_xsWsdH9m_NY66MR0kX7sh9kQ9t0sMgJxY631hvWoJ6tM/exec';
 
 </script>
 
@@ -3661,6 +3661,134 @@ const SCRIPT_URL =
  </div>
 
 </div>  
+
+<!-- ======================================================
+ MODAL CONSULTA DE CAJA
+====================================================== -->
+<div
+ id="modalConsultaCaja"
+ style="
+ display:none;
+ position:fixed;
+ inset:0;
+ background:rgba(15,23,42,.58);
+ z-index:9999;
+ align-items:center;
+ justify-content:center;
+ padding:20px;
+ "
+>
+ <div
+  style="
+  width:min(760px,96vw);
+  background:#fff;
+  border-radius:16px;
+  box-shadow:0 20px 60px rgba(0,0,0,.25);
+  overflow:hidden;
+  "
+ >
+
+  <div
+   style="
+   display:flex;
+   justify-content:space-between;
+   align-items:center;
+   padding:18px 20px;
+   border-bottom:1px solid #d7dce5;
+   "
+  >
+   <div>
+    <div
+     style="
+     font-size:22px;
+     font-weight:900;
+     "
+    >
+     Arqueo de caja
+    </div>
+
+    <div
+     id="cajaDetalleTurno"
+     style="
+     margin-top:4px;
+     font-size:13px;
+     color:#667085;
+     "
+    >
+    </div>
+   </div>
+
+   <button
+    type="button"
+    onclick="cerrarConsultaCaja()"
+    style="
+    border:0;
+    background:transparent;
+    font-size:26px;
+    font-weight:900;
+    cursor:pointer;
+    "
+   >
+    ×
+   </button>
+
+  </div>
+
+  <div
+   style="
+   padding:20px;
+   overflow-x:auto;
+   "
+  >
+
+   <table
+    style="
+    width:100%;
+    border-collapse:collapse;
+    text-align:center;
+    "
+   >
+    <thead>
+     <tr>
+      <th>500</th>
+      <th>200</th>
+      <th>100</th>
+      <th>50</th>
+      <th>20</th>
+      <th>10</th>
+      <th>5</th>
+      <th>2</th>
+      <th>1</th>
+      <th>Total</th>
+     </tr>
+    </thead>
+
+    <tbody>
+     <tr id="cajaDetalleCantidades">
+     </tr>
+    </tbody>
+   </table>
+
+  </div>
+
+  <div
+   style="
+   display:flex;
+   justify-content:flex-end;
+   padding:0 20px 20px;
+   "
+  >
+   <button
+    type="button"
+    class="btn btn-print"
+    onclick="cerrarConsultaCaja()"
+   >
+    Cerrar
+   </button>
+  </div>
+
+ </div>
+</div>  
 <!-- ======================================================
      BARRA TURNO ACTIVO
 ====================================================== -->
@@ -3697,6 +3825,38 @@ const SCRIPT_URL =
   "
 >
 
+<div
+ style="
+ display:flex;
+ align-items:center;
+ gap:6px;
+ "
+>
+ <select
+  id="cajaTurnoSelect"
+  style="
+  height:40px;
+  min-width:215px;
+  padding:0 10px;
+  border:1px solid #cbd5e1;
+  border-radius:9px;
+  background:#fff;
+  font-weight:700;
+  "
+ >
+  <option value="">
+   Caja - últimos turnos
+  </option>
+ </select>
+
+ <button
+  type="button"
+  class="btn btn-print"
+  onclick="verArqueoCajaSeleccionado()"
+ >
+  Ver Caja
+ </button>
+</div>  
 <!-- CUADERNOS DEL TURNO -->
 
 <button
@@ -7441,27 +7601,233 @@ actualizarResumenSaldos = function(...argumentos){
  INICIAR
 ====================================================== */
 
-async function init(){
+/* ======================================================
+ CONSULTA DE LOS ULTIMOS 3 ARQUEOS DE CAJA
+====================================================== */
 
-  renderCierreRows();
+let ultimosArqueosCaja = [];
 
-  setDates();
 
-  bindMenu();
+/* ======================================================
+ CARGAR ULTIMOS 3 TURNOS DE CAJA
+====================================================== */
+async function cargarUltimosArqueosCaja(){
 
-  bindEvents();
+ const select =
+  $('cajaTurnoSelect');
 
-  configurarTarjetasMovimientos();
+ if(!select){
+  return;
+ }
 
-  recalc();
+ select.innerHTML =
+  '<option value="">Caja - últimos turnos</option>';
 
-  await loadCatalogos();
+ try{
 
-  await restaurarTurno();
+  const data =
+   await jsonpRequest(
+    'caja_ultimos',
+    {}
+   );
+
+  if(
+   !data ||
+   data.ok !== true
+  ){
+   throw new Error(
+    data &&
+    data.message
+    ?
+    data.message
+    :
+    'No se pudieron cargar los arqueos.'
+   );
+  }
+
+  ultimosArqueosCaja =
+   Array.isArray(
+    data.turnos
+   )
+   ?
+   data.turnos
+   :
+   [];
+
+  ultimosArqueosCaja.forEach(
+   turno => {
+
+    const option =
+     document.createElement(
+      'option'
+     );
+
+    option.value =
+     turno.turnoId;
+
+    option.textContent =
+     turno.turnoId
+     +
+     ' | '
+     +
+     turno.ubicacion
+     +
+     ' | '
+     +
+     turno.fecha;
+
+    select.appendChild(
+     option
+    );
+
+   }
+  );
+
+ }
+ catch(error){
+
+  console.error(
+   'ERROR CARGANDO CAJA:',
+   error
+  );
+
+ }
+}
+
+
+/* ======================================================
+ MOSTRAR ARQUEO SELECCIONADO
+====================================================== */
+function verArqueoCajaSeleccionado(){
+
+ const select =
+  $('cajaTurnoSelect');
+
+ if(
+  !select ||
+  !select.value
+ ){
+  toast(
+   'Selecciona uno de los últimos turnos.',
+   false
+  );
+  return;
+ }
+
+ const arqueo =
+  ultimosArqueosCaja.find(
+   item =>
+   item.turnoId ===
+   select.value
+  );
+
+ if(!arqueo){
+  toast(
+   'No se encontró el arqueo seleccionado.',
+   false
+  );
+  return;
+ }
+
+ const encabezado =
+  $('cajaDetalleTurno');
+
+ if(encabezado){
+
+  encabezado.textContent =
+   'Turno: '
+   +
+   arqueo.turnoId
+   +
+   ' | '
+   +
+   arqueo.ubicacion
+   +
+   ' | '
+   +
+   arqueo.responsable
+   +
+   ' | '
+   +
+   arqueo.fecha;
+
+ }
+
+ const fila =
+  $('cajaDetalleCantidades');
+
+ if(fila){
+
+  fila.innerHTML =
+   `
+   <td>${arqueo.d500}</td>
+   <td>${arqueo.d200}</td>
+   <td>${arqueo.d100}</td>
+   <td>${arqueo.d50}</td>
+   <td>${arqueo.d20}</td>
+   <td>${arqueo.d10}</td>
+   <td>${arqueo.d5}</td>
+   <td>${arqueo.d2}</td>
+   <td>${arqueo.d1}</td>
+   <td style="font-weight:900;color:#1769e0;">
+    ${arqueo.total}
+   </td>
+   `;
+
+ }
+
+ const modal =
+  $('modalConsultaCaja');
+
+ if(modal){
+  modal.style.display =
+   'flex';
+ }
 
 }
 
+
 /* ======================================================
+ CERRAR CONSULTA CAJA
+====================================================== */
+function cerrarConsultaCaja(){
+
+ const modal =
+  $('modalConsultaCaja');
+
+ if(modal){
+  modal.style.display =
+   'none';
+ }
+
+}
+  
+async function init(){
+
+ renderCierreRows();
+
+ setDates();
+
+ bindMenu();
+
+ bindEvents();
+
+ configurarTarjetasMovimientos();
+
+ recalc();
+
+ await loadCatalogos();
+
+ await restaurarTurno();
+
+ /*
+ Cargar independientemente los
+ últimos arqueos guardados.
+ */
+ await cargarUltimosArqueosCaja();
+
+}
+  /* ======================================================
  LLENAR SELECT
 ====================================================== */
 
