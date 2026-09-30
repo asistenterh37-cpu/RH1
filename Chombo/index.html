@@ -3059,7 +3059,7 @@ tr{
 <script>
 
 const SCRIPT_URL =
-'https://script.google.com/macros/s/AKfycbx7NzwqIU0f4na-Eve9r-SBpxKyNEacrMXzxjQrD1M9wIZ6CsHTpcFJmtHJMCXTRRyX/exec';
+'https://script.google.com/macros/s/AKfycbwWRd89hHFj70LuOoUK81tEh6MRTmpbZkAalRLzU659snJeZ1MYVhkgHsx-kgW-Ugyb/exec';
 
 </script>
 
@@ -5604,9 +5604,66 @@ const SCRIPT_URL =
 
 <div class="resumen-saldos-wrap">
 
-  <div class="resumen-saldos-title">
-    Saldos
-  </div>
+  <div
+ class="resumen-saldos-title"
+ style="
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  flex-wrap:wrap;
+ "
+>
+
+ <span>
+  Saldos
+ </span>
+
+
+ <div
+  style="
+   display:flex;
+   align-items:center;
+   gap:8px;
+   flex-wrap:wrap;
+  "
+ >
+
+  <select
+   id="selectorSaldoGuardado"
+   onfocus="cargarCatalogoSaldosGuardados()"
+   style="
+    min-width:340px;
+    height:36px;
+    padding:0 10px;
+    border:1px solid #cbd1da;
+    border-radius:8px;
+    background:#fff;
+    font-size:13px;
+   "
+  >
+
+   <option value="">
+    Seleccionar saldo anterior
+   </option>
+
+  </select>
+
+
+  <button
+   type="button"
+   class="btn btn-primary"
+   onclick="cargarSaldoSeleccionado()"
+   style="
+    padding:9px 17px;
+   "
+  >
+   Cargar
+  </button>
+
+ </div>
+
+</div>
 
 
   <div class="resumen-saldos-scroll">
@@ -12420,7 +12477,259 @@ function obtenerSaldoInicialResumen(
   return 0;
 
 }
+/* ======================================================
+   SALDOS INICIALES CARGADOS DESDE HOJA SALDOS
+====================================================== */
 
+let saldosGuardadosDisponibles = [];
+
+let saldosInicialesCargados = {
+ recargasTigo:0,
+ tigoMoney:0,
+ recargasClaro:0,
+ banpais:0,
+ rapibac:0,
+ agenteAtlantida:0,
+ loteria:0,
+ otros:0
+};
+
+
+/* ======================================================
+   CARGAR LISTADO DE SALDOS GUARDADOS
+====================================================== */
+
+async function cargarCatalogoSaldosGuardados(){
+
+ if(!assertScriptUrl()){
+  return;
+ }
+
+
+ const selector =
+  $('selectorSaldoGuardado');
+
+
+ if(!selector){
+  return;
+ }
+
+
+ const valorActual =
+  selector.value;
+
+
+ selector.disabled =
+  true;
+
+
+ try{
+
+  const data =
+   await jsonpRequest(
+    'saldos_guardados',
+    {}
+   );
+
+
+  if(
+   !data ||
+   data.ok !== true
+  ){
+
+   throw new Error(
+    data?.message ||
+    'No se pudieron cargar los saldos guardados.'
+   );
+
+  }
+
+
+  saldosGuardadosDisponibles =
+   Array.isArray(
+    data.saldos
+   )
+   ?
+   data.saldos
+   :
+   [];
+
+
+  selector.innerHTML =
+   `
+    <option value="">
+     Seleccionar saldo anterior
+    </option>
+   `;
+
+
+  saldosGuardadosDisponibles
+   .forEach(
+    saldo => {
+
+     const option =
+      document.createElement(
+       'option'
+      );
+
+
+     option.value =
+      saldo.turnoId;
+
+
+     option.textContent =
+      [
+       saldo.turnoId,
+       saldo.ubicacion,
+       saldo.responsable,
+       saldo.fechaTexto
+      ]
+      .filter(Boolean)
+      .join(' | ');
+
+
+     selector.appendChild(
+      option
+     );
+
+    }
+   );
+
+
+  if(
+   valorActual &&
+   saldosGuardadosDisponibles.some(
+    saldo =>
+     saldo.turnoId === valorActual
+   )
+  ){
+
+   selector.value =
+    valorActual;
+
+  }
+
+ }
+ catch(error){
+
+  toast(
+   'Error cargando saldos: ' +
+   error.message,
+   false
+  );
+
+ }
+ finally{
+
+  selector.disabled =
+   false;
+
+ }
+
+}
+
+
+/* ======================================================
+   APLICAR SALDO SELECCIONADO COMO SALDO INICIAL
+====================================================== */
+
+function cargarSaldoSeleccionado(){
+
+ const selector =
+  $('selectorSaldoGuardado');
+
+
+ if(
+  !selector ||
+  !selector.value
+ ){
+
+  toast(
+   'Selecciona un saldo anterior.',
+   false
+  );
+
+  return;
+
+ }
+
+
+ const saldo =
+  saldosGuardadosDisponibles.find(
+   item =>
+    item.turnoId ===
+    selector.value
+  );
+
+
+ if(!saldo){
+
+  toast(
+   'No se encontró el saldo seleccionado.',
+   false
+  );
+
+  return;
+
+ }
+
+
+ saldosInicialesCargados = {
+
+  recargasTigo:
+   Number(
+    saldo.recargasTigo || 0
+   ),
+
+  tigoMoney:
+   Number(
+    saldo.tigoMoney || 0
+   ),
+
+  recargasClaro:
+   Number(
+    saldo.recargasClaro || 0
+   ),
+
+  banpais:
+   Number(
+    saldo.banpais || 0
+   ),
+
+  rapibac:
+   Number(
+    saldo.rapibac || 0
+   ),
+
+  agenteAtlantida:
+   Number(
+    saldo.agenteAtlantida || 0
+   ),
+
+  loteria:
+   Number(
+    saldo.loteria || 0
+   ),
+
+  otros:
+   Number(
+    saldo.proveedores || 0
+   )
+
+ };
+
+
+ actualizarResumenSaldos();
+
+
+ toast(
+  'Saldo inicial cargado desde el turno ' +
+  saldo.turnoId,
+  true
+ );
+
+}
+  
 function actualizarResumenSaldos(){
 
   const claves = [
@@ -12440,25 +12749,30 @@ function actualizarResumenSaldos(){
   const resumen = {};
 
 
-  claves.forEach(
-    clave => {
+claves.forEach(
+ clave => {
 
-      resumen[
-        clave
-      ] = {
+ resumen[
+  clave
+ ] = {
 
-        inicial:0,
+  inicial:
+   Number(
+    saldosInicialesCargados[
+     clave
+    ] || 0
+   ),
 
-        entradas:0,
+  entradas:0,
 
-        salidas:0,
+  salidas:0,
 
-        final:0
+  final:0
 
-      };
+ };
 
-    }
-  );
+ }
+);
 
 
   document
