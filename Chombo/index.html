@@ -3058,7 +3058,7 @@ tr{
 
 <script>
 const SCRIPT_URL =
-'https://script.google.com/macros/s/AKfycbyeTR1Kpl5CRAxnEP1Hk12_8G7JEKiSMALbLRCd2LmXJmA1C9-wzSlgBX1g_vUFSzgh/exec';
+'https://script.google.com/macros/s/AKfycbx8pFj9NsZiJA4T10HzGuoTOE6G0Oovhj2MwobMcVGdZ4-3P9ZVQL221-BnWCFJGE8Y/exec';
 </script>
 
 <header class="topbar">
@@ -12771,13 +12771,52 @@ async function guardarTotalesTurno(){
      ENVIAR TODO AL GS
   ================================================== */
 
-  const payload = {
+ /* ======================================================
+   LEER ARQUEO DE CAJA
+====================================================== */
+
+const denominacionesCaja = [
+  500, 200, 100, 50, 20, 10, 5, 2, 1
+];
+
+const arqueoCaja = {};
+
+denominacionesCaja.forEach(
+  denominacion => {
+
+    const campo = document.getElementById(
+      'opCant' + denominacion
+    );
+
+    const cantidad = Number(
+      campo?.value || 0
+    );
+
+    if(
+      !Number.isInteger(cantidad) ||
+      cantidad < 0
+    ){
+      throw new Error(
+        'Cantidad inválida en denominación ' +
+        denominacion
+      );
+    }
+
+    arqueoCaja[String(denominacion)] = cantidad;
+
+  }
+);
+
+const payload = {
 
   turnoId:
     turnoActivo.turnoId,
 
   items:
     items,
+
+  arqueoCaja:
+    arqueoCaja,
 
   saldosFinales:
     Object.fromEntries(
