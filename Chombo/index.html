@@ -5619,46 +5619,21 @@ const SCRIPT_URL =
   Saldos
  </span>
 
-
- <div
-  style="
-   display:flex;
-   align-items:center;
-   gap:8px;
-   flex-wrap:wrap;
-  "
- >
-
-  <select
- id="selectorSaldoGuardado"
+<div
+ class="resumen-saldos-title"
  style="
- min-width:420px;
- height:36px;
- padding:0 10px;
- border:1px solid #cbd1da;
- border-radius:8px;
- background:#fff;
- font-size:13px;
+ display:flex;
+ align-items:center;
+ justify-content:space-between;
+ gap:12px;
+ flex-wrap:wrap;
  "
 >
- <option value="">
- Seleccionar turno anterior
- </option>
-</select>
-
-  <button
-   type="button"
-   class="btn btn-primary"
-   onclick="cargarSaldoSeleccionado()"
-   style="
-    padding:9px 17px;
-   "
-  >
-   Cargar
-  </button>
-
- </div>
-
+ <span>
+  Saldos
+ </span>
+</div>
+    
 </div>
 
 
@@ -9564,11 +9539,6 @@ function activarTurno(
  cargarResumenTurno();
 
 
- /* ==========================================
-    CARGAR TURNOS ANTERIORES CON SALDO FINAL
- ========================================== */
-
- cargarCatalogoSaldosGuardados();
 
 }
   
@@ -12477,281 +12447,7 @@ function obtenerSaldoInicialResumen(
   return 0;
 
 }
-/* ======================================================
-   SALDOS INICIALES CARGADOS DESDE HOJA SALDOS
-====================================================== */
-
-let saldosGuardadosDisponibles = [];
-
-let saldosInicialesCargados = {
- recargasTigo:0,
- tigoMoney:0,
- recargasClaro:0,
- banpais:0,
- rapibac:0,
- agenteAtlantida:0,
- loteria:0,
- otros:0
-};
-
-
-/* ======================================================
-   CARGAR LISTADO DE SALDOS GUARDADOS
-====================================================== */
-
-async function cargarCatalogoSaldosGuardados(){
-
- if(
-  !assertScriptUrl()
- ){
-  return;
- }
-
-
- const selector =
-  $('selectorSaldoGuardado');
-
-
- if(!selector){
-  return;
- }
-
-
- selector.disabled =
-  true;
-
-
- selector.innerHTML =
-  `
-   <option value="">
-    Cargando turnos anteriores...
-   </option>
-  `;
-
-
- try{
-
-  const data =
-   await jsonpRequest(
-    'saldos_guardados',
-    {}
-   );
-
-
-  if(
-   !data ||
-   data.ok !== true
-  ){
-
-   throw new Error(
-    data?.message ||
-    'No se pudieron cargar los saldos anteriores.'
-   );
-
-  }
-
-
-  saldosGuardadosDisponibles =
-   Array.isArray(
-    data.saldos
-   )
-   ?
-   data.saldos
-   :
-   [];
-
-
-  selector.innerHTML =
-   `
-    <option value="">
-     Seleccionar turno anterior
-    </option>
-   `;
-
-
-  /* ==========================================
-     NO MOSTRAR EL TURNO ACTUAL
-  ========================================== */
-
-  const turnoActualId =
-   turnoActivo
-   ?
-   String(
-    turnoActivo.turnoId || ''
-   )
-   :
-   '';
-
-
-  saldosGuardadosDisponibles
-   .filter(
-    saldo =>
-     String(
-      saldo.turnoId || ''
-     ) !==
-     turnoActualId
-   )
-   .forEach(
-    saldo => {
-
-     const option =
-      document.createElement(
-       'option'
-      );
-
-
-     option.value =
-      saldo.turnoId;
-
-
-    option.textContent =
- [
- saldo.turnoIdReal
-   ? 'Turno: ' + saldo.turnoIdReal
-   : 'Saldo anterior',
- saldo.fechaTexto,
- saldo.ubicacion,
- saldo.responsable
- ]
- .filter(Boolean)
- .join(' | ');
-
-
-     selector.appendChild(
-      option
-     );
-
-    }
-   );
-
-
- }
- catch(error){
-
-  selector.innerHTML =
-   `
-    <option value="">
-     No se pudieron cargar los turnos
-    </option>
-   `;
-
-
-  toast(
-   'Error cargando saldos anteriores: ' +
-   error.message,
-   false
-  );
-
- }
- finally{
-
-  selector.disabled =
-   false;
-
- }
-
-}
-
-/* ======================================================
-   APLICAR SALDO SELECCIONADO COMO SALDO INICIAL
-====================================================== */
-
-function cargarSaldoSeleccionado(){
-
- const selector =
-  $('selectorSaldoGuardado');
-
-
- if(
-  !selector ||
-  !selector.value
- ){
-
-  toast(
-   'Selecciona un saldo anterior.',
-   false
-  );
-
-  return;
-
- }
-
-
- const saldo =
-  saldosGuardadosDisponibles.find(
-   item =>
-    item.turnoId ===
-    selector.value
-  );
-
-
- if(!saldo){
-
-  toast(
-   'No se encontró el saldo seleccionado.',
-   false
-  );
-
-  return;
-
- }
-
-
- saldosInicialesCargados = {
-
-  recargasTigo:
-   Number(
-    saldo.recargasTigo || 0
-   ),
-
-  tigoMoney:
-   Number(
-    saldo.tigoMoney || 0
-   ),
-
-  recargasClaro:
-   Number(
-    saldo.recargasClaro || 0
-   ),
-
-  banpais:
-   Number(
-    saldo.banpais || 0
-   ),
-
-  rapibac:
-   Number(
-    saldo.rapibac || 0
-   ),
-
-  agenteAtlantida:
-   Number(
-    saldo.agenteAtlantida || 0
-   ),
-
-  loteria:
-   Number(
-    saldo.loteria || 0
-   ),
-
-  otros:
-   Number(
-    saldo.proveedores || 0
-   )
-
- };
-
-
- actualizarResumenSaldos();
-
-
- toast(
-  'Saldo inicial cargado desde el turno ' +
-  saldo.turnoId,
-  true
- );
-
-}
+  
   
 function actualizarResumenSaldos(){
 
