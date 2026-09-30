@@ -5630,25 +5630,21 @@ const SCRIPT_URL =
  >
 
   <select
-   id="selectorSaldoGuardado"
-   onfocus="cargarCatalogoSaldosGuardados()"
-   style="
-    min-width:340px;
-    height:36px;
-    padding:0 10px;
-    border:1px solid #cbd1da;
-    border-radius:8px;
-    background:#fff;
-    font-size:13px;
-   "
-  >
-
-   <option value="">
-    Seleccionar saldo anterior
-   </option>
-
-  </select>
-
+ id="selectorSaldoGuardado"
+ style="
+ min-width:420px;
+ height:36px;
+ padding:0 10px;
+ border:1px solid #cbd1da;
+ border-radius:8px;
+ background:#fff;
+ font-size:13px;
+ "
+>
+ <option value="">
+ Seleccionar turno anterior
+ </option>
+</select>
 
   <button
    type="button"
@@ -9547,31 +9543,35 @@ function activarTurno(
   `ID: ${turno.turnoId}`;
 
 
- /*
-  Por defecto el Cierre muestra
-  el turno operativo actual.
- */
+ /* ==========================================
+    TURNO DEL CIERRE
+ ========================================== */
 
  turnoCierreSeleccionado =
   turno;
 
 
-renderTurnosActivosHoy();
+ renderTurnosActivosHoy();
 
 
-aplicarTurnoACierre();
+ aplicarTurnoACierre();
 
 
-/*
-  Cargar página única de operaciones
-  del turno seleccionado.
-*/
+ /* ==========================================
+    CARGAR OPERACIONES DEL TURNO
+ ========================================== */
 
-cargarResumenTurno();
+ cargarResumenTurno();
+
+
+ /* ==========================================
+    CARGAR TURNOS ANTERIORES CON SALDO FINAL
+ ========================================== */
+
+ cargarCatalogoSaldosGuardados();
 
 }
-
-
+  
 /* ======================================================
  TURNO SELECCIONADO PARA CIERRE
 ====================================================== */
@@ -12501,7 +12501,9 @@ let saldosInicialesCargados = {
 
 async function cargarCatalogoSaldosGuardados(){
 
- if(!assertScriptUrl()){
+ if(
+  !assertScriptUrl()
+ ){
   return;
  }
 
@@ -12515,12 +12517,16 @@ async function cargarCatalogoSaldosGuardados(){
  }
 
 
- const valorActual =
-  selector.value;
-
-
  selector.disabled =
   true;
+
+
+ selector.innerHTML =
+  `
+   <option value="">
+    Cargando turnos anteriores...
+   </option>
+  `;
 
 
  try{
@@ -12539,7 +12545,7 @@ async function cargarCatalogoSaldosGuardados(){
 
    throw new Error(
     data?.message ||
-    'No se pudieron cargar los saldos guardados.'
+    'No se pudieron cargar los saldos anteriores.'
    );
 
   }
@@ -12558,12 +12564,33 @@ async function cargarCatalogoSaldosGuardados(){
   selector.innerHTML =
    `
     <option value="">
-     Seleccionar saldo anterior
+     Seleccionar turno anterior
     </option>
    `;
 
 
+  /* ==========================================
+     NO MOSTRAR EL TURNO ACTUAL
+  ========================================== */
+
+  const turnoActualId =
+   turnoActivo
+   ?
+   String(
+    turnoActivo.turnoId || ''
+   )
+   :
+   '';
+
+
   saldosGuardadosDisponibles
+   .filter(
+    saldo =>
+     String(
+      saldo.turnoId || ''
+     ) !==
+     turnoActualId
+   )
    .forEach(
     saldo => {
 
@@ -12596,24 +12623,19 @@ async function cargarCatalogoSaldosGuardados(){
    );
 
 
-  if(
-   valorActual &&
-   saldosGuardadosDisponibles.some(
-    saldo =>
-     saldo.turnoId === valorActual
-   )
-  ){
-
-   selector.value =
-    valorActual;
-
-  }
-
  }
  catch(error){
 
+  selector.innerHTML =
+   `
+    <option value="">
+     No se pudieron cargar los turnos
+    </option>
+   `;
+
+
   toast(
-   'Error cargando saldos: ' +
+   'Error cargando saldos anteriores: ' +
    error.message,
    false
   );
@@ -12627,7 +12649,6 @@ async function cargarCatalogoSaldosGuardados(){
  }
 
 }
-
 
 /* ======================================================
    APLICAR SALDO SELECCIONADO COMO SALDO INICIAL
