@@ -3059,7 +3059,7 @@ tr{
 <script>
 
 const SCRIPT_URL =
-'https://script.google.com/macros/s/AKfycbzHWY0p94RXwQ8RSUj0TJCaSAYRjLzW7GGF5IyJbu-Rr1BBwzglGtd1Ji55HKYJ74pL/exec';
+'https://script.google.com/macros/s/AKfycbya2n8UBpIyvU9TPg6BLCNfWU67-4J_tlEAROvhBqHS6IzQvYzW5ae3bs1rcmdLGPZa/exec';
 
 </script>
 
@@ -10129,7 +10129,8 @@ function prepararIniciarTurno(){
 function activarTurno(
  turno
 ){
-
+limpiarFormularioOperacionesTurno();
+  
  turnoActivo =
   turno;
 
@@ -10601,6 +10602,40 @@ async function guardarTurno(){
 
 async function abrirCambioTurno(){
 
+ /*
+ No arrastrar información visual
+ del turno anterior.
+ */
+ limpiarFormularioOperacionesTurno();
+
+ /*
+ Quitar selección de saldos anteriores.
+ */
+ const saldosSelect =
+ $('saldosTurnoSelect');
+
+ if(saldosSelect){
+  saldosSelect.innerHTML =
+  '<option value="">Saldos anteriores</option>';
+ }
+
+ ultimosSaldosUbicacion =
+ [];
+
+ /*
+ Quitar selección de caja anterior.
+ */
+ const cajaSelect =
+ $('cajaTurnoSelect');
+
+ if(cajaSelect){
+  cajaSelect.innerHTML =
+  '<option value="">Caja anterior</option>';
+ }
+
+ ultimosArqueosCaja =
+ [];
+
  try{
 
   await cargarTurnosActivosHoy();
@@ -10615,11 +10650,9 @@ async function abrirCambioTurno(){
 
  }
 
-
  prepararIniciarTurno();
 
 }
-
 
 /* ======================================================
  CANCELAR
@@ -12895,6 +12928,184 @@ function recalcularControlVentas(){
 }
 
 /* ======================================================
+ LIMPIAR FORMULARIO DE OPERACIONES DEL TURNO
+====================================================== */
+function limpiarFormularioOperacionesTurno(){
+
+ /*
+ CONTROL DE VENTAS
+ */
+ [
+  'opAperturaCaja',
+  'opVentasCai',
+  'opVentasBoton',
+  'opVentasTotales',
+  'opPagoEfectivo',
+  'opPagoCredito',
+  'opPagoTarjetasCredito',
+  'opPagoLink',
+  'opPagoTransferencias',
+  'opPagoTarjetasVarias',
+  'opPagoTigoMoney',
+  'opTotalFormasPago'
+ ]
+ .forEach(
+  id => {
+
+   const campo =
+   $(id);
+
+   if(campo){
+    campo.value = '';
+   }
+
+  }
+ );
+
+ /*
+ FILAS DE OPERACIONES
+ */
+ const tbody =
+ $('operacionesFilas');
+
+ if(tbody){
+
+  tbody.innerHTML = '';
+
+  tbody.appendChild(
+   crearFilaOperacion()
+  );
+
+ }
+
+ /*
+ ARQUEO
+ */
+ document
+ .querySelectorAll(
+  '.op-arqueo-cantidad'
+ )
+ .forEach(
+  campo => {
+
+   campo.value = '';
+
+  }
+ );
+
+ /*
+ TOTALES DE OPERACIONES
+ */
+ [
+  'opTotalEntradas',
+  'opTotalSalidas',
+  'opDiferenciaEntradasSalidas'
+ ]
+ .forEach(
+  id => {
+
+   const campo =
+   $(id);
+
+   if(campo){
+    campo.value = '0.00';
+   }
+
+  }
+ );
+
+ /*
+ CUADRE DE VENTAS
+ */
+ const cuadro =
+ $('opCuadreVentas');
+
+ if(cuadro){
+
+  cuadro.className =
+  'control-cuadre';
+
+  cuadro.textContent =
+  'Formas de pago pendientes de cuadrar';
+
+ }
+
+ /*
+ SALDOS VISUALES
+ */
+ const claves = [
+  'recargasTigo',
+  'tigoMoney',
+  'recargasClaro',
+  'banpais',
+  'rapibac',
+  'agenteAtlantida',
+  'loteria',
+  'otros'
+ ];
+
+ claves.forEach(
+  clave => {
+
+   [
+    'saldoInicial_',
+    'saldoEntradas_',
+    'saldoSalidas_',
+    'saldoFinal_'
+   ]
+   .forEach(
+    prefijo => {
+
+     const campo =
+     $(
+      prefijo +
+      clave
+     );
+
+     if(campo){
+      campo.textContent =
+      '0.00';
+     }
+
+    }
+   );
+
+  }
+ );
+
+ actualizarCantidadFilasOperacion();
+ recalcularControlVentas();
+ recalcularTotalesOperaciones();
+
+}
+
+
+/* ======================================================
+ RESUMEN DE SALDOS POR MODULO
+====================================================== */
+function obtenerClaveSaldoModulo(
+ modulo
+){
+ const m =
+ normalizarModuloOperacion(
+ modulo
+ );
+
+ if(
+  m === 'recargas tigo'
+  ||
+  m === 'tigo recargas'
+ ){
+  return 'recargasTigo';
+ }
+
+ if(
+  m === 'tigo money'
+ ){
+  return 'tigoMoney';
+ }
+  
+/* ======================================================
    RESUMEN DE SALDOS POR MODULO
 ====================================================== */
 
@@ -14175,10 +14386,23 @@ const payload = {
     }
 
 
-    toast(
-      'Movimientos guardados correctamente.',
-      true
-    );
+ toast(
+ 'Movimientos guardados correctamente.',
+ true
+);
+
+/*
+Después de guardar,
+dejar formulario vacío.
+*/
+limpiarFormularioOperacionesTurno();
+
+/*
+Actualizar los selectores
+de caja y saldos guardados.
+*/
+await cargarUltimosArqueosCaja();
+await cargarUltimosSaldos();
 
 
   }
