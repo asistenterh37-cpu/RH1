@@ -3059,7 +3059,7 @@ tr{
 <script>
 
 const SCRIPT_URL =
-'https://script.google.com/macros/s/AKfycbwT0ccyZ62Ic1OgZ4-gH-L_xsWsdH9m_NY66MR0kX7sh9kQ9t0sMgJxY631hvWoJ6tM/exec';
+'https://script.google.com/macros/s/AKfycbzHWY0p94RXwQ8RSUj0TJCaSAYRjLzW7GGF5IyJbu-Rr1BBwzglGtd1Ji55HKYJ74pL/exec';
 
 </script>
 
@@ -5829,46 +5829,56 @@ const SCRIPT_URL =
 
 </div>
 
-
 <!-- ======================================================
-     RESUMEN DE SALDOS
+ RESUMEN DE SALDOS
 ====================================================== -->
-
 <div class="resumen-saldos-wrap">
 
+ <div
+  class="resumen-saldos-title"
+  style="
+   display:flex;
+   align-items:center;
+   justify-content:space-between;
+   gap:10px;
+  "
+ >
+
+  <span>
+   Saldos
+  </span>
+
   <div
- class="resumen-saldos-title"
- style="
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:12px;
-  flex-wrap:wrap;
- "
->
+   style="
+    display:flex;
+    align-items:center;
+    gap:6px;
+    margin-left:auto;
+   "
+  >
 
- <span>
-  Saldos
- </span>
+   <select
+    id="saldosTurnoSelect"
+    class="apertura-caja-selector"
+   >
+    <option value="">
+     Saldos anteriores
+    </option>
+   </select>
 
-<div
- class="resumen-saldos-title"
- style="
- display:flex;
- align-items:center;
- justify-content:space-between;
- gap:12px;
- flex-wrap:wrap;
- "
->
- <span>
-  Saldos
- </span>
-</div>
-    
-</div>
+   <button
+    type="button"
+    class="apertura-caja-ver"
+    onclick="verSaldoSeleccionado()"
+   >
+    Ver saldos
+   </button>
 
+  </div>
 
+ </div>
+
+ <div class="resumen-saldos-scroll">
   <div class="resumen-saldos-scroll">
 
     <table class="resumen-saldos-table">
@@ -7697,11 +7707,26 @@ async function cargarUltimosArqueosCaja(){
 
  try{
 
-  const data =
-   await jsonpRequest(
-    'caja_ultimos',
-    {}
-   );
+ if(
+ !turnoActivo ||
+ !turnoActivo.ubicacion
+){
+ select.innerHTML =
+ '<option value="">Caja anterior</option>';
+
+ ultimosArqueosCaja = [];
+
+ return;
+}
+
+const data =
+await jsonpRequest(
+ 'caja_ultimos',
+ {
+  ubicacion:
+  turnoActivo.ubicacion
+ }
+);
 
   if(
    !data ||
@@ -7871,6 +7896,201 @@ function cerrarConsultaCaja(){
   modal.style.display =
    'none';
  }
+
+}
+
+/* ======================================================
+ ULTIMOS 3 SALDOS DE LA UBICACION ACTUAL
+====================================================== */
+let ultimosSaldosUbicacion = [];
+
+
+/* ======================================================
+ CARGAR ULTIMOS 3 SALDOS
+====================================================== */
+async function cargarUltimosSaldos(){
+
+ const select =
+ $('saldosTurnoSelect');
+
+ if(!select){
+  return;
+ }
+
+ select.innerHTML =
+ '<option value="">Saldos anteriores</option>';
+
+ ultimosSaldosUbicacion =
+ [];
+
+ if(
+  !turnoActivo ||
+  !turnoActivo.ubicacion
+ ){
+  return;
+ }
+
+ try{
+
+  const data =
+  await jsonpRequest(
+   'saldos_guardados',
+   {
+    ubicacion:
+    turnoActivo.ubicacion
+   }
+  );
+
+  if(
+   !data ||
+   data.ok !== true
+  ){
+   throw new Error(
+    data?.message ||
+    'No se pudieron cargar los saldos.'
+   );
+  }
+
+  ultimosSaldosUbicacion =
+  Array.isArray(
+   data.saldos
+  )
+  ?
+  data.saldos
+  :
+  [];
+
+  ultimosSaldosUbicacion.forEach(
+   saldo => {
+
+    const option =
+    document.createElement(
+     'option'
+    );
+
+    option.value =
+    saldo.turnoId;
+
+    option.textContent =
+    saldo.turnoId +
+    ' | ' +
+    saldo.fechaTexto;
+
+    select.appendChild(
+     option
+    );
+
+   }
+  );
+
+ }
+ catch(error){
+
+  console.error(
+   'ERROR CARGANDO SALDOS:',
+   error
+  );
+
+ }
+
+}
+
+
+/* ======================================================
+ VER SALDO SELECCIONADO
+====================================================== */
+function verSaldoSeleccionado(){
+
+ const select =
+ $('saldosTurnoSelect');
+
+ if(
+  !select ||
+  !select.value
+ ){
+  toast(
+   'Selecciona uno de los últimos saldos.',
+   false
+  );
+
+  return;
+ }
+
+ const saldo =
+ ultimosSaldosUbicacion.find(
+  item =>
+  item.turnoId ===
+  select.value
+ );
+
+ if(!saldo){
+
+  toast(
+   'No se encontró el saldo seleccionado.',
+   false
+  );
+
+  return;
+ }
+
+ const texto = [
+
+  'Turno: ' +
+  saldo.turnoId,
+
+  'Ubicación: ' +
+  saldo.ubicacion,
+
+  'Responsable: ' +
+  saldo.responsable,
+
+  '',
+
+  'Recargas Tigo: ' +
+  money.format(
+   saldo.recargasTigo || 0
+  ),
+
+  'Tigo Money: ' +
+  money.format(
+   saldo.tigoMoney || 0
+  ),
+
+  'Recargas Claro: ' +
+  money.format(
+   saldo.recargasClaro || 0
+  ),
+
+  'Banpais: ' +
+  money.format(
+   saldo.banpais || 0
+  ),
+
+  'Rapibac: ' +
+  money.format(
+   saldo.rapibac || 0
+  ),
+
+  'Agente Atlántida: ' +
+  money.format(
+   saldo.agenteAtlantida || 0
+  ),
+
+  'Lotería: ' +
+  money.format(
+   saldo.loteria || 0
+  ),
+
+  'Proveedores: ' +
+  money.format(
+   saldo.proveedores || 0
+  )
+
+ ].join('\n');
+
+ alert(
+  texto
+ );
 
 }
   
@@ -9968,7 +10188,12 @@ function activarTurno(
  ========================================== */
 
  cargarResumenTurno();
-
+/*
+Actualizar consultas según
+la ubicación del turno activo.
+*/
+cargarUltimosArqueosCaja();
+cargarUltimosSaldos();
 
 
 }
@@ -23636,75 +23861,102 @@ async function guardarNotaCuaderno(){
 
 function alternarConsultaNotas(){
 
-  const panel = $('chomboPanelConsultaNotas');
+ const panel =
+ $('chomboPanelConsultaNotas');
 
-  const visible =
-    panel.style.display !== 'none';
+ const visible =
+ panel.style.display !==
+ 'none';
 
-  if(visible){
+ if(visible){
 
-    panel.style.display = 'none';
+  panel.style.display =
+  'none';
 
-    return;
-  }
+  return;
 
-  panel.style.display = 'block';
+ }
 
-  const ubicacion = $('chomboFiltroUbicacion');
+ if(
+  !turnoActivo ||
+  !turnoActivo.ubicacion
+ ){
 
-  ubicacion.innerHTML = '';
-
-  const todas = new Option(
-    'Todas las ubicaciones',
-    ''
+  toast(
+   'Primero selecciona un turno.',
+   false
   );
 
-  ubicacion.add(todas);
+  return;
 
+ }
 
-  const ubicaciones = new Set(
-    catalogosData.ubicaciones || []
-  );
+ panel.style.display =
+ 'block';
 
-  if(turnoActivo?.ubicacion){
+ /*
+ SOLO UBICACION DEL TURNO ACTUAL
+ */
+ const ubicacion =
+ $('chomboFiltroUbicacion');
 
-    ubicaciones.add(
-      turnoActivo.ubicacion
-    );
+ ubicacion.innerHTML =
+ '';
 
-  }
+ ubicacion.add(
+  new Option(
+   turnoActivo.ubicacion,
+   turnoActivo.ubicacion
+  )
+ );
 
-  [...ubicaciones]
-    .filter(Boolean)
-    .sort((a,b) => a.localeCompare(b,'es'))
-    .forEach(nombre => {
+ ubicacion.value =
+ turnoActivo.ubicacion;
 
-      ubicacion.add(
-        new Option(nombre,nombre)
-      );
+ /*
+ No permitimos cambiar de sucursal
+ desde este turno.
+ */
+ ubicacion.disabled =
+ true;
 
-    });
+ /*
+ FECHA ACTUAL
+ */
+ const hoy =
+ new Date();
 
+ const fechaLocal = [
 
-  /* Por defecto, fecha actual */
+  hoy.getFullYear(),
 
-  const hoy = new Date();
+  String(
+   hoy.getMonth() + 1
+  )
+  .padStart(
+   2,
+   '0'
+  ),
 
-  const fechaLocal = [
-    hoy.getFullYear(),
-    String(hoy.getMonth()+1).padStart(2,'0'),
-    String(hoy.getDate()).padStart(2,'0')
-  ].join('-');
+  String(
+   hoy.getDate()
+  )
+  .padStart(
+   2,
+   '0'
+  )
 
-  $('chomboFiltroFecha').value =
-    fechaLocal;
+ ].join('-');
 
-  $('chomboResultadosNotas').textContent =
-    'Selecciona los filtros y pulsa Buscar notas.';
+ $('chomboFiltroFecha').value =
+ fechaLocal;
+
+ $('chomboResultadosNotas')
+ .textContent =
+ 'Selecciona la fecha y pulsa Buscar notas.';
 
 }
-
-
+  
 /* ======================================================
    NOTAS: CONSULTAR REGISTROS
 ====================================================== */
