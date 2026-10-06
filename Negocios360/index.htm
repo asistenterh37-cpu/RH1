@@ -3385,7 +3385,7 @@ const CONFIG = {
    */
 
   GAS_WEB_APP_URL:
-    'https://script.google.com/macros/s/AKfycbxZEYEIjcODk0nJGWP3NkPFBnNvzLJSpxBA9dxgyGIkysbzoSO2Px1xmiqEQXTl70x7/exec'
+    'https://script.google.com/macros/s/AKfycbwP_UVw60Q1WifWaLokw3sMDkvFXmQTyZUGZnbrJosa6PKrfaysUXOUyFExh_IpT4bB/exec'
 
 };
 
@@ -21268,5 +21268,2392 @@ async function(){
 })();
 
 </script>  
+<!-- ============================================================
+ NEGOCIOS360
+ HONORARIOS PROFESIONALES + PARQUEOS
+ ============================================================ -->
+<style>
+
+.special360-box{
+ padding:16px;
+ border:1px solid #dfe6e2;
+ border-radius:16px;
+ background:#fff;
+}
+
+.special360-title{
+ margin-bottom:15px;
+ font-size:18px;
+ font-weight:950;
+ color:#08713d;
+}
+
+.special360-grid{
+ display:grid;
+ grid-template-columns:1fr 1fr;
+ gap:12px;
+}
+
+.special360-field{
+ min-width:0;
+}
+
+.special360-field.full{
+ grid-column:1/-1;
+}
+
+.special360-field label{
+ display:block;
+ margin-bottom:5px;
+ color:#6b7280;
+ font-size:11px;
+ font-weight:900;
+ text-transform:uppercase;
+}
+
+.special360-field input,
+.special360-field select,
+.special360-field textarea{
+ width:100%;
+ min-height:44px;
+ padding:10px 12px;
+ border:1px solid #d5ddd8;
+ border-radius:11px;
+ background:#fff;
+ outline:none;
+ font:inherit;
+}
+
+.special360-field textarea{
+ min-height:80px;
+ resize:vertical;
+}
+
+.special360-actions{
+ display:grid;
+ grid-template-columns:1fr 1fr;
+ gap:10px;
+ margin-top:15px;
+}
+
+.special360-btn{
+ min-height:48px;
+ border:0;
+ border-radius:12px;
+ font-weight:900;
+ cursor:pointer;
+}
+
+.special360-btn.green{
+ background:#0f8b4c;
+ color:#fff;
+}
+
+.special360-btn.blue{
+ background:#2563eb;
+ color:#fff;
+}
+
+.special360-ticket{
+ padding:12px;
+ border-radius:12px;
+ background:rgba(255,255,255,.06);
+ color:#fff;
+ font-size:13px;
+ line-height:1.55;
+}
+
+.special360-ticket strong{
+ color:#8df0b7;
+}
+
+.special360-modal{
+ position:fixed;
+ inset:0;
+ z-index:50000;
+ display:none;
+ place-items:center;
+ padding:16px;
+ background:rgba(0,0,0,.65);
+}
+
+.special360-modal.show{
+ display:grid;
+}
+
+.special360-modal-card{
+ width:min(420px,100%);
+ padding:22px;
+ border-radius:20px;
+ background:#fff;
+ box-shadow:0 30px 80px rgba(0,0,0,.4);
+ text-align:center;
+}
+
+.special360-question{
+ margin:12px 0 20px;
+ font-size:20px;
+ font-weight:950;
+}
+
+.special360-total{
+ margin:12px 0;
+ color:#08713d;
+ font-size:28px;
+ font-weight:950;
+}
+
+.special360-yesno{
+ display:grid;
+ grid-template-columns:1fr 1fr;
+ gap:10px;
+}
+
+.special360-yesno button{
+ min-height:50px;
+ border:0;
+ border-radius:12px;
+ font-weight:950;
+ cursor:pointer;
+}
+
+@media(max-width:560px){
+ .special360-grid,
+ .special360-actions{
+  grid-template-columns:1fr;
+ }
+}
+
+</style>
+
+<div
+ id="special360Modal"
+ class="special360-modal"
+>
+ <div class="special360-modal-card">
+  <div
+   style="
+   font-size:12px;
+   font-weight:900;
+   color:#6b7280;
+   "
+  >
+   HONORARIOS PROFESIONALES
+  </div>
+
+  <div
+   id="special360ModalTotal"
+   class="special360-total"
+  >
+   L 0.00
+  </div>
+
+  <div class="special360-question">
+   ¿Aplica 12%?
+  </div>
+
+  <div class="special360-yesno">
+   <button
+    type="button"
+    style="
+    background:#0f8b4c;
+    color:#fff;
+    "
+    onclick="special360Honorarios12(true)"
+   >
+    Sí
+   </button>
+
+   <button
+    type="button"
+    style="
+    background:#eef2f0;
+    color:#17202a;
+    "
+    onclick="special360Honorarios12(false)"
+   >
+    No
+   </button>
+  </div>
+ </div>
+</div>
+
+<script>
+(function(){
+
+/* ============================================================
+ ESTADO
+ ============================================================ */
+window.N360Special =
+window.N360Special || {
+ honorarios:null,
+ parkingEntry:null,
+ parkingQuote:null,
+ payment:null
+};
+
+
+/* ============================================================
+ NORMALIZAR
+ ============================================================ */
+function spNorm(
+ value
+){
+ return String(
+  value || ''
+ )
+ .normalize('NFD')
+ .replace(
+  /[\u0300-\u036f]/g,
+  ''
+ )
+ .trim()
+ .toLowerCase();
+}
+
+
+/* ============================================================
+ TIPOS ESPECIALES
+ ============================================================ */
+function spIsHonorarios(){
+ return (
+  appMode === 'sales'
+  &&
+  spNorm(
+   currentBusiness
+  ) ===
+  'honorarios profesionales'
+ );
+}
+
+function spIsParking(){
+ return (
+  appMode === 'sales'
+  &&
+  spNorm(
+   currentBusiness
+  ) ===
+  'parqueos'
+ );
+}
+
+
+/* ============================================================
+ FECHA LOCAL HOY
+ ============================================================ */
+function spToday(){
+ const d =
+ new Date();
+
+ const year =
+ d.getFullYear();
+
+ const month =
+ String(
+  d.getMonth() + 1
+ )
+ .padStart(2,'0');
+
+ const day =
+ String(
+  d.getDate()
+ )
+ .padStart(2,'0');
+
+ return (
+  year +
+  '-' +
+  month +
+  '-' +
+  day
+ );
+}
+
+
+/* ============================================================
+ ID OPERACION
+ ============================================================ */
+function spSaleId(
+ prefix
+){
+ try{
+  if(
+   window.crypto
+   &&
+   typeof window.crypto.randomUUID ===
+   'function'
+  ){
+   return (
+    prefix +
+    '_' +
+    window.crypto.randomUUID()
+   );
+  }
+ }
+ catch(_){}
+
+ return (
+  prefix +
+  '_' +
+  Date.now() +
+  '_' +
+  Math.random()
+  .toString(36)
+  .slice(2,10)
+ );
+}
+
+
+/* ============================================================
+ OCULTAR MENU NORMAL
+ ============================================================ */
+function spSpecialLayout(
+ title
+){
+ const bar =
+ document.getElementById(
+  'categoryBar'
+ );
+
+ const search =
+ document.getElementById(
+  'searchInput'
+ );
+
+ const heading =
+ document.querySelector(
+  '.section-title h2'
+ );
+
+ if(bar){
+  bar.style.display =
+  'none';
+ }
+
+ if(
+  search
+  &&
+  search.parentElement
+ ){
+  search.parentElement.style.display =
+  'none';
+ }
+
+ if(heading){
+  heading.textContent =
+  title;
+ }
+}
+
+
+/* ============================================================
+ RESTAURAR MENU
+ ============================================================ */
+function spRestoreLayout(){
+ const bar =
+ document.getElementById(
+  'categoryBar'
+ );
+
+ const search =
+ document.getElementById(
+  'searchInput'
+ );
+
+ const heading =
+ document.querySelector(
+  '.section-title h2'
+ );
+
+ if(bar){
+  bar.style.display =
+  '';
+ }
+
+ if(
+  search
+  &&
+  search.parentElement
+ ){
+  search.parentElement.style.display =
+  '';
+ }
+
+ if(heading){
+  heading.textContent =
+  'Categorías';
+ }
+}
+
+
+/* ============================================================
+ HONORARIOS - FORMULARIO
+ ============================================================ */
+function spRenderHonorarios(){
+
+ spSpecialLayout(
+  'Datos de honorarios profesionales'
+ );
+
+ const grid =
+ document.getElementById(
+  'itemsGrid'
+ );
+
+ if(!grid){
+  return;
+ }
+
+ grid.style.display =
+ 'block';
+
+ grid.innerHTML =
+ `
+ <div class="special360-box">
+
+  <div class="special360-title">
+   👤 Honorarios profesionales
+  </div>
+
+  <div class="special360-grid">
+
+   <div class="special360-field">
+    <label>Cliente</label>
+    <input
+     id="spHonorCliente"
+     type="text"
+     autocomplete="off"
+     placeholder="Nombre del cliente"
+    >
+   </div>
+
+   <div class="special360-field">
+    <label>RTN</label>
+    <input
+     id="spHonorRTN"
+     type="text"
+     autocomplete="off"
+     placeholder="RTN del cliente"
+    >
+   </div>
+
+   <div class="special360-field full">
+    <label>Descripción</label>
+    <textarea
+     id="spHonorDescripcion"
+     placeholder="Descripción de los servicios profesionales"
+    ></textarea>
+   </div>
+
+   <div class="special360-field">
+    <label>Fecha</label>
+    <input
+     id="spHonorFecha"
+     type="date"
+     value="${spToday()}"
+    >
+   </div>
+
+   <div class="special360-field">
+    <label>Honorarios</label>
+    <input
+     id="spHonorValor"
+     type="text"
+     inputmode="decimal"
+     placeholder="0.00"
+    >
+   </div>
+
+  </div>
+
+  <div
+   style="
+   margin-top:14px;
+   padding:12px;
+   border-radius:12px;
+   background:#edf9f2;
+   color:#24543a;
+   font-size:13px;
+   font-weight:800;
+   "
+  >
+   Ingresa la información y presiona
+   <strong>=</strong>
+   para totalizar.
+  </div>
+
+ </div>
+ `;
+}
+
+
+/* ============================================================
+ TARIFA DEFAULT PARQUEO
+ ============================================================ */
+function spParkingDefaultRate(){
+
+ const row =
+ Array.isArray(
+  MENU
+ )
+ ?
+ MENU.find(
+  item =>
+  spNorm(
+   item.negocio
+  ) ===
+  'parqueos'
+ )
+ :
+ null;
+
+ return row
+ ?
+ Number(
+  row.valor
+ ) || 0
+ :
+ 0;
+}
+
+
+/* ============================================================
+ PARQUEO - FORMULARIO
+ ============================================================ */
+function spRenderParking(){
+
+ spSpecialLayout(
+  'Control de parqueo'
+ );
+
+ const grid =
+ document.getElementById(
+  'itemsGrid'
+ );
+
+ if(!grid){
+  return;
+ }
+
+ grid.style.display =
+ 'block';
+
+ const rate =
+ spParkingDefaultRate();
+
+ grid.innerHTML =
+ `
+ <div class="special360-box">
+
+  <div class="special360-title">
+   🚗 Entrada de vehículo
+  </div>
+
+  <div class="special360-grid">
+
+   <div class="special360-field">
+    <label>Placa</label>
+    <input
+     id="spParkPlate"
+     type="text"
+     autocomplete="off"
+     placeholder="HAA1234"
+    >
+   </div>
+
+   <div class="special360-field">
+    <label>Tipo de vehículo</label>
+    <select id="spParkType">
+     <option>Turismo</option>
+     <option>Pickup</option>
+     <option>Motocicleta</option>
+     <option>Camión</option>
+     <option>Otro</option>
+    </select>
+   </div>
+
+   <div class="special360-field">
+    <label>Color</label>
+    <input
+     id="spParkColor"
+     type="text"
+     autocomplete="off"
+     placeholder="Color"
+    >
+   </div>
+
+   <div class="special360-field">
+    <label>Tarifa por hora</label>
+    <input
+     id="spParkRate"
+     type="text"
+     inputmode="decimal"
+     value="${rate || ''}"
+     placeholder="0.00"
+    >
+   </div>
+
+  </div>
+
+  <div class="special360-actions">
+   <button
+    type="button"
+    class="special360-btn green"
+    onclick="special360ParkingEntry()"
+   >
+    🚘 Registrar entrada
+   </button>
+
+   <button
+    type="button"
+    class="special360-btn blue"
+    onclick="special360ClearParking()"
+   >
+    Limpiar
+   </button>
+  </div>
+
+  <hr
+   style="
+   margin:22px 0;
+   border:0;
+   border-top:1px solid #dfe6e2;
+   "
+  >
+
+  <div class="special360-title">
+   🚪 Salida de vehículo
+  </div>
+
+  <div class="special360-field">
+   <label>ID de parqueo o placa</label>
+   <input
+    id="spParkSearch"
+    type="text"
+    autocomplete="off"
+    placeholder="PK-... o HAA1234"
+   >
+  </div>
+
+  <div class="special360-actions">
+   <button
+    type="button"
+    class="special360-btn green"
+    onclick="special360ParkingQuote()"
+   >
+    🔎 Calcular salida
+   </button>
+  </div>
+
+ </div>
+ `;
+}
+
+
+/* ============================================================
+ INTERCEPTAR RENDER ITEMS
+ ============================================================ */
+const spBaseRenderItems =
+renderItems;
+
+renderItems =
+function(){
+
+ if(
+  spIsHonorarios()
+ ){
+  spRenderHonorarios();
+  return;
+ }
+
+ if(
+  spIsParking()
+ ){
+  spRenderParking();
+  return;
+ }
+
+ spRestoreLayout();
+
+ return spBaseRenderItems();
+};
+
+
+/* ============================================================
+ RECIBO / PANTALLA
+ ============================================================ */
+function spReceipt(
+ html
+){
+ const receipt =
+ document.getElementById(
+  'receipt'
+ );
+
+ if(receipt){
+  receipt.innerHTML =
+  html;
+ }
+
+ const total =
+ document.getElementById(
+  'grandTotal'
+ );
+
+ if(total){
+  total.textContent =
+  window.N360Special.payment
+  ?
+  money(
+   window.N360Special.payment.total
+  )
+  :
+  'L 0.00';
+ }
+}
+
+
+/* ============================================================
+ HONORARIOS =
+ ============================================================ */
+function spCloseHonorarios(){
+
+ const cliente =
+ String(
+  document
+  .getElementById(
+   'spHonorCliente'
+  )
+  .value || ''
+ )
+ .trim();
+
+ const rtn =
+ String(
+  document
+  .getElementById(
+   'spHonorRTN'
+  )
+  .value || ''
+ )
+ .trim();
+
+ const descripcion =
+ String(
+  document
+  .getElementById(
+   'spHonorDescripcion'
+  )
+  .value || ''
+ )
+ .trim();
+
+ const fecha =
+ document
+ .getElementById(
+  'spHonorFecha'
+ )
+ .value;
+
+ const honorarios =
+ parseMoneyInput(
+  document
+  .getElementById(
+   'spHonorValor'
+  )
+  .value
+ );
+
+ if(!cliente){
+  setStatus(
+   'Debes indicar el cliente.',
+   true
+  );
+  return;
+ }
+
+ if(!descripcion){
+  setStatus(
+   'Debes indicar la descripción.',
+   true
+  );
+  return;
+ }
+
+ if(
+  honorarios === null
+  ||
+  honorarios <= 0
+ ){
+  setStatus(
+   'Debes indicar los honorarios.',
+   true
+  );
+  return;
+ }
+
+ window.N360Special.honorarios = {
+  cliente:
+   cliente,
+  rtn:
+   rtn,
+  descripcion:
+   descripcion,
+  fecha:
+   fecha,
+  honorarios:
+   honorarios
+ };
+
+ document
+ .getElementById(
+  'special360ModalTotal'
+ )
+ .textContent =
+ money(
+  honorarios
+ );
+
+ document
+ .getElementById(
+  'special360Modal'
+ )
+ .classList
+ .add(
+  'show'
+ );
+}
+
+
+/* ============================================================
+ RESPUESTA 12%
+ ============================================================ */
+window.special360Honorarios12 =
+function(
+ aplica
+){
+
+ const data =
+ window.N360Special.honorarios;
+
+ if(!data){
+  return;
+ }
+
+ document
+ .getElementById(
+  'special360Modal'
+ )
+ .classList
+ .remove(
+  'show'
+ );
+
+ const retencion =
+ aplica
+ ?
+ invoiceRound(
+  data.honorarios *
+  0.12
+ )
+ :
+ 0;
+
+ const total =
+ invoiceRound(
+  data.honorarios -
+  retencion
+ );
+
+ data.aplica12 =
+ !!aplica;
+
+ data.retencion12 =
+ retencion;
+
+ data.total =
+ total;
+
+ window.N360Special.payment = {
+  type:
+   'honorarios',
+  total:
+   total
+ };
+
+ invoiceSaleCompleted =
+ false;
+
+ accountClosed =
+ true;
+
+ spReceipt(
+  `
+  <div class="special360-ticket">
+
+   <strong>
+    HONORARIOS PROFESIONALES
+   </strong>
+
+   <br><br>
+
+   Cliente:
+   ${invoiceEscape(data.cliente)}
+   <br>
+
+   Descripción:
+   ${invoiceEscape(data.descripcion)}
+   <br><br>
+
+   Honorarios:
+   <strong>
+    ${money(data.honorarios)}
+   </strong>
+   <br>
+
+   Retención 12%:
+   <strong>
+    ${money(retencion)}
+   </strong>
+   <br>
+
+   TOTAL A PAGAR:
+   <strong>
+    ${money(total)}
+   </strong>
+
+  </div>
+  `
+ );
+
+ spOpenPayment();
+};
+
+
+/* ============================================================
+ ABRIR PAGO ESPECIAL
+ ============================================================ */
+function spOpenPayment(){
+
+ openCashPayment();
+
+ setTimeout(
+  () => {
+
+   const normal =
+   document.getElementById(
+    'isv360PaymentSummary'
+   );
+
+   if(normal){
+    normal.style.display =
+    'none';
+   }
+
+   let box =
+   document.getElementById(
+    'special360PaymentSummary'
+   );
+
+   if(!box){
+
+    const parent =
+    document.querySelector(
+     '.payment-total-box'
+    );
+
+    if(parent){
+
+     box =
+     document.createElement(
+      'div'
+     );
+
+     box.id =
+     'special360PaymentSummary';
+
+     box.className =
+     'payment-tax-summary';
+
+     parent.appendChild(
+      box
+     );
+    }
+   }
+
+   if(!box){
+    return;
+   }
+
+   const state =
+   window.N360Special;
+
+   if(
+    state.payment.type ===
+    'honorarios'
+   ){
+
+    const h =
+    state.honorarios;
+
+    box.innerHTML =
+    `
+    <div class="payment-tax-row">
+     <span>Honorarios</span>
+     <span>${money(h.honorarios)}</span>
+    </div>
+
+    <div class="payment-tax-row">
+     <span>Retención 12%</span>
+     <span>-${money(h.retencion12)}</span>
+    </div>
+
+    <div class="payment-tax-row payment-tax-total">
+     <span>TOTAL A PAGAR</span>
+     <span>${money(h.total)}</span>
+    </div>
+    `;
+   }
+   else{
+
+    const p =
+    state.parkingQuote;
+
+    box.innerHTML =
+    `
+    <div class="payment-tax-row">
+     <span>Tiempo</span>
+     <span>${p.minutos} min</span>
+    </div>
+
+    <div class="payment-tax-row">
+     <span>Tarifa</span>
+     <span>${money(p.tarifa)}</span>
+    </div>
+
+    <div class="payment-tax-row payment-tax-total">
+     <span>TOTAL</span>
+     <span>${money(p.total)}</span>
+    </div>
+    `;
+   }
+
+   const total =
+   document.getElementById(
+    'paymentTotal'
+   );
+
+   if(total){
+    total.textContent =
+    money(
+     state.payment.total
+    );
+   }
+
+  },
+  30
+ );
+}
+
+
+/* ============================================================
+ TOTAL ESPECIAL
+ ============================================================ */
+const spBaseAccountTotal =
+accountTotal;
+
+accountTotal =
+function(){
+
+ if(
+  window.N360Special.payment
+ ){
+  return Number(
+   window.N360Special
+   .payment
+   .total
+  ) || 0;
+ }
+
+ return spBaseAccountTotal();
+};
+
+
+/* ============================================================
+ INTERCEPTAR =
+ ============================================================ */
+const spBaseCloseAccount =
+closeAccount;
+
+closeAccount =
+function(){
+
+ if(
+  spIsHonorarios()
+ ){
+  spCloseHonorarios();
+  return;
+ }
+
+ if(
+  spIsParking()
+ ){
+  setStatus(
+   'En Parqueos utiliza Registrar entrada o Calcular salida.'
+  );
+  return;
+ }
+
+ return spBaseCloseAccount();
+};
+
+
+/* ============================================================
+ ENTRADA PARQUEO
+ ============================================================ */
+window.special360ParkingEntry =
+async function(){
+
+ const placa =
+ String(
+  document
+  .getElementById(
+   'spParkPlate'
+  )
+  .value || ''
+ )
+ .trim();
+
+ const tipo =
+ document
+ .getElementById(
+  'spParkType'
+ )
+ .value;
+
+ const color =
+ String(
+  document
+  .getElementById(
+   'spParkColor'
+  )
+  .value || ''
+ )
+ .trim();
+
+ const tarifa =
+ parseMoneyInput(
+  document
+  .getElementById(
+   'spParkRate'
+  )
+  .value
+ );
+
+ if(!placa){
+  setStatus(
+   'Debes indicar la placa.',
+   true
+  );
+  return;
+ }
+
+ if(
+  tarifa === null
+  ||
+  tarifa <= 0
+ ){
+  setStatus(
+   'Debes indicar una tarifa.',
+   true
+  );
+  return;
+ }
+
+ try{
+
+  setStatus(
+   'Registrando entrada...'
+  );
+
+  const response =
+  await jsonp(
+   'parkingEntry',
+   {
+    placa:
+     placa,
+    tipoVehiculo:
+     tipo,
+    color:
+     color,
+    tarifa:
+     tarifa,
+    usuario:
+     'Negocios360'
+   },
+   20000
+  );
+
+  if(
+   !response
+   ||
+   response.ok !== true
+  ){
+   throw new Error(
+    response
+    &&
+    response.error
+    ?
+    response.error
+    :
+    'No fue posible registrar la entrada.'
+   );
+  }
+
+  window.N360Special.parkingEntry =
+  response;
+
+  spReceipt(
+   `
+   <div class="special360-ticket">
+
+    <strong>
+     TICKET DE ENTRADA
+    </strong>
+
+    <br><br>
+
+    ID:
+    <strong>
+     ${invoiceEscape(response.idParqueo)}
+    </strong>
+    <br>
+
+    Placa:
+    <strong>
+     ${invoiceEscape(response.placa)}
+    </strong>
+    <br>
+
+    Tipo:
+    ${invoiceEscape(response.tipoVehiculo)}
+    <br>
+
+    Color:
+    ${invoiceEscape(response.color)}
+    <br>
+
+    Entrada:
+    ${invoiceDateText(response.entrada)}
+    <br>
+
+    Tarifa:
+    ${money(response.tarifa)}
+    por hora
+
+    <br><br>
+
+    <button
+     type="button"
+     class="special360-btn green"
+     style="width:100%;"
+     onclick="special360PrintParkingEntry()"
+    >
+     🖨 Imprimir ticket
+    </button>
+
+   </div>
+   `
+  );
+
+  setStatus(
+   'Entrada registrada: ' +
+   response.idParqueo
+  );
+
+ }
+ catch(error){
+
+  console.error(
+   error
+  );
+
+  setStatus(
+   error.message ||
+   'No fue posible registrar la entrada.',
+   true
+  );
+ }
+};
+
+
+/* ============================================================
+ CONSULTAR SALIDA
+ ============================================================ */
+window.special360ParkingQuote =
+async function(){
+
+ const reference =
+ String(
+  document
+  .getElementById(
+   'spParkSearch'
+  )
+  .value || ''
+ )
+ .trim();
+
+ if(!reference){
+  setStatus(
+   'Escribe el ID de parqueo o la placa.',
+   true
+  );
+  return;
+ }
+
+ try{
+
+  setStatus(
+   'Calculando parqueo...'
+  );
+
+  const response =
+  await jsonp(
+   'parkingQuote',
+   {
+    referencia:
+     reference
+   },
+   20000
+  );
+
+  if(
+   !response
+   ||
+   response.ok !== true
+  ){
+   throw new Error(
+    response
+    &&
+    response.error
+    ?
+    response.error
+    :
+    'No fue posible calcular el parqueo.'
+   );
+  }
+
+  window.N360Special.parkingQuote =
+  response;
+
+  spReceipt(
+   `
+   <div class="special360-ticket">
+
+    <strong>
+     SALIDA DE PARQUEO
+    </strong>
+
+    <br><br>
+
+    ID:
+    ${invoiceEscape(response.idParqueo)}
+    <br>
+
+    Placa:
+    <strong>
+     ${invoiceEscape(response.placa)}
+    </strong>
+    <br>
+
+    Entrada:
+    ${invoiceDateText(response.entrada)}
+    <br>
+
+    Salida:
+    ${invoiceDateText(response.salida)}
+    <br>
+
+    Tiempo:
+    ${response.minutos}
+    minutos
+    <br>
+
+    Tarifa:
+    ${money(response.tarifa)}
+    <br><br>
+
+    TOTAL:
+    <strong>
+     ${money(response.total)}
+    </strong>
+
+    <br><br>
+
+    <button
+     type="button"
+     class="special360-btn green"
+     style="width:100%;"
+     onclick="special360StartParkingPayment()"
+    >
+     💰 Cobrar salida
+    </button>
+
+   </div>
+   `
+  );
+
+  setStatus(
+   'Parqueo calculado.'
+  );
+
+ }
+ catch(error){
+
+  console.error(
+   error
+  );
+
+  setStatus(
+   error.message ||
+   'No fue posible calcular el parqueo.',
+   true
+  );
+ }
+};
+
+
+/* ============================================================
+ INICIAR PAGO PARQUEO
+ ============================================================ */
+window.special360StartParkingPayment =
+function(){
+
+ const p =
+ window.N360Special
+ .parkingQuote;
+
+ if(!p){
+  return;
+ }
+
+ window.N360Special.payment = {
+  type:
+   'parking',
+  total:
+   Number(
+    p.total
+   ) || 0
+ };
+
+ invoiceSaleCompleted =
+ false;
+
+ accountClosed =
+ true;
+
+ spOpenPayment();
+};
+
+
+/* ============================================================
+ LIMPIAR PARQUEO
+ ============================================================ */
+window.special360ClearParking =
+function(){
+
+ window.N360Special.parkingEntry =
+ null;
+
+ window.N360Special.parkingQuote =
+ null;
+
+ window.N360Special.payment =
+ null;
+
+ spRenderParking();
+
+ spReceipt(
+  '<div class="empty-receipt">Registra una entrada o consulta una salida.</div>'
+ );
+
+ setStatus(
+  'Parqueo listo.'
+ );
+};
+
+
+/* ============================================================
+ IMPRIMIR TICKET ENTRADA
+ ============================================================ */
+window.special360PrintParkingEntry =
+function(){
+
+ const p =
+ window.N360Special
+ .parkingEntry;
+
+ if(!p){
+  return;
+ }
+
+ const w =
+ window.open(
+  '',
+  '_blank'
+ );
+
+ if(!w){
+  return;
+ }
+
+ w.document.write(
+ `
+ <!DOCTYPE html>
+ <html>
+ <head>
+ <meta charset="UTF-8">
+
+ <style>
+ body{
+  width:58mm;
+  margin:0;
+  padding:4mm;
+  font-family:monospace;
+  font-size:11px;
+ }
+
+ .center{
+  text-align:center;
+ }
+
+ .big{
+  font-size:16px;
+  font-weight:bold;
+ }
+
+ hr{
+  border:0;
+  border-top:1px dashed #000;
+ }
+ </style>
+
+ </head>
+
+ <body>
+
+ <div class="center big">
+ TICKET DE PARQUEO
+ </div>
+
+ <hr>
+
+ ID:
+ ${invoiceEscape(p.idParqueo)}
+ <br>
+
+ Placa:
+ ${invoiceEscape(p.placa)}
+ <br>
+
+ Vehículo:
+ ${invoiceEscape(p.tipoVehiculo)}
+ <br>
+
+ Color:
+ ${invoiceEscape(p.color)}
+ <br>
+
+ Entrada:
+ ${invoiceDateText(p.entrada)}
+ <br>
+
+ Tarifa:
+ ${money(p.tarifa)}
+ / hora
+
+ <hr>
+
+ <div class="center">
+ Conserve este ticket
+ </div>
+
+ <script>
+ window.onload=function(){
+  window.print();
+ };
+ <\/script>
+
+ </body>
+ </html>
+ `
+ );
+
+ w.document.close();
+};
+
+
+/* ============================================================
+ CONFIRMAR PAGO ESPECIAL
+ ============================================================ */
+const spBaseFinishCashPayment =
+finishCashPayment;
+
+finishCashPayment =
+async function(){
+
+ const special =
+ window.N360Special.payment;
+
+ if(!special){
+  return spBaseFinishCashPayment();
+ }
+
+ const received =
+ Number(
+  cashEntry || 0
+ );
+
+ const total =
+ Number(
+  special.total || 0
+ );
+
+ if(
+  received <
+  total
+ ){
+  setStatus(
+   'El efectivo recibido es menor que el total.',
+   true
+  );
+
+  return;
+ }
+
+ const change =
+ invoiceRound(
+  received -
+  total
+ );
+
+ const button =
+ document.querySelector(
+  '.payment-action.finish'
+ );
+
+ if(button){
+  button.disabled =
+  true;
+
+  button.textContent =
+  'Guardando...';
+ }
+
+ try{
+
+  /* ========================================================
+   HONORARIOS
+   ======================================================== */
+  if(
+   special.type ===
+   'honorarios'
+  ){
+
+   const h =
+   window.N360Special.honorarios;
+
+   const response =
+   await jsonp(
+    'saveProfessionalFee',
+    {
+     cliente:
+      h.cliente,
+
+     rtn:
+      h.rtn,
+
+     descripcion:
+      h.descripcion,
+
+     fecha:
+      h.fecha,
+
+     honorarios:
+      h.honorarios,
+
+     aplica12:
+      h.aplica12
+      ?
+      'true'
+      :
+      'false',
+
+     saleId:
+      spSaleId(
+       'hon'
+      ),
+
+     rangoDesde:
+      String(
+       INVOICE_CONFIG.rangoDesde ||
+       ''
+      ),
+
+     rangoHasta:
+      String(
+       INVOICE_CONFIG.rangoHasta ||
+       ''
+      )
+    },
+    60000
+   );
+
+   if(
+    !response
+    ||
+    response.ok !== true
+   ){
+    throw new Error(
+     response
+     &&
+     response.error
+     ?
+     response.error
+     :
+     'No fue posible guardar los honorarios.'
+    );
+   }
+
+   const number =
+   response.invoiceNumber
+   ?
+   String(
+    response.invoiceNumber
+   )
+   :
+   reserveInvoiceNumber();
+
+   lastInvoice = {
+    tipoEspecial:
+     'honorarios',
+
+    numero:
+     number,
+
+    razonSocial:
+     String(
+      INVOICE_CONFIG.razonSocial ||
+      ''
+     ),
+
+    nombreComercial:
+     String(
+      INVOICE_CONFIG.nombreComercial ||
+      currentBusiness
+     ),
+
+    rtn:
+     String(
+      INVOICE_CONFIG.rtn || ''
+     ),
+
+    direccion:
+     String(
+      INVOICE_CONFIG.direccion || ''
+     ),
+
+    telefono:
+     String(
+      INVOICE_CONFIG.telefono || ''
+     ),
+
+    cai:
+     String(
+      INVOICE_CONFIG.cai || ''
+     ),
+
+    rangoDesde:
+     String(
+      INVOICE_CONFIG.rangoDesde || ''
+     ),
+
+    rangoHasta:
+     String(
+      INVOICE_CONFIG.rangoHasta || ''
+     ),
+
+    fechaLimite:
+     String(
+      INVOICE_CONFIG.fechaLimite || ''
+     ),
+
+    fecha:
+     response.fecha,
+
+    fechaTexto:
+     invoiceDateText(
+      response.fecha
+     ),
+
+    cliente:
+     h.cliente,
+
+    clienteRTN:
+     h.rtn,
+
+    descripcion:
+     h.descripcion,
+
+    honorarios:
+     h.honorarios,
+
+    aplica12:
+     h.aplica12,
+
+    retencion12:
+     h.retencion12,
+
+    totalPagar:
+     h.total,
+
+    total:
+     h.total,
+
+    recibido:
+     received,
+
+    cambio:
+     change,
+
+    items:[]
+   };
+  }
+
+  /* ========================================================
+   PARQUEO
+   ======================================================== */
+  else{
+
+   const p =
+   window.N360Special
+   .parkingQuote;
+
+   const response =
+   await jsonp(
+    'parkingExit',
+    {
+     referencia:
+      p.idParqueo,
+
+     usuario:
+      'Negocios360',
+
+     saleId:
+      spSaleId(
+       'park'
+      ),
+
+     rangoDesde:
+      String(
+       INVOICE_CONFIG.rangoDesde ||
+       ''
+      ),
+
+     rangoHasta:
+      String(
+       INVOICE_CONFIG.rangoHasta ||
+       ''
+      )
+    },
+    60000
+   );
+
+   if(
+    !response
+    ||
+    response.ok !== true
+   ){
+    throw new Error(
+     response
+     &&
+     response.error
+     ?
+     response.error
+     :
+     'No fue posible cerrar el parqueo.'
+    );
+   }
+
+   const number =
+   response.invoiceNumber
+   ?
+   String(
+    response.invoiceNumber
+   )
+   :
+   reserveInvoiceNumber();
+
+   lastInvoice = {
+    tipoEspecial:
+     'parking',
+
+    numero:
+     number,
+
+    razonSocial:
+     String(
+      INVOICE_CONFIG.razonSocial ||
+      ''
+     ),
+
+    nombreComercial:
+     String(
+      INVOICE_CONFIG.nombreComercial ||
+      currentBusiness
+     ),
+
+    rtn:
+     String(
+      INVOICE_CONFIG.rtn || ''
+     ),
+
+    direccion:
+     String(
+      INVOICE_CONFIG.direccion || ''
+     ),
+
+    telefono:
+     String(
+      INVOICE_CONFIG.telefono || ''
+     ),
+
+    cai:
+     String(
+      INVOICE_CONFIG.cai || ''
+     ),
+
+    rangoDesde:
+     String(
+      INVOICE_CONFIG.rangoDesde || ''
+     ),
+
+    rangoHasta:
+     String(
+      INVOICE_CONFIG.rangoHasta || ''
+     ),
+
+    fechaLimite:
+     String(
+      INVOICE_CONFIG.fechaLimite || ''
+     ),
+
+    fecha:
+     response.salida,
+
+    fechaTexto:
+     invoiceDateText(
+      response.salida
+     ),
+
+    idParqueo:
+     response.idParqueo,
+
+    placa:
+     response.placa,
+
+    tipoVehiculo:
+     response.tipoVehiculo,
+
+    color:
+     response.color,
+
+    entrada:
+     response.entrada,
+
+    salida:
+     response.salida,
+
+    minutos:
+     response.minutos,
+
+    tarifa:
+     response.tarifa,
+
+    total:
+     response.total,
+
+    recibido:
+     received,
+
+    cambio:
+     change,
+
+    cliente:
+     'CONSUMIDOR FINAL',
+
+    clienteRTN:
+     '',
+
+    items:[]
+   };
+  }
+
+  invoiceSaleCompleted =
+  true;
+
+  window.N360Special.payment =
+  null;
+
+  showInvoiceResult(
+   lastInvoice
+  );
+
+  setStatus(
+   'Operación guardada. Factura ' +
+   lastInvoice.numero +
+   ' lista.'
+  );
+
+ }
+ catch(error){
+
+  console.error(
+   error
+  );
+
+  setStatus(
+   error.message ||
+   'No fue posible guardar la operación.',
+   true
+  );
+ }
+ finally{
+
+  if(button){
+   button.disabled =
+   false;
+
+   button.textContent =
+   'Confirmar pago';
+  }
+ }
+};
+
+
+/* ============================================================
+ FACTURA ESPECIAL
+ ============================================================ */
+const spBaseInvoiceHtml =
+invoiceHtml;
+
+invoiceHtml =
+function(
+ invoice
+){
+
+ if(
+  !invoice
+  ||
+  !invoice.tipoEspecial
+ ){
+  return spBaseInvoiceHtml(
+   invoice
+  );
+ }
+
+ /* ========================================================
+  HONORARIOS
+  ======================================================== */
+ if(
+  invoice.tipoEspecial ===
+  'honorarios'
+ ){
+
+  return `
+  <div style="text-align:center;font-weight:900;">
+   ${invoiceEscape(invoice.razonSocial)}
+  </div>
+
+  <div style="text-align:center;">
+   ${invoiceEscape(invoice.nombreComercial)}
+  </div>
+
+  <div style="text-align:center;font-size:8px;">
+   RTN:
+   ${invoiceEscape(invoice.rtn)}
+  </div>
+
+  <hr>
+
+  <strong>
+   FACTURA:
+   ${invoiceEscape(invoice.numero)}
+  </strong>
+
+  <br>
+
+  Fecha:
+  ${invoiceEscape(invoice.fechaTexto)}
+
+  <br><br>
+
+  Cliente:
+  ${invoiceEscape(invoice.cliente)}
+
+  <br>
+
+  RTN:
+  ${invoiceEscape(invoice.clienteRTN)}
+
+  <br><br>
+
+  <strong>Descripción</strong>
+  <br>
+
+  ${invoiceEscape(invoice.descripcion)}
+
+  <hr>
+
+  <div class="invoice-payment-line">
+   <span>Honorarios</span>
+   <strong>${money(invoice.honorarios)}</strong>
+  </div>
+
+  <div class="invoice-payment-line">
+   <span>Retención 12%</span>
+   <strong>-${money(invoice.retencion12)}</strong>
+  </div>
+
+  <div class="invoice-total-box">
+   <span>TOTAL A PAGAR</span>
+   <strong>${money(invoice.totalPagar)}</strong>
+  </div>
+
+  <div class="invoice-payment-detail">
+
+   <div class="invoice-payment-line">
+    <span>Recibido</span>
+    <span>${money(invoice.recibido)}</span>
+   </div>
+
+   <div class="invoice-payment-line">
+    <span>Cambio</span>
+    <span>${money(invoice.cambio)}</span>
+   </div>
+
+  </div>
+
+  <hr>
+
+  <div style="font-size:7px;">
+   CAI:
+   ${invoiceEscape(invoice.cai)}
+   <br>
+
+   Rango:
+   ${invoiceEscape(invoice.rangoDesde)}
+   al
+   ${invoiceEscape(invoice.rangoHasta)}
+   <br>
+
+   Fecha límite:
+   ${invoiceEscape(invoice.fechaLimite)}
+  </div>
+  `;
+ }
+
+ /* ========================================================
+  PARQUEO
+  ======================================================== */
+ return `
+ <div style="text-align:center;font-weight:900;">
+  ${invoiceEscape(invoice.razonSocial)}
+ </div>
+
+ <div style="text-align:center;">
+  ${invoiceEscape(invoice.nombreComercial)}
+ </div>
+
+ <div style="text-align:center;font-size:8px;">
+  RTN:
+  ${invoiceEscape(invoice.rtn)}
+ </div>
+
+ <hr>
+
+ <strong>
+  FACTURA:
+  ${invoiceEscape(invoice.numero)}
+ </strong>
+
+ <br>
+
+ Fecha:
+ ${invoiceEscape(invoice.fechaTexto)}
+
+ <hr>
+
+ ID Parqueo:
+ ${invoiceEscape(invoice.idParqueo)}
+
+ <br>
+
+ Placa:
+ <strong>
+  ${invoiceEscape(invoice.placa)}
+ </strong>
+
+ <br>
+
+ Vehículo:
+ ${invoiceEscape(invoice.tipoVehiculo)}
+
+ <br>
+
+ Entrada:
+ ${invoiceDateText(invoice.entrada)}
+
+ <br>
+
+ Salida:
+ ${invoiceDateText(invoice.salida)}
+
+ <br>
+
+ Tiempo:
+ ${invoice.minutos}
+ minutos
+
+ <br>
+
+ Tarifa:
+ ${money(invoice.tarifa)}
+
+ <hr>
+
+ <div class="invoice-total-box">
+  <span>TOTAL</span>
+  <strong>${money(invoice.total)}</strong>
+ </div>
+
+ <div class="invoice-payment-detail">
+
+  <div class="invoice-payment-line">
+   <span>Recibido</span>
+   <span>${money(invoice.recibido)}</span>
+  </div>
+
+  <div class="invoice-payment-line">
+   <span>Cambio</span>
+   <span>${money(invoice.cambio)}</span>
+  </div>
+
+ </div>
+
+ <div
+  style="
+  margin-top:7px;
+  font-size:7px;
+  text-align:center;
+  "
+ >
+  Operación sin 12%, 15% ni 18%.
+ </div>
+
+ <hr>
+
+ <div style="font-size:7px;">
+  CAI:
+  ${invoiceEscape(invoice.cai)}
+  <br>
+
+  Rango:
+  ${invoiceEscape(invoice.rangoDesde)}
+  al
+  ${invoiceEscape(invoice.rangoHasta)}
+  <br>
+
+  Fecha límite:
+  ${invoiceEscape(invoice.fechaLimite)}
+ </div>
+ `;
+};
+
+
+/* ============================================================
+ C / NUEVA OPERACION
+ ============================================================ */
+const spBaseNewAccount =
+newAccount;
+
+newAccount =
+function(){
+
+ if(
+  spIsHonorarios()
+ ){
+  window.N360Special.honorarios =
+  null;
+
+  window.N360Special.payment =
+  null;
+
+  invoiceSaleCompleted =
+  false;
+
+  spRenderHonorarios();
+
+  spReceipt(
+   '<div class="empty-receipt">Ingresa los datos de honorarios.</div>'
+  );
+
+  setStatus(
+   'Nuevo servicio profesional.'
+  );
+
+  return;
+ }
+
+ if(
+  spIsParking()
+ ){
+  special360ClearParking();
+  return;
+ }
+
+ return spBaseNewAccount();
+};
+
+
+/* ============================================================
+ PRIMER RENDER ESPECIAL
+ ============================================================ */
+setTimeout(
+ () => {
+  renderItems();
+
+  if(
+   spIsHonorarios()
+  ){
+   spReceipt(
+    '<div class="empty-receipt">Ingresa los datos y presiona =.</div>'
+   );
+  }
+
+  if(
+   spIsParking()
+  ){
+   spReceipt(
+    '<div class="empty-receipt">Registra una entrada o consulta una salida.</div>'
+   );
+  }
+ },
+ 500
+);
+
+})();
+</script>
+  
 </body>
 </html>
