@@ -3385,7 +3385,7 @@ const CONFIG = {
    */
 
   GAS_WEB_APP_URL:
-    'https://script.google.com/macros/s/AKfycbwP_UVw60Q1WifWaLokw3sMDkvFXmQTyZUGZnbrJosa6PKrfaysUXOUyFExh_IpT4bB/exec'
+    'https://script.google.com/macros/s/AKfycbzprwiqeY3-9ul_NkP9Kt7udUtlN6e9iXLPrJW3ZVswOpwj_9s6pOWlqdD9vLoQqsYx/exec'
 
 };
 
@@ -21449,32 +21449,34 @@ async function(){
   </div>
 
   <div class="special360-question">
-   ¿Aplica 12%?
-  </div>
+ Honorarios profesionales ¿Aplica 12.5%?
+</div>
 
-  <div class="special360-yesno">
-   <button
-    type="button"
-    style="
-    background:#0f8b4c;
-    color:#fff;
-    "
-    onclick="special360Honorarios12(true)"
-   >
-    Sí
-   </button>
+<div class="special360-yesno">
 
-   <button
-    type="button"
-    style="
-    background:#eef2f0;
-    color:#17202a;
-    "
-    onclick="special360Honorarios12(false)"
-   >
-    No
-   </button>
-  </div>
+ <button
+  type="button"
+  style="
+  background:#0f8b4c;
+  color:#fff;
+  "
+  onclick="special360Honorarios125(true)"
+ >
+  Sí
+ </button>
+
+ <button
+  type="button"
+  style="
+  background:#eef2f0;
+  color:#17202a;
+  "
+  onclick="special360Honorarios125(false)"
+ >
+  No
+ </button>
+
+</div>
  </div>
 </div>
 
@@ -22124,11 +22126,10 @@ function spCloseHonorarios(){
  );
 }
 
-
 /* ============================================================
- RESPUESTA 12%
+ RESPUESTA 12.5%
  ============================================================ */
-window.special360Honorarios12 =
+window.special360Honorarios125 =
 function(
  aplica
 ){
@@ -22149,12 +22150,15 @@ function(
   'show'
  );
 
+ /* ========================================================
+  RETENCION 12.5%
+  ======================================================== */
  const retencion =
  aplica
  ?
  invoiceRound(
   data.honorarios *
-  0.12
+  0.125
  )
  :
  0;
@@ -22165,10 +22169,10 @@ function(
   retencion
  );
 
- data.aplica12 =
+ data.aplica125 =
  !!aplica;
 
- data.retencion12 =
+ data.retencion125 =
  retencion;
 
  data.total =
@@ -22199,22 +22203,26 @@ function(
 
    Cliente:
    ${invoiceEscape(data.cliente)}
+
    <br>
 
    Descripción:
    ${invoiceEscape(data.descripcion)}
+
    <br><br>
 
    Honorarios:
    <strong>
     ${money(data.honorarios)}
    </strong>
+
    <br>
 
-   Retención 12%:
+   Retención 12.5%:
    <strong>
-    ${money(retencion)}
+    -${money(retencion)}
    </strong>
+
    <br>
 
    TOTAL A PAGAR:
@@ -22228,8 +22236,6 @@ function(
 
  spOpenPayment();
 };
-
-
 /* ============================================================
  ABRIR PAGO ESPECIAL
  ============================================================ */
@@ -22240,11 +22246,150 @@ function spOpenPayment(){
  setTimeout(
   () => {
 
+   const state =
+   window.N360Special;
+
+   const overlay =
+   document.getElementById(
+    'cashPaymentOverlay'
+   );
+
+   const paymentField =
+   document.querySelector(
+    '.payment-field'
+   );
+
+   const keypad =
+   document.querySelector(
+    '.cash-keypad'
+   );
+
+   const changeBox =
+   document.querySelector(
+    '.change-box'
+   );
+
+   const title =
+   document.getElementById(
+    'paymentTitle'
+   );
+
    const normal =
    document.getElementById(
     'isv360PaymentSummary'
    );
 
+   /*
+    * ======================================================
+    * HONORARIOS PROFESIONALES
+    *
+    * No solicitar efectivo recibido.
+    * No mostrar teclado.
+    * No mostrar cambio.
+    * ======================================================
+    */
+   if(
+    state.payment
+    &&
+    state.payment.type ===
+    'honorarios'
+   ){
+
+    if(overlay){
+     overlay.classList.add(
+      'special360-honorarios-payment'
+     );
+    }
+
+    if(paymentField){
+     paymentField.style.display =
+     'none';
+    }
+
+    if(keypad){
+     keypad.style.display =
+     'none';
+    }
+
+    if(changeBox){
+     changeBox.style.display =
+     'none';
+    }
+
+    if(title){
+     title.textContent =
+     'Confirmar honorarios';
+    }
+
+    /*
+     * Internamente consideramos
+     * el total como pagado.
+     *
+     * No se muestra al usuario.
+     */
+    cashEntry =
+    String(
+     Number(
+      state.payment.total
+     ) || 0
+    );
+
+    const input =
+    document.getElementById(
+     'cashReceived'
+    );
+
+    if(input){
+     input.value =
+     cashEntry;
+
+     try{
+      input.blur();
+     }
+     catch(_){}
+    }
+
+   }
+
+   /*
+    * ======================================================
+    * PARQUEO
+    *
+    * Conserva cobro normal.
+    * ======================================================
+    */
+   else{
+
+    if(overlay){
+     overlay.classList.remove(
+      'special360-honorarios-payment'
+     );
+    }
+
+    if(paymentField){
+     paymentField.style.display =
+     '';
+    }
+
+    if(keypad){
+     keypad.style.display =
+     '';
+    }
+
+    if(changeBox){
+     changeBox.style.display =
+     '';
+    }
+
+    if(title){
+     title.textContent =
+     '💵 Cobro en efectivo';
+    }
+   }
+
+   /*
+    * Ocultar resumen fiscal normal.
+    */
    if(normal){
     normal.style.display =
     'none';
@@ -22285,9 +22430,11 @@ function spOpenPayment(){
     return;
    }
 
-   const state =
-   window.N360Special;
-
+   /*
+    * ======================================================
+    * RESUMEN HONORARIOS
+    * ======================================================
+    */
    if(
     state.payment.type ===
     'honorarios'
@@ -22304,8 +22451,8 @@ function spOpenPayment(){
     </div>
 
     <div class="payment-tax-row">
-     <span>Retención 12%</span>
-     <span>-${money(h.retencion12)}</span>
+     <span>Retención 12.5%</span>
+     <span>-${money(h.retencion125)}</span>
     </div>
 
     <div class="payment-tax-row payment-tax-total">
@@ -22314,6 +22461,12 @@ function spOpenPayment(){
     </div>
     `;
    }
+
+   /*
+    * ======================================================
+    * RESUMEN PARQUEO
+    * ======================================================
+    */
    else{
 
     const p =
@@ -22322,18 +22475,33 @@ function spOpenPayment(){
     box.innerHTML =
     `
     <div class="payment-tax-row">
+
      <span>Tiempo</span>
-     <span>${p.minutos} min</span>
+
+     <span>
+      ${p.minutos} min
+     </span>
+
     </div>
 
     <div class="payment-tax-row">
+
      <span>Tarifa</span>
-     <span>${money(p.tarifa)}</span>
+
+     <span>
+      ${money(p.tarifa)}
+     </span>
+
     </div>
 
     <div class="payment-tax-row payment-tax-total">
+
      <span>TOTAL</span>
-     <span>${money(p.total)}</span>
+
+     <span>
+      ${money(p.total)}
+     </span>
+
     </div>
     `;
    }
@@ -22354,8 +22522,7 @@ function spOpenPayment(){
   30
  );
 }
-
-
+  
 /* ============================================================
  TOTAL ESPECIAL
  ============================================================ */
@@ -22909,34 +23076,53 @@ async function(){
   return spBaseFinishCashPayment();
  }
 
- const received =
- Number(
-  cashEntry || 0
- );
-
  const total =
- Number(
-  special.total || 0
+Number(
+ special.total || 0
+);
+
+/*
+ * Honorarios:
+ * no solicitamos efectivo recibido.
+ *
+ * Parqueo:
+ * conserva funcionamiento normal.
+ */
+const received =
+special.type ===
+'honorarios'
+?
+total
+:
+Number(
+ cashEntry || 0
+);
+
+if(
+ special.type !==
+ 'honorarios'
+ &&
+ received <
+ total
+){
+ setStatus(
+  'El efectivo recibido es menor que el total.',
+  true
  );
 
- if(
-  received <
-  total
- ){
-  setStatus(
-   'El efectivo recibido es menor que el total.',
-   true
-  );
+ return;
+}
 
-  return;
- }
-
- const change =
- invoiceRound(
-  received -
-  total
- );
-
+const change =
+special.type ===
+'honorarios'
+?
+0
+:
+invoiceRound(
+ received -
+ total
+);
  const button =
  document.querySelector(
   '.payment-action.finish'
@@ -22982,12 +23168,12 @@ async function(){
      honorarios:
       h.honorarios,
 
-     aplica12:
-      h.aplica12
-      ?
-      'true'
-      :
-      'false',
+   aplica12:
+h.aplica125
+?
+'true'
+:
+'false',
 
      saleId:
       spSaleId(
@@ -23108,14 +23294,14 @@ async function(){
     honorarios:
      h.honorarios,
 
-    aplica12:
-     h.aplica12,
+   aplica125:
+h.aplica125,
 
-    retencion12:
-     h.retencion12,
+retencion125:
+h.retencion125,
 
-    totalPagar:
-     h.total,
+totalPagar:
+h.total,
 
     total:
      h.total,
@@ -23415,34 +23601,43 @@ function(
 
   <hr>
 
-  <div class="invoice-payment-line">
-   <span>Honorarios</span>
-   <strong>${money(invoice.honorarios)}</strong>
-  </div>
 
-  <div class="invoice-payment-line">
-   <span>Retención 12%</span>
-   <strong>-${money(invoice.retencion12)}</strong>
-  </div>
+ <div class="invoice-payment-line">
 
-  <div class="invoice-total-box">
-   <span>TOTAL A PAGAR</span>
-   <strong>${money(invoice.totalPagar)}</strong>
-  </div>
+ <span>
+  Honorarios
+ </span>
 
-  <div class="invoice-payment-detail">
+ <strong>
+  ${money(invoice.honorarios)}
+ </strong>
 
-   <div class="invoice-payment-line">
-    <span>Recibido</span>
-    <span>${money(invoice.recibido)}</span>
-   </div>
+</div>
 
-   <div class="invoice-payment-line">
-    <span>Cambio</span>
-    <span>${money(invoice.cambio)}</span>
-   </div>
+<div class="invoice-payment-line">
 
-  </div>
+ <span>
+  Retención 12.5%
+ </span>
+
+ <strong>
+  -${money(invoice.retencion125)}
+ </strong>
+
+</div>
+
+<div class="invoice-total-box">
+
+ <span>
+  TOTAL A PAGAR
+ </span>
+
+ <strong>
+  ${money(invoice.totalPagar)}
+ </strong>
+
+</div> 
+ 
 
   <hr>
 
