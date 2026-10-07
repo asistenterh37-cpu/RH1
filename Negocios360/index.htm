@@ -17907,25 +17907,6 @@ ${invoiceHtml(invoice)}
 
 </div>
 
-<script>
-
-window.addEventListener(
- 'load',
- function(){
-
-  setTimeout(
-   function(){
-
-    window.print();
-
-   },
-   250
-  );
-
- }
-);
-
-<\\/script>
 
 </body>
 
@@ -17939,60 +17920,80 @@ window.addEventListener(
 
 function printInvoice(){
 
-  if(
-    !lastInvoice
-  ){
+ if(
+  !lastInvoice
+ ){
 
-    setStatus(
-      'No hay factura disponible.',
-      true
-    );
-
-
-    return;
-
-  }
-
-
-  updateInvoiceCustomer();
-
-
-  const printWindow =
-    window.open(
-      '',
-      '_blank'
-    );
-
-
-  if(
-    !printWindow
-  ){
-
-    setStatus(
-      'El navegador bloqueó la ventana de impresión.',
-      true
-    );
-
-
-    return;
-
-  }
-
-
-  printWindow.document.open();
-
-
-  printWindow.document.write(
-    printableInvoiceDocument(
-      lastInvoice
-    )
+  setStatus(
+   'No hay factura disponible.',
+   true
   );
 
+  return;
+ }
 
-  printWindow.document.close();
+ updateInvoiceCustomer();
+
+ const printWindow =
+ window.open(
+  '',
+  '_blank'
+ );
+
+ if(
+  !printWindow
+ ){
+
+  setStatus(
+   'El navegador bloqueó la ventana de impresión.',
+   true
+  );
+
+  return;
+ }
+
+ printWindow.document.open();
+
+ printWindow.document.write(
+  printableInvoiceDocument(
+   lastInvoice
+  )
+ );
+
+ printWindow.document.close();
+
+ /*
+  * Esperamos a que Chrome termine
+  * de construir la factura.
+  */
+ setTimeout(
+  function(){
+
+   try{
+
+    printWindow.focus();
+
+    printWindow.print();
+
+   }
+   catch(error){
+
+    console.error(
+     'Error al abrir impresión:',
+     error
+    );
+
+    setStatus(
+     'No fue posible abrir la impresión.',
+     true
+    );
+   }
+
+  },
+  900
+ );
 
 }
-
 
 /* ============================================================
    NUEVA FACTURA
