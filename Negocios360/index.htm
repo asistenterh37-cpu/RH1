@@ -3385,7 +3385,7 @@ const CONFIG = {
    */
 
   GAS_WEB_APP_URL:
-    'https://script.google.com/macros/s/AKfycbzprwiqeY3-9ul_NkP9Kt7udUtlN6e9iXLPrJW3ZVswOpwj_9s6pOWlqdD9vLoQqsYx/exec'
+    'https://script.google.com/macros/s/AKfycbz5vjWPTXn0EpJhln7bKJ1jmj8NM2C07xgzs6uCzhzaRwRN3tfIy1P6-6TtbKMd-s9P/exec'
 
 };
 
@@ -24006,6 +24006,263 @@ setTimeout(
 
 })();
 </script>
-  
+
+ 
+<!-- ===========================================================
+ NEGOCIOS360 - QR FACTURAS Y ENTRADA PARQUEOS - HTML
+ PEGAR ESTE BLOQUE JUSTO ANTES DEL </body> FINAL.
+ ============================================================ -->
+<style>
+.n360-qr-button{background:#e9f7ef!important;color:#08713d!important;border:1px solid #8bc9a9!important;border-radius:10px;min-height:48px;font-weight:900;cursor:pointer}
+#n360QrOverlay{position:fixed;inset:0;z-index:99999;display:none;align-items:center;justify-content:center;background:#000b;padding:18px}
+#n360QrOverlay.show{display:flex}
+#n360QrDialog{background:white;color:#17251e;border-radius:18px;padding:22px;width:min(100%,390px);text-align:center;box-shadow:0 20px 50px #0005}
+#n360QrImage{display:flex;align-items:center;justify-content:center;margin:15px auto;width:250px;min-height:250px;background:white}
+#n360QrDialog button{min-height:45px;border:0;border-radius:10px;background:#0f8b4c;color:#fff;padding:10px 18px;font-weight:bold;margin:5px}
+#n360QrDialog a{display:block;overflow-wrap:anywhere;font-size:12px;margin:12px}
+</style>
+
+<div id="n360QrOverlay" role="dialog" aria-modal="true" aria-label="Comprobante QR">
+ <div id="n360QrDialog">
+  <h2 id="n360QrTitle">Escanea tu comprobante</h2>
+  <div id="n360QrImage"></div>
+  <p id="n360QrInfo">Abre la cámara del celular y escanea el código.</p>
+  <a id="n360QrLink" href="#" target="_blank" rel="noopener">Abrir comprobante</a>
+  <button type="button" onclick="n360QrClose()">Cerrar</button>
+ </div>
+</div>
+
+<script>
+(function(){
+ const overlay=document.getElementById('n360QrOverlay');
+ let currentInvoiceKey='',currentInvoiceUrl='';
+
+ window.n360QrClose=function(){
+  overlay.classList.remove('show');
+  document.body.style.overflow='';
+ };
+
+ overlay.addEventListener('click',e=>{
+  if(e.target===overlay)n360QrClose();
+ });
+
+ function n360QrEngine(){
+  if(window.QRCode)return Promise.resolve();
+  return new Promise((resolve,reject)=>{
+   const script=document.createElement('script');
+   script.src='https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js';
+   script.onload=()=>window.QRCode?resolve():reject(new Error('No cargó el generador QR.'));
+   script.onerror=()=>reject(new Error('No se pudo cargar la librería QR.'));
+   document.head.appendChild(script);
+  });
+ }
+
+ function n360QrDataInvoice(){
+  if(typeof lastInvoice==='undefined'||!lastInvoice||!invoiceSaleCompleted){
+   throw new Error('Confirma primero el pago y la emisión de factura.');
+  }
+
+  if(typeof updateInvoiceCustomer==='function')updateInvoiceCustomer();
+
+  const i=lastInvoice;
+  const t=typeof isv360InvoiceTaxes==='function'
+   ?isv360InvoiceTaxes(i):null;
+
+  return {
+   tipo:'factura',
+   tipoEspecial:i.tipoEspecial||'',
+   numero:String(i.numero||''),
+   razonSocial:i.razonSocial,
+   nombreComercial:i.nombreComercial,
+   rtn:i.rtn,
+   direccion:i.direccion,
+   cai:i.cai,
+   rangoDesde:i.rangoDesde,
+   rangoHasta:i.rangoHasta,
+   fechaLimite:i.fechaLimite,
+   fecha:i.fechaTexto||i.fecha,
+   cliente:i.cliente,
+   clienteRTN:i.clienteRTN,
+   descripcion:i.descripcion,
+   honorarios:i.honorarios,
+   retencion125:i.retencion125,
+   idParqueo:i.idParqueo,
+   placa:i.placa,
+   entrada:i.entrada,
+   salida:i.salida,
+   minutos:i.minutos,
+   tarifa:i.tarifa,
+   total:i.total,
+   recibido:i.recibido,
+   cambio:i.cambio,
+   items:Array.isArray(i.items)
+    ?i.items.map(x=>({
+      item:x.item,
+      cantidad:x.cantidad,
+      valor:x.valor
+     }))
+    :[],
+   exento:t&&t.exento,
+   isv15:t&&t.isv15,
+   isv18:t&&t.isv18,
+   exonerado:t&&t.exonerado
+  };
+ }
+
+ async function n360QrShow(obj){
+  try{
+   document.getElementById('n360QrTitle').textContent=
+    obj.tipo==='entradaParqueo'
+    ?'QR · Ticket de entrada'
+    :'QR · Factura '+obj.numero;
+
+   document.getElementById('n360QrInfo').textContent=
+    'Preparando acceso al comprobante...';
+
+   document.getElementById('n360QrImage').innerHTML='';
+   document.getElementById('n360QrLink').style.display='none';
+
+   overlay.classList.add('show');
+   document.body.style.overflow='hidden';
+
+   const key=JSON.stringify(obj);
+   let url=currentInvoiceKey===key?currentInvoiceUrl:'';
+
+   if(!url){
+    const response=await jsonp(
+     'n360QrSave',
+     {datos:key},
+     30000
+    );
+
+    if(!response||response.ok!==true||!response.url){
+     throw new Error(
+      (response&&response.error)
+      ||'No se pudo publicar el comprobante.'
+     );
+    }
+
+    url=response.url;
+    currentInvoiceKey=key;
+    currentInvoiceUrl=url;
+   }
+
+   await n360QrEngine();
+
+   const target=document.getElementById('n360QrImage');
+   target.innerHTML='';
+
+   new QRCode(target,{
+    text:url,
+    width:230,
+    height:230,
+    correctLevel:QRCode.CorrectLevel.M
+   });
+
+   const link=document.getElementById('n360QrLink');
+   link.href=url;
+   link.style.display='block';
+
+   document.getElementById('n360QrInfo').textContent=
+    'Escanea con la cámara y guarda el comprobante desde tu celular.';
+
+  }catch(err){
+   console.error(err);
+   document.getElementById('n360QrInfo').textContent=
+    err.message||'Error al generar QR.';
+
+   if(typeof setStatus==='function'){
+    setStatus(err.message,true);
+   }
+  }
+ }
+
+ window.n360QrFactura=function(){
+  try{
+   n360QrShow(n360QrDataInvoice());
+  }catch(e){
+   setStatus(e.message,true);
+  }
+ };
+
+ window.n360QrEntrada=function(){
+  const p=window.N360Special&&window.N360Special.parkingEntry;
+
+  if(!p){
+   setStatus('No hay ticket de entrada disponible.',true);
+   return;
+  }
+
+  n360QrShow({
+   tipo:'entradaParqueo',
+   numero:String(p.idParqueo||''),
+   negocio:typeof currentBusiness==='string'
+    ?currentBusiness:'Parqueo',
+   placa:p.placa,
+   tipoVehiculo:p.tipoVehiculo,
+   color:p.color,
+   entrada:typeof invoiceDateText==='function'
+    ?invoiceDateText(p.entrada):p.entrada,
+   tarifa:p.tarifa
+  });
+ };
+
+ function n360QrAddInvoiceButton(){
+  const actions=document.querySelector(
+   '#invoiceResult .invoice-actions'
+  );
+
+  if(actions&&!actions.querySelector('.n360-qr-button')){
+   const b=document.createElement('button');
+   b.type='button';
+   b.className='invoice-action n360-qr-button';
+   b.textContent='▦ Código QR';
+   b.onclick=n360QrFactura;
+
+   const next=actions.querySelector('.invoice-action.new');
+
+   if(next)actions.insertBefore(b,next);
+   else actions.appendChild(b);
+  }
+ }
+
+ function n360QrAddParkingButton(){
+  const print=[...document.querySelectorAll(
+   '.special360-ticket button'
+  )].find(b=>
+   /special360PrintParkingEntry/.test(
+    b.getAttribute('onclick')||''
+   )
+  );
+
+  if(print&&!print.parentElement.querySelector('.n360-qr-button')){
+   const b=document.createElement('button');
+   b.type='button';
+   b.className='special360-btn n360-qr-button';
+   b.style.width='100%';
+   b.style.marginTop='10px';
+   b.textContent='▦ QR del ticket de entrada';
+   b.onclick=n360QrEntrada;
+   print.insertAdjacentElement('afterend',b);
+  }
+ }
+
+ n360QrAddInvoiceButton();
+ n360QrAddParkingButton();
+
+ const observer=new MutationObserver(()=>{
+  n360QrAddInvoiceButton();
+  n360QrAddParkingButton();
+ });
+
+ observer.observe(document.body,{
+  childList:true,
+  subtree:true
+ });
+
+ // La salida de parqueo utiliza el QR de factura.
+})();
+</script>
+ 
 </body>
 </html>
