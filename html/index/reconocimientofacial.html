@@ -3,494 +3,413 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport"
+ content="width=device-width,initial-scale=1">
 <title>ROSTROS - Asistencia Inteligente</title>
 
 <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
 <style>
 :root{
-  --bg:#071321;
-  --panel:#12233a;
-  --panel2:#1a304b;
-  --border:#30455f;
-  --white:#f1f6ff;
-  --muted:#9aafc7;
-  --green:#29d89b;
-  --blue:#4e98ff;
-  --red:#ff647a;
-  --yellow:#ffc56d;
+ --bg:#071321;--panel:#12233a;
+ --panel2:#1a304b;--border:#30455f;
+ --text:#f1f6ff;--muted:#9aafc7;
+ --green:#29d89b;--blue:#4e98ff;
+ --red:#ff647a;
 }
 *{box-sizing:border-box}
 body{
-  margin:0;
-  background:var(--bg);
-  color:var(--white);
-  font-family:Arial,sans-serif;
+ margin:0;background:var(--bg);color:var(--text);
+ font-family:Arial,Helvetica,sans-serif;
 }
 header{
-  padding:22px 5%;
-  border-bottom:1px solid var(--border);
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  gap:15px;
-  flex-wrap:wrap;
+ padding:20px 4%;border-bottom:1px solid var(--border);
+ display:flex;align-items:center;
+ justify-content:space-between;gap:12px;flex-wrap:wrap;
 }
-h1{margin:0;font-size:27px}
-h2{margin:0 0 20px;font-size:20px}
+h1{margin:0;font-size:26px}
+h2{margin:0 0 18px;font-size:20px}
 h3{font-size:16px}
 small,.notice{color:var(--muted)}
-main{max-width:1250px;margin:auto;padding:24px}
+main{max-width:1250px;margin:auto;padding:20px}
 .panel{
-  background:var(--panel);
-  border:1px solid var(--border);
-  border-radius:16px;
-  padding:22px;
-  margin-bottom:18px;
-}
-.grid{
-  display:grid;
-  grid-template-columns:minmax(0,1.5fr) minmax(280px,1fr);
-  gap:18px;
+ background:var(--panel);
+ border:1px solid var(--border);
+ border-radius:15px;padding:20px;margin-bottom:18px;
 }
 .tabs,.actions{
-  display:flex;
-  gap:10px;
-  flex-wrap:wrap;
-  margin-bottom:18px;
+ display:flex;flex-wrap:wrap;gap:9px;margin-bottom:17px;
 }
-.actions{margin-top:15px}
+.actions{margin-top:14px}
 button{
-  border:0;
-  padding:12px 17px;
-  border-radius:9px;
-  background:var(--blue);
-  color:white;
-  font-size:14px;
-  font-weight:bold;
-  cursor:pointer;
+ padding:12px 16px;border:0;border-radius:9px;
+ background:var(--blue);color:white;
+ font-size:14px;font-weight:bold;cursor:pointer;
 }
 button.secondary{background:#31516d}
 button.success{background:#11845c}
 button.danger{background:#b63c58}
 button.active{outline:2px solid white}
-button:disabled{opacity:.5;cursor:not-allowed}
+button:disabled{opacity:.48;cursor:not-allowed}
 label{
-  display:block;
-  color:var(--muted);
-  font-size:14px;
-  margin-bottom:8px;
+ display:block;color:var(--muted);
+ font-size:14px;margin-bottom:7px;
 }
 input,select{
-  width:100%;
-  padding:12px;
-  border-radius:9px;
-  border:1px solid var(--border);
-  background:#0a1728;
-  color:white;
-  margin-bottom:16px;
-  font-size:15px;
+ width:100%;padding:12px;font-size:15px;
+ border-radius:9px;border:1px solid var(--border);
+ background:#0a1728;color:white;margin-bottom:14px;
 }
 input[type=checkbox]{width:auto;margin-right:8px}
+.grid{
+ display:grid;
+ grid-template-columns:minmax(0,1.4fr) minmax(280px,1fr);
+ gap:18px;
+}
 .videoBox{
-  position:relative;
-  aspect-ratio:16/10;
-  background:#010407;
-  border-radius:13px;
-  overflow:hidden;
+ position:relative;background:#010407;
+ border-radius:12px;overflow:hidden;aspect-ratio:16/10;
 }
 video,canvas{
-  position:absolute;
-  inset:0;
-  width:100%;
-  height:100%;
-  object-fit:cover;
+ position:absolute;inset:0;width:100%;height:100%;
+ object-fit:cover;
 }
-video{transform:scaleX(-1)}
+.videoBox.mirror video{transform:scaleX(-1)}
 canvas{pointer-events:none}
 .cameraText{
-  position:absolute;
-  top:50%;
-  left:50%;
-  transform:translate(-50%,-50%);
-  color:var(--muted);
-  text-align:center;
-  width:90%;
+ position:absolute;top:50%;left:50%;
+ transform:translate(-50%,-50%);
+ text-align:center;color:var(--muted);width:90%;
 }
 .state{
-  background:var(--panel2);
-  border-radius:10px;
-  padding:14px;
-  margin-top:14px;
-  line-height:1.5;
-  overflow-wrap:anywhere;
+ background:var(--panel2);border-radius:10px;
+ padding:13px;line-height:1.5;margin-top:12px;
+ overflow-wrap:anywhere;
 }
 .state.ok{border-left:4px solid var(--green)}
 .state.error{border-left:4px solid var(--red)}
 .state.info{border-left:4px solid var(--blue)}
 .stat{
-  padding:15px;
-  border-radius:11px;
-  background:var(--panel2);
-  margin-bottom:12px;
+ background:var(--panel2);
+ border-radius:10px;padding:14px;
 }
+.stat span{font-size:13px;color:var(--muted)}
 .stat strong{
-  display:block;
-  font-size:27px;
-  color:var(--green);
-  margin-top:7px;
+ display:block;font-size:25px;
+ margin-top:5px;color:var(--green);
 }
-.stat span{color:var(--muted);font-size:13px}
+.stats3{
+ display:grid;grid-template-columns:repeat(3,1fr);
+ gap:10px;margin-bottom:18px;
+}
+.stats2{
+ display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+ gap:12px;margin:16px 0;
+}
 .employee{
-  background:var(--panel2);
-  border-radius:10px;
-  padding:13px;
-  margin-top:9px;
+ background:var(--panel2);
+ border-radius:10px;padding:15px;
 }
-.employee b{display:block;margin-bottom:5px}
-.employee small{display:block;margin-top:5px}
-#lastName{font-size:23px;font-weight:bold}
-#lastHour{
-  font-size:21px;
-  color:var(--green);
-  margin-top:8px;
-}
-.notice{font-size:13px;line-height:1.6}
-.hidden{display:none!important}
-.reportFilters{
-  display:grid;
-  grid-template-columns:1fr 1fr 1.4fr;
-  gap:16px;
+#lastName{font-size:22px;font-weight:bold}
+#lastHour{font-size:19px;color:var(--green);margin-top:6px}
+.filters{
+ display:grid;grid-template-columns:1fr 1fr 1.3fr;
+ gap:12px;
 }
 .tableWrap{
-  overflow:auto;
-  border:1px solid var(--border);
-  border-radius:12px;
-  margin-top:18px;
+ overflow:auto;border:1px solid var(--border);
+ border-radius:12px;max-height:540px;
 }
-table{
-  width:100%;
-  border-collapse:collapse;
-  min-width:650px;
-}
+table{border-collapse:collapse;width:100%;min-width:620px}
 th,td{
-  padding:12px;
-  border-bottom:1px solid var(--border);
-  text-align:left;
-  font-size:14px;
+ padding:12px;border-bottom:1px solid var(--border);
+ font-size:14px;text-align:left;
 }
-th{
-  background:var(--panel2);
-  color:var(--white);
-  position:sticky;
-  top:0;
-}
-td{color:#dce8fa}
-tr:hover td{background:#192d45}
-.summary{
-  display:flex;
-  gap:15px;
-  flex-wrap:wrap;
-  margin:20px 0;
-}
-.summary .stat{min-width:180px;flex:1}
-footer{
-  text-align:center;
-  padding:20px;
-  color:var(--muted);
-  font-size:12px;
-}
+th{background:var(--panel2);position:sticky;top:0}
+td{color:#e0eaf6}
+.hidden{display:none!important}
+.notice{font-size:13px;line-height:1.6}
 #gasFrame{
-  width:1px;
-  height:1px;
-  border:0;
-  opacity:0;
-  position:absolute;
-  pointer-events:none;
+ position:absolute;width:1px;height:1px;
+ opacity:0;border:0;pointer-events:none;
+}
+footer{
+ padding:25px;text-align:center;
+ font-size:12px;color:var(--muted);
 }
 @media(max-width:850px){
-  .grid,.reportFilters{grid-template-columns:1fr}
-  main{padding:12px}
-  header{padding:18px}
+ .grid,.filters{grid-template-columns:1fr}
+ main{padding:12px}
+ .panel{padding:15px}
+ .stats3{grid-template-columns:repeat(2,1fr)}
+ .tabs button{flex:1;min-width:125px}
+ header{padding:16px}
+ h1{font-size:23px}
+}
+@media(max-width:450px){
+ .actions button{flex:1}
+ .stats3{grid-template-columns:1fr 1fr}
 }
 </style>
 </head>
-
 <body>
 
 <header>
-  <div>
-    <h1>ROSTROS</h1>
-    <small>Reconocimiento facial y asistencia</small>
-  </div>
-  <span id="connection">Sin conexión</span>
+ <div>
+  <h1>ROSTROS</h1>
+  <small>Reconocimiento facial y asistencia</small>
+ </div>
+ <span id="connection">Sin conexión</span>
 </header>
 
 <main>
 
-<!-- CONEXIÓN -->
 <section id="login" class="panel">
-  <h2>Conectar con Google Sheets</h2>
-  <p class="notice">
-    Sistema para personal informado y autorizado.
-    Prototipo de reconocimiento biométrico.
-  </p>
-  <label for="pin">PIN privado</label>
-  <input id="pin" type="password"
-         autocomplete="off"
-         placeholder="PIN de acceso">
+ <h2>Conectar con Google Sheets</h2>
 
-  <div class="actions">
-    <button id="btnConnect" onclick="conectar()">
-      Conectar sistema
-    </button>
-    <button class="secondary" onclick="probarURL()">
-      Probar URL de Apps Script
-    </button>
-  </div>
-  <div id="loginStatus" class="state info">
-    Esperando conexión.
-  </div>
+ <p class="notice">
+  Sistema para personal informado y autorizado.
+  Versión de prueba.
+ </p>
+
+ <label for="pin">PIN privado</label>
+ <input id="pin" type="password"
+  autocomplete="off" placeholder="PIN de acceso">
+
+ <details>
+  <summary>Configuración de estación fija</summary>
+  <p class="notice">
+   Solo la computadora autorizada necesita
+   la clave de estación. No introducirla
+   en los celulares.
+  </p>
+  <label for="stationKey">Clave de estación</label>
+  <input id="stationKey" type="password"
+   autocomplete="off"
+   placeholder="Clave exclusiva de marcación">
+ </details>
+
+ <div class="actions">
+  <button id="btnConnect" onclick="conectar()">
+   Conectar sistema
+  </button>
+  <button class="secondary" onclick="probarURL()">
+   Probar Apps Script
+  </button>
+ </div>
+
+ <div id="loginStatus" class="state info">
+  Esperando conexión.
+ </div>
 </section>
 
 <div id="app" class="hidden">
 
-  <!-- MENÚ -->
-  <div class="tabs">
-    <button id="tabAttendance" class="active"
-      onclick="cambiarPantalla('asistencia')">
-      Control automático de entradas
+ <div class="tabs">
+  <button id="tabAttendance" class="active"
+   onclick="cambiarPantalla('asistencia')">
+   Control automático de entradas
+  </button>
+  <button id="tabRegistration" class="secondary"
+   onclick="cambiarPantalla('registro')">
+   Registrar rostro
+  </button>
+  <button id="tabReports" class="secondary"
+   onclick="cambiarPantalla('reportes')">
+   Reportes
+  </button>
+ </div>
+
+ <div id="mainGrid" class="grid">
+
+  <section class="panel">
+   <h2 id="cameraTitle">Cámara de control</h2>
+
+   <label for="cameraSelect">Seleccionar cámara</label>
+   <select id="cameraSelect"
+    onchange="cambiarCamara()">
+    <option value="">Cámara predeterminada</option>
+   </select>
+
+   <div id="videoBox" class="videoBox mirror">
+    <video id="video" autoplay muted playsinline></video>
+    <canvas id="canvas"></canvas>
+    <div id="cameraText" class="cameraText">
+     Cámara pendiente de activación
+    </div>
+   </div>
+
+   <div class="actions">
+    <button id="btnStart" class="success"
+     onclick="iniciarCamara()">
+     Activar cámara
     </button>
-
-    <button id="tabRegistration" class="secondary"
-      onclick="cambiarPantalla('registro')">
-      Registrar rostro
+    <button id="btnStop" class="danger"
+     onclick="detenerCamara()" disabled>
+     Detener cámara
     </button>
+   </div>
 
-    <button id="tabReports" class="secondary"
-      onclick="cambiarPantalla('reportes')">
-      Reportes
-    </button>
-  </div>
+   <div id="cameraStatus" class="state info">
+    Cámara no activada.
+   </div>
 
-  <!-- CÁMARA Y CONTROLES -->
-  <div id="mainGrid" class="grid">
+   <p class="notice" id="deviceNotice">
+    Selecciona la cámara para comenzar.
+   </p>
+  </section>
 
-    <section class="panel">
-      <h2 id="cameraTitle">
-        Reconocimiento automático
-      </h2>
+  <section>
 
-      <div class="videoBox">
-        <video id="video" autoplay muted
-               playsinline></video>
-        <canvas id="canvas"></canvas>
+   <div id="attendancePanel" class="panel">
+    <h2>Control automático de entradas</h2>
 
-        <div id="cameraText" class="cameraText">
-          Cámara pendiente de activación
-        </div>
-      </div>
+    <div id="stationWarning" class="state info">
+     Consulta disponible. Para registrar entradas
+     se requiere una estación fija autorizada.
+    </div>
 
-      <div class="actions">
-        <button id="btnStart" class="success"
-          onclick="iniciarCamara()">
-          Activar cámara
-        </button>
-        <button id="btnStop" class="danger"
-          onclick="detenerCamara()" disabled>
-          Detener cámara
-        </button>
-      </div>
+    <div class="stats3">
+     <div class="stat">
+      <span>Personas registradas</span>
+      <strong id="totalPersons">0</strong>
+     </div>
+     <div class="stat">
+      <span>Entradas de esta sesión</span>
+      <strong id="totalEntries">0</strong>
+     </div>
+     <div class="stat">
+      <span>Rostros detectados</span>
+      <strong id="totalFaces">0</strong>
+     </div>
+    </div>
 
-      <div id="cameraStatus" class="state info">
-        Cámara no activada.
-      </div>
-
-      <p class="notice">
-        Reconocimiento continuo de rostros quietos
-        o en movimiento. La cámara debe estar
-        instalada en una zona de acceso informada.
-      </p>
-    </section>
-
-    <section>
-
-      <!-- ENTRADAS AUTOMÁTICAS -->
-      <div id="attendancePanel" class="panel">
-        <h2>Entradas automáticas</h2>
-
-        <div class="stat">
-          <span>Personas registradas</span>
-          <strong id="totalPersons">0</strong>
-        </div>
-
-        <div class="stat">
-          <span>Entradas nuevas de esta sesión</span>
-          <strong id="totalEntries">0</strong>
-        </div>
-
-        <div class="stat">
-          <span>Rostros detectados</span>
-          <strong id="totalFaces">0</strong>
-        </div>
-
-        <h3>Última entrada</h3>
-        <div class="employee">
-          <div id="lastName">
-            Esperando siguiente empleado
-          </div>
-          <div id="lastHour">--:--:--</div>
-        </div>
-
-        <p class="notice">
-          Estos campos se limpian automáticamente
-          después de cinco segundos.
-        </p>
-
-        <div class="actions">
-          <button class="secondary"
-            onclick="actualizarBase()">
-            Actualizar base facial
-          </button>
-        </div>
-      </div>
-
-      <!-- REGISTRO -->
-      <div id="registrationPanel"
-           class="panel hidden">
-
-        <h2>Registrar nueva persona</h2>
-
-        <label for="employeeId">Identificación</label>
-        <input id="employeeId"
-               placeholder="Ejemplo: 001">
-
-        <label for="employeeName">
-          Nombre completo
-        </label>
-        <input id="employeeName"
-               placeholder="Nombre del empleado">
-
-        <label class="notice">
-          <input type="checkbox" id="consent">
-          Confirmo que existe autorización
-          documentada para el uso biométrico
-          y una alternativa de marcación.
-        </label>
-
-        <div class="actions">
-          <button id="btnRegister" class="success"
-            onclick="registrarRostro()">
-            Capturar y registrar
-          </button>
-        </div>
-
-        <div id="registrationStatus"
-             class="state info">
-          Activa la cámara y muestra un solo rostro.
-        </div>
-      </div>
-
-    </section>
-  </div>
-
-  <!-- NUEVA PANTALLA REPORTES -->
-  <section id="reportsPanel"
-           class="panel hidden">
-
-    <h2>Reportes de asistencia</h2>
+    <h3>Última entrada</h3>
+    <div class="employee">
+     <div id="lastName">
+      Esperando siguiente empleado
+     </div>
+     <div id="lastHour">--:--:--</div>
+    </div>
 
     <p class="notice">
-      Consulta las marcaciones de la hoja Registros
-      por fecha, rango de fechas, empleado o cualquier
-      combinación de estos filtros.
+     Se limpia después de 5 segundos.
+     La hoja Registros conserva la marcación.
     </p>
 
-    <div class="reportFilters">
+    <button class="secondary"
+     onclick="actualizarBase()">
+     Actualizar base facial
+    </button>
+   </div>
 
-      <div>
-        <label for="fechaDesde">Desde</label>
-        <input type="date" id="fechaDesde">
-      </div>
+   <div id="registrationPanel" class="panel hidden">
+    <h2>Registrar nueva persona</h2>
 
-      <div>
-        <label for="fechaHasta">Hasta</label>
-        <input type="date" id="fechaHasta">
-      </div>
+    <label for="employeeId">Identificación</label>
+    <input id="employeeId" placeholder="Ejemplo: 001">
 
-      <div>
-        <label for="filtroEmpleado">
-          Nombre del empleado
-        </label>
-        <select id="filtroEmpleado">
-          <option value="">Todos los empleados</option>
-        </select>
-      </div>
+    <label for="employeeName">Nombre</label>
+    <input id="employeeName"
+     placeholder="Nombre completo">
 
+    <label class="notice">
+     <input id="consent" type="checkbox">
+     Confirmo la información y autorización
+     documentada para este registro biométrico.
+    </label>
+
+    <button id="btnRegister" class="success"
+     onclick="registrarRostro()">
+     Capturar y registrar
+    </button>
+
+    <div id="registrationStatus" class="state info">
+     Activa la cámara y muestra un solo rostro.
     </div>
-
-    <div class="actions">
-      <button class="success" id="btnConsultar"
-        onclick="consultarReportes()">
-        Consultar registros
-      </button>
-
-      <button class="secondary"
-        onclick="limpiarFiltros()">
-        Limpiar filtros
-      </button>
-
-      <button class="secondary" id="btnCSV"
-        onclick="exportarCSV()" disabled>
-        Exportar CSV
-      </button>
-    </div>
-
-    <div id="reportStatus" class="state info">
-      Selecciona los filtros y presiona Consultar.
-    </div>
-
-    <div class="summary">
-      <div class="stat">
-        <span>Registros encontrados</span>
-        <strong id="totalReportes">0</strong>
-      </div>
-
-      <div class="stat">
-        <span>Empleados diferentes</span>
-        <strong id="empleadosReportes">0</strong>
-      </div>
-    </div>
-
-    <div class="tableWrap">
-      <table>
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Nombre</th>
-            <th>Fecha</th>
-            <th>Hora entrada</th>
-            <th>Hora salida</th>
-          </tr>
-        </thead>
-        <tbody id="reportBody">
-          <tr>
-            <td colspan="5">
-              Todavía no se ha realizado una consulta.
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+   </div>
 
   </section>
+ </div>
+
+ <section id="reportsPanel" class="panel hidden">
+  <h2>Reportes de asistencia</h2>
+
+  <div class="filters">
+   <div>
+    <label for="fechaDesde">Desde</label>
+    <input id="fechaDesde" type="date">
+   </div>
+
+   <div>
+    <label for="fechaHasta">Hasta</label>
+    <input id="fechaHasta" type="date">
+   </div>
+
+   <div>
+    <label for="filtroEmpleado">Nombre</label>
+    <select id="filtroEmpleado">
+     <option value="">Todos</option>
+    </select>
+   </div>
+  </div>
+
+  <div class="actions">
+   <button id="btnConsultar" class="success"
+    onclick="consultarReportes()">
+    Consultar registros
+   </button>
+   <button class="secondary"
+    onclick="limpiarFiltros()">
+    Limpiar filtros
+   </button>
+   <button id="btnExcel" class="secondary"
+    onclick="exportarExcel()" disabled>
+    Exportar a Excel
+   </button>
+  </div>
+
+  <div id="reportStatus" class="state info">
+   Selecciona fechas y/o nombre para consultar.
+  </div>
+
+  <div class="stats2">
+   <div class="stat">
+    <span>Registros encontrados</span>
+    <strong id="totalReportes">0</strong>
+   </div>
+   <div class="stat">
+    <span>Empleados diferentes</span>
+    <strong id="empleadosReportes">0</strong>
+   </div>
+  </div>
+
+  <div class="tableWrap">
+   <table>
+    <thead>
+     <tr>
+      <th>ID</th>
+      <th>Nombre</th>
+      <th>Fecha</th>
+      <th>Hora entrada</th>
+      <th>Hora salida</th>
+     </tr>
+    </thead>
+    <tbody id="reportBody">
+     <tr><td colspan="5">
+      Todavía no hay una consulta.
+     </td></tr>
+    </tbody>
+   </table>
+  </div>
+ </section>
 
 </div>
 </main>
 
 <footer>
-  ROSTROS · Control automático de entradas
+ ROSTROS · Control facial y reportes
 </footer>
 
 <iframe id="gasFrame" name="gasFrame"></iframe>
@@ -498,1212 +417,892 @@ footer{
 <script>
 "use strict";
 
-/*************************************************
+/**************************************************
  CONFIGURACIÓN
-*************************************************/
+**************************************************/
 
-// PEGA AQUÍ LA URL /exec DE TU APPS SCRIPT.
-const GAS_URL = "https://script.google.com/macros/s/AKfycbwu8i2Gh0NDYpOPJuMW2GPTeABs9L7v7cYU5Ef13WMGSIanHhKGXgzUEtYp_En30agW/exec";
+// Sustituye por la URL /exec de Apps Script.
+const GAS_URL = "https://script.google.com/macros/s/AKfycbw--ZaY_pkZX9im4PgJBazmjFEbkMM6UqMVELRmCOa2mnDsRrbk0gqkS1sO7mAHDTg/exec";
 
 const MODEL_URL =
-"https://cdn.jsdelivr.net/gh/justadudewhohacks/face-api.js@0.22.2/weights";
+ "https://cdn.jsdelivr.net/gh/justadudewhohacks/face-api.js@0.22.2/weights";
 
-const FACE_THRESHOLD = 0.48;
-const REQUIRED_FRAMES = 3;
-const TRACK_WINDOW_MS = 2500;
-const RETRY_INTERVAL_MS = 120000;
-const SCAN_INTERVAL_MS = 350;
-const MAX_FACES = 5;
-
-// Tiempo que se muestra la última entrada.
+const UMBRAL = 0.48;
+const CONFIRMACIONES = 3;
+const VENTANA_MS = 2500;
+const REINTENTO_MS = 120000;
+const ESCANEO_MS = 350;
+const MAX_ROSTROS = 5;
 const LIMPIEZA_MS = 5000;
 
-/*************************************************
- VARIABLES GENERALES
-*************************************************/
+// ================================================
+// ESTADO
+// ================================================
 
 let pin = "";
+let stationKey = "";
+let modoEstacion = false;
 let personas = [];
+let nombres = [];
 let matcher = null;
-let modelosCargados = false;
+let modelosListos = false;
 let stream = null;
 let camaraActiva = false;
 let loopActivo = false;
 let pantalla = "asistencia";
+let espejo = true;
 let totalEntradas = 0;
 let reportesActuales = [];
-
+let reporteCompleto = true;
 let timerLimpieza = null;
-let timerEstado = null;
-let diaMarcaciones = "";
+let diaActual = "";
 
-const seguimiento = new Map();
-const ultimoIntento = new Map();
-const pendientesMarcacion = new Set();
-const yaRegistradosHoy = new Set();
+const seguimientos = new Map();
+const intentos = new Map();
+const pendientes = new Set();
+const registradosHoy = new Set();
 const solicitudes = new Map();
 
-let colaSolicitudes = Promise.resolve();
+let cola = Promise.resolve();
 
 const $ = id => document.getElementById(id);
 
 function esperar(ms) {
-  return new Promise(resolve =>
-    setTimeout(resolve, ms)
-  );
+ return new Promise(r => setTimeout(r,ms));
 }
 
-function estado(id, texto, tipo = "info") {
-  const e = $(id);
-  e.textContent = texto;
-  e.className = "state " + tipo;
+function estado(id,texto,tipo="info") {
+ const e=$(id);
+ e.textContent=texto;
+ e.className="state "+tipo;
 }
 
-function fechaHonduras() {
-  return new Intl.DateTimeFormat("en-CA", {
-    timeZone: "America/Tegucigalpa",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit"
-  }).format(new Date());
+function fechaHoy() {
+ const f = new Intl.DateTimeFormat("en-US",{
+  timeZone:"America/Tegucigalpa",
+  year:"numeric",month:"2-digit",day:"2-digit"
+ }).formatToParts(new Date());
+
+ const p=Object.fromEntries(
+  f.filter(x=>x.type!=="literal")
+   .map(x=>[x.type,x.value])
+ );
+
+ return `${p.year}-${p.month}-${p.day}`;
 }
 
 // ================================================
-// PRUEBA DE CONEXIÓN
+// COMUNICACIÓN APPS SCRIPT
+// ================================================
+
+window.addEventListener("message",event=>{
+ const correcto =
+  event.origin==="https://script.google.com" ||
+  /^https:\/\/[a-z0-9.-]+\.googleusercontent\.com$/
+   .test(event.origin);
+
+ if(!correcto) return;
+
+ const d=event.data;
+ if(!d || d.sistema!=="ROSTROS") return;
+
+ const s=solicitudes.get(d.requestId);
+ if(!s) return;
+
+ clearTimeout(s.timer);
+ solicitudes.delete(d.requestId);
+
+ if(d.ok) s.resolve(d);
+ else s.reject(new Error(d.mensaje||"Error del servidor."));
+});
+
+function api(accion,datos={}) {
+ const trabajo=()=>enviar(accion,datos);
+ const resultado=cola.then(trabajo,trabajo);
+ cola=resultado.catch(()=>{});
+ return resultado;
+}
+
+function enviar(accion,datos) {
+ return new Promise((resolve,reject)=>{
+  if(!/^https:\/\/script\.google\.com\/macros\/s\/.+\/exec$/
+    .test(GAS_URL)){
+   reject(new Error("Configura GAS_URL."));
+   return;
+  }
+
+  const requestId=crypto.randomUUID();
+
+  const timer=setTimeout(()=>{
+   solicitudes.delete(requestId);
+   reject(new Error(
+    "Apps Script no respondió en 30 segundos."
+   ));
+  },30000);
+
+  solicitudes.set(requestId,{resolve,reject,timer});
+
+  const form=document.createElement("form");
+  form.method="POST";
+  form.action=GAS_URL;
+  form.target="gasFrame";
+  form.style.display="none";
+
+  const campos={accion,pin,requestId,...datos};
+
+  Object.entries(campos).forEach(([k,v])=>{
+   const inp=document.createElement("input");
+   inp.type="hidden";
+   inp.name=k;
+   inp.value=String(v);
+   form.appendChild(inp);
+  });
+
+  document.body.appendChild(form);
+
+  try {form.submit();}
+  catch(e){
+   clearTimeout(timer);
+   solicitudes.delete(requestId);
+   reject(e);
+  }
+  finally {form.remove();}
+ });
+}
+
+// ================================================
+// CONEXIÓN
 // ================================================
 
 function probarURL() {
-  if (
-    !/^https:\/\/script\.google\.com\/macros\/s\/.+\/exec$/
-      .test(GAS_URL)
-  ) {
-    estado(
-      "loginStatus",
-      "Configura una URL válida de Apps Script.",
-      "error"
-    );
-    return;
-  }
-
-  window.open(
-    GAS_URL,
-    "_blank",
-    "noopener,noreferrer"
-  );
-
-  estado(
-    "loginStatus",
-    "Verifica que la nueva pestaña muestre " +
-    "ROSTROS: servicio publicado correctamente.",
-    "info"
-  );
+ window.open(GAS_URL,"_blank","noopener,noreferrer");
 }
-
-// ================================================
-// COMUNICACIÓN CON APPS SCRIPT
-// ================================================
-
-window.addEventListener("message", event => {
-  const origenValido =
-    event.origin === "https://script.google.com" ||
-    /^https:\/\/[a-z0-9.-]+\.googleusercontent\.com$/
-      .test(event.origin);
-
-  if (!origenValido) return;
-
-  const data = event.data;
-
-  if (!data || data.sistema !== "ROSTROS") return;
-
-  const solicitud = solicitudes.get(
-    data.requestId
-  );
-
-  if (!solicitud) return;
-
-  clearTimeout(solicitud.timer);
-  solicitudes.delete(data.requestId);
-
-  if (data.ok) {
-    solicitud.resolve(data);
-  } else {
-    solicitud.reject(
-      new Error(data.mensaje || "Error del servidor.")
-    );
-  }
-});
-
-function api(accion, datos = {}) {
-  const ejecutar = () =>
-    enviarSolicitud(accion, datos);
-
-  const resultado = colaSolicitudes.then(
-    ejecutar, ejecutar
-  );
-
-  colaSolicitudes = resultado.catch(() => {});
-
-  return resultado;
-}
-
-function enviarSolicitud(accion, datos) {
-  return new Promise((resolve, reject) => {
-
-    if (
-      !/^https:\/\/script\.google\.com\/macros\/s\/.+\/exec$/
-        .test(GAS_URL)
-    ) {
-      reject(new Error(
-        "La URL de Apps Script no es válida."
-      ));
-      return;
-    }
-
-    const requestId = crypto.randomUUID();
-
-    const timer = setTimeout(() => {
-      solicitudes.delete(requestId);
-
-      reject(new Error(
-        "Apps Script no respondió en 30 segundos."
-      ));
-    }, 30000);
-
-    solicitudes.set(requestId, {
-      resolve, reject, timer
-    });
-
-    const form = document.createElement("form");
-
-    form.method = "POST";
-    form.action = GAS_URL;
-    form.target = "gasFrame";
-    form.style.display = "none";
-    form.acceptCharset = "UTF-8";
-
-    const campos = {
-      accion,
-      pin,
-      requestId,
-      ...datos
-    };
-
-    for (const [nombre, valor] of Object.entries(campos)) {
-      const input = document.createElement("input");
-
-      input.type = "hidden";
-      input.name = nombre;
-      input.value = String(valor);
-
-      form.appendChild(input);
-    }
-
-    document.body.appendChild(form);
-
-    try {
-      form.submit();
-    } catch (error) {
-      clearTimeout(timer);
-      solicitudes.delete(requestId);
-      reject(error);
-    } finally {
-      form.remove();
-    }
-  });
-}
-
-// ================================================
-// CARGAR MODELOS FACIALES
-// ================================================
 
 async function cargarModelos() {
-  if (modelosCargados) return;
+ if(modelosListos) return;
 
-  if (typeof faceapi === "undefined") {
-    throw new Error(
-      "No se pudo cargar face-api.js."
-    );
-  }
+ if(typeof faceapi==="undefined"){
+  throw new Error("No cargó face-api.js.");
+ }
 
-  await Promise.all([
-    faceapi.nets.tinyFaceDetector
-      .loadFromUri(MODEL_URL),
-    faceapi.nets.faceLandmark68Net
-      .loadFromUri(MODEL_URL),
-    faceapi.nets.faceRecognitionNet
-      .loadFromUri(MODEL_URL)
-  ]);
+ await Promise.all([
+  faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
+  faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
+  faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
+ ]);
 
-  modelosCargados = true;
+ modelosListos=true;
 }
-
-// ================================================
-// CONECTAR SISTEMA
-// ================================================
 
 async function conectar() {
-  pin = $("pin").value.trim();
+ pin=$("pin").value.trim();
+ stationKey=$("stationKey").value.trim();
+ modoEstacion=stationKey.length>0;
 
-  if (!pin) {
-    estado(
-      "loginStatus",
-      "Ingresa el PIN privado.",
-      "error"
-    );
-    return;
+ if(!pin){
+  estado("loginStatus","Ingresa el PIN.","error");
+  return;
+ }
+
+ $("btnConnect").disabled=true;
+
+ try{
+  estado("loginStatus","Conectando...","info");
+  await api("ping");
+
+  estado("loginStatus","Cargando modelos...","info");
+  await cargarModelos();
+  await cargarPersonas();
+
+  $("login").classList.add("hidden");
+  $("app").classList.remove("hidden");
+  $("pin").value="";
+  $("stationKey").value="";
+  $("connection").textContent="Conectado";
+
+  if(modoEstacion){
+   $("stationWarning").textContent=
+    "Estación configurada para marcaciones. " +
+    "Activa la cámara para comenzar.";
+  }else{
+   $("stationWarning").textContent=
+    "Modo consulta: aquí puedes acceder al " +
+    "control, pero este dispositivo no enviará " +
+    "marcaciones de asistencia.";
   }
 
-  $("btnConnect").disabled = true;
+  await listarNombres();
+  await cargarCamaras();
 
-  try {
-    estado(
-      "loginStatus",
-      "Conectando con Google Apps Script...",
-      "info"
-    );
-
-    await api("ping");
-
-    estado(
-      "loginStatus",
-      "Cargando modelos faciales...",
-      "info"
-    );
-
-    await cargarModelos();
-    await cargarPersonas();
-
-    $("login").classList.add("hidden");
-    $("app").classList.remove("hidden");
-
-    $("connection").textContent =
-      "Conectado a Google Sheets";
-
-    $("pin").value = "";
-
-  } catch (error) {
-    estado(
-      "loginStatus",
-      error.message,
-      "error"
-    );
-  } finally {
-    $("btnConnect").disabled = false;
-  }
+ }catch(e){
+  estado("loginStatus",e.message,"error");
+ }finally{
+  $("btnConnect").disabled=false;
+ }
 }
 
-// ================================================
-// CARGAR PERSONAS
-// ================================================
-
 async function cargarPersonas() {
-  const respuesta = await api("listar");
+ const r=await api("listar");
+ personas=r.personas||[];
 
-  personas = respuesta.personas || [];
+ const descriptores=personas.map(p=>
+  new faceapi.LabeledFaceDescriptors(
+   p.id,[new Float32Array(p.descriptor)]
+  )
+ );
 
-  const descriptores = personas.map(p =>
-    new faceapi.LabeledFaceDescriptors(
-      p.id,
-      [new Float32Array(p.descriptor)]
-    )
-  );
+ matcher=descriptores.length
+  ?new faceapi.FaceMatcher(descriptores,UMBRAL)
+  :null;
 
-  matcher = descriptores.length
-    ? new faceapi.FaceMatcher(
-        descriptores,
-        FACE_THRESHOLD
-      )
-    : null;
+ $("totalPersons").textContent=personas.length;
+ seguimientos.clear();
+}
 
-  $("totalPersons").textContent =
-    personas.length;
+async function listarNombres() {
+ const r=await api("nombres");
+ nombres=r.personas||[];
 
-  seguimiento.clear();
+ const select=$("filtroEmpleado");
+ const anterior=select.value;
+ select.replaceChildren();
 
-  cargarSelectorEmpleados();
+ const todos=new Option("Todos","");
+ select.add(todos);
+
+ nombres.sort((a,b)=>
+  a.nombre.localeCompare(b.nombre,"es")
+ ).forEach(p=>{
+  select.add(new Option(p.nombre,p.id));
+ });
+
+ if([...select.options].some(o=>o.value===anterior)){
+  select.value=anterior;
+ }
 }
 
 async function actualizarBase() {
-  try {
-    await cargarPersonas();
-
-    estado(
-      "cameraStatus",
-      "Base facial actualizada.",
-      "ok"
-    );
-  } catch (error) {
-    estado(
-      "cameraStatus",
-      error.message,
-      "error"
-    );
-  }
+ try{
+  await cargarPersonas();
+  await listarNombres();
+  estado("cameraStatus",
+   "Base actualizada correctamente.","ok");
+ }catch(e){
+  estado("cameraStatus",e.message,"error");
+ }
 }
 
 // ================================================
-// NUEVO: SELECTOR DE EMPLEADOS
+// PANTALLAS
 // ================================================
 
-function cargarSelectorEmpleados() {
-  const selector = $("filtroEmpleado");
+function cambiarPantalla(v) {
+ pantalla=v;
 
-  const seleccionado = selector.value;
+ $("mainGrid").classList.toggle("hidden",v==="reportes");
+ $("attendancePanel").classList.toggle(
+  "hidden",v!=="asistencia");
+ $("registrationPanel").classList.toggle(
+  "hidden",v!=="registro");
+ $("reportsPanel").classList.toggle(
+  "hidden",v!=="reportes");
 
-  selector.replaceChildren();
+ const tabs={
+  asistencia:"tabAttendance",
+  registro:"tabRegistration",
+  reportes:"tabReports"
+ };
 
-  const todos = document.createElement("option");
-  todos.value = "";
-  todos.textContent = "Todos los empleados";
-  selector.appendChild(todos);
+ Object.entries(tabs).forEach(([k,id])=>{
+  $(id).classList.toggle("active",k===v);
+  $(id).classList.toggle("secondary",k!==v);
+ });
 
-  const ordenados = [...personas].sort(
-    (a, b) =>
-      a.nombre.localeCompare(b.nombre, "es")
-  );
+ $("cameraTitle").textContent=
+  v==="registro"?"Registro facial":"Cámara de control";
 
-  ordenados.forEach(p => {
-    const opcion = document.createElement("option");
+ seguimientos.clear();
+ limpiarCanvas();
 
-    opcion.value = p.id;
-    opcion.textContent = p.nombre;
-
-    selector.appendChild(opcion);
-  });
-
-  if (
-    [...selector.options].some(
-      o => o.value === seleccionado
-    )
-  ) {
-    selector.value = seleccionado;
-  }
+ if(v==="reportes"){
+  // No usar cámara mientras se consultan reportes.
+  detenerCamara();
+ }
 }
 
 // ================================================
-// CAMBIAR PANTALLAS
+// SELECCIÓN DE CÁMARA
 // ================================================
 
-function cambiarPantalla(opcion) {
-  pantalla = opcion;
+async function cargarCamaras() {
+ if(!navigator.mediaDevices?.enumerateDevices) return;
 
-  $("mainGrid").classList.toggle(
-    "hidden",
-    opcion === "reportes"
-  );
+ const dispositivos=await navigator.mediaDevices
+  .enumerateDevices();
 
-  $("attendancePanel").classList.toggle(
-    "hidden",
-    opcion !== "asistencia"
-  );
+ const cameras=dispositivos.filter(
+  d=>d.kind==="videoinput"
+ );
 
-  $("registrationPanel").classList.toggle(
-    "hidden",
-    opcion !== "registro"
-  );
+ const select=$("cameraSelect");
+ const anterior=select.value;
+ select.replaceChildren();
 
-  $("reportsPanel").classList.toggle(
-    "hidden",
-    opcion !== "reportes"
-  );
+ select.add(new Option(
+  "Cámara predeterminada",""
+ ));
 
-  const botones = {
-    asistencia: "tabAttendance",
-    registro: "tabRegistration",
-    reportes: "tabReports"
-  };
+ cameras.forEach((d,i)=>{
+  select.add(new Option(
+   d.label||"Cámara "+(i+1),
+   d.deviceId
+  ));
+ });
 
-  Object.entries(botones).forEach(([clave,id]) => {
-    const activo = clave === opcion;
-
-    $(id).classList.toggle("active", activo);
-    $(id).classList.toggle("secondary", !activo);
-  });
-
-  $("cameraTitle").textContent =
-    opcion === "registro"
-      ? "Registro facial"
-      : "Reconocimiento automático";
-
-  seguimiento.clear();
-  limpiarCanvas();
-
-  if (opcion === "reportes") {
-    $("totalFaces").textContent = "0";
-  }
+ if([...select.options].some(o=>o.value===anterior)){
+  select.value=anterior;
+ }
 }
 
-// ================================================
-// ACTIVAR CÁMARA
-// ================================================
+async function cambiarCamara() {
+ if(camaraActiva){
+  detenerCamara();
+  await iniciarCamara();
+ }
+}
 
 async function iniciarCamara() {
-  if (camaraActiva) return;
+ if(camaraActiva) return;
 
-  try {
-    if (!navigator.mediaDevices?.getUserMedia) {
-      throw new Error(
-        "El navegador no permite utilizar la cámara."
-      );
-    }
+ if(!navigator.mediaDevices?.getUserMedia){
+  estado("cameraStatus",
+   "Cámara no disponible.","error");
+  return;
+ }
 
-    stream = await navigator.mediaDevices
-      .getUserMedia({
-        audio: false,
-        video: {
-          width: {ideal:1280},
-          height: {ideal:720},
-          frameRate: {ideal:25},
-          facingMode:"user"
-        }
-      });
+ try{
+  const deviceId=$("cameraSelect").value;
 
-    $("video").srcObject = stream;
+  const video=deviceId
+   ?{deviceId:{exact:deviceId},
+     width:{ideal:1280},height:{ideal:720}}
+   :{facingMode:"user",
+     width:{ideal:1280},height:{ideal:720}};
 
-    await $("video").play();
+  stream=await navigator.mediaDevices.getUserMedia({
+   audio:false,video
+  });
 
-    camaraActiva = true;
+  $("video").srcObject=stream;
+  await $("video").play();
 
-    $("cameraText").classList.add("hidden");
+  camaraActiva=true;
 
-    $("btnStart").disabled = true;
-    $("btnStop").disabled = false;
+  const track=stream.getVideoTracks()[0];
+  const settings=track.getSettings();
 
-    estado(
-      "cameraStatus",
-      "Cámara activa. Esperando empleados...",
-      "ok"
-    );
+  espejo=(settings.facingMode!=="environment");
 
-    ejecutarDeteccion();
+  $("videoBox").classList.toggle("mirror",espejo);
 
-  } catch (error) {
-    estado(
-      "cameraStatus",
-      error.message,
-      "error"
-    );
-  }
+  $("cameraText").classList.add("hidden");
+  $("btnStart").disabled=true;
+  $("btnStop").disabled=false;
+
+  await cargarCamaras();
+
+  estado("cameraStatus",
+   modoEstacion
+    ?"Cámara activa. Control de entradas listo."
+    :"Cámara activa. Sin permiso para marcar asistencia.",
+   "ok");
+
+  ejecutarDeteccion();
+
+ }catch(e){
+  estado("cameraStatus",e.message,"error");
+ }
 }
 
 function detenerCamara() {
-  camaraActiva = false;
+ camaraActiva=false;
 
-  if (stream) {
-    stream.getTracks().forEach(
-      track => track.stop()
-    );
-  }
+ if(stream){
+  stream.getTracks().forEach(t=>t.stop());
+ }
+ stream=null;
+ $("video").srcObject=null;
 
-  stream = null;
-  $("video").srcObject = null;
+ $("btnStart").disabled=false;
+ $("btnStop").disabled=true;
+ $("cameraText").classList.remove("hidden");
+ $("totalFaces").textContent="0";
 
-  $("btnStart").disabled = false;
-  $("btnStop").disabled = true;
-
-  $("cameraText").classList.remove("hidden");
-
-  $("totalFaces").textContent = "0";
-
-  seguimiento.clear();
-  limpiarCanvas();
-
-  estado(
-    "cameraStatus",
-    "Cámara detenida.",
-    "info"
-  );
-}
-
-// ================================================
-// DETECCIÓN DE ROSTROS
-// ================================================
-
-async function detectarRostros() {
-  const opciones =
-    new faceapi.TinyFaceDetectorOptions({
-      inputSize:416,
-      scoreThreshold:0.50
-    });
-
-  return faceapi
-    .detectAllFaces($("video"), opciones)
-    .withFaceLandmarks()
-    .withFaceDescriptors();
+ limpiarCanvas();
+ seguimientos.clear();
 }
 
 function limpiarCanvas() {
-  const canvas = $("canvas");
-
-  canvas.getContext("2d").clearRect(
-    0, 0, canvas.width, canvas.height
-  );
-}
-
-function dibujarRostros(rostros, nombres) {
-  const video = $("video");
-  const canvas = $("canvas");
-
-  canvas.width = video.videoWidth;
-  canvas.height = video.videoHeight;
-
-  const ctx = canvas.getContext("2d");
-
-  ctx.clearRect(
-    0, 0, canvas.width, canvas.height
-  );
-
-  ctx.lineWidth = 3;
-  ctx.font = "16px Arial";
-
-  rostros.forEach((rostro, i) => {
-    const b = rostro.detection.box;
-
-    const x = canvas.width - b.x - b.width;
-    const y = b.y;
-
-    const nombre = nombres[i] || "Desconocido";
-
-    const conocido =
-      nombre !== "Desconocido" &&
-      nombre !== "Sin registros";
-
-    ctx.strokeStyle = conocido
-      ? "#29d89b"
-      : "#ffc56d";
-
-    ctx.strokeRect(x, y, b.width, b.height);
-
-    const ancho = Math.max(
-      95,
-      ctx.measureText(nombre).width + 16
-    );
-
-    ctx.fillStyle = conocido
-      ? "#11845c"
-      : "#81561d";
-
-    ctx.fillRect(
-      x,
-      Math.max(0, y - 27),
-      ancho,
-      26
-    );
-
-    ctx.fillStyle = "#fff";
-
-    ctx.fillText(
-      nombre,
-      x + 8,
-      Math.max(20, y - 7)
-    );
-  });
+ const c=$("canvas");
+ c.getContext("2d").clearRect(
+  0,0,c.width,c.height
+ );
 }
 
 // ================================================
-// VALIDACIÓN DE IDENTIDAD
+// RECONOCIMIENTO
 // ================================================
 
-function confirmarIdentidad(id) {
-  const ahora = Date.now();
-
-  let registro = seguimiento.get(id);
-
-  if (
-    !registro ||
-    ahora - registro.ultimaVista > TRACK_WINDOW_MS
-  ) {
-    registro = {
-      confirmaciones:0,
-      ultimaVista:ahora
-    };
-  }
-
-  registro.confirmaciones++;
-  registro.ultimaVista = ahora;
-
-  seguimiento.set(id, registro);
-
-  return (
-    registro.confirmaciones >= REQUIRED_FRAMES
-  );
+async function detectarRostros() {
+ return faceapi.detectAllFaces(
+  $("video"),
+  new faceapi.TinyFaceDetectorOptions({
+   inputSize:416,scoreThreshold:0.5
+  })
+ ).withFaceLandmarks().withFaceDescriptors();
 }
 
-function limpiarSeguimiento() {
-  const ahora = Date.now();
+function dibujar(rostros,etiquetas) {
+ const c=$("canvas");
+ const v=$("video");
 
-  for (const [id, registro] of seguimiento) {
-    if (
-      ahora - registro.ultimaVista >
-      TRACK_WINDOW_MS
-    ) {
-      seguimiento.delete(id);
-    }
-  }
+ c.width=v.videoWidth;
+ c.height=v.videoHeight;
+
+ const ctx=c.getContext("2d");
+ ctx.font="16px Arial";
+ ctx.lineWidth=3;
+
+ rostros.forEach((r,i)=>{
+  const b=r.detection.box;
+  const x=espejo?c.width-b.x-b.width:b.x;
+  const y=b.y;
+
+  ctx.strokeStyle="#29d89b";
+  ctx.strokeRect(x,y,b.width,b.height);
+
+  const texto=etiquetas[i]||"Rostro detectado";
+  const ancho=ctx.measureText(texto).width+18;
+
+  ctx.fillStyle="#11845c";
+  ctx.fillRect(x,Math.max(0,y-28),ancho,27);
+
+  ctx.fillStyle="white";
+  ctx.fillText(texto,x+9,Math.max(19,y-8));
+ });
 }
 
-// ================================================
-// DETECCIÓN CONTINUA
-// ================================================
+function confirmar(id) {
+ const ahora=Date.now();
+ let r=seguimientos.get(id);
+
+ if(!r||ahora-r.ultima>VENTANA_MS){
+  r={cantidad:0,ultima:ahora};
+ }
+
+ r.cantidad++;
+ r.ultima=ahora;
+ seguimientos.set(id,r);
+
+ return r.cantidad>=CONFIRMACIONES;
+}
 
 async function ejecutarDeteccion() {
-  if (loopActivo) return;
+ if(loopActivo) return;
 
-  loopActivo = true;
+ loopActivo=true;
 
-  while (camaraActiva) {
-    try {
-      if (pantalla !== "asistencia") {
-        await esperar(SCAN_INTERVAL_MS);
-        continue;
+ while(camaraActiva){
+  try{
+   if(pantalla!=="asistencia"){
+    await esperar(ESCANEO_MS);
+    continue;
+   }
+
+   const hoy=fechaHoy();
+
+   if(diaActual!==hoy){
+    diaActual=hoy;
+    registradosHoy.clear();
+    intentos.clear();
+    seguimientos.clear();
+   }
+
+   const rostros=await detectarRostros();
+   if(!camaraActiva) break;
+
+   $("totalFaces").textContent=rostros.length;
+
+   if(rostros.length>MAX_ROSTROS){
+    limpiarCanvas();
+    await esperar(ESCANEO_MS);
+    continue;
+   }
+
+   const etiquetas=[];
+   const candidatos=new Set();
+
+   for(const rostro of rostros){
+    let nombre="Rostro detectado";
+
+    if(matcher){
+     const match=matcher.findBestMatch(
+      rostro.descriptor
+     );
+
+     if(match.label!=="unknown"){
+      const p=personas.find(x=>x.id===match.label);
+      if(p){
+       nombre=p.nombre;
+       candidatos.add(p.id);
       }
-
-      // Reiniciar controles locales al cambiar
-      // de fecha en Honduras.
-      const hoy = fechaHonduras();
-
-      if (diaMarcaciones !== hoy) {
-        diaMarcaciones = hoy;
-        yaRegistradosHoy.clear();
-        ultimoIntento.clear();
-        seguimiento.clear();
-      }
-
-      const resultados = await detectarRostros();
-
-      if (!camaraActiva) break;
-
-      $("totalFaces").textContent =
-        resultados.length;
-
-      if (resultados.length > MAX_FACES) {
-        limpiarCanvas();
-        await esperar(SCAN_INTERVAL_MS);
-        continue;
-      }
-
-      const nombres = [];
-      const candidatos = new Map();
-
-      for (const rostro of resultados) {
-        if (!matcher) {
-          nombres.push("Sin registros");
-          continue;
-        }
-
-        const mejor = matcher.findBestMatch(
-          rostro.descriptor
-        );
-
-        if (mejor.label === "unknown") {
-          nombres.push("Desconocido");
-          continue;
-        }
-
-        const persona = personas.find(
-          p => p.id === mejor.label
-        );
-
-        if (!persona) {
-          nombres.push("Desconocido");
-          continue;
-        }
-
-        nombres.push(persona.nombre);
-
-        const previo = candidatos.get(
-          persona.id
-        );
-
-        if (
-          !previo ||
-          mejor.distance < previo.distance
-        ) {
-          candidatos.set(persona.id, mejor);
-        }
-      }
-
-      dibujarRostros(resultados, nombres);
-
-      for (const [id] of candidatos) {
-        if (
-          !yaRegistradosHoy.has(id) &&
-          confirmarIdentidad(id)
-        ) {
-          marcarEntrada(id);
-        }
-      }
-
-      limpiarSeguimiento();
-
-    } catch (error) {
-      console.error(
-        "Error de reconocimiento:",
-        error
-      );
+     }
     }
+    etiquetas.push(nombre);
+   }
 
-    await esperar(SCAN_INTERVAL_MS);
+   dibujar(rostros,etiquetas);
+
+   if(modoEstacion){
+    for(const id of candidatos){
+     if(!registradosHoy.has(id)&&confirmar(id)){
+      marcarEntrada(id);
+     }
+    }
+   }
+
+   for(const [id,r] of seguimientos){
+    if(Date.now()-r.ultima>VENTANA_MS){
+     seguimientos.delete(id);
+    }
+   }
+
+  }catch(e){
+   console.error(e);
   }
 
-  loopActivo = false;
+  await esperar(ESCANEO_MS);
+ }
+
+ loopActivo=false;
 }
 
 // ================================================
-// NUEVO: LIMPIAR ÚLTIMA ENTRADA
-// ================================================
-
-function limpiarUltimaEntrada() {
-  $("lastName").textContent =
-    "Esperando siguiente empleado";
-
-  $("lastHour").textContent =
-    "--:--:--";
-
-  seguimiento.clear();
-}
-
-function mostrarEntradaTemporal(nombre, hora) {
-  clearTimeout(timerLimpieza);
-  clearTimeout(timerEstado);
-
-  $("lastName").textContent = nombre;
-  $("lastHour").textContent = hora;
-
-  estado(
-    "cameraStatus",
-    nombre + " — Entrada registrada correctamente.",
-    "ok"
-  );
-
-  timerLimpieza = setTimeout(() => {
-    limpiarUltimaEntrada();
-  }, LIMPIEZA_MS);
-
-  timerEstado = setTimeout(() => {
-    if (camaraActiva) {
-      estado(
-        "cameraStatus",
-        "Cámara activa. Esperando siguiente empleado...",
-        "info"
-      );
-    }
-  }, LIMPIEZA_MS);
-}
-
-// ================================================
-// REGISTRAR ENTRADA
+// ENTRADAS: EXCLUSIVO ESTACIÓN
 // ================================================
 
 async function marcarEntrada(id) {
-  if (pendientesMarcacion.has(id)) return;
-  if (yaRegistradosHoy.has(id)) return;
+ if(!modoEstacion||!stationKey) return;
+ if(pendientes.has(id)||registradosHoy.has(id)) return;
 
-  const ahora = Date.now();
-  const ultimo = ultimoIntento.get(id) || 0;
+ const ahora=Date.now();
 
-  if (
-    ahora - ultimo < RETRY_INTERVAL_MS
-  ) return;
+ if(ahora-(intentos.get(id)||0)<REINTENTO_MS) return;
 
-  pendientesMarcacion.add(id);
-  ultimoIntento.set(id, ahora);
+ intentos.set(id,ahora);
+ pendientes.add(id);
 
-  try {
-    const respuesta = await api(
-      "entrada",
-      { id }
-    );
+ try{
+  const r=await api("entrada",{
+   id,stationKey
+  });
 
-    if (respuesta.tipo === "entrada") {
-      // Una nueva entrada registrada.
-      yaRegistradosHoy.add(id);
-
-      totalEntradas++;
-
-      $("totalEntries").textContent =
-        totalEntradas;
-
-      mostrarEntradaTemporal(
-        respuesta.nombre,
-        respuesta.hora
-      );
-    }
-
-    if (respuesta.tipo === "duplicado") {
-      // No volver a enviar este ID hoy.
-      yaRegistradosHoy.add(id);
-    }
-
-  } catch (error) {
-    ultimoIntento.delete(id);
-
-    estado(
-      "cameraStatus",
-      error.message,
-      "error"
-    );
-
-  } finally {
-    pendientesMarcacion.delete(id);
+  if(r.tipo==="entrada"){
+   registradosHoy.add(id);
+   totalEntradas++;
+   $("totalEntries").textContent=totalEntradas;
+   mostrarEntrada(r.nombre,r.hora);
   }
+
+  if(r.tipo==="duplicado"){
+   registradosHoy.add(id);
+  }
+
+ }catch(e){
+  intentos.delete(id);
+  estado("cameraStatus",e.message,"error");
+ }finally{
+  pendientes.delete(id);
+ }
+}
+
+function mostrarEntrada(nombre,hora) {
+ clearTimeout(timerLimpieza);
+
+ $("lastName").textContent=nombre;
+ $("lastHour").textContent=hora;
+
+ estado("cameraStatus",
+  nombre+" — Entrada registrada.","ok");
+
+ timerLimpieza=setTimeout(()=>{
+  $("lastName").textContent=
+   "Esperando siguiente empleado";
+  $("lastHour").textContent="--:--:--";
+
+  if(camaraActiva){
+   estado("cameraStatus",
+    "Esperando siguiente empleado...","info");
+  }
+ },LIMPIEZA_MS);
 }
 
 // ================================================
-// REGISTRAR NUEVO ROSTRO
+// REGISTRO FACIAL: PC Y CELULAR
 // ================================================
 
 async function registrarRostro() {
-  const id = $("employeeId").value.trim();
-  const nombre = $("employeeName").value.trim();
+ const id=$("employeeId").value.trim();
+ const nombre=$("employeeName").value.trim();
 
-  if (!id || !nombre) {
-    estado(
-      "registrationStatus",
-      "Ingresa identificación y nombre.",
-      "error"
+ if(!id||!nombre){
+  estado("registrationStatus",
+   "Ingresa ID y nombre.","error");
+  return;
+ }
+
+ if(!$("consent").checked){
+  estado("registrationStatus",
+   "Confirma autorización documentada.","error");
+  return;
+ }
+
+ if(!camaraActiva){
+  estado("registrationStatus",
+   "Activa la cámara.","error");
+  return;
+ }
+
+ $("btnRegister").disabled=true;
+
+ try{
+  estado("registrationStatus",
+   "Analizando rostro...","info");
+
+  const muestras=[];
+
+  for(let i=0;i<3;i++){
+   const rostros=await detectarRostros();
+
+   if(rostros.length!==1){
+    throw new Error(
+     "Debe aparecer exactamente un rostro."
     );
-    return;
+   }
+
+   muestras.push(rostros[0]);
+   await esperar(350);
   }
 
-  if (!$("consent").checked) {
-    estado(
-      "registrationStatus",
-      "Confirma la autorización documentada.",
-      "error"
+  muestras.sort((a,b)=>
+   b.detection.score-a.detection.score
+  );
+
+  const vector=Array.from(
+   muestras[0].descriptor
+  );
+
+  if(matcher){
+   const encontrado=matcher.findBestMatch(
+    new Float32Array(vector)
+   );
+
+   if(encontrado.label!=="unknown"){
+    throw new Error(
+     "Rostro similar al ID "+
+     encontrado.label
     );
-    return;
+   }
   }
 
-  if (!camaraActiva) {
-    estado(
-      "registrationStatus",
-      "Activa primero la cámara.",
-      "error"
-    );
-    return;
-  }
+  const r=await api("registrar",{
+   id,nombre,
+   descriptor:JSON.stringify(vector)
+  });
 
-  $("btnRegister").disabled = true;
+  estado("registrationStatus",r.mensaje,"ok");
 
-  try {
-    estado(
-      "registrationStatus",
-      "Analizando rostro...",
-      "info"
-    );
+  $("employeeId").value="";
+  $("employeeName").value="";
+  $("consent").checked=false;
 
-    const muestras = [];
+  await cargarPersonas();
+  await listarNombres();
 
-    for (let i = 0; i < 3; i++) {
-      const resultados = await detectarRostros();
-
-      if (resultados.length !== 1) {
-        throw new Error(
-          "Debe aparecer exactamente un rostro."
-        );
-      }
-
-      muestras.push(resultados[0]);
-
-      await esperar(350);
-    }
-
-    muestras.sort(
-      (a,b) =>
-        b.detection.score - a.detection.score
-    );
-
-    const descriptor = Array.from(
-      muestras[0].descriptor
-    );
-
-    if (matcher) {
-      const mejor = matcher.findBestMatch(
-        new Float32Array(descriptor)
-      );
-
-      if (mejor.label !== "unknown") {
-        throw new Error(
-          "Existe un rostro similar con ID " +
-          mejor.label
-        );
-      }
-    }
-
-    const respuesta = await api("registrar", {
-      id,
-      nombre,
-      descriptor: JSON.stringify(descriptor)
-    });
-
-    estado(
-      "registrationStatus",
-      respuesta.mensaje,
-      "ok"
-    );
-
-    $("employeeId").value = "";
-    $("employeeName").value = "";
-    $("consent").checked = false;
-
-    await cargarPersonas();
-
-  } catch (error) {
-    estado(
-      "registrationStatus",
-      error.message,
-      "error"
-    );
-
-  } finally {
-    $("btnRegister").disabled = false;
-  }
+ }catch(e){
+  estado("registrationStatus",e.message,"error");
+ }finally{
+  $("btnRegister").disabled=false;
+ }
 }
 
 // ================================================
-// NUEVO: CONSULTAR REPORTES
+// REPORTES: PC Y CELULAR
 // ================================================
 
 async function consultarReportes() {
-  const desde = $("fechaDesde").value;
-  const hasta = $("fechaHasta").value;
-  const id = $("filtroEmpleado").value;
+ const desde=$("fechaDesde").value;
+ const hasta=$("fechaHasta").value;
+ const id=$("filtroEmpleado").value;
 
-  if (desde && hasta && desde > hasta) {
-    estado(
-      "reportStatus",
-      "La fecha Desde no puede superar a Hasta.",
-      "error"
-    );
-    return;
-  }
+ if(desde&&hasta&&desde>hasta){
+  estado("reportStatus",
+   "Desde no puede ser posterior a Hasta.","error");
+  return;
+ }
 
-  $("btnConsultar").disabled = true;
+ $("btnConsultar").disabled=true;
+ $("btnExcel").disabled=true;
 
-  estado(
-    "reportStatus",
-    "Consultando registros en Google Sheets...",
-    "info"
-  );
+ estado("reportStatus",
+  "Consultando Google Sheets...","info");
 
-  try {
-    const respuesta = await api("reportes", {
-      desde,
-      hasta,
-      id
-    });
-
-    reportesActuales = respuesta.registros || [];
-
-    mostrarReportes(
-      reportesActuales,
-      respuesta.total,
-      respuesta.truncado
-    );
-
-    $("btnCSV").disabled =
-      reportesActuales.length === 0;
-
-    let mensaje =
-      respuesta.total +
-      " registros encontrados.";
-
-    if (respuesta.truncado) {
-      mensaje +=
-        " Se muestran solo los primeros " +
-        respuesta.limite +
-        " registros más recientes.";
-    }
-
-    estado(
-      "reportStatus",
-      mensaje,
-      "ok"
-    );
-
-  } catch (error) {
-    estado(
-      "reportStatus",
-      error.message,
-      "error"
-    );
-  } finally {
-    $("btnConsultar").disabled = false;
-  }
-}
-
-// ================================================
-// NUEVO: MOSTRAR TABLA REPORTES
-// ================================================
-
-function mostrarReportes(registros,total,truncado) {
-  const tbody = $("reportBody");
-
-  tbody.replaceChildren();
-
-  $("totalReportes").textContent =
-    total ?? registros.length;
-
-  const unicos = new Set(
-    registros.map(r => r.id)
-  );
-
-  $("empleadosReportes").textContent =
-    unicos.size + (truncado ? "+" : "");
-
-  if (!registros.length) {
-    const tr = document.createElement("tr");
-    const td = document.createElement("td");
-
-    td.colSpan = 5;
-    td.textContent =
-      "No se encontraron registros para estos filtros.";
-
-    tr.appendChild(td);
-    tbody.appendChild(tr);
-    return;
-  }
-
-  registros.forEach(r => {
-    const tr = document.createElement("tr");
-
-    const valores = [
-      r.id,
-      r.nombre,
-      formatearFecha(r.fecha),
-      r.entrada,
-      r.salida
-    ];
-
-    valores.forEach(valor => {
-      const td = document.createElement("td");
-      td.textContent = valor || "—";
-      tr.appendChild(td);
-    });
-
-    tbody.appendChild(tr);
+ try{
+  const r=await api("reportes",{
+   desde,hasta,id
   });
+
+  reportesActuales=r.registros||[];
+  reporteCompleto=!r.truncado;
+
+  $("totalReportes").textContent=r.total;
+  $("empleadosReportes").textContent=r.empleados;
+
+  mostrarTabla(reportesActuales);
+
+  $("btnExcel").disabled=
+   !reportesActuales.length;
+
+  estado("reportStatus",
+   r.total+" registros encontrados"+
+   (r.truncado
+    ?". Solo se muestran los primeros 5000."
+    :"."),
+   "ok");
+
+ }catch(e){
+  estado("reportStatus",e.message,"error");
+ }finally{
+  $("btnConsultar").disabled=false;
+ }
 }
 
-function formatearFecha(fecha) {
-  const m = String(fecha).match(
-    /^(\d{4})-(\d{2})-(\d{2})$/
-  );
+function mostrarTabla(datos) {
+ const body=$("reportBody");
+ body.replaceChildren();
 
-  return m
-    ? m[3] + "/" + m[2] + "/" + m[1]
-    : fecha;
+ if(!datos.length){
+  const tr=document.createElement("tr");
+  const td=document.createElement("td");
+  td.colSpan=5;
+  td.textContent="Sin registros para estos filtros.";
+  tr.appendChild(td);
+  body.appendChild(tr);
+  return;
+ }
+
+ datos.forEach(r=>{
+  const tr=document.createElement("tr");
+
+  [r.id,r.nombre,r.fecha,r.entrada,r.salida]
+   .forEach(v=>{
+    const td=document.createElement("td");
+    td.textContent=v||"—";
+    tr.appendChild(td);
+   });
+
+  body.appendChild(tr);
+ });
 }
-
-// ================================================
-// NUEVO: LIMPIAR FILTROS
-// ================================================
 
 function limpiarFiltros() {
-  $("fechaDesde").value = "";
-  $("fechaHasta").value = "";
-  $("filtroEmpleado").value = "";
+ $("fechaDesde").value="";
+ $("fechaHasta").value="";
+ $("filtroEmpleado").value="";
 
-  reportesActuales = [];
+ reportesActuales=[];
+ reporteCompleto=true;
 
-  $("totalReportes").textContent = "0";
-  $("empleadosReportes").textContent = "0";
-  $("btnCSV").disabled = true;
+ $("totalReportes").textContent="0";
+ $("empleadosReportes").textContent="0";
+ $("btnExcel").disabled=true;
 
-  const tbody = $("reportBody");
-  tbody.replaceChildren();
+ mostrarTabla([]);
 
-  const tr = document.createElement("tr");
-  const td = document.createElement("td");
-
-  td.colSpan = 5;
-  td.textContent =
-    "Selecciona filtros y consulta los registros.";
-
-  tr.appendChild(td);
-  tbody.appendChild(tr);
-
-  estado(
-    "reportStatus",
-    "Filtros limpios. Puedes consultar nuevamente.",
-    "info"
-  );
+ estado("reportStatus",
+  "Filtros limpios.","info");
 }
 
 // ================================================
-// NUEVO: EXPORTAR CSV
+// EXPORTACIÓN REAL A EXCEL
 // ================================================
 
-function exportarCSV() {
-  if (!reportesActuales.length) return;
+function exportarExcel() {
+ if(!reportesActuales.length) return;
 
-  const columnas = [
-    "ID",
-    "Nombre",
-    "Fecha",
-    "Hora entrada",
-    "Hora salida"
-  ];
+ if(typeof XLSX==="undefined"){
+  estado("reportStatus",
+   "No se pudo cargar la biblioteca Excel.",
+   "error");
+  return;
+ }
 
-  const filas = reportesActuales.map(r => [
-    r.id,
-    r.nombre,
-    r.fecha,
-    r.entrada,
-    r.salida
-  ]);
+ const datos=reportesActuales.map(r=>({
+  "ID":String(r.id||""),
+  "Nombre":String(r.nombre||""),
+  "Fecha":String(r.fecha||""),
+  "Hora entrada":String(r.entrada||""),
+  "Hora salida":String(r.salida||"")
+ }));
 
-  function csvSeguro(valor) {
-    let texto = String(valor ?? "");
+ // Crear celdas explícitas como texto. Esto
+ // conserva ID con ceros iniciales y evita
+ // interpretar valores como fórmulas.
+ const headers=[
+  "ID","Nombre","Fecha",
+  "Hora entrada","Hora salida"
+ ];
 
-    // Evitar ejecución de fórmulas al abrir
-    // datos exportados en una hoja de cálculo.
-    if (/^[\s]*[=+\-@\t\r]/.test(texto)) {
-      texto = "'" + texto;
-    }
+ const filas=datos.map(r=>
+  headers.map(h=>({
+   t:"s",v:r[h]
+  }))
+ );
 
-    return '"' +
-      texto.replace(/"/g, '""') +
-      '"';
-  }
+ const encabezados=headers.map(h=>({
+  t:"s",v:h
+ }));
 
-  const contenido = [
-    columnas,
-    ...filas
-  ].map(f =>
-    f.map(csvSeguro).join(";")
-  ).join("\r\n");
+ const ws=XLSX.utils.aoa_to_sheet(
+  [encabezados,...filas]
+ );
 
-  const blob = new Blob(
-    ["\uFEFF", contenido],
-    {type:"text/csv;charset=utf-8"}
-  );
+ ws["!cols"]=[
+  {wch:15},{wch:32},{wch:16},
+  {wch:17},{wch:17}
+ ];
 
-  const url = URL.createObjectURL(blob);
+ const wb=XLSX.utils.book_new();
 
-  const enlace = document.createElement("a");
-  enlace.href = url;
-  enlace.download = "ROSTROS_Reportes.csv";
+ XLSX.utils.book_append_sheet(
+  wb,ws,"Asistencia"
+ );
 
-  document.body.appendChild(enlace);
-  enlace.click();
-  enlace.remove();
+ XLSX.writeFile(
+  wb,
+  "ROSTROS_Reporte_"+fechaHoy()+".xlsx"
+ );
 
-  setTimeout(() => {
-    URL.revokeObjectURL(url);
-  }, 1000);
+ estado("reportStatus",
+  reporteCompleto
+   ?"Archivo Excel generado."
+   :"Excel generado con resultados parciales.",
+  "ok");
 }
 
-// ================================================
-// CIERRE DE CÁMARA
-// ================================================
-
-window.addEventListener(
-  "pagehide",
-  detenerCamara
-);
-
+window.addEventListener("pagehide",()=>{
+ detenerCamara();
+});
 </script>
 </body>
 </html>
