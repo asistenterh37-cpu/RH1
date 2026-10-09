@@ -1,1 +1,1265 @@
 
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport"
+      content="width=device-width,initial-scale=1">
+<title>ROSTROS - Asistencia Inteligente</title>
+
+<script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+
+<style>
+:root {
+  --bg:#071321;
+  --panel:#12233a;
+  --panel2:#1a304b;
+  --border:#30455f;
+  --white:#f1f6ff;
+  --muted:#9aafc7;
+  --green:#29d89b;
+  --blue:#4e98ff;
+  --red:#ff647a;
+  --yellow:#ffc56d;
+}
+* {box-sizing:border-box}
+body {
+  margin:0;
+  background:var(--bg);
+  color:var(--white);
+  font-family:Arial,sans-serif;
+}
+header {
+  padding:22px 5%;
+  border-bottom:1px solid var(--border);
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:15px;
+  flex-wrap:wrap;
+}
+h1 {margin:0;font-size:27px}
+h2 {margin-top:0;font-size:20px}
+small,p.info {color:var(--muted)}
+main {
+  max-width:1200px;
+  margin:auto;
+  padding:24px;
+}
+.panel {
+  background:var(--panel);
+  border:1px solid var(--border);
+  border-radius:16px;
+  padding:22px;
+  margin-bottom:18px;
+}
+.grid {
+  display:grid;
+  grid-template-columns:minmax(0,1.5fr) minmax(280px,1fr);
+  gap:18px;
+}
+.tabs {
+  display:flex;
+  gap:10px;
+  margin-bottom:18px;
+  flex-wrap:wrap;
+}
+button {
+  padding:12px 16px;
+  border:0;
+  border-radius:9px;
+  background:var(--blue);
+  color:white;
+  font-size:14px;
+  font-weight:bold;
+  cursor:pointer;
+}
+button:disabled {
+  opacity:.5;
+  cursor:not-allowed;
+}
+button.secondary {background:#31516d}
+button.success {background:#11845c}
+button.danger {background:#b63c58}
+button.active {outline:2px solid white}
+.actions {
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+  margin:15px 0;
+}
+label {
+  display:block;
+  color:var(--muted);
+  margin-bottom:8px;
+}
+input {
+  width:100%;
+  padding:12px;
+  border-radius:9px;
+  border:1px solid var(--border);
+  background:#0a1728;
+  color:white;
+  margin-bottom:15px;
+  font-size:15px;
+}
+input[type=checkbox] {
+  width:auto;
+  margin-right:8px;
+}
+.videoBox {
+  position:relative;
+  width:100%;
+  aspect-ratio:16/10;
+  border-radius:13px;
+  background:#010407;
+  overflow:hidden;
+}
+video,canvas {
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  object-fit:cover;
+}
+video {transform:scaleX(-1)}
+canvas {pointer-events:none}
+.cameraText {
+  position:absolute;
+  left:50%;
+  top:50%;
+  transform:translate(-50%,-50%);
+  color:var(--muted);
+  text-align:center;
+  width:90%;
+}
+.state {
+  background:var(--panel2);
+  border-radius:10px;
+  padding:14px;
+  margin-top:14px;
+  line-height:1.5;
+}
+.state.ok {border-left:4px solid var(--green)}
+.state.error {border-left:4px solid var(--red)}
+.state.info {border-left:4px solid var(--blue)}
+.stat {
+  padding:15px;
+  border-radius:11px;
+  background:var(--panel2);
+  margin-bottom:12px;
+}
+.stat strong {
+  display:block;
+  font-size:27px;
+  color:var(--green);
+  margin:7px 0;
+}
+.stat span {color:var(--muted);font-size:13px}
+.employee {
+  background:var(--panel2);
+  border-radius:10px;
+  padding:13px;
+  margin-top:9px;
+}
+.employee b {display:block;margin-bottom:5px}
+.employee small {display:block;margin-top:5px}
+.hidden {display:none!important}
+.notice {
+  color:var(--muted);
+  font-size:13px;
+  line-height:1.6;
+}
+footer {
+  text-align:center;
+  padding:20px;
+  color:var(--muted);
+  font-size:12px;
+}
+#lastName {font-size:23px;font-weight:bold}
+#lastHour {font-size:21px;color:var(--green);margin-top:8px}
+@media(max-width:800px) {
+  .grid {grid-template-columns:1fr}
+  main {padding:12px}
+  header {padding:18px}
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <div>
+    <h1>ROSTROS</h1>
+    <small>Reconocimiento facial y asistencia</small>
+  </div>
+  <span id="connection">Sin conexión</span>
+</header>
+
+<main>
+
+<section id="login" class="panel">
+  <h2>Conectar con Google Sheets</h2>
+
+  <p class="notice">
+    Control biométrico para personal informado y
+    autorizado. Usa un PIN privado para acceder al
+    prototipo.
+  </p>
+
+  <label>PIN privado</label>
+  <input id="pin" type="password"
+         autocomplete="off"
+         placeholder="PIN de acceso">
+
+  <button id="btnConnect" onclick="conectar()">
+    Conectar sistema
+  </button>
+
+  <div id="loginStatus" class="state info">
+    Esperando conexión.
+  </div>
+</section>
+
+<div id="app" class="hidden">
+
+  <div class="tabs">
+    <button id="tabAttendance" class="active"
+            onclick="cambiarPantalla('asistencia')">
+      Control automático de entradas
+    </button>
+
+    <button id="tabRegistration" class="secondary"
+            onclick="cambiarPantalla('registro')">
+      Registrar rostro
+    </button>
+  </div>
+
+  <div class="grid">
+
+    <section class="panel">
+      <h2 id="cameraTitle">
+        Cámara de reconocimiento
+      </h2>
+
+      <div class="videoBox">
+        <video id="video" autoplay playsinline
+               muted></video>
+        <canvas id="canvas"></canvas>
+
+        <div id="cameraText" class="cameraText">
+          Cámara pendiente de activación
+        </div>
+      </div>
+
+      <div class="actions">
+        <button id="btnStart" class="success"
+                onclick="iniciarCamara()">
+          Activar cámara
+        </button>
+
+        <button id="btnStop" class="danger"
+                onclick="detenerCamara()" disabled>
+          Detener cámara
+        </button>
+      </div>
+
+      <div id="cameraStatus" class="state info">
+        Esperando permiso de cámara.
+      </div>
+
+      <p class="notice">
+        La cámara analiza rostros continuamente mientras
+        está activa. Debe estar dirigida a una zona de
+        acceso señalizada. Los fotogramas no se guardan
+        en Google Sheets.
+      </p>
+    </section>
+
+    <section>
+
+      <div id="attendancePanel" class="panel">
+        <h2>Entradas automáticas</h2>
+
+        <div class="stat">
+          <span>Personas registradas</span>
+          <strong id="totalPersons">0</strong>
+        </div>
+
+        <div class="stat">
+          <span>Entradas nuevas en esta sesión</span>
+          <strong id="totalEntries">0</strong>
+        </div>
+
+        <div class="stat">
+          <span>Rostros detectados actualmente</span>
+          <strong id="totalFaces">0</strong>
+        </div>
+
+        <h3>Última entrada</h3>
+
+        <div class="employee">
+          <div id="lastName">Sin entradas</div>
+          <div id="lastHour">--:--:--</div>
+        </div>
+
+        <h3>Actividad reciente</h3>
+        <div id="activity">
+          <p class="notice">
+            Esperando identificaciones...
+          </p>
+        </div>
+
+        <div class="actions">
+          <button class="secondary"
+                  onclick="actualizarBase()">
+            Actualizar rostros
+          </button>
+        </div>
+      </div>
+
+      <div id="registrationPanel"
+           class="panel hidden">
+
+        <h2>Registrar nueva persona</h2>
+
+        <label>Identificación</label>
+        <input id="employeeId"
+               placeholder="Ejemplo: 001">
+
+        <label>Nombre completo</label>
+        <input id="employeeName"
+               placeholder="Nombre del empleado">
+
+        <label class="notice">
+          <input type="checkbox" id="consent">
+          Confirmo que se informó a la persona,
+          se documentó la autorización aplicable y
+          existe una alternativa no biométrica.
+        </label>
+
+        <div class="actions">
+          <button id="btnRegister" class="success"
+                  onclick="registrarRostro()">
+            Capturar y registrar
+          </button>
+        </div>
+
+        <div id="registrationStatus"
+             class="state info">
+          Activa la cámara y coloca un único rostro
+          frente a ella para el registro inicial.
+        </div>
+
+      </div>
+    </section>
+
+  </div>
+</div>
+
+</main>
+
+<footer>
+  ROSTROS · Control automático de entradas
+</footer>
+
+<iframe id="gasFrame" name="gasFrame"
+        class="hidden"></iframe>
+
+<script>
+"use strict";
+
+/*************************************************
+ CONFIGURACIÓN
+**************************************************/
+
+// Sustituir por la URL /exec de Apps Script.
+const GAS_URL = "https://script.google.com/macros/s/AKfycbxxKgd8kHzSPdR-ZgpJmO86Ck90Xn4Gz-jCsEqiJG_yvnwjWerxeeRf7ISdQzpI-rZB/exec";
+
+// Modelos para face-api.js.
+const MODEL_URL =
+"https://cdn.jsdelivr.net/gh/justadudewhohacks/face-api.js@0.22.2/weights";
+
+// Distancia facial máxima permitida.
+// Umbral experimental, no certificado.
+const FACE_THRESHOLD = 0.48;
+
+// Confirmaciones positivas mínimas.
+const REQUIRED_FRAMES = 2;
+
+// Ventana para acumular confirmaciones.
+const TRACK_WINDOW_MS = 2500;
+
+// Tiempo entre intentos al mismo ID.
+const RETRY_INTERVAL_MS = 120000;
+
+// Tiempo entre ciclos de lectura.
+const SCAN_INTERVAL_MS = 350;
+
+// Evita saturación del servicio.
+const MAX_SIMULTANEOUS_FACES = 5;
+
+/*************************************************
+ VARIABLES GENERALES
+**************************************************/
+
+let pin = "";
+let personas = [];
+let matcher = null;
+
+let modelosCargados = false;
+let stream = null;
+let camaraActiva = false;
+let loopActivo = false;
+let pantalla = "asistencia";
+
+let totalEntradas = 0;
+
+// Estado individual por empleado.
+const seguimiento = new Map();
+const ultimoIntento = new Map();
+const pendientesMarcacion = new Set();
+
+// Canal de solicitudes serializado.
+const solicitudes = new Map();
+let colaSolicitudes = Promise.resolve();
+
+const $ = id => document.getElementById(id);
+
+function esperar(ms) {
+  return new Promise(r => setTimeout(r, ms));
+}
+
+function estado(id, texto, tipo = "info") {
+  const e = $(id);
+  e.textContent = texto;
+  e.className = "state " + tipo;
+}
+
+function horaLocal() {
+  return new Date().toLocaleTimeString("es-HN", {
+    timeZone: "America/Tegucigalpa"
+  });
+}
+
+/*************************************************
+ COMUNICACIÓN GITHUB -> APPS SCRIPT
+
+ El iframe evita utilizar fetch cross-origin
+ directamente contra ContentService.
+**************************************************/
+
+window.addEventListener("message", e => {
+  const origenPermitido =
+    e.origin === "https://script.google.com" ||
+    /^https:\/\/[a-z0-9.-]+\.googleusercontent\.com$/
+      .test(e.origin);
+
+  if (!origenPermitido) return;
+
+  const data = e.data;
+
+  if (!data || data.sistema !== "ROSTROS") {
+    return;
+  }
+
+  const solicitud = solicitudes.get(
+    data.requestId
+  );
+
+  if (!solicitud) return;
+
+  clearTimeout(solicitud.timer);
+  solicitudes.delete(data.requestId);
+
+  if (data.ok) {
+    solicitud.resolve(data);
+  } else {
+    solicitud.reject(new Error(
+      data.mensaje || "Error de servidor."
+    ));
+  }
+});
+
+// Solo una solicitud simultánea por iframe.
+function api(accion, datos = {}) {
+  const ejecutar = () => enviarSolicitud(
+    accion, datos
+  );
+
+  const resultado = colaSolicitudes.then(
+    ejecutar, ejecutar
+  );
+
+  colaSolicitudes = resultado.catch(() => {});
+  return resultado;
+}
+
+function enviarSolicitud(accion, datos) {
+  return new Promise((resolve, reject) => {
+
+    if (!GAS_URL.startsWith(
+      "https://script.google.com/macros/s/"
+    )) {
+      reject(new Error(
+        "Configura la URL de Apps Script."
+      ));
+      return;
+    }
+
+    const requestId = crypto.randomUUID();
+
+    const timer = setTimeout(() => {
+      solicitudes.delete(requestId);
+
+      reject(new Error(
+        "Sin respuesta del servidor. Revisa " +
+        "URL, permisos, origen y despliegue."
+      ));
+
+    }, 30000);
+
+    solicitudes.set(requestId, {
+      resolve, reject, timer
+    });
+
+    const form = document.createElement("form");
+
+    form.method = "POST";
+    form.action = GAS_URL;
+    form.target = "gasFrame";
+    form.style.display = "none";
+
+    const campos = {
+      accion,
+      requestId,
+      pin,
+      ...datos
+    };
+
+    Object.entries(campos).forEach(([k, v]) => {
+      const input = document.createElement("input");
+
+      input.type = "hidden";
+      input.name = k;
+      input.value = String(v);
+
+      form.appendChild(input);
+    });
+
+    document.body.appendChild(form);
+
+    try {
+      form.submit();
+    } catch (err) {
+      clearTimeout(timer);
+      solicitudes.delete(requestId);
+      reject(err);
+    } finally {
+      form.remove();
+    }
+  });
+}
+
+/*************************************************
+ CARGA DE MODELOS
+**************************************************/
+
+async function cargarModelos() {
+  if (modelosCargados) return;
+
+  await Promise.all([
+    faceapi.nets.tinyFaceDetector
+      .loadFromUri(MODEL_URL),
+
+    faceapi.nets.faceLandmark68Net
+      .loadFromUri(MODEL_URL),
+
+    faceapi.nets.faceRecognitionNet
+      .loadFromUri(MODEL_URL)
+  ]);
+
+  modelosCargados = true;
+}
+
+/*************************************************
+ CONECTAR
+**************************************************/
+
+async function conectar() {
+  pin = $("pin").value.trim();
+
+  if (!pin) {
+    estado(
+      "loginStatus",
+      "Introduce el PIN privado.",
+      "error"
+    );
+    return;
+  }
+
+  $("btnConnect").disabled = true;
+
+  try {
+    estado(
+      "loginStatus",
+      "Cargando motor de reconocimiento...",
+      "info"
+    );
+
+    await cargarModelos();
+    await cargarPersonas();
+
+    $("login").classList.add("hidden");
+    $("app").classList.remove("hidden");
+
+    $("connection").textContent =
+      "Conectado a Google Sheets";
+
+  } catch (error) {
+    estado(
+      "loginStatus",
+      error.message,
+      "error"
+    );
+
+  } finally {
+    $("btnConnect").disabled = false;
+  }
+}
+
+/*************************************************
+ LEER BASE FACIAL
+**************************************************/
+
+async function cargarPersonas() {
+  const respuesta = await api("listar");
+
+  personas = respuesta.personas || [];
+
+  const descriptores = personas.map(p =>
+    new faceapi.LabeledFaceDescriptors(
+      p.id,
+      [new Float32Array(p.descriptor)]
+    )
+  );
+
+  matcher = descriptores.length
+    ? new faceapi.FaceMatcher(
+        descriptores,
+        FACE_THRESHOLD
+      )
+    : null;
+
+  $("totalPersons").textContent =
+    personas.length;
+
+  seguimiento.clear();
+
+  return personas;
+}
+
+async function actualizarBase() {
+  try {
+    await cargarPersonas();
+
+    estado(
+      "cameraStatus",
+      "Base facial actualizada.",
+      "ok"
+    );
+
+  } catch (error) {
+    estado(
+      "cameraStatus",
+      error.message,
+      "error"
+    );
+  }
+}
+
+/*************************************************
+ CAMBIAR ENTRE REGISTRO Y ASISTENCIA
+**************************************************/
+
+function cambiarPantalla(opcion) {
+  pantalla = opcion;
+
+  $("attendancePanel").classList.toggle(
+    "hidden",
+    opcion !== "asistencia"
+  );
+
+  $("registrationPanel").classList.toggle(
+    "hidden",
+    opcion !== "registro"
+  );
+
+  $("tabAttendance").classList.toggle(
+    "active",
+    opcion === "asistencia"
+  );
+
+  $("tabRegistration").classList.toggle(
+    "active",
+    opcion === "registro"
+  );
+
+  $("cameraTitle").textContent =
+    opcion === "asistencia"
+      ? "Reconocimiento automático"
+      : "Captura de rostro";
+
+  seguimiento.clear();
+  limpiarCanvas();
+}
+
+/*************************************************
+ ACTIVAR CÁMARA
+**************************************************/
+
+async function iniciarCamara() {
+  if (camaraActiva) return;
+
+  try {
+    if (!navigator.mediaDevices?.getUserMedia) {
+      throw new Error(
+        "Este navegador no permite acceder a la cámara."
+      );
+    }
+
+    stream = await navigator.mediaDevices
+      .getUserMedia({
+        audio: false,
+        video: {
+          facingMode: "user",
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+          frameRate: { ideal: 25 }
+        }
+      });
+
+    $("video").srcObject = stream;
+
+    await $("video").play();
+
+    camaraActiva = true;
+
+    $("cameraText").classList.add("hidden");
+    $("btnStart").disabled = true;
+    $("btnStop").disabled = false;
+
+    estado(
+      "cameraStatus",
+      "Cámara activa: detección continua.",
+      "ok"
+    );
+
+    ejecutarDeteccion();
+
+  } catch (error) {
+    estado(
+      "cameraStatus",
+      error.message,
+      "error"
+    );
+  }
+}
+
+function detenerCamara() {
+  camaraActiva = false;
+
+  if (stream) {
+    stream.getTracks().forEach(
+      track => track.stop()
+    );
+  }
+
+  stream = null;
+  $("video").srcObject = null;
+
+  $("btnStart").disabled = false;
+  $("btnStop").disabled = true;
+
+  $("cameraText").classList.remove(
+    "hidden"
+  );
+
+  $("totalFaces").textContent = "0";
+
+  seguimiento.clear();
+  limpiarCanvas();
+
+  estado(
+    "cameraStatus",
+    "Cámara detenida.",
+    "info"
+  );
+}
+
+/*************************************************
+ DETECCIÓN DE ROSTROS
+**************************************************/
+
+async function detectarRostros() {
+  const opciones =
+    new faceapi.TinyFaceDetectorOptions({
+      inputSize: 416,
+      scoreThreshold: 0.50
+    });
+
+  return faceapi
+    .detectAllFaces($("video"), opciones)
+    .withFaceLandmarks()
+    .withFaceDescriptors();
+}
+
+/*************************************************
+ DIBUJAR RECUADROS FACIALES
+**************************************************/
+
+function limpiarCanvas() {
+  const c = $("canvas");
+  const ctx = c.getContext("2d");
+
+  ctx.clearRect(
+    0, 0, c.width, c.height
+  );
+}
+
+function dibujarDetecciones(rostros, nombres) {
+  const video = $("video");
+  const canvas = $("canvas");
+
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+
+  const ctx = canvas.getContext("2d");
+
+  ctx.clearRect(
+    0, 0, canvas.width, canvas.height
+  );
+
+  ctx.lineWidth = 3;
+  ctx.font = "18px Arial";
+
+  rostros.forEach((r, i) => {
+    const b = r.detection.box;
+
+    // Reflejo horizontal para vista espejo.
+    const x = canvas.width - b.x - b.width;
+    const y = b.y;
+
+    const conocido = nombres[i] !== "Desconocido";
+
+    ctx.strokeStyle = conocido
+      ? "#29d89b"
+      : "#ffc56d";
+
+    ctx.strokeRect(x, y, b.width, b.height);
+
+    const etiqueta = nombres[i];
+
+    const ancho = Math.max(
+      90,
+      ctx.measureText(etiqueta).width + 18
+    );
+
+    ctx.fillStyle = conocido
+      ? "#11845c"
+      : "#81561d";
+
+    ctx.fillRect(
+      x,
+      Math.max(0, y - 27),
+      ancho,
+      26
+    );
+
+    ctx.fillStyle = "#ffffff";
+
+    ctx.fillText(
+      etiqueta,
+      x + 8,
+      Math.max(20, y - 7)
+    );
+  });
+}
+
+/*************************************************
+ SEGUIMIENTO POR ID ENTRE FOTOGRAMAS
+
+ Cada rostro reconocido tiene sus propias
+ confirmaciones de identidad.
+**************************************************/
+
+function confirmarIdentidad(id, distancia) {
+  const ahora = Date.now();
+
+  let t = seguimiento.get(id);
+
+  if (!t ||
+      ahora - t.ultimaVista > TRACK_WINDOW_MS) {
+    t = {
+      confirmaciones: 0,
+      ultimaVista: ahora,
+      distancia
+    };
+  }
+
+  t.confirmaciones++;
+  t.ultimaVista = ahora;
+  t.distancia = distancia;
+
+  seguimiento.set(id, t);
+
+  return t.confirmaciones >= REQUIRED_FRAMES;
+}
+
+function limpiarSeguimiento() {
+  const ahora = Date.now();
+
+  for (const [id, t] of seguimiento) {
+    if (ahora - t.ultimaVista >
+        TRACK_WINDOW_MS) {
+      seguimiento.delete(id);
+    }
+  }
+}
+
+/*************************************************
+ BUCLE CONTINUO DE RECONOCIMIENTO
+**************************************************/
+
+async function ejecutarDeteccion() {
+  if (loopActivo) return;
+
+  loopActivo = true;
+
+  while (camaraActiva) {
+    try {
+      if (pantalla !== "asistencia") {
+        await esperar(350);
+        continue;
+      }
+
+      const resultados = await detectarRostros();
+
+      if (!camaraActiva) break;
+
+      $("totalFaces").textContent =
+        resultados.length;
+
+      if (resultados.length >
+          MAX_SIMULTANEOUS_FACES) {
+        limpiarCanvas();
+        await esperar(SCAN_INTERVAL_MS);
+        continue;
+      }
+
+      const nombres = [];
+      const candidatos = new Map();
+
+      for (const rostro of resultados) {
+        if (!matcher) {
+          nombres.push("Sin registros");
+          continue;
+        }
+
+        const mejor = matcher.findBestMatch(
+          rostro.descriptor
+        );
+
+        if (mejor.label === "unknown") {
+          nombres.push("Desconocido");
+          continue;
+        }
+
+        const persona = personas.find(
+          p => p.id === mejor.label
+        );
+
+        if (!persona) {
+          nombres.push("Desconocido");
+          continue;
+        }
+
+        nombres.push(persona.nombre);
+
+        // Evita procesar dos detecciones con
+        // el mismo ID en un único fotograma.
+        const anterior = candidatos.get(
+          persona.id
+        );
+
+        if (!anterior ||
+            mejor.distance < anterior.distance) {
+          candidatos.set(persona.id, mejor);
+        }
+      }
+
+      dibujarDetecciones(resultados, nombres);
+
+      for (const [id, coincidencia] of candidatos) {
+        const confirmado = confirmarIdentidad(
+          id,
+          coincidencia.distance
+        );
+
+        if (confirmado) {
+          marcarEntrada(id);
+        }
+      }
+
+      limpiarSeguimiento();
+
+    } catch (error) {
+      console.error(
+        "Detección:",
+        error.message
+      );
+    }
+
+    await esperar(SCAN_INTERVAL_MS);
+  }
+
+  loopActivo = false;
+}
+
+/*************************************************
+ REGISTRO AUTOMÁTICO DE ENTRADA
+**************************************************/
+
+async function marcarEntrada(id) {
+  if (pendientesMarcacion.has(id)) {
+    return;
+  }
+
+  const ahora = Date.now();
+  const ultimo = ultimoIntento.get(id) || 0;
+
+  if (ahora - ultimo < RETRY_INTERVAL_MS) {
+    return;
+  }
+
+  pendientesMarcacion.add(id);
+  ultimoIntento.set(id, ahora);
+
+  try {
+    const r = await api("entrada", {id});
+
+    if (r.tipo === "entrada") {
+      totalEntradas++;
+
+      $("totalEntries").textContent =
+        totalEntradas;
+
+      $("lastName").textContent =
+        r.nombre;
+
+      $("lastHour").textContent =
+        r.hora;
+
+      agregarActividad(
+        r.nombre,
+        "Entrada registrada · " + r.hora,
+        true
+      );
+
+      estado(
+        "cameraStatus",
+        r.nombre + " — Entrada registrada.",
+        "ok"
+      );
+    }
+
+    if (r.tipo === "duplicado") {
+      agregarActividad(
+        r.nombre,
+        "Ya tiene entrada registrada hoy.",
+        false
+      );
+    }
+
+  } catch (error) {
+    // Permite reintentar después de un error
+    // de comunicación con el servidor.
+    ultimoIntento.delete(id);
+
+    estado(
+      "cameraStatus",
+      error.message,
+      "error"
+    );
+
+  } finally {
+    pendientesMarcacion.delete(id);
+  }
+}
+
+/*************************************************
+ ACTIVIDAD RECIENTE
+**************************************************/
+
+function agregarActividad(nombre, texto, nueva) {
+  const contenedor = $("activity");
+
+  const vacio = contenedor.querySelector("p");
+
+  if (vacio) vacio.remove();
+
+  const div = document.createElement("div");
+
+  div.className = "employee";
+
+  const titulo = document.createElement("b");
+  titulo.textContent = nombre;
+
+  const detalle = document.createElement("small");
+  detalle.textContent = texto;
+
+  detalle.style.color = nueva
+    ? "#29d89b"
+    : "#9aafc7";
+
+  div.appendChild(titulo);
+  div.appendChild(detalle);
+
+  contenedor.prepend(div);
+
+  while (contenedor.children.length > 8) {
+    contenedor.lastElementChild.remove();
+  }
+}
+
+/*************************************************
+ REGISTRAR ROSTRO NUEVO
+**************************************************/
+
+async function registrarRostro() {
+  const id = $("employeeId").value.trim();
+
+  const nombre = $("employeeName")
+    .value.trim();
+
+  if (!id || !nombre) {
+    estado(
+      "registrationStatus",
+      "Introduce el ID y el nombre.",
+      "error"
+    );
+    return;
+  }
+
+  if (!$("consent").checked) {
+    estado(
+      "registrationStatus",
+      "Confirma la autorización documentada.",
+      "error"
+    );
+    return;
+  }
+
+  if (!camaraActiva) {
+    estado(
+      "registrationStatus",
+      "Activa primero la cámara.",
+      "error"
+    );
+    return;
+  }
+
+  $("btnRegister").disabled = true;
+
+  try {
+    estado(
+      "registrationStatus",
+      "Capturando características faciales...",
+      "info"
+    );
+
+    // Obtener varias muestras y seleccionar
+    // la mejor detección disponible.
+    const muestras = [];
+
+    for (let i = 0; i < 3; i++) {
+      const resultados = await detectarRostros();
+
+      if (resultados.length !== 1) {
+        throw new Error(
+          "Debe aparecer exactamente una persona."
+        );
+      }
+
+      muestras.push(resultados[0]);
+
+      await esperar(350);
+    }
+
+    muestras.sort(
+      (a, b) =>
+        b.detection.score -
+        a.detection.score
+    );
+
+    const descriptor = Array.from(
+      muestras[0].descriptor
+    );
+
+    if (matcher) {
+      const mejor = matcher.findBestMatch(
+        new Float32Array(descriptor)
+      );
+
+      if (mejor.label !== "unknown") {
+        throw new Error(
+          "Existe un rostro similar con ID " +
+          mejor.label +
+          ". Requiere revisión."
+        );
+      }
+    }
+
+    const r = await api("registrar", {
+      id,
+      nombre,
+      descriptor: JSON.stringify(descriptor)
+    });
+
+    estado(
+      "registrationStatus",
+      r.mensaje,
+      "ok"
+    );
+
+    $("employeeId").value = "";
+    $("employeeName").value = "";
+    $("consent").checked = false;
+
+    await cargarPersonas();
+
+  } catch (error) {
+    estado(
+      "registrationStatus",
+      error.message,
+      "error"
+    );
+
+  } finally {
+    $("btnRegister").disabled = false;
+  }
+}
+
+/*************************************************
+ LIMPIEZA
+**************************************************/
+
+window.addEventListener(
+  "pagehide",
+  detenerCamara
+);
+
+</script>
+</body>
+</html>
+
