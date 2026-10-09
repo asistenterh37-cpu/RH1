@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport"
-      content="width=device-width,initial-scale=1">
+      content="width=device-width, initial-scale=1">
 <title>ROSTROS - Asistencia Inteligente</title>
 
 <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
@@ -22,30 +22,37 @@
   --red:#ff647a;
   --yellow:#ffc56d;
 }
+
 * {box-sizing:border-box}
+
 body {
   margin:0;
   background:var(--bg);
   color:var(--white);
   font-family:Arial,sans-serif;
 }
+
 header {
   padding:22px 5%;
   border-bottom:1px solid var(--border);
   display:flex;
-  justify-content:space-between;
   align-items:center;
+  justify-content:space-between;
   gap:15px;
   flex-wrap:wrap;
 }
+
 h1 {margin:0;font-size:27px}
 h2 {margin-top:0;font-size:20px}
-small,p.info {color:var(--muted)}
+h3 {font-size:16px}
+small {color:var(--muted)}
+
 main {
   max-width:1200px;
   margin:auto;
   padding:24px;
 }
+
 .panel {
   background:var(--panel);
   border:1px solid var(--border);
@@ -53,46 +60,44 @@ main {
   padding:22px;
   margin-bottom:18px;
 }
+
 .grid {
   display:grid;
   grid-template-columns:minmax(0,1.5fr) minmax(280px,1fr);
   gap:18px;
 }
-.tabs {
+
+.tabs,.actions {
   display:flex;
   gap:10px;
-  margin-bottom:18px;
   flex-wrap:wrap;
+  margin-bottom:18px;
 }
+
+.actions {margin-top:15px}
+
 button {
-  padding:12px 16px;
   border:0;
+  padding:12px 16px;
   border-radius:9px;
   background:var(--blue);
   color:white;
-  font-size:14px;
   font-weight:bold;
   cursor:pointer;
 }
-button:disabled {
-  opacity:.5;
-  cursor:not-allowed;
-}
+
 button.secondary {background:#31516d}
 button.success {background:#11845c}
 button.danger {background:#b63c58}
 button.active {outline:2px solid white}
-.actions {
-  display:flex;
-  flex-wrap:wrap;
-  gap:10px;
-  margin:15px 0;
-}
+button:disabled {opacity:.5;cursor:not-allowed}
+
 label {
   display:block;
   color:var(--muted);
   margin-bottom:8px;
 }
+
 input {
   width:100%;
   padding:12px;
@@ -103,10 +108,12 @@ input {
   margin-bottom:15px;
   font-size:15px;
 }
+
 input[type=checkbox] {
   width:auto;
   margin-right:8px;
 }
+
 .videoBox {
   position:relative;
   width:100%;
@@ -115,6 +122,7 @@ input[type=checkbox] {
   background:#010407;
   overflow:hidden;
 }
+
 video,canvas {
   position:absolute;
   inset:0;
@@ -122,8 +130,10 @@ video,canvas {
   height:100%;
   object-fit:cover;
 }
+
 video {transform:scaleX(-1)}
 canvas {pointer-events:none}
+
 .cameraText {
   position:absolute;
   left:50%;
@@ -133,51 +143,80 @@ canvas {pointer-events:none}
   text-align:center;
   width:90%;
 }
+
 .state {
   background:var(--panel2);
   border-radius:10px;
   padding:14px;
   margin-top:14px;
   line-height:1.5;
+  overflow-wrap:anywhere;
 }
+
 .state.ok {border-left:4px solid var(--green)}
 .state.error {border-left:4px solid var(--red)}
 .state.info {border-left:4px solid var(--blue)}
+
 .stat {
   padding:15px;
   border-radius:11px;
   background:var(--panel2);
   margin-bottom:12px;
 }
+
 .stat strong {
   display:block;
   font-size:27px;
   color:var(--green);
-  margin:7px 0;
+  margin-top:7px;
 }
-.stat span {color:var(--muted);font-size:13px}
+
+.stat span {
+  color:var(--muted);
+  font-size:13px;
+}
+
 .employee {
   background:var(--panel2);
   border-radius:10px;
   padding:13px;
   margin-top:9px;
 }
+
 .employee b {display:block;margin-bottom:5px}
 .employee small {display:block;margin-top:5px}
-.hidden {display:none!important}
+
+#lastName {font-size:23px;font-weight:bold}
+#lastHour {
+  font-size:21px;
+  color:var(--green);
+  margin-top:8px;
+}
+
 .notice {
   color:var(--muted);
   font-size:13px;
   line-height:1.6;
 }
+
+.hidden {display:none!important}
+
 footer {
   text-align:center;
   padding:20px;
   color:var(--muted);
   font-size:12px;
 }
-#lastName {font-size:23px;font-weight:bold}
-#lastHour {font-size:21px;color:var(--green);margin-top:8px}
+
+#gasFrame {
+  position:absolute;
+  width:1px;
+  height:1px;
+  opacity:0;
+  pointer-events:none;
+  border:0;
+}
+
 @media(max-width:800px) {
   .grid {grid-template-columns:1fr}
   main {padding:12px}
@@ -198,23 +237,29 @@ footer {
 
 <main>
 
-<section id="login" class="panel">
+<section class="panel" id="login">
   <h2>Conectar con Google Sheets</h2>
 
   <p class="notice">
-    Control biométrico para personal informado y
-    autorizado. Usa un PIN privado para acceder al
-    prototipo.
+    Control biométrico para personal informado
+    y autorizado. Prototipo de prueba.
   </p>
 
-  <label>PIN privado</label>
+  <label for="pin">PIN privado</label>
   <input id="pin" type="password"
          autocomplete="off"
          placeholder="PIN de acceso">
 
-  <button id="btnConnect" onclick="conectar()">
-    Conectar sistema
-  </button>
+  <div class="actions">
+    <button id="btnConnect" onclick="conectar()">
+      Conectar sistema
+    </button>
+
+    <button class="secondary"
+            onclick="probarURL()">
+      Probar URL de Apps Script
+    </button>
+  </div>
 
   <div id="loginStatus" class="state info">
     Esperando conexión.
@@ -243,8 +288,8 @@ footer {
       </h2>
 
       <div class="videoBox">
-        <video id="video" autoplay playsinline
-               muted></video>
+        <video id="video" autoplay muted
+               playsinline></video>
         <canvas id="canvas"></canvas>
 
         <div id="cameraText" class="cameraText">
@@ -265,20 +310,21 @@ footer {
       </div>
 
       <div id="cameraStatus" class="state info">
-        Esperando permiso de cámara.
+        Cámara no activada.
       </div>
 
       <p class="notice">
-        La cámara analiza rostros continuamente mientras
-        está activa. Debe estar dirigida a una zona de
-        acceso señalizada. Los fotogramas no se guardan
-        en Google Sheets.
+        La cámara detecta rostros continuamente
+        mientras permanece activa. El dispositivo
+        debe estar ubicado en una zona de acceso
+        informada y autorizada.
       </p>
     </section>
 
     <section>
 
       <div id="attendancePanel" class="panel">
+
         <h2>Entradas automáticas</h2>
 
         <div class="stat">
@@ -292,7 +338,7 @@ footer {
         </div>
 
         <div class="stat">
-          <span>Rostros detectados actualmente</span>
+          <span>Rostros detectados</span>
           <strong id="totalFaces">0</strong>
         </div>
 
@@ -304,6 +350,7 @@ footer {
         </div>
 
         <h3>Actividad reciente</h3>
+
         <div id="activity">
           <p class="notice">
             Esperando identificaciones...
@@ -313,9 +360,10 @@ footer {
         <div class="actions">
           <button class="secondary"
                   onclick="actualizarBase()">
-            Actualizar rostros
+            Actualizar base facial
           </button>
         </div>
+
       </div>
 
       <div id="registrationPanel"
@@ -323,19 +371,23 @@ footer {
 
         <h2>Registrar nueva persona</h2>
 
-        <label>Identificación</label>
+        <label for="employeeId">
+          Identificación
+        </label>
         <input id="employeeId"
                placeholder="Ejemplo: 001">
 
-        <label>Nombre completo</label>
+        <label for="employeeName">
+          Nombre completo
+        </label>
         <input id="employeeName"
                placeholder="Nombre del empleado">
 
         <label class="notice">
           <input type="checkbox" id="consent">
-          Confirmo que se informó a la persona,
-          se documentó la autorización aplicable y
-          existe una alternativa no biométrica.
+          Confirmo que la persona fue informada,
+          que existe autorización documentada
+          y una alternativa de marcación.
         </label>
 
         <div class="actions">
@@ -347,13 +399,13 @@ footer {
 
         <div id="registrationStatus"
              class="state info">
-          Activa la cámara y coloca un único rostro
-          frente a ella para el registro inicial.
+          Activa la cámara. Para el registro inicial
+          debe aparecer solamente un rostro.
         </div>
 
       </div>
-    </section>
 
+    </section>
   </div>
 </div>
 
@@ -363,45 +415,32 @@ footer {
   ROSTROS · Control automático de entradas
 </footer>
 
-<iframe id="gasFrame" name="gasFrame"
-        class="hidden"></iframe>
+<iframe id="gasFrame"
+        name="gasFrame"></iframe>
 
 <script>
 "use strict";
 
 /*************************************************
  CONFIGURACIÓN
-**************************************************/
+*************************************************/
 
-// Sustituir por la URL /exec de Apps Script.
-const GAS_URL = "https://script.google.com/macros/s/AKfycbyyW9G1wn2Tv1baGp6s8Gr-NvZkIEi49n3lIti0izCUaC1RQjgoP3pZ1b2QyAWg56s-/exec";
+// IMPORTANTE: pega aquí tu URL /exec de Apps Script.
+const GAS_URL = "https://script.google.com/macros/s/AKfycbzJFHqI1aFe85sDQjxSYGziey-JfiSFNWE1_1Gzd2C9TCDFG0cYoo0bivbfNsS4myJu/exec";
 
-// Modelos para face-api.js.
 const MODEL_URL =
-"https://cdn.jsdelivr.net/gh/justadudewhohacks/face-api.js@0.22.2/weights";
+  "https://cdn.jsdelivr.net/gh/justadudewhohacks/face-api.js@0.22.2/weights";
 
-// Distancia facial máxima permitida.
-// Umbral experimental, no certificado.
 const FACE_THRESHOLD = 0.48;
-
-// Confirmaciones positivas mínimas.
-const REQUIRED_FRAMES = 2;
-
-// Ventana para acumular confirmaciones.
+const REQUIRED_FRAMES = 3;
 const TRACK_WINDOW_MS = 2500;
-
-// Tiempo entre intentos al mismo ID.
 const RETRY_INTERVAL_MS = 120000;
-
-// Tiempo entre ciclos de lectura.
 const SCAN_INTERVAL_MS = 350;
+const MAX_FACES = 5;
 
-// Evita saturación del servicio.
-const MAX_SIMULTANEOUS_FACES = 5;
-
-/*************************************************
- VARIABLES GENERALES
-**************************************************/
+// ================================================
+// VARIABLES
+// ================================================
 
 let pin = "";
 let personas = [];
@@ -415,19 +454,17 @@ let pantalla = "asistencia";
 
 let totalEntradas = 0;
 
-// Estado individual por empleado.
 const seguimiento = new Map();
 const ultimoIntento = new Map();
 const pendientesMarcacion = new Set();
-
-// Canal de solicitudes serializado.
 const solicitudes = new Map();
+
 let colaSolicitudes = Promise.resolve();
 
 const $ = id => document.getElementById(id);
 
 function esperar(ms) {
-  return new Promise(r => setTimeout(r, ms));
+  return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 function estado(id, texto, tipo = "info") {
@@ -436,73 +473,97 @@ function estado(id, texto, tipo = "info") {
   e.className = "state " + tipo;
 }
 
-function horaLocal() {
-  return new Date().toLocaleTimeString("es-HN", {
-    timeZone: "America/Tegucigalpa"
-  });
+// ================================================
+// DIAGNÓSTICO
+// ================================================
+
+function probarURL() {
+  if (
+    !/^https:\/\/script\.google\.com\/macros\/s\/.+\/exec$/
+      .test(GAS_URL)
+  ) {
+    estado(
+      "loginStatus",
+      "Debes configurar una URL válida terminada en /exec.",
+      "error"
+    );
+    return;
+  }
+
+  // Abre el servicio en otra pestaña.
+  window.open(GAS_URL, "_blank", "noopener,noreferrer");
+
+  estado(
+    "loginStatus",
+    "Se abrió Apps Script en otra pestaña. " +
+    "Debe aparecer 'ROSTROS: servicio publicado correctamente'.",
+    "info"
+  );
 }
 
-/*************************************************
- COMUNICACIÓN GITHUB -> APPS SCRIPT
+// ================================================
+// RESPUESTA DE APPS SCRIPT
+// ================================================
 
- El iframe evita utilizar fetch cross-origin
- directamente contra ContentService.
-**************************************************/
-
-window.addEventListener("message", e => {
+window.addEventListener("message", function(event) {
   const origenPermitido =
-    e.origin === "https://script.google.com" ||
+    event.origin === "https://script.google.com" ||
     /^https:\/\/[a-z0-9.-]+\.googleusercontent\.com$/
-      .test(e.origin);
+      .test(event.origin);
 
   if (!origenPermitido) return;
 
-  const data = e.data;
+  const data = event.data;
 
   if (!data || data.sistema !== "ROSTROS") {
     return;
   }
 
-  const solicitud = solicitudes.get(
-    data.requestId
-  );
+  const solicitud = solicitudes.get(data.requestId);
 
   if (!solicitud) return;
 
   clearTimeout(solicitud.timer);
+
   solicitudes.delete(data.requestId);
 
   if (data.ok) {
     solicitud.resolve(data);
   } else {
-    solicitud.reject(new Error(
-      data.mensaje || "Error de servidor."
-    ));
+    solicitud.reject(
+      new Error(data.mensaje || "Error del servidor.")
+    );
   }
 });
 
-// Solo una solicitud simultánea por iframe.
+// ================================================
+// API SERIALIZADA
+// ================================================
+
 function api(accion, datos = {}) {
   const ejecutar = () => enviarSolicitud(
     accion, datos
   );
 
   const resultado = colaSolicitudes.then(
-    ejecutar, ejecutar
+    ejecutar,
+    ejecutar
   );
 
   colaSolicitudes = resultado.catch(() => {});
+
   return resultado;
 }
 
 function enviarSolicitud(accion, datos) {
   return new Promise((resolve, reject) => {
 
-    if (!GAS_URL.startsWith(
-      "https://script.google.com/macros/s/"
-    )) {
+    if (
+      !/^https:\/\/script\.google\.com\/macros\/s\/.+\/exec$/
+        .test(GAS_URL)
+    ) {
       reject(new Error(
-        "Configura la URL de Apps Script."
+        "La URL de Apps Script no está configurada."
       ));
       return;
     }
@@ -513,14 +574,18 @@ function enviarSolicitud(accion, datos) {
       solicitudes.delete(requestId);
 
       reject(new Error(
-        "Sin respuesta del servidor. Revisa " +
-        "URL, permisos, origen y despliegue."
+        "Apps Script no respondió en 30 segundos. " +
+        "Revisa el despliegue y los permisos. " +
+        "También puede haber un bloqueo del iframe " +
+        "o del navegador."
       ));
 
     }, 30000);
 
     solicitudes.set(requestId, {
-      resolve, reject, timer
+      resolve,
+      reject,
+      timer
     });
 
     const form = document.createElement("form");
@@ -529,44 +594,51 @@ function enviarSolicitud(accion, datos) {
     form.action = GAS_URL;
     form.target = "gasFrame";
     form.style.display = "none";
+    form.acceptCharset = "UTF-8";
 
     const campos = {
       accion,
-      requestId,
       pin,
+      requestId,
       ...datos
     };
 
-    Object.entries(campos).forEach(([k, v]) => {
+    for (const [nombre, valor] of Object.entries(campos)) {
       const input = document.createElement("input");
 
       input.type = "hidden";
-      input.name = k;
-      input.value = String(v);
+      input.name = nombre;
+      input.value = String(valor);
 
       form.appendChild(input);
-    });
+    }
 
     document.body.appendChild(form);
 
     try {
       form.submit();
-    } catch (err) {
+    } catch (error) {
       clearTimeout(timer);
       solicitudes.delete(requestId);
-      reject(err);
+      reject(error);
     } finally {
       form.remove();
     }
   });
 }
 
-/*************************************************
- CARGA DE MODELOS
-**************************************************/
+// ================================================
+// MODELOS FACIALES
+// ================================================
 
 async function cargarModelos() {
   if (modelosCargados) return;
+
+  if (typeof faceapi === "undefined") {
+    throw new Error(
+      "No se pudo cargar face-api.js. Revisa Internet."
+    );
+  }
 
   await Promise.all([
     faceapi.nets.tinyFaceDetector
@@ -582,9 +654,9 @@ async function cargarModelos() {
   modelosCargados = true;
 }
 
-/*************************************************
- CONECTAR
-**************************************************/
+// ================================================
+// CONECTAR
+// ================================================
 
 async function conectar() {
   pin = $("pin").value.trim();
@@ -592,7 +664,7 @@ async function conectar() {
   if (!pin) {
     estado(
       "loginStatus",
-      "Introduce el PIN privado.",
+      "Ingresa el PIN privado.",
       "error"
     );
     return;
@@ -603,11 +675,20 @@ async function conectar() {
   try {
     estado(
       "loginStatus",
-      "Cargando motor de reconocimiento...",
+      "Verificando conexión con Google Apps Script...",
       "info"
     );
 
+    await api("ping");
+
+    estado(
+      "loginStatus",
+      "Conexión establecida. Cargando modelos...",
+      "ok"
+    );
+
     await cargarModelos();
+
     await cargarPersonas();
 
     $("login").classList.add("hidden");
@@ -622,27 +703,26 @@ async function conectar() {
       error.message,
       "error"
     );
-
   } finally {
     $("btnConnect").disabled = false;
   }
 }
 
-/*************************************************
- LEER BASE FACIAL
-**************************************************/
+// ================================================
+// CARGAR BASE FACIAL
+// ================================================
 
 async function cargarPersonas() {
   const respuesta = await api("listar");
 
   personas = respuesta.personas || [];
 
-  const descriptores = personas.map(p =>
-    new faceapi.LabeledFaceDescriptors(
+  const descriptores = personas.map(p => {
+    return new faceapi.LabeledFaceDescriptors(
       p.id,
       [new Float32Array(p.descriptor)]
-    )
-  );
+    );
+  });
 
   matcher = descriptores.length
     ? new faceapi.FaceMatcher(
@@ -655,8 +735,6 @@ async function cargarPersonas() {
     personas.length;
 
   seguimiento.clear();
-
-  return personas;
 }
 
 async function actualizarBase() {
@@ -665,22 +743,17 @@ async function actualizarBase() {
 
     estado(
       "cameraStatus",
-      "Base facial actualizada.",
+      "Base facial actualizada correctamente.",
       "ok"
     );
-
   } catch (error) {
-    estado(
-      "cameraStatus",
-      error.message,
-      "error"
-    );
+    estado("cameraStatus", error.message, "error");
   }
 }
 
-/*************************************************
- CAMBIAR ENTRE REGISTRO Y ASISTENCIA
-**************************************************/
+// ================================================
+// PANTALLAS
+// ================================================
 
 function cambiarPantalla(opcion) {
   pantalla = opcion;
@@ -708,15 +781,16 @@ function cambiarPantalla(opcion) {
   $("cameraTitle").textContent =
     opcion === "asistencia"
       ? "Reconocimiento automático"
-      : "Captura de rostro";
+      : "Registro facial";
 
   seguimiento.clear();
+
   limpiarCanvas();
 }
 
-/*************************************************
- ACTIVAR CÁMARA
-**************************************************/
+// ================================================
+// CÁMARA
+// ================================================
 
 async function iniciarCamara() {
   if (camaraActiva) return;
@@ -724,7 +798,7 @@ async function iniciarCamara() {
   try {
     if (!navigator.mediaDevices?.getUserMedia) {
       throw new Error(
-        "Este navegador no permite acceder a la cámara."
+        "El navegador no permite utilizar la cámara."
       );
     }
 
@@ -732,10 +806,10 @@ async function iniciarCamara() {
       .getUserMedia({
         audio: false,
         video: {
-          facingMode: "user",
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
-          frameRate: { ideal: 25 }
+          width: {ideal:1280},
+          height: {ideal:720},
+          frameRate: {ideal:25},
+          facingMode:"user"
         }
       });
 
@@ -746,12 +820,13 @@ async function iniciarCamara() {
     camaraActiva = true;
 
     $("cameraText").classList.add("hidden");
+
     $("btnStart").disabled = true;
     $("btnStop").disabled = false;
 
     estado(
       "cameraStatus",
-      "Cámara activa: detección continua.",
+      "Cámara activa. Reconocimiento automático iniciado.",
       "ok"
     );
 
@@ -770,24 +845,22 @@ function detenerCamara() {
   camaraActiva = false;
 
   if (stream) {
-    stream.getTracks().forEach(
-      track => track.stop()
-    );
+    stream.getTracks().forEach(track => track.stop());
   }
 
   stream = null;
+
   $("video").srcObject = null;
 
   $("btnStart").disabled = false;
   $("btnStop").disabled = true;
 
-  $("cameraText").classList.remove(
-    "hidden"
-  );
+  $("cameraText").classList.remove("hidden");
 
   $("totalFaces").textContent = "0";
 
   seguimiento.clear();
+
   limpiarCanvas();
 
   estado(
@@ -797,15 +870,15 @@ function detenerCamara() {
   );
 }
 
-/*************************************************
- DETECCIÓN DE ROSTROS
-**************************************************/
+// ================================================
+// DETECCIÓN
+// ================================================
 
 async function detectarRostros() {
   const opciones =
     new faceapi.TinyFaceDetectorOptions({
-      inputSize: 416,
-      scoreThreshold: 0.50
+      inputSize:416,
+      scoreThreshold:0.50
     });
 
   return faceapi
@@ -814,20 +887,19 @@ async function detectarRostros() {
     .withFaceDescriptors();
 }
 
-/*************************************************
- DIBUJAR RECUADROS FACIALES
-**************************************************/
+// ================================================
+// RECUADROS FACIALES
+// ================================================
 
 function limpiarCanvas() {
   const c = $("canvas");
-  const ctx = c.getContext("2d");
 
-  ctx.clearRect(
-    0, 0, c.width, c.height
+  c.getContext("2d").clearRect(
+    0,0,c.width,c.height
   );
 }
 
-function dibujarDetecciones(rostros, nombres) {
+function dibujarRostros(rostros, nombres) {
   const video = $("video");
   const canvas = $("canvas");
 
@@ -837,32 +909,33 @@ function dibujarDetecciones(rostros, nombres) {
   const ctx = canvas.getContext("2d");
 
   ctx.clearRect(
-    0, 0, canvas.width, canvas.height
+    0,0,canvas.width,canvas.height
   );
 
   ctx.lineWidth = 3;
-  ctx.font = "18px Arial";
+  ctx.font = "16px Arial";
 
-  rostros.forEach((r, i) => {
-    const b = r.detection.box;
+  rostros.forEach((rostro,i) => {
+    const b = rostro.detection.box;
 
-    // Reflejo horizontal para vista espejo.
     const x = canvas.width - b.x - b.width;
     const y = b.y;
 
-    const conocido = nombres[i] !== "Desconocido";
+    const nombre = nombres[i] || "Desconocido";
+
+    const conocido =
+      nombre !== "Desconocido" &&
+      nombre !== "Sin registros";
 
     ctx.strokeStyle = conocido
       ? "#29d89b"
       : "#ffc56d";
 
-    ctx.strokeRect(x, y, b.width, b.height);
-
-    const etiqueta = nombres[i];
+    ctx.strokeRect(x,y,b.width,b.height);
 
     const ancho = Math.max(
-      90,
-      ctx.measureText(etiqueta).width + 18
+      95,
+      ctx.measureText(nombre).width + 16
     );
 
     ctx.fillStyle = conocido
@@ -871,65 +944,63 @@ function dibujarDetecciones(rostros, nombres) {
 
     ctx.fillRect(
       x,
-      Math.max(0, y - 27),
+      Math.max(0,y-27),
       ancho,
       26
     );
 
-    ctx.fillStyle = "#ffffff";
+    ctx.fillStyle = "#fff";
 
     ctx.fillText(
-      etiqueta,
-      x + 8,
-      Math.max(20, y - 7)
+      nombre,
+      x+8,
+      Math.max(20,y-7)
     );
   });
 }
 
-/*************************************************
- SEGUIMIENTO POR ID ENTRE FOTOGRAMAS
+// ================================================
+// CONFIRMACIÓN POR EMPLEADO
+// ================================================
 
- Cada rostro reconocido tiene sus propias
- confirmaciones de identidad.
-**************************************************/
-
-function confirmarIdentidad(id, distancia) {
+function confirmarIdentidad(id) {
   const ahora = Date.now();
 
-  let t = seguimiento.get(id);
+  let registro = seguimiento.get(id);
 
-  if (!t ||
-      ahora - t.ultimaVista > TRACK_WINDOW_MS) {
-    t = {
-      confirmaciones: 0,
-      ultimaVista: ahora,
-      distancia
+  if (
+    !registro ||
+    ahora - registro.ultimaVista > TRACK_WINDOW_MS
+  ) {
+    registro = {
+      confirmaciones:0,
+      ultimaVista:ahora
     };
   }
 
-  t.confirmaciones++;
-  t.ultimaVista = ahora;
-  t.distancia = distancia;
+  registro.confirmaciones++;
+  registro.ultimaVista = ahora;
 
-  seguimiento.set(id, t);
+  seguimiento.set(id,registro);
 
-  return t.confirmaciones >= REQUIRED_FRAMES;
+  return registro.confirmaciones >= REQUIRED_FRAMES;
 }
 
 function limpiarSeguimiento() {
   const ahora = Date.now();
 
-  for (const [id, t] of seguimiento) {
-    if (ahora - t.ultimaVista >
-        TRACK_WINDOW_MS) {
+  for (const [id,registro] of seguimiento) {
+    if (
+      ahora - registro.ultimaVista > TRACK_WINDOW_MS
+    ) {
       seguimiento.delete(id);
     }
   }
 }
 
-/*************************************************
- BUCLE CONTINUO DE RECONOCIMIENTO
-**************************************************/
+// ================================================
+// RECONOCIMIENTO CONTINUO
+// ================================================
 
 async function ejecutarDeteccion() {
   if (loopActivo) return;
@@ -939,7 +1010,7 @@ async function ejecutarDeteccion() {
   while (camaraActiva) {
     try {
       if (pantalla !== "asistencia") {
-        await esperar(350);
+        await esperar(SCAN_INTERVAL_MS);
         continue;
       }
 
@@ -950,8 +1021,7 @@ async function ejecutarDeteccion() {
       $("totalFaces").textContent =
         resultados.length;
 
-      if (resultados.length >
-          MAX_SIMULTANEOUS_FACES) {
+      if (resultados.length > MAX_FACES) {
         limpiarCanvas();
         await esperar(SCAN_INTERVAL_MS);
         continue;
@@ -986,27 +1056,22 @@ async function ejecutarDeteccion() {
 
         nombres.push(persona.nombre);
 
-        // Evita procesar dos detecciones con
-        // el mismo ID en un único fotograma.
-        const anterior = candidatos.get(
+        const previo = candidatos.get(
           persona.id
         );
 
-        if (!anterior ||
-            mejor.distance < anterior.distance) {
-          candidatos.set(persona.id, mejor);
+        if (
+          !previo ||
+          mejor.distance < previo.distance
+        ) {
+          candidatos.set(persona.id,mejor);
         }
       }
 
-      dibujarDetecciones(resultados, nombres);
+      dibujarRostros(resultados,nombres);
 
-      for (const [id, coincidencia] of candidatos) {
-        const confirmado = confirmarIdentidad(
-          id,
-          coincidencia.distance
-        );
-
-        if (confirmado) {
+      for (const [id] of candidatos) {
+        if (confirmarIdentidad(id)) {
           marcarEntrada(id);
         }
       }
@@ -1015,8 +1080,8 @@ async function ejecutarDeteccion() {
 
     } catch (error) {
       console.error(
-        "Detección:",
-        error.message
+        "Error de reconocimiento:",
+        error
       );
     }
 
@@ -1026,27 +1091,25 @@ async function ejecutarDeteccion() {
   loopActivo = false;
 }
 
-/*************************************************
- REGISTRO AUTOMÁTICO DE ENTRADA
-**************************************************/
+// ================================================
+// MARCACIÓN AUTOMÁTICA
+// ================================================
 
 async function marcarEntrada(id) {
-  if (pendientesMarcacion.has(id)) {
-    return;
-  }
+  if (pendientesMarcacion.has(id)) return;
 
   const ahora = Date.now();
   const ultimo = ultimoIntento.get(id) || 0;
 
-  if (ahora - ultimo < RETRY_INTERVAL_MS) {
-    return;
-  }
+  if (
+    ahora - ultimo < RETRY_INTERVAL_MS
+  ) return;
 
   pendientesMarcacion.add(id);
-  ultimoIntento.set(id, ahora);
+  ultimoIntento.set(id,ahora);
 
   try {
-    const r = await api("entrada", {id});
+    const r = await api("entrada",{id});
 
     if (r.tipo === "entrada") {
       totalEntradas++;
@@ -1060,7 +1123,7 @@ async function marcarEntrada(id) {
       $("lastHour").textContent =
         r.hora;
 
-      agregarActividad(
+      actividad(
         r.nombre,
         "Entrada registrada · " + r.hora,
         true
@@ -1074,16 +1137,14 @@ async function marcarEntrada(id) {
     }
 
     if (r.tipo === "duplicado") {
-      agregarActividad(
+      actividad(
         r.nombre,
-        "Ya tiene entrada registrada hoy.",
+        "Entrada de hoy ya registrada.",
         false
       );
     }
 
   } catch (error) {
-    // Permite reintentar después de un error
-    // de comunicación con el servidor.
     ultimoIntento.delete(id);
 
     estado(
@@ -1097,33 +1158,31 @@ async function marcarEntrada(id) {
   }
 }
 
-/*************************************************
- ACTIVIDAD RECIENTE
-**************************************************/
+// ================================================
+// HISTORIAL EN PANTALLA
+// ================================================
 
-function agregarActividad(nombre, texto, nueva) {
+function actividad(nombre,detalle,nueva) {
   const contenedor = $("activity");
 
-  const vacio = contenedor.querySelector("p");
+  const inicial = contenedor.querySelector("p");
 
-  if (vacio) vacio.remove();
+  if (inicial) inicial.remove();
 
   const div = document.createElement("div");
-
   div.className = "employee";
 
   const titulo = document.createElement("b");
   titulo.textContent = nombre;
 
-  const detalle = document.createElement("small");
-  detalle.textContent = texto;
-
-  detalle.style.color = nueva
+  const texto = document.createElement("small");
+  texto.textContent = detalle;
+  texto.style.color = nueva
     ? "#29d89b"
     : "#9aafc7";
 
   div.appendChild(titulo);
-  div.appendChild(detalle);
+  div.appendChild(texto);
 
   contenedor.prepend(div);
 
@@ -1132,20 +1191,18 @@ function agregarActividad(nombre, texto, nueva) {
   }
 }
 
-/*************************************************
- REGISTRAR ROSTRO NUEVO
-**************************************************/
+// ================================================
+// REGISTRO DE ROSTRO
+// ================================================
 
 async function registrarRostro() {
   const id = $("employeeId").value.trim();
-
-  const nombre = $("employeeName")
-    .value.trim();
+  const nombre = $("employeeName").value.trim();
 
   if (!id || !nombre) {
     estado(
       "registrationStatus",
-      "Introduce el ID y el nombre.",
+      "Ingresa identificación y nombre.",
       "error"
     );
     return;
@@ -1154,7 +1211,7 @@ async function registrarRostro() {
   if (!$("consent").checked) {
     estado(
       "registrationStatus",
-      "Confirma la autorización documentada.",
+      "Debes confirmar la autorización documentada.",
       "error"
     );
     return;
@@ -1163,7 +1220,7 @@ async function registrarRostro() {
   if (!camaraActiva) {
     estado(
       "registrationStatus",
-      "Activa primero la cámara.",
+      "Primero activa la cámara.",
       "error"
     );
     return;
@@ -1174,20 +1231,18 @@ async function registrarRostro() {
   try {
     estado(
       "registrationStatus",
-      "Capturando características faciales...",
+      "Analizando rostro...",
       "info"
     );
 
-    // Obtener varias muestras y seleccionar
-    // la mejor detección disponible.
     const muestras = [];
 
-    for (let i = 0; i < 3; i++) {
+    for (let i=0;i<3;i++) {
       const resultados = await detectarRostros();
 
       if (resultados.length !== 1) {
         throw new Error(
-          "Debe aparecer exactamente una persona."
+          "Debe aparecer exactamente un rostro."
         );
       }
 
@@ -1197,9 +1252,8 @@ async function registrarRostro() {
     }
 
     muestras.sort(
-      (a, b) =>
-        b.detection.score -
-        a.detection.score
+      (a,b) =>
+        b.detection.score - a.detection.score
     );
 
     const descriptor = Array.from(
@@ -1213,22 +1267,21 @@ async function registrarRostro() {
 
       if (mejor.label !== "unknown") {
         throw new Error(
-          "Existe un rostro similar con ID " +
-          mejor.label +
-          ". Requiere revisión."
+          "Existe un rostro similar al ID " +
+          mejor.label
         );
       }
     }
 
-    const r = await api("registrar", {
+    const respuesta = await api("registrar",{
       id,
       nombre,
-      descriptor: JSON.stringify(descriptor)
+      descriptor:JSON.stringify(descriptor)
     });
 
     estado(
       "registrationStatus",
-      r.mensaje,
+      respuesta.mensaje,
       "ok"
     );
 
@@ -1250,9 +1303,9 @@ async function registrarRostro() {
   }
 }
 
-/*************************************************
- LIMPIEZA
-**************************************************/
+// ================================================
+// CERRAR CÁMARA
+// ================================================
 
 window.addEventListener(
   "pagehide",
@@ -1262,4 +1315,3 @@ window.addEventListener(
 </script>
 </body>
 </html>
-
