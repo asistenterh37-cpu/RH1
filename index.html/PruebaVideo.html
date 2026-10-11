@@ -1,0 +1,682 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>VIGÍA IA | Laboratorio de Video</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js"></script>
+
+<style>
+:root{
+  --bg:#0b1220;
+  --panel:#152238;
+  --line:#31445f;
+  --text:#edf4ff;
+  --muted:#a8bad0;
+  --brand:#2563eb;
+}
+*{box-sizing:border-box}
+body{
+  margin:0;background:var(--bg);color:var(--text);
+  font:15px/1.5 system-ui,Arial,sans-serif
+}
+header{
+  border-bottom:1px solid var(--line);
+  padding:18px 24px;
+  display:flex;gap:12px;align-items:center
+}
+header h1{margin:0;font-size:22px}
+header small{color:var(--muted)}
+main{max-width:1200px;margin:auto;padding:20px}
+.card{
+  background:var(--panel);
+  border:1px solid var(--line);
+  border-radius:14px;
+  padding:18px;margin-bottom:18px
+}
+.grid{
+  display:grid;
+  grid-template-columns:minmax(0,1.5fr) minmax(300px,1fr);
+  gap:18px
+}
+label{
+  display:block;color:var(--muted);
+  font-size:13px;margin:10px 0 5px
+}
+input,select{
+  width:100%;padding:10px;
+  background:#0a1628;color:white;
+  border:1px solid #405575;
+  border-radius:8px;font:inherit
+}
+input[type=range]{padding:0}
+button{
+  color:white;background:var(--brand);
+  padding:11px 15px;border:0;
+  border-radius:8px;cursor:pointer;font:inherit
+}
+button:disabled{opacity:.5;cursor:wait}
+button.secondary{background:#30445f}
+.actions{
+  display:flex;gap:8px;flex-wrap:wrap;margin-top:14px
+}
+.video-wrap{
+  position:relative;
+  width:100%;background:#000;
+  border-radius:10px;overflow:hidden
+}
+video{display:block;width:100%;height:auto}
+canvas{
+  position:absolute;inset:0;
+  width:100%;height:100%;
+  touch-action:none
+}
+h2{font-size:18px;margin:0 0 12px}
+p{margin:8px 0}
+.note{color:var(--muted);font-size:13px}
+.status{font-size:14px;padding:8px 0}
+.stat{
+  padding:12px;background:#0c192d;
+  border-radius:9px;margin:8px 0
+}
+.stat strong{font-size:23px;display:block}
+.evento{
+  padding:12px;border-left:3px solid #f59e0b;
+  background:#1f2d41;margin:9px 0;border-radius:7px
+}
+.evento small{color:var(--muted)}
+#alertas{max-height:320px;overflow:auto}
+.good{color:#62dba5}
+.warn{color:#f8cb64}
+.bad{color:#ff8c9d}
+@media(max-width:800px){
+  .grid{grid-template-columns:1fr}
+  main{padding:12px}
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <span style="font-size:30px">🛡️</span>
+  <div>
+    <h1>VIGÍA IA</h1>
+    <small>Laboratorio de análisis de video · Etapa 2</small>
+  </div>
+</header>
+
+<main>
+
+<div class="card">
+  <h2>1. Video de prueba</h2>
+  <p class="note">
+    El video se analiza localmente en el navegador.
+    No se sube a Google Sheets ni a OpenAI.
+  </p>
+
+  <label>Seleccionar video</label>
+  <input id="archivo" type="file" accept="video/*">
+
+  <div class="actions">
+    <button id="btnModelo" onclick="cargarModelo()">
+      Cargar modelo IA
+    </button>
+    <button id="btnAnalisis" onclick="alternarAnalisis()" disabled>
+      Iniciar análisis
+    </button>
+    <button class="secondary" onclick="limpiarAlertas()">
+      Limpiar alertas
+    </button>
+  </div>
+
+  <div id="estadoModelo" class="status">
+    Modelo IA sin cargar.
+  </div>
+</div>
+
+<div class="grid">
+
+  <div>
+    <div class="card">
+      <h2>2. Pantalla de vigilancia</h2>
+
+      <div class="video-wrap" id="contenedor">
+        <video id="video" controls playsinline></video>
+        <canvas id="overlay"></canvas>
+      </div>
+
+      <p class="note">
+        Arrastra el cursor sobre el video para marcar
+        un rectángulo restringido. Puedes volver a
+        dibujarlo cuando quieras.
+      </p>
+    </div>
+
+    <div class="card">
+      <h2>3. Resultado del análisis</h2>
+
+      <div class="grid" style="grid-template-columns:1fr 1fr">
+        <div class="stat">
+          Personas detectadas
+          <strong id="personas">0</strong>
+        </div>
+
+        <div class="stat">
+          Alertas generadas
+          <strong id="contadorAlertas">0</strong>
+        </div>
+      </div>
+
+      <div id="estadoDeteccion" class="status">
+        Esperando video.
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <div class="card">
+      <h2>4. Configuración de cámara</h2>
+
+      <label>Empresa</label>
+      <input id="empresa" value="Patronato SM">
+
+      <label>Identificación de cámara</label>
+      <input id="camara" value="CAM-01">
+
+      <label>Ubicación</label>
+      <input id="ubicacion" value="Entrada principal">
+
+      <label>Evento</label>
+      <select id="evento">
+        <option value="Intrusión en zona restringida">
+          Intrusión en zona restringida
+        </option>
+        <option value="Presencia de persona">
+          Presencia de persona
+        </option>
+      </select>
+
+      <label>Confianza mínima: <span id="nivel">60%</span></label>
+      <input
+        id="confianza" type="range"
+        min="40" max="90" value="60"
+        oninput="document.getElementById('nivel').textContent=this.value+'%'">
+
+      <label>Detecciones consecutivas requeridas</label>
+      <select id="confirmaciones">
+        <option value="2">2</option>
+        <option value="3" selected>3</option>
+        <option value="4">4</option>
+        <option value="5">5</option>
+      </select>
+
+      <label>Intervalo de análisis</label>
+      <select id="intervalo">
+        <option value="500">Cada 0.5 segundos</option>
+        <option value="800" selected>Cada 0.8 segundos</option>
+        <option value="1200">Cada 1.2 segundos</option>
+      </select>
+
+      <label>Tiempo mínimo entre alertas</label>
+      <select id="espera">
+        <option value="5000">5 segundos</option>
+        <option value="15000" selected>15 segundos</option>
+        <option value="30000">30 segundos</option>
+        <option value="60000">60 segundos</option>
+      </select>
+
+      <p class="note">
+        Estos parámetros solo afectan la prueba actual.
+      </p>
+    </div>
+
+    <div class="card">
+      <h2>5. Alertas detectadas</h2>
+
+      <div id="alertas">
+        <p class="note">
+          Todavía no hay eventos.
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+</main>
+
+<script>
+"use strict";
+
+const $ = id => document.getElementById(id);
+
+const video = $("video");
+const canvas = $("overlay");
+const ctx = canvas.getContext("2d");
+
+let modelo = null;
+let activo = false;
+let analizando = false;
+let ultimoAnalisis = 0;
+let ultimoAviso = 0;
+let consecutivas = 0;
+let detecciones = [];
+let eventos = [];
+let urlVideo = null;
+
+// Zona relativa en porcentajes (0 a 1).
+let zona = {
+  x:0.60,
+  y:0.15,
+  w:0.30,
+  h:0.65
+};
+
+let inicioArrastre = null;
+
+function estado(texto,clase=""){
+  $("estadoDeteccion").textContent=texto;
+  $("estadoDeteccion").className="status "+clase;
+}
+
+function dimensionesCanvas(){
+  if(!video.videoWidth||!video.videoHeight)return;
+
+  if(
+    canvas.width!==video.videoWidth ||
+    canvas.height!==video.videoHeight
+  ){
+    canvas.width=video.videoWidth;
+    canvas.height=video.videoHeight;
+  }
+}
+
+function dibujar(){
+  dimensionesCanvas();
+
+  const w=canvas.width;
+  const h=canvas.height;
+
+  if(!w||!h)return;
+
+  ctx.clearRect(0,0,w,h);
+
+  // Área restringida.
+  ctx.fillStyle="rgba(255,170,0,0.12)";
+  ctx.strokeStyle="#ffb020";
+  ctx.lineWidth=Math.max(2,w/300);
+
+  ctx.fillRect(
+    zona.x*w,zona.y*h,
+    zona.w*w,zona.h*h
+  );
+
+  ctx.strokeRect(
+    zona.x*w,zona.y*h,
+    zona.w*w,zona.h*h
+  );
+
+  ctx.font=Math.max(13,w/50)+"px Arial";
+  ctx.fillStyle="#ffcf6d";
+  ctx.fillText(
+    "ZONA RESTRINGIDA",
+    zona.x*w+6,
+    Math.max(20,zona.y*h-8)
+  );
+
+  // Cajas de personas detectadas.
+  for(const d of detecciones){
+    const [x,y,bw,bh]=d.bbox;
+    const dentro=enZona(d);
+
+    ctx.strokeStyle=dentro?"#ff4141":"#31dd98";
+    ctx.fillStyle=dentro?"#ff4141":"#31dd98";
+    ctx.lineWidth=Math.max(2,w/240);
+
+    ctx.strokeRect(x,y,bw,bh);
+
+    ctx.fillText(
+      "Persona "+Math.round(d.score*100)+"%",
+      x+5,
+      Math.max(20,y-7)
+    );
+
+    // Punto inferior central de la persona.
+    const px=x+bw/2;
+    const py=y+bh;
+
+    ctx.beginPath();
+    ctx.arc(px,py,Math.max(4,w/160),0,Math.PI*2);
+    ctx.fill();
+  }
+}
+
+function enZona(d){
+  const [x,y,w,h]=d.bbox;
+
+  const px=(x+w/2)/video.videoWidth;
+  const py=(y+h)/video.videoHeight;
+
+  return (
+    px>=zona.x &&
+    px<=zona.x+zona.w &&
+    py>=zona.y &&
+    py<=zona.y+zona.h
+  );
+}
+
+function coordenada(ev){
+  const r=canvas.getBoundingClientRect();
+
+  return {
+    x:Math.max(0,Math.min(1,(ev.clientX-r.left)/r.width)),
+    y:Math.max(0,Math.min(1,(ev.clientY-r.top)/r.height))
+  };
+}
+
+canvas.addEventListener("pointerdown",ev=>{
+  if(!video.videoWidth)return;
+
+  inicioArrastre=coordenada(ev);
+  canvas.setPointerCapture(ev.pointerId);
+});
+
+canvas.addEventListener("pointermove",ev=>{
+  if(!inicioArrastre)return;
+
+  const p=coordenada(ev);
+
+  zona={
+    x:Math.min(inicioArrastre.x,p.x),
+    y:Math.min(inicioArrastre.y,p.y),
+    w:Math.abs(p.x-inicioArrastre.x),
+    h:Math.abs(p.y-inicioArrastre.y)
+  };
+
+  dibujar();
+});
+
+canvas.addEventListener("pointerup",()=>{
+  inicioArrastre=null;
+});
+
+canvas.addEventListener("pointercancel",()=>{
+  inicioArrastre=null;
+});
+
+async function cargarModelo(){
+  const boton=$("btnModelo");
+  boton.disabled=true;
+
+  $("estadoModelo").textContent=
+    "Cargando modelo de detección de personas...";
+
+  try{
+    if(!window.tf||!window.cocoSsd){
+      throw Error(
+        "No se cargaron las librerías IA. "+
+        "Comprueba tu conexión a Internet."
+      );
+    }
+
+    await tf.ready();
+
+    modelo=await cocoSsd.load({
+      base:"lite_mobilenet_v2"
+    });
+
+    $("estadoModelo").textContent=
+      "Modelo IA cargado correctamente.";
+
+    $("btnAnalisis").disabled=!video.videoWidth;
+
+  }catch(e){
+    $("estadoModelo").textContent=
+      "Error: "+e.message;
+    boton.disabled=false;
+  }
+}
+
+$("archivo").addEventListener("change",ev=>{
+  const archivo=ev.target.files[0];
+
+  detener();
+
+  if(urlVideo){
+    URL.revokeObjectURL(urlVideo);
+    urlVideo=null;
+  }
+
+  detecciones=[];
+  consecutivas=0;
+
+  video.removeAttribute("src");
+  video.load();
+
+  if(!archivo)return;
+
+  urlVideo=URL.createObjectURL(archivo);
+  video.src=urlVideo;
+  video.load();
+
+  estado("Video seleccionado: "+archivo.name);
+});
+
+video.addEventListener("loadedmetadata",()=>{
+  dimensionesCanvas();
+  dibujar();
+  $("btnAnalisis").disabled=!modelo;
+});
+
+video.addEventListener("seeked",()=>{
+  detecciones=[];
+  consecutivas=0;
+  dibujar();
+});
+
+video.addEventListener("ended",()=>{
+  detener();
+  estado("Terminó el video. Puedes volver a reproducirlo.");
+});
+
+function detener(){
+  activo=false;
+  consecutivas=0;
+
+  $("btnAnalisis").textContent="Iniciar análisis";
+}
+
+async function alternarAnalisis(){
+  if(activo){
+    detener();
+    estado("Análisis detenido.");
+    return;
+  }
+
+  if(!modelo){
+    estado("Carga primero el modelo IA.","warn");
+    return;
+  }
+
+  if(!video.videoWidth){
+    estado("Selecciona primero un video.","warn");
+    return;
+  }
+
+  try{
+    await video.play();
+
+    activo=true;
+    ultimoAnalisis=0;
+
+    $("btnAnalisis").textContent="Detener análisis";
+    estado("Analizando video...","good");
+
+    requestAnimationFrame(ciclo);
+  }catch(e){
+    estado("No se pudo reproducir el video: "+e.message,"bad");
+  }
+}
+
+async function ciclo(tiempo){
+  if(!activo)return;
+
+  const intervalo=Number($("intervalo").value);
+
+  if(
+    !analizando &&
+    !video.paused &&
+    !video.ended &&
+    tiempo-ultimoAnalisis>=intervalo
+  ){
+    ultimoAnalisis=tiempo;
+    analizando=true;
+
+    try{
+      const resultado=await modelo.detect(video);
+
+      if(!activo)return;
+
+      const minimo=Number($("confianza").value)/100;
+
+      detecciones=resultado.filter(d=>
+        d.class==="person" &&
+        d.score>=minimo
+      );
+
+      $("personas").textContent=detecciones.length;
+
+      const dentro=detecciones.some(enZona);
+
+      if(dentro){
+        consecutivas++;
+        estado(
+          "Posible intrusión: persona detectada "+
+          "en zona restringida ("+
+          consecutivas+" confirmaciones).",
+          "warn"
+        );
+      }else{
+        consecutivas=0;
+        estado(
+          "Analizando · Personas: "+detecciones.length,
+          "good"
+        );
+      }
+
+      const necesarias=Number($("confirmaciones").value);
+      const cooldown=Number($("espera").value);
+
+      if(
+        dentro &&
+        consecutivas>=necesarias &&
+        Date.now()-ultimoAviso>=cooldown
+      ){
+        registrarEvento();
+        ultimoAviso=Date.now();
+        consecutivas=0;
+      }
+
+      dibujar();
+
+    }catch(e){
+      estado("Error del análisis: "+e.message,"bad");
+    }finally{
+      analizando=false;
+    }
+  }
+
+  if(activo){
+    requestAnimationFrame(ciclo);
+  }
+}
+
+function registrarEvento(){
+  const evento={
+    empresa:$("empresa").value.trim(),
+    camara:$("camara").value.trim(),
+    ubicacion:$("ubicacion").value.trim(),
+    evento:$("evento").value,
+    fecha:new Date().toLocaleString("es-HN"),
+    segundo:video.currentTime.toFixed(1),
+    gravedad:"Alta",
+    origen:"DETECCIÓN LOCAL DE PRUEBA"
+  };
+
+  eventos.unshift(evento);
+
+  $("contadorAlertas").textContent=eventos.length;
+
+  mostrarEventos();
+
+  estado(
+    "ALERTA: revisar "+evento.camara+
+    " · "+evento.ubicacion,
+    "bad"
+  );
+
+  if("Notification" in window &&
+     Notification.permission==="granted"){
+    new Notification("VIGÍA IA · Alerta de prueba",{
+      body:"Revisar "+evento.camara+
+        " - "+evento.ubicacion
+    });
+  }
+}
+
+function mostrarEventos(){
+  const contenedor=$("alertas");
+  contenedor.replaceChildren();
+
+  if(!eventos.length){
+    const p=document.createElement("p");
+    p.className="note";
+    p.textContent="Todavía no hay eventos.";
+    contenedor.appendChild(p);
+    return;
+  }
+
+  eventos.forEach(e=>{
+    const div=document.createElement("div");
+    div.className="evento";
+
+    const titulo=document.createElement("strong");
+    titulo.textContent=e.evento;
+
+    const detalle=document.createElement("p");
+    detalle.textContent=
+      e.camara+" · "+e.ubicacion+
+      " · Segundo "+e.segundo;
+
+    const fecha=document.createElement("small");
+    fecha.textContent=
+      e.fecha+" · "+e.origen;
+
+    div.append(titulo,detalle,fecha);
+    contenedor.appendChild(div);
+  });
+}
+
+function limpiarAlertas(){
+  eventos=[];
+  ultimoAviso=0;
+  $("contadorAlertas").textContent="0";
+  mostrarEventos();
+}
+
+video.addEventListener("pause",()=>{
+  if(activo && !video.ended){
+    estado("Video pausado; el análisis espera su reproducción.");
+  }
+});
+
+window.addEventListener("beforeunload",()=>{
+  if(urlVideo)URL.revokeObjectURL(urlVideo);
+});
+
+</script>
+</body>
+</html>
