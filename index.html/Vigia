@@ -1,0 +1,967 @@
+
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VIGÍA IA · Centro de vigilancia</title>
+<style>
+:root{
+  --azul:#2563eb;
+  --fondo:#0b1220;
+  --panel:#142033;
+  --borde:#293b54;
+  --texto:#edf4ff;
+  --muted:#a7bad0
+}
+*{box-sizing:border-box}
+body{
+  margin:0;background:var(--fondo);color:var(--texto);
+  font:15px/1.5 system-ui,Segoe UI,Arial
+}
+header{
+  padding:17px 22px;border-bottom:1px solid var(--borde);
+  display:flex;align-items:center;gap:14px;flex-wrap:wrap
+}
+header h1{margin:0;font-size:22px}
+header small{color:var(--muted)}
+.grow{flex:1}
+main{max-width:1220px;margin:auto;padding:20px}
+nav{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 20px}
+button,.tab{
+  border:0;background:var(--azul);color:white;
+  padding:10px 15px;border-radius:9px;cursor:pointer;font:inherit
+}
+button:hover{filter:brightness(1.12)}
+button:disabled{opacity:.5;cursor:not-allowed}
+.tab{background:#21344d}
+.tab.activo{background:var(--azul)}
+.card{
+  background:var(--panel);border:1px solid var(--borde);
+  border-radius:14px;padding:19px;margin-bottom:18px
+}
+.layout{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.wide{grid-column:1/-1}
+h2{font-size:19px;margin:0 0 12px}
+h3{margin:0 0 10px}
+label{
+  display:block;color:var(--muted);font-size:13px;
+  margin-top:9px
+}
+input,select,textarea{
+  width:100%;border:1px solid #39506e;border-radius:8px;
+  background:#0c1729;color:#f7fbff;padding:10px;
+  margin-top:4px;font:inherit
+}
+textarea{min-height:75px}
+input[type=color]{height:42px;padding:3px}
+.fields{
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:0 12px
+}
+.actions{
+  display:flex;gap:9px;flex-wrap:wrap;margin-top:15px
+}
+.secondary{background:#30435d}
+.danger{background:#9b2939}
+.hint{color:var(--muted);font-size:13px}
+.msg{min-height:25px;font-size:14px}
+.ok{color:#56d69c}
+.error{color:#ff8c9d}
+.scroll{overflow:auto}
+table{width:100%;border-collapse:collapse;min-width:630px}
+th,td{
+  text-align:left;padding:10px;
+  border-bottom:1px solid var(--borde);font-size:13px
+}
+th{color:#b4c5d8}
+tr:hover td{background:#1b2d46}
+.tag{
+  display:inline-block;border-radius:30px;
+  background:#233d59;padding:3px 9px;font-size:12px
+}
+.stats{
+  display:grid;grid-template-columns:repeat(3,1fr);
+  gap:12px;margin-bottom:18px
+}
+.stat{
+  background:var(--panel);border:1px solid var(--borde);
+  border-radius:12px;padding:15px
+}
+.stat strong{display:block;font-size:26px}
+section[hidden]{display:none!important}
+a{color:#8cb8ff}
+@media(max-width:730px){
+  .layout{grid-template-columns:1fr}
+  .stats{grid-template-columns:1fr 1fr}
+  .fields{grid-template-columns:1fr}
+  main{padding:12px}
+  .card{padding:13px}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div style="font-size:30px">🛡️</div>
+  <div>
+    <h1>VIGÍA IA</h1>
+    <small>Administración y alertas · MVP de prueba</small>
+  </div>
+  <div class="grow"></div>
+  <span class="tag" id="conexion">Desconectado</span>
+</header>
+
+<main>
+<div class="card" id="acceso">
+  <h2>Conectar con Google Apps Script</h2>
+  <div class="fields">
+    <div>
+      <label>URL de la aplicación web /exec</label>
+      <input id="https://script.google.com/macros/s/AKfycbwtAuNXvv8Vnos-I8y5buO5L_Kj9AXYmjg7wcT6gfvr3GZEVJ9qfClmDeglP3YLT7Pk/exec"
+        placeholder="https://script.google.com/macros/s/.../exec">
+    </div>
+    <div>
+      <label>PIN de VIGÍA IA</label>
+      <input id="pin" type="password" autocomplete="off"
+        placeholder="PIN configurado en Apps Script">
+    </div>
+  </div>
+  <div class="actions">
+    <button onclick="conectar()">Conectar</button>
+  </div>
+  <p class="hint">
+    El PIN no se almacena en el navegador.
+    Usa esta versión únicamente para administrar el piloto.
+  </p>
+  <div class="msg" id="accesoMsg"></div>
+</div>
+
+<div id="aplicacion" hidden>
+
+  <div class="card">
+    <div class="fields">
+      <div>
+        <label>Empresa en pantalla</label>
+        <select id="empresaActual"
+          onchange="refrescarVista()"></select>
+      </div>
+      <div class="actions" style="align-items:end">
+        <button class="secondary" onclick="recargar()">
+          Actualizar datos
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="stats">
+    <div class="stat">
+      Cámaras<strong id="totalCamaras">0</strong>
+    </div>
+    <div class="stat">
+      Alertas<strong id="totalAlertas">0</strong>
+    </div>
+    <div class="stat">
+      Pendientes<strong id="pendientes">0</strong>
+    </div>
+  </div>
+
+  <nav>
+    <button class="tab activo" data-seccion="empresas"
+      onclick="pantalla('empresas')">Empresas</button>
+    <button class="tab" data-seccion="camaras"
+      onclick="pantalla('camaras')">Cámaras</button>
+    <button class="tab" data-seccion="alertas"
+      onclick="pantalla('alertas')">Alertas</button>
+    <button class="tab" data-seccion="informes"
+      onclick="pantalla('informes')">Reportes</button>
+  </nav>
+
+  <section id="empresas">
+    <div class="layout">
+      <div class="card">
+        <h2>Empresa / identidad</h2>
+        <input id="eID" type="hidden">
+
+        <label>Nombre de la empresa</label>
+        <input id="eNombre" placeholder="Ej. Residencial piloto">
+
+        <label>URL pública del logotipo (opcional)</label>
+        <input id="eLogo" placeholder="https://...">
+
+        <div class="fields">
+          <div>
+            <label>Color de marca</label>
+            <input id="eColor" type="color" value="#2563eb">
+          </div>
+          <div>
+            <label>Estado</label>
+            <select id="eEstado">
+              <option>Activa</option>
+              <option>Inactiva</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button onclick="guardarEmpresa()">Guardar empresa</button>
+          <button class="secondary" onclick="limpiarEmpresa()">Nueva</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Empresas registradas</h2>
+        <div class="scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th><th>Empresa</th>
+                <th>Estado</th><th></th>
+              </tr>
+            </thead>
+            <tbody id="tablaEmpresas"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="camaras" hidden>
+    <div class="layout">
+      <div class="card">
+        <h2>Registrar / editar cámara</h2>
+        <p class="hint">
+          El DVR/NVR de la garita es solo un ejemplo.
+          No ingreses contraseñas aquí.
+        </p>
+        <input type="hidden" id="cID">
+
+        <div class="fields">
+          <div>
+            <label>Nombre de cámara</label>
+            <input id="cNombre" placeholder="CAM-01">
+          </div>
+          <div>
+            <label>Ubicación</label>
+            <input id="cUbicacion" placeholder="Entrada principal">
+          </div>
+          <div>
+            <label>Tipo de conexión</label>
+            <select id="cConexion">
+              <option>Hikvision NVR</option>
+              <option>DVR/NVR</option>
+              <option>IP directa</option>
+              <option>ONVIF</option>
+              <option>Otra</option>
+            </select>
+          </div>
+          <div>
+            <label>IP local del equipo</label>
+            <input id="cIP" placeholder="192.168.1.100">
+          </div>
+          <div>
+            <label>Canal</label>
+            <input id="cCanal" type="number" min="1" value="1">
+          </div>
+          <div>
+            <label>Horario / regla</label>
+            <input id="cHorario"
+              placeholder="24 horas / 22:00-06:00">
+          </div>
+        </div>
+
+        <label>Eventos a monitorear (separados por comas)</label>
+        <input id="cEventos"
+          placeholder="Intrusión, Caída, Posible agresión">
+
+        <label>Estado</label>
+        <select id="cEstado">
+          <option>Configurada</option>
+          <option>Activa</option>
+          <option>Inactiva</option>
+          <option>En prueba</option>
+        </select>
+
+        <div class="actions">
+          <button onclick="guardarCamara()">Guardar cámara</button>
+          <button class="secondary" onclick="limpiarCamara()">Nueva</button>
+        </div>
+
+        <p class="hint">
+          Esta pantalla guarda parámetros;
+          todavía no prueba RTSP ni muestra video.
+        </p>
+      </div>
+
+      <div class="card">
+        <h2>Cámaras de la empresa</h2>
+        <div class="scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th><th>Cámara</th><th>Ubicación</th>
+                <th>Estado</th><th></th>
+              </tr>
+            </thead>
+            <tbody id="tablaCamaras"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="alertas" hidden>
+    <div class="layout">
+      <div class="card">
+        <h2>Crear alerta de prueba</h2>
+        <p class="hint">
+          Las alertas generadas aquí son SIMULACIONES,
+          no detecciones de cámaras.
+        </p>
+
+        <label>Cámara</label>
+        <select id="aCamara"></select>
+
+        <div class="fields">
+          <div>
+            <label>Evento</label>
+            <select id="aEvento">
+              <option>Intrusión</option>
+              <option>Ingreso a zona restringida</option>
+              <option>Persona caída</option>
+              <option>Posible agresión</option>
+              <option>Objeto posiblemente peligroso</option>
+              <option>Accidente</option>
+              <option>Humo o llamas</option>
+            </select>
+          </div>
+          <div>
+            <label>Gravedad</label>
+            <select id="aGravedad">
+              <option>Media</option>
+              <option>Alta</option>
+              <option>Crítica</option>
+              <option>Baja</option>
+            </select>
+          </div>
+        </div>
+
+        <label>Descripción</label>
+        <textarea id="aDescripcion"
+          placeholder="Escenario de simulación"></textarea>
+
+        <label>
+          Destinatarios de prueba (nombres o correos,
+          separados por comas)
+        </label>
+        <input id="aDestinatarios"
+          placeholder="Supervisor, Vigilante">
+
+        <div class="actions">
+          <button onclick="generarAlerta()">
+            Registrar simulación
+          </button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Alertas registradas</h2>
+        <div class="scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>Fecha</th><th>Cámara</th>
+                <th>Evento</th><th>Gravedad</th>
+                <th>Estado</th><th>Acción</th>
+              </tr>
+            </thead>
+            <tbody id="tablaAlertas"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="informes" hidden>
+    <div class="card">
+      <h2>Historial y exportación</h2>
+
+      <div class="fields">
+        <div>
+          <label>Desde</label>
+          <input type="date" id="desde"
+            onchange="dibujarReportes()">
+        </div>
+        <div>
+          <label>Hasta</label>
+          <input type="date" id="hasta"
+            onchange="dibujarReportes()">
+        </div>
+      </div>
+
+      <div class="actions">
+        <button onclick="exportarCSV()">Exportar CSV</button>
+      </div>
+
+      <div class="scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th><th>Fecha</th><th>Cámara</th>
+              <th>Evento</th><th>Gravedad</th>
+              <th>Descripción</th><th>Estado</th>
+            </tr>
+          </thead>
+          <tbody id="tablaInformes"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <div class="msg" id="mensaje"></div>
+</div>
+</main>
+
+<iframe name="puenteVigia" id="puenteVigia"
+  style="display:none"
+  title="Comunicación Apps Script"></iframe>
+
+<script>
+'use strict';
+
+const $ = id => document.getElementById(id);
+
+let datos = {
+  empresas: [],
+  camaras: [],
+  alertas: []
+};
+
+let endpoint = '';
+let clave = '';
+let seq = 0;
+let cola = Promise.resolve();
+
+const esperas = new Map();
+
+function aviso(s, err = false, id = 'mensaje') {
+  const e = $(id);
+  e.textContent = s;
+  e.className = 'msg ' + (err ? 'error' : 'ok');
+}
+
+function valor(id) {
+  return $(id).value.trim();
+}
+
+function escapeHtml(s) {
+  return String(s ?? '').replace(
+    /[&<>"']/g,
+    c => ({
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#39;'
+    }[c])
+  );
+}
+
+function empresaId() {
+  return valor('empresaActual');
+}
+
+// Comunicación GitHub -> Apps Script por formulario/iframe.
+// Evita bloqueos CORS habituales de fetch hacia Apps Script.
+function peticion(accion, otros = {}) {
+  const hacer = () => new Promise((resolve, reject) => {
+    if (!endpoint || !clave) {
+      reject(Error('Conecta primero con Apps Script'));
+      return;
+    }
+
+    const id = 'v' + (++seq) + '_' + Date.now();
+
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = endpoint;
+    form.target = 'puenteVigia';
+    form.style.display = 'none';
+
+    const input = document.createElement('input');
+    input.name = 'payload';
+    input.value = JSON.stringify({
+      accion,
+      pin: clave,
+      requestId: id,
+      ...otros
+    });
+
+    form.appendChild(input);
+    document.body.appendChild(form);
+
+    const timer = setTimeout(() => {
+      esperas.delete(id);
+      form.remove();
+      reject(Error(
+        'La solicitud tardó demasiado. ' +
+        'Revisa el despliegue y VIGIA_ORIGIN.'
+      ));
+    }, 25000);
+
+    esperas.set(id, {
+      resolve: v => {
+        clearTimeout(timer);
+        form.remove();
+        resolve(v);
+      },
+      reject: e => {
+        clearTimeout(timer);
+        form.remove();
+        reject(e);
+      }
+    });
+
+    try {
+      form.submit();
+    } catch (e) {
+      clearTimeout(timer);
+      esperas.delete(id);
+      form.remove();
+      reject(e);
+    }
+  });
+
+  const resultado = cola.then(hacer, hacer);
+  cola = resultado.catch(() => {});
+
+  return resultado;
+}
+
+window.addEventListener('message', ev => {
+  if (!/^https:\/\/([a-z0-9-]+\.)*(script\.google\.com|googleusercontent\.com)$/i.test(ev.origin)) {
+    return;
+  }
+
+  const d = ev.data;
+
+  if (!d || typeof d !== 'object' || !d.requestId) {
+    return;
+  }
+
+  const p = esperas.get(d.requestId);
+  if (!p) return;
+
+  esperas.delete(d.requestId);
+
+  d.ok
+    ? p.resolve(d)
+    : p.reject(Error(d.error || 'Error de servidor'));
+});
+
+async function conectar() {
+  try {
+    endpoint = valor('url');
+    clave = valor('pin');
+
+    if (!/^https:\/\/script\.google\.com\/macros\/s\/[^/]+\/exec$/.test(endpoint)) {
+      throw Error(
+        'Escribe una URL válida de Apps Script terminada en /exec'
+      );
+    }
+
+    if (!clave) {
+      throw Error('Escribe tu PIN');
+    }
+
+    const r = await peticion('cargar');
+    datos = r.datos;
+
+    $('aplicacion').hidden = false;
+    $('conexion').textContent = 'Conectado · Administrador piloto';
+
+    sessionStorage.setItem('vigia_endpoint', endpoint);
+
+    renderizar();
+
+    aviso(
+      'Conectado correctamente',
+      false,
+      'accesoMsg'
+    );
+  } catch (e) {
+    aviso(e.message, true, 'accesoMsg');
+  }
+}
+
+async function recargar() {
+  try {
+    const r = await peticion('cargar');
+    datos = r.datos;
+    renderizar();
+    aviso('Datos actualizados');
+  } catch (e) {
+    aviso(e.message, true);
+  }
+}
+
+async function ejecutar(accion, registro) {
+  try {
+    const r = await peticion(accion, { registro });
+
+    aviso(r.mensaje + ' · ID ' + r.id);
+
+    await recargar();
+    return true;
+  } catch (e) {
+    aviso(e.message, true);
+    return false;
+  }
+}
+
+function pintarOpciones(id, arreglo, sel) {
+  const el = $(id);
+  const prev = sel ?? el.value;
+
+  el.replaceChildren();
+
+  for (const x of arreglo) {
+    const o = document.createElement('option');
+    o.value = String(x.value);
+    o.textContent = x.label;
+    el.appendChild(o);
+  }
+
+  if (arreglo.some(x => String(x.value) === String(prev))) {
+    el.value = String(prev);
+  }
+}
+
+function renderizar() {
+  pintarOpciones(
+    'empresaActual',
+    datos.empresas.map(e => ({
+      value: e.ID,
+      label: e.Empresa + ' (' + e.ID + ')'
+    }))
+  );
+
+  refrescarVista();
+}
+
+function refrescarVista() {
+  const id = empresaId();
+
+  const cam = datos.camaras.filter(
+    x => x.EmpresaID === id
+  );
+
+  const al = datos.alertas.filter(
+    x => x.EmpresaID === id
+  );
+
+  $('totalCamaras').textContent = cam.length;
+  $('totalAlertas').textContent = al.length;
+
+  $('pendientes').textContent = al.filter(
+    a => a.Estado === 'Pendiente'
+  ).length;
+
+  const emp = datos.empresas.find(x => x.ID === id);
+
+  document.documentElement.style.setProperty(
+    '--azul',
+    /^#[\da-f]{6}$/i.test(emp?.Color || '')
+      ? emp.Color
+      : '#2563eb'
+  );
+
+  pintarOpciones(
+    'aCamara',
+    cam.map(c => ({
+      value: c['Cámara'],
+      label: c['Cámara'] + ' · ' + c['Ubicación']
+    }))
+  );
+
+  $('tablaEmpresas').innerHTML = datos.empresas.map(e => `
+    <tr>
+      <td>${escapeHtml(e.ID)}</td>
+      <td>${escapeHtml(e.Empresa)}</td>
+      <td>${escapeHtml(e.Estado)}</td>
+      <td>
+        <button class="secondary"
+          onclick="editarEmpresa('${escapeHtml(e.ID)}')">
+          Editar
+        </button>
+      </td>
+    </tr>
+  `).join('');
+
+  $('tablaCamaras').innerHTML = cam.map(c => `
+    <tr>
+      <td>${escapeHtml(c.ID)}</td>
+      <td>${escapeHtml(c['Cámara'])}</td>
+      <td>${escapeHtml(c['Ubicación'])}</td>
+      <td>${escapeHtml(c.Estado)}</td>
+      <td>
+        <button class="secondary"
+          onclick="editarCamara('${escapeHtml(c.ID)}')">
+          Editar
+        </button>
+      </td>
+    </tr>
+  `).join('');
+
+  $('tablaAlertas').innerHTML = [...al].reverse().map(a => `
+    <tr>
+      <td>${escapeHtml(a.FechaHora)}</td>
+      <td>${escapeHtml(a['Cámara'])}</td>
+      <td>${escapeHtml(a.Evento)}</td>
+      <td>${escapeHtml(a.Gravedad)}</td>
+      <td>${escapeHtml(a.Estado)}</td>
+      <td>
+        <select aria-label="Estado de alerta"
+          onchange="estadoAlerta('${escapeHtml(a.ID)}',this.value)">
+          ${[
+            'Pendiente',
+            'En revisión',
+            'Confirmada',
+            'Descartada',
+            'Cerrada'
+          ].map(x => `
+            <option ${x === a.Estado ? 'selected' : ''}>
+              ${x}
+            </option>
+          `).join('')}
+        </select>
+      </td>
+    </tr>
+  `).join('');
+
+  dibujarReportes();
+}
+
+function pantalla(nombre) {
+  document.querySelectorAll('main section').forEach(s => {
+    s.hidden = s.id !== nombre;
+  });
+
+  document.querySelectorAll('.tab').forEach(b => {
+    b.classList.toggle(
+      'activo',
+      b.dataset.seccion === nombre
+    );
+  });
+}
+
+function limpiarEmpresa() {
+  ['eID', 'eNombre', 'eLogo'].forEach(x => {
+    $(x).value = '';
+  });
+
+  $('eColor').value = '#2563eb';
+  $('eEstado').value = 'Activa';
+}
+
+function editarEmpresa(id) {
+  const e = datos.empresas.find(x => x.ID === id);
+
+  if (!e) return;
+
+  $('eID').value = e.ID;
+  $('eNombre').value = e.Empresa;
+  $('eLogo').value = e.Logo;
+  $('eColor').value =
+    /^#[\da-f]{6}$/i.test(e.Color)
+      ? e.Color
+      : '#2563eb';
+
+  $('eEstado').value = e.Estado;
+}
+
+async function guardarEmpresa() {
+  const r = {
+    ID: valor('eID'),
+    Empresa: valor('eNombre'),
+    Logo: valor('eLogo'),
+    Color: valor('eColor'),
+    Estado: valor('eEstado')
+  };
+
+  if (await ejecutar('guardarEmpresa', r)) {
+    limpiarEmpresa();
+  }
+}
+
+function limpiarCamara() {
+  [
+    'cID',
+    'cNombre',
+    'cUbicacion',
+    'cIP',
+    'cEventos'
+  ].forEach(x => {
+    $(x).value = '';
+  });
+
+  $('cConexion').value = 'Hikvision NVR';
+  $('cCanal').value = '1';
+  $('cHorario').value = '24 horas';
+  $('cEstado').value = 'Configurada';
+}
+
+function editarCamara(id) {
+  const c = datos.camaras.find(
+    x => x.ID === id && x.EmpresaID === empresaId()
+  );
+
+  if (!c) return;
+
+  for (const [a, b] of [
+    ['cID', 'ID'],
+    ['cNombre', 'Cámara'],
+    ['cUbicacion', 'Ubicación'],
+    ['cConexion', 'Conexión'],
+    ['cIP', 'IP'],
+    ['cCanal', 'Canal'],
+    ['cEventos', 'Eventos'],
+    ['cHorario', 'Horario'],
+    ['cEstado', 'Estado']
+  ]) {
+    $(a).value = c[b] || '';
+  }
+}
+
+async function guardarCamara() {
+  if (!empresaId()) {
+    return aviso('Primero registra una empresa', true);
+  }
+
+  const r = {
+    ID: valor('cID'),
+    EmpresaID: empresaId(),
+    'Cámara': valor('cNombre'),
+    'Ubicación': valor('cUbicacion'),
+    'Conexión': valor('cConexion'),
+    IP: valor('cIP'),
+    Canal: valor('cCanal'),
+    Eventos: valor('cEventos'),
+    Horario: valor('cHorario'),
+    Estado: valor('cEstado')
+  };
+
+  if (await ejecutar('guardarCamara', r)) {
+    limpiarCamara();
+  }
+}
+
+async function generarAlerta() {
+  if (!empresaId() || !valor('aCamara')) {
+    return aviso(
+      'Selecciona una empresa con al menos una cámara',
+      true
+    );
+  }
+
+  const r = {
+    EmpresaID: empresaId(),
+    'Cámara': valor('aCamara'),
+    Evento: valor('aEvento'),
+    Gravedad: valor('aGravedad'),
+    'Descripción': valor('aDescripcion'),
+    Destinatarios: valor('aDestinatarios')
+  };
+
+  if (await ejecutar('guardarAlerta', r)) {
+    $('aDescripcion').value = '';
+  }
+}
+
+async function estadoAlerta(id, estado) {
+  try {
+    await peticion('estadoAlerta', {
+      id,
+      estado,
+      empresaId: empresaId()
+    });
+
+    await recargar();
+  } catch (e) {
+    aviso(e.message, true);
+    await recargar();
+  }
+}
+
+function filtradas() {
+  const desde = valor('desde');
+  const hasta = valor('hasta');
+
+  return datos.alertas.filter(a =>
+    a.EmpresaID === empresaId() &&
+    (!desde || a.FechaHora.slice(0, 10) >= desde) &&
+    (!hasta || a.FechaHora.slice(0, 10) <= hasta)
+  );
+}
+
+function dibujarReportes() {
+  $('tablaInformes').innerHTML = filtradas().map(a => `
+    <tr>
+      ${[
+        'ID',
+        'FechaHora',
+        'Cámara',
+        'Evento',
+        'Gravedad',
+        'Descripción',
+        'Estado'
+      ].map(k => `<td>${escapeHtml(a[k])}</td>`).join('')}
+    </tr>
+  `).join('');
+}
+
+function exportarCSV() {
+  const headers = [
+    'ID',
+    'EmpresaID',
+    'Cámara',
+    'FechaHora',
+    'Evento',
+    'Gravedad',
+    'Descripción',
+    'Destinatarios',
+    'Estado'
+  ];
+
+  const line = r =>
+    headers.map(h =>
+      '"' + String(r[h] ?? '').replace(/"/g, '""') + '"'
+    ).join(',');
+
+  const csv =
+    '\uFEFF' +
+    headers.join(',') +
+    '\r\n' +
+    filtradas().map(line).join('\r\n');
+
+  const blob = new Blob(
+    [csv],
+    { type: 'text/csv;charset=utf-8' }
+  );
+
+  const u = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+
+  a.href = u;
+  a.download = 'vigia_alertas.csv';
+  a.click();
+
+  URL.revokeObjectURL(u);
+}
+
+$('url').value =
+  sessionStorage.getItem('vigia_endpoint') || '';
+
+</script>
+</body>
+</html>
