@@ -3,20 +3,19 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>VIGÍA IA · v4.0</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VIGÍA IA | Centro de vigilancia</title>
 
 <script>
-// GitHub es la puerta de entrada.
-// Apps Script ejecuta la aplicación y accede a Sheets.
-const GAS_URL =
-"https://script.google.com/macros/s/AKfycbwtAuNXvv8Vnos-I8y5buO5L_Kj9AXYmjg7wcT6gfvr3GZEVJ9qfClmDeglP3YLT7Pk/exec";
+const VIGIA_CONFIG = {
+  version: "4.1",
+  gasUrl: "https://script.google.com/macros/s/AKfycbwtAuNXvv8Vnos-I8y5buO5L_Kj9AXYmjg7wcT6gfvr3GZEVJ9qfClmDeglP3YLT7Pk/exec"
+};
 
-if (
-  location.hostname ===
-  "asistenterh37-cpu.github.io"
-) {
-  location.replace(GAS_URL);
+// GitHub funciona como dirección pública.
+// El panel se ejecuta en el entorno de Apps Script.
+if (location.hostname.endsWith(".github.io")) {
+  location.replace(VIGIA_CONFIG.gasUrl);
 }
 </script>
 
@@ -24,7 +23,7 @@ if (
 :root{
   --accent:#2563eb;
   --bg:#0b1220;
-  --panel:#142033;
+  --panel:#152238;
   --border:#30445f;
   --text:#edf4ff;
   --muted:#a8bad0;
@@ -34,98 +33,103 @@ body{
   margin:0;
   background:var(--bg);
   color:var(--text);
-  font:15px/1.5 system-ui,Arial
+  font:15px/1.5 system-ui,Segoe UI,Arial,sans-serif;
 }
 header{
-  display:flex;align-items:center;gap:15px;
-  padding:16px 24px;
-  border-bottom:1px solid var(--border)
+  display:flex;
+  align-items:center;
+  gap:15px;
+  padding:17px 22px;
+  border-bottom:1px solid var(--border);
 }
 h1{margin:0;font-size:22px}
-h2{margin:0 0 12px;font-size:18px}
+h2{margin:0 0 12px;font-size:19px}
 small,.note{color:var(--muted)}
-main{
-  max-width:1200px;
-  margin:auto;
-  padding:18px
-}
+main{max-width:1250px;margin:auto;padding:18px}
 .card{
   background:var(--panel);
   border:1px solid var(--border);
   border-radius:13px;
   padding:18px;
-  margin-bottom:16px
+  margin-bottom:16px;
 }
 .grid{
   display:grid;
   grid-template-columns:1fr 1fr;
-  gap:16px
+  gap:16px;
 }
 .fields{
   display:grid;
   grid-template-columns:1fr 1fr;
-  gap:12px
+  gap:12px;
 }
 .stats{
   display:grid;
   grid-template-columns:repeat(3,1fr);
-  gap:12px
+  gap:12px;
 }
-.stats strong{display:block;font-size:25px}
+.stats strong{
+  display:block;
+  font-size:28px;
+}
 label{
   display:block;
   color:var(--muted);
   font-size:13px;
-  margin:8px 0 4px
+  margin:9px 0 4px;
 }
 input,select,textarea{
   width:100%;
-  background:#0c1729;
+  background:#0b1729;
   color:white;
   border:1px solid #415875;
   border-radius:8px;
   padding:10px;
-  font:inherit
+  font:inherit;
 }
-textarea{min-height:75px}
-input[type=color]{height:42px}
+input[type=color]{height:43px;padding:3px}
+textarea{min-height:85px}
 button{
   background:var(--accent);
   color:white;
   border:0;
   border-radius:8px;
-  padding:10px 14px;
+  padding:10px 15px;
   cursor:pointer;
-  font:inherit
+  font:inherit;
 }
 button.sec,nav button{background:#30445f}
 nav button.active{background:var(--accent)}
+button:disabled{opacity:.5;cursor:wait}
+button:hover:not(:disabled){filter:brightness(1.13)}
 .actions,nav{
   display:flex;
   gap:8px;
   flex-wrap:wrap;
-  margin:14px 0
+  margin:14px 0;
 }
 .table{overflow:auto}
 table{
   width:100%;
-  min-width:560px;
-  border-collapse:collapse
+  min-width:550px;
+  border-collapse:collapse;
 }
 td,th{
+  padding:10px;
   border-bottom:1px solid var(--border);
-  padding:9px;
+  font-size:13px;
   text-align:left;
-  font-size:13px
 }
 th{color:var(--muted)}
-.error{color:#ff93a6}
-.ok{color:#69e4ac}
+.ok{color:#68e0a9}
+.error{color:#ff8a9d}
+#mensaje,#mensajeLogin{margin-top:12px}
 [hidden]{display:none!important}
-@media(max-width:720px){
+@media(max-width:730px){
   .grid,.fields{grid-template-columns:1fr}
   .stats{grid-template-columns:repeat(2,1fr)}
-  main{padding:11px}
+  main{padding:12px}
+  header{padding:14px}
 }
 </style>
 </head>
@@ -133,10 +137,10 @@ th{color:var(--muted)}
 <body>
 
 <header>
-  <span style="font-size:30px">🛡️</span>
+  <span style="font-size:32px">🛡️</span>
   <div>
     <h1>VIGÍA IA</h1>
-    <small>Panel administrativo · Versión 4.0 · Piloto</small>
+    <small>Centro inteligente de vigilancia · Piloto v4.1</small>
   </div>
   <small id="conexion" style="margin-left:auto">
     Desconectado
@@ -145,11 +149,14 @@ th{color:var(--muted)}
 
 <main>
 
+<!-- INGRESO -->
+
 <div id="login" class="card">
-  <h2>Ingreso a VIGÍA IA</h2>
+  <h2>Acceso a VIGÍA IA</h2>
+
   <p class="note">
-    La conexión a Google Sheets se realiza desde
-    Apps Script. No se almacenan videos.
+    Administración de empresas, cámaras y alertas.
+    No se almacenan grabaciones en Google Sheets.
   </p>
 
   <label>PIN de acceso</label>
@@ -157,34 +164,38 @@ th{color:var(--muted)}
     id="pin"
     type="password"
     autocomplete="off"
-    placeholder="PIN definido en Apps Script">
+    placeholder="Escribe el PIN configurado en Apps Script">
 
   <div class="actions">
-    <button onclick="entrar()">Ingresar</button>
+    <button id="btnIngresar" onclick="entrar()">
+      Ingresar
+    </button>
   </div>
 
   <div id="mensajeLogin"></div>
-  <small id="diagnostico">Cargando entorno...</small>
+  <p class="note" id="diagnostico"></p>
 </div>
+
+<!-- APLICACIÓN -->
 
 <div id="app" hidden>
 
-  <div class="card fields">
-    <div>
-      <label>Empresa</label>
-      <select
-        id="empresaActual"
-        onchange="actualizarPantalla()">
-      </select>
-    </div>
+  <div class="card">
+    <div class="fields">
+      <div>
+        <label>Empresa seleccionada</label>
+        <select id="empresaActual"
+          onchange="actualizarPantalla()"></select>
+      </div>
 
-    <div class="actions" style="align-items:end">
-      <button class="sec" onclick="recargar()">
-        Actualizar
-      </button>
-      <button class="sec" onclick="salir()">
-        Salir
-      </button>
+      <div class="actions" style="align-items:end">
+        <button class="sec" onclick="recargar()">
+          Actualizar datos
+        </button>
+        <button class="sec" onclick="salir()">
+          Salir
+        </button>
+      </div>
     </div>
   </div>
 
@@ -205,44 +216,36 @@ th{color:var(--muted)}
 
   <nav>
     <button class="active" data-page="empresas"
-      onclick="mostrar('empresas')">
-      Empresas
-    </button>
+      onclick="mostrar('empresas')">Empresas</button>
     <button data-page="camaras"
-      onclick="mostrar('camaras')">
-      Cámaras
-    </button>
+      onclick="mostrar('camaras')">Cámaras</button>
     <button data-page="alertas"
-      onclick="mostrar('alertas')">
-      Alertas
-    </button>
+      onclick="mostrar('alertas')">Alertas</button>
     <button data-page="reportes"
-      onclick="mostrar('reportes')">
-      Reportes
-    </button>
+      onclick="mostrar('reportes')">Reportes</button>
   </nav>
 
   <!-- EMPRESAS -->
+
   <section id="empresas">
     <div class="grid">
+
       <div class="card">
-        <h2>Empresa</h2>
+        <h2>Registrar / editar empresa</h2>
 
         <input id="eID" type="hidden">
 
-        <label>Nombre de empresa</label>
+        <label>Nombre de la empresa</label>
         <input id="eEmpresa"
           placeholder="Residencial piloto">
 
-        <label>URL del logotipo (opcional)</label>
+        <label>URL de logotipo (opcional)</label>
         <input id="eLogo" placeholder="https://...">
 
         <div class="fields">
           <div>
-            <label>Color</label>
-            <input
-              id="eColor"
-              type="color"
+            <label>Color corporativo</label>
+            <input id="eColor" type="color"
               value="#2563eb">
           </div>
           <div>
@@ -255,12 +258,8 @@ th{color:var(--muted)}
         </div>
 
         <div class="actions">
-          <button onclick="guardarEmpresa()">
-            Guardar
-          </button>
-          <button class="sec" onclick="nuevaEmpresa()">
-            Nueva
-          </button>
+          <button onclick="guardarEmpresa()">Guardar</button>
+          <button class="sec" onclick="nuevaEmpresa()">Nueva</button>
         </div>
       </div>
 
@@ -280,33 +279,37 @@ th{color:var(--muted)}
           </table>
         </div>
       </div>
+
     </div>
   </section>
 
   <!-- CÁMARAS -->
+
   <section id="camaras" hidden>
     <div class="grid">
+
       <div class="card">
-        <h2>Registrar / editar cámara</h2>
+        <h2>Gestión de cámaras</h2>
 
         <p class="note">
-          Configuración de cámara; todavía no es
-          una conexión RTSP real.
-          No ingreses contraseñas.
+          Parametrización de cámaras y grabadores.
+          No escribas contraseñas ni URL con credenciales.
         </p>
 
         <input id="cID" type="hidden">
 
         <div class="fields">
           <div>
-            <label>Cámara</label>
+            <label>Nombre de la cámara</label>
             <input id="cCamara" placeholder="CAM-01">
           </div>
+
           <div>
             <label>Ubicación</label>
             <input id="cUbicacion"
               placeholder="Entrada principal">
           </div>
+
           <div>
             <label>Conexión</label>
             <select id="cConexion">
@@ -318,23 +321,26 @@ th{color:var(--muted)}
               <option>Otra</option>
             </select>
           </div>
+
           <div>
             <label>IP local</label>
-            <input id="cIP"
-              placeholder="192.168.1.100">
+            <input id="cIP" placeholder="192.168.1.100">
           </div>
+
           <div>
             <label>Canal</label>
-            <input id="cCanal"
-              type="number" min="1" value="1">
+            <input id="cCanal" type="number"
+              min="1" value="1">
           </div>
+
           <div>
             <label>Horario</label>
-            <input id="cHorario" value="24 horas">
+            <input id="cHorario"
+              placeholder="24 horas" value="24 horas">
           </div>
         </div>
 
-        <label>Eventos (separados por comas)</label>
+        <label>Eventos a monitorear</label>
         <input id="cEventos"
           placeholder="Intrusión, Caída, Posible agresión">
 
@@ -347,17 +353,18 @@ th{color:var(--muted)}
         </select>
 
         <div class="actions">
-          <button onclick="guardarCamara()">
-            Guardar
-          </button>
-          <button class="sec" onclick="nuevaCamara()">
-            Nueva
-          </button>
+          <button onclick="guardarCamara()">Guardar</button>
+          <button class="sec" onclick="nuevaCamara()">Nueva</button>
         </div>
+
+        <p class="note">
+          Registrar una cámara no activa el análisis de video.
+          Esa función requerirá el conector Python.
+        </p>
       </div>
 
       <div class="card">
-        <h2>Cámaras</h2>
+        <h2>Cámaras registradas</h2>
         <div class="table">
           <table>
             <thead>
@@ -373,18 +380,21 @@ th{color:var(--muted)}
           </table>
         </div>
       </div>
+
     </div>
   </section>
 
   <!-- ALERTAS -->
+
   <section id="alertas" hidden>
     <div class="grid">
+
       <div class="card">
-        <h2>Simular alerta</h2>
+        <h2>Crear alerta de prueba</h2>
 
         <p class="note">
-          Este módulo registra SIMULACIONES,
-          no detecciones reales.
+          Esta pantalla simula incidentes; no realiza
+          detecciones automáticas.
         </p>
 
         <label>Cámara</label>
@@ -403,6 +413,7 @@ th{color:var(--muted)}
               <option>Humo o llamas</option>
             </select>
           </div>
+
           <div>
             <label>Gravedad</label>
             <select id="aGravedad">
@@ -416,7 +427,7 @@ th{color:var(--muted)}
 
         <label>Descripción</label>
         <textarea id="aDescripcion"
-          placeholder="Evento de prueba"></textarea>
+          placeholder="Describe el evento simulado"></textarea>
 
         <label>Destinatarios de prueba</label>
         <input id="aDestinatarios"
@@ -424,13 +435,13 @@ th{color:var(--muted)}
 
         <div class="actions">
           <button onclick="guardarAlerta()">
-            Crear simulación
+            Generar simulación
           </button>
         </div>
       </div>
 
       <div class="card">
-        <h2>Alertas</h2>
+        <h2>Alertas registradas</h2>
         <div class="table">
           <table>
             <thead>
@@ -447,13 +458,15 @@ th{color:var(--muted)}
           </table>
         </div>
       </div>
+
     </div>
   </section>
 
   <!-- REPORTES -->
+
   <section id="reportes" hidden>
     <div class="card">
-      <h2>Reportes</h2>
+      <h2>Historial de alertas</h2>
 
       <div class="fields">
         <div>
@@ -461,6 +474,7 @@ th{color:var(--muted)}
           <input type="date" id="desde"
             onchange="tablaReportes()">
         </div>
+
         <div>
           <label>Hasta</label>
           <input type="date" id="hasta"
@@ -469,9 +483,7 @@ th{color:var(--muted)}
       </div>
 
       <div class="actions">
-        <button onclick="exportarCSV()">
-          Exportar CSV
-        </button>
+        <button onclick="exportarCSV()">Exportar CSV</button>
       </div>
 
       <div class="table">
@@ -504,7 +516,7 @@ th{color:var(--muted)}
 const $ = id => document.getElementById(id);
 const get = id => $(id).value.trim();
 
-let PIN = "";
+let pinActual = "";
 
 let db = {
   empresas: [],
@@ -512,83 +524,95 @@ let db = {
   alertas: []
 };
 
-function msg(t, error = false, target = "mensaje") {
-  const x = $(target);
-  x.textContent = t;
-  x.className = error ? "error" : "ok";
+function mensaje(texto, error = false, destino = "mensaje") {
+  const el = $(destino);
+  el.textContent = texto;
+  el.className = error ? "error" : "ok";
 }
 
-// Comunicación interna dentro de Apps Script.
-function llamada(accion, datos = {}) {
+// No hay solicitudes cruzadas entre dominios.
+// google.script.run trabaja dentro de Apps Script.
+function llamar(accion, parametros = {}) {
   return new Promise((resolve, reject) => {
     if (!window.google?.script?.run) {
-      return reject(Error(
-        "La página no se ejecuta desde Apps Script. " +
-        "Actualiza la implementación /exec."
+      reject(Error(
+        "Esta versión debe abrirse desde Apps Script. " +
+        "Comprueba la implementación publicada."
       ));
+      return;
     }
 
     google.script.run
       .withSuccessHandler(r => {
-        if (r?.ok) {
+        if (r && r.ok) {
           resolve(r);
         } else {
-          reject(Error(
-            r?.error || "Error de servidor"
-          ));
+          reject(Error(r?.error || "Error del servidor"));
         }
       })
       .withFailureHandler(e => {
-        reject(Error(e.message || String(e)));
+        reject(Error(e?.message || String(e)));
       })
       .apiDesdeHtml({
-        accion,
-        pin: PIN,
-        ...datos
+        accion: accion,
+        pin: pinActual,
+        ...parametros
       });
   });
 }
 
 async function entrar() {
-  try {
-    PIN = get("pin");
-    if (!PIN) throw Error("Escribe el PIN");
+  const boton = $("btnIngresar");
+  boton.disabled = true;
 
-    const r = await llamada("cargar");
+  try {
+    pinActual = get("pin");
+
+    if (!pinActual) {
+      throw Error("Escribe el PIN");
+    }
+
+    const r = await llamar("cargar");
     db = r.datos;
 
     $("login").hidden = true;
     $("app").hidden = false;
     $("conexion").textContent = "Conectado";
 
-    render();
+    renderizar();
+
   } catch (e) {
-    msg(e.message, true, "mensajeLogin");
+    pinActual = "";
+    mensaje(e.message, true, "mensajeLogin");
+  } finally {
+    boton.disabled = false;
   }
 }
 
 function salir() {
-  PIN = "";
+  pinActual = "";
   $("pin").value = "";
   $("app").hidden = true;
   $("login").hidden = false;
   $("conexion").textContent = "Desconectado";
 }
 
-async function recargar(
-  silencio = false,
-  seleccionar
-) {
-  const r = await llamada("cargar");
-  db = r.datos;
-  render(seleccionar);
+async function recargar(silencioso = false, empresaPreferida) {
+  const actual = empresaPreferida ?? get("empresaActual");
 
-  if (!silencio) msg("Datos actualizados");
+  const r = await llamar("cargar");
+  db = r.datos;
+
+  renderizar(actual);
+
+  if (!silencioso) {
+    mensaje("Datos actualizados");
+  }
 }
 
 async function guardar(accion, registro) {
   try {
-    const r = await llamada(accion, { registro });
+    const r = await llamar(accion, { registro });
 
     try {
       await recargar(
@@ -597,52 +621,49 @@ async function guardar(accion, registro) {
           ? r.id
           : undefined
       );
+      mensaje(r.mensaje + " · ID " + r.id);
     } catch (e) {
-      msg(
-        "Registro guardado, pero falló " +
-        "la actualización: " + e.message,
+      mensaje(
+        "El registro se guardó, pero falló la recarga: " +
+        e.message,
         true
       );
-      return true;
     }
 
-    msg(r.mensaje + " · ID " + r.id);
     return true;
 
   } catch (e) {
-    msg(e.message, true);
+    mensaje(e.message, true);
     return false;
   }
 }
 
-function options(id, list, preferir) {
+function llenarOpciones(id, opciones, preferido) {
   const s = $(id);
-  const anterior = preferir ?? s.value;
+  const anterior = preferido ?? s.value;
 
   s.replaceChildren();
 
-  list.forEach(o => {
-    const el = document.createElement("option");
-    el.value = String(o.value);
-    el.textContent = o.label;
-    s.appendChild(el);
+  opciones.forEach(x => {
+    const o = document.createElement("option");
+    o.value = String(x.value);
+    o.textContent = x.texto;
+    s.appendChild(o);
   });
 
-  if (list.some(
-    o => String(o.value) === String(anterior)
-  )) {
+  if (opciones.some(x => String(x.value) === String(anterior))) {
     s.value = String(anterior);
   }
 }
 
-function render(seleccionar) {
-  options(
+function renderizar(empresaPreferida) {
+  llenarOpciones(
     "empresaActual",
     db.empresas.map(e => ({
       value: e.ID,
-      label: e.Empresa
+      texto: e.Empresa
     })),
-    seleccionar
+    empresaPreferida
   );
 
   actualizarPantalla();
@@ -651,107 +672,96 @@ function render(seleccionar) {
 function actualizarPantalla() {
   const id = get("empresaActual");
 
-  const empresa = db.empresas.find(
-    e => e.ID === id
-  );
+  const empresa = db.empresas.find(e => e.ID === id);
+  const camaras = db.camaras.filter(x => x.EmpresaID === id);
+  const alertas = db.alertas.filter(x => x.EmpresaID === id);
 
-  const c = db.camaras.filter(
-    x => x.EmpresaID === id
-  );
-
-  const a = db.alertas.filter(
-    x => x.EmpresaID === id
-  );
-
-  $("nCamaras").textContent = c.length;
-  $("nAlertas").textContent = a.length;
-
-  $("nPendientes").textContent = a.filter(
+  $("nCamaras").textContent = camaras.length;
+  $("nAlertas").textContent = alertas.length;
+  $("nPendientes").textContent = alertas.filter(
     x => x.Estado === "Pendiente"
   ).length;
 
+  const color = empresa?.Color;
+
   document.documentElement.style.setProperty(
     "--accent",
-    /^#[a-f0-9]{6}$/i.test(
-      empresa?.Color || ""
-    )
-      ? empresa.Color
+    /^#[a-f0-9]{6}$/i.test(color || "")
+      ? color
       : "#2563eb"
   );
 
-  options(
+  llenarOpciones(
     "aCamara",
-    c.map(x => ({
-      value: x["Cámara"],
-      label: x["Cámara"] + " · " + x["Ubicación"]
+    camaras.map(c => ({
+      value: c["Cámara"],
+      texto: c["Cámara"] + " - " + c["Ubicación"]
     }))
   );
 
   pintarEmpresas();
-  pintarCamaras(c);
-  pintarAlertas(a);
+  pintarCamaras(camaras);
+  pintarAlertas(alertas);
   tablaReportes();
 }
 
-function td(tr, t) {
-  const e = document.createElement("td");
-  e.textContent = String(t ?? "");
-  tr.appendChild(e);
-  return e;
+function celda(fila, texto) {
+  const td = document.createElement("td");
+  td.textContent = String(texto ?? "");
+  fila.appendChild(td);
+  return td;
 }
 
-function boton(text, fn) {
+function boton(texto, accion) {
   const b = document.createElement("button");
   b.className = "sec";
-  b.textContent = text;
-  b.onclick = fn;
+  b.textContent = texto;
+  b.onclick = accion;
   return b;
 }
 
 function pintarEmpresas() {
-  const t = $("tEmpresas");
-  t.replaceChildren();
+  const tbody = $("tEmpresas");
+  tbody.replaceChildren();
 
   db.empresas.forEach(e => {
     const tr = document.createElement("tr");
 
-    td(tr, e.ID);
-    td(tr, e.Empresa);
-    td(tr, e.Estado);
-
-    td(tr, "").appendChild(
+    celda(tr, e.ID);
+    celda(tr, e.Empresa);
+    celda(tr, e.Estado);
+    celda(tr, "").appendChild(
       boton("Editar", () => editarEmpresa(e.ID))
     );
 
-    t.appendChild(tr);
+    tbody.appendChild(tr);
   });
 }
 
-function pintarCamaras(c) {
-  const t = $("tCamaras");
-  t.replaceChildren();
+function pintarCamaras(camaras) {
+  const tbody = $("tCamaras");
+  tbody.replaceChildren();
 
-  c.forEach(x => {
+  camaras.forEach(c => {
     const tr = document.createElement("tr");
 
-    td(tr, x.ID);
-    td(tr, x["Cámara"]);
-    td(tr, x["Ubicación"]);
-    td(tr, x.Estado);
-
-    td(tr, "").appendChild(
-      boton("Editar", () => editarCamara(x.ID))
+    celda(tr, c.ID);
+    celda(tr, c["Cámara"]);
+    celda(tr, c["Ubicación"]);
+    celda(tr, c.Estado);
+    celda(tr, "").appendChild(
+      boton("Editar", () => editarCamara(c.ID))
     );
 
-    t.appendChild(tr);
+    tbody.appendChild(tr);
   });
 }
 
-function pintarAlertas(a) {
-  const t = $("tAlertas");
-  t.replaceChildren();
+function pintarAlertas(alertas) {
+  const tbody = $("tAlertas");
+  tbody.replaceChildren();
 
-  [...a].reverse().forEach(x => {
+  [...alertas].reverse().forEach(a => {
     const tr = document.createElement("tr");
 
     [
@@ -760,9 +770,9 @@ function pintarAlertas(a) {
       "Evento",
       "Gravedad",
       "Estado"
-    ].forEach(k => td(tr, x[k]));
+    ].forEach(k => celda(tr, a[k]));
 
-    const s = document.createElement("select");
+    const select = document.createElement("select");
 
     [
       "Pendiente",
@@ -770,79 +780,57 @@ function pintarAlertas(a) {
       "Confirmada",
       "Descartada",
       "Cerrada"
-    ].forEach(k => {
+    ].forEach(estado => {
       const o = document.createElement("option");
-      o.value = k;
-      o.textContent = k;
-      s.appendChild(o);
+      o.value = estado;
+      o.textContent = estado;
+      select.appendChild(o);
     });
 
-    s.value = x.Estado;
+    select.value = a.Estado;
+    select.onchange = () => cambiarEstado(a.ID, select.value);
 
-    s.onchange = () => cambiarEstado(
-      x.ID,
-      s.value
-    );
-
-    td(tr, "").appendChild(s);
-    t.appendChild(tr);
+    celda(tr, "").appendChild(select);
+    tbody.appendChild(tr);
   });
 }
 
-function mostrar(id) {
-  document.querySelectorAll("main section")
-    .forEach(e => {
-      e.hidden = e.id !== id;
-    });
+function mostrar(nombre) {
+  document.querySelectorAll("main section").forEach(s => {
+    s.hidden = s.id !== nombre;
+  });
 
-  document.querySelectorAll("nav button")
-    .forEach(e => {
-      e.classList.toggle(
-        "active",
-        e.dataset.page === id
-      );
-    });
+  document.querySelectorAll("nav button").forEach(b => {
+    b.classList.toggle(
+      "active",
+      b.dataset.page === nombre
+    );
+  });
 }
 
 function nuevaEmpresa() {
   ["eID", "eEmpresa", "eLogo"].forEach(
-    k => $(k).value = ""
+    id => $(id).value = ""
   );
-
   $("eColor").value = "#2563eb";
   $("eEstado").value = "Activa";
 }
 
 function editarEmpresa(id) {
-  const e = db.empresas.find(
-    x => x.ID === id
-  );
-
+  const e = db.empresas.find(x => x.ID === id);
   if (!e) return;
 
-  const campos = {
-    ID: "eID",
-    Empresa: "eEmpresa",
-    Logo: "eLogo",
-    Color: "eColor",
-    Estado: "eEstado"
-  };
-
-  Object.entries(campos).forEach(
-    ([columna, campo]) => {
-      $(campo).value = e[columna] || "";
-    }
-  );
+  $("eID").value = e.ID;
+  $("eEmpresa").value = e.Empresa;
+  $("eLogo").value = e.Logo || "";
+  $("eColor").value =
+    /^#[a-f0-9]{6}$/i.test(e.Color)
+      ? e.Color
+      : "#2563eb";
+  $("eEstado").value = e.Estado;
 }
 
 async function guardarEmpresa() {
-  if (!get("eEmpresa")) {
-    return msg(
-      "Escribe la empresa",
-      true
-    );
-  }
-
   const r = {
     ID: get("eID"),
     Empresa: get("eEmpresa"),
@@ -850,6 +838,10 @@ async function guardarEmpresa() {
     Color: get("eColor"),
     Estado: get("eEstado")
   };
+
+  if (!r.Empresa) {
+    return mensaje("Escribe el nombre de empresa", true);
+  }
 
   if (await guardar("guardarEmpresa", r)) {
     nuevaEmpresa();
@@ -863,7 +855,7 @@ function nuevaCamara() {
     "cUbicacion",
     "cIP",
     "cEventos"
-  ].forEach(k => $(k).value = "");
+  ].forEach(id => $(id).value = "");
 
   $("cConexion").value = "Hikvision NVR";
   $("cCanal").value = "1";
@@ -872,13 +864,12 @@ function nuevaCamara() {
 }
 
 function editarCamara(id) {
-  const e = db.camaras.find(
-    x =>
-      x.ID === id &&
-      x.EmpresaID === get("empresaActual")
+  const c = db.camaras.find(x =>
+    x.ID === id &&
+    x.EmpresaID === get("empresaActual")
   );
 
-  if (!e) return;
+  if (!c) return;
 
   const campos = {
     cID: "ID",
@@ -892,11 +883,9 @@ function editarCamara(id) {
     cEstado: "Estado"
   };
 
-  Object.entries(campos).forEach(
-    ([campo, columna]) => {
-      $(campo).value = e[columna] || "";
-    }
-  );
+  Object.entries(campos).forEach(([campo, columna]) => {
+    $(campo).value = c[columna] || "";
+  });
 }
 
 async function guardarCamara() {
@@ -919,12 +908,9 @@ async function guardarCamara() {
 }
 
 async function guardarAlerta() {
-  if (
-    !get("empresaActual") ||
-    !get("aCamara")
-  ) {
-    return msg(
-      "Selecciona una cámara",
+  if (!get("empresaActual") || !get("aCamara")) {
+    return mensaje(
+      "Selecciona una empresa con una cámara",
       true
     );
   }
@@ -945,37 +931,40 @@ async function guardarAlerta() {
 
 async function cambiarEstado(id, estado) {
   try {
-    await llamada("estadoAlerta", {
+    await llamar("estadoAlerta", {
       id,
       estado,
       empresaId: get("empresaActual")
     });
 
     await recargar(true);
-    msg("Estado actualizado");
+    mensaje("Estado de alerta actualizado");
 
   } catch (e) {
-    msg(e.message, true);
+    mensaje(e.message, true);
+    try {
+      await recargar(true);
+    } catch (_) {}
   }
 }
 
 function alertasFiltradas() {
-  const d = get("desde");
-  const h = get("hasta");
-  const id = get("empresaActual");
+  const desde = get("desde");
+  const hasta = get("hasta");
+  const empresa = get("empresaActual");
 
-  return db.alertas.filter(x =>
-    x.EmpresaID === id &&
-    (!d || x.FechaHora.slice(0, 10) >= d) &&
-    (!h || x.FechaHora.slice(0, 10) <= h)
+  return db.alertas.filter(a =>
+    a.EmpresaID === empresa &&
+    (!desde || a.FechaHora.slice(0, 10) >= desde) &&
+    (!hasta || a.FechaHora.slice(0, 10) <= hasta)
   );
 }
 
 function tablaReportes() {
-  const t = $("tReportes");
-  t.replaceChildren();
+  const tbody = $("tReportes");
+  tbody.replaceChildren();
 
-  alertasFiltradas().forEach(x => {
+  alertasFiltradas().forEach(a => {
     const tr = document.createElement("tr");
 
     [
@@ -986,53 +975,53 @@ function tablaReportes() {
       "Gravedad",
       "Descripción",
       "Estado"
-    ].forEach(k => td(tr, x[k]));
+    ].forEach(k => celda(tr, a[k]));
 
-    t.appendChild(tr);
+    tbody.appendChild(tr);
   });
 }
 
 function exportarCSV() {
-  const h = [
-    "ID", "EmpresaID", "Cámara", "FechaHora",
-    "Evento", "Gravedad", "Descripción",
-    "Destinatarios", "Estado"
+  const encabezados = [
+    "ID",
+    "EmpresaID",
+    "Cámara",
+    "FechaHora",
+    "Evento",
+    "Gravedad",
+    "Descripción",
+    "Destinatarios",
+    "Estado"
   ];
 
-  const csv = "\ufeff" +
-    h.join(",") + "\r\n" +
-    alertasFiltradas().map(r =>
-      h.map(k =>
-        '"' +
-        String(r[k] || "").replace(/"/g, '""') +
-        '"'
-      ).join(",")
-    ).join("\r\n");
+  const filaCSV = a => encabezados.map(k =>
+    '"' + String(a[k] ?? "").replace(/"/g, '""') + '"'
+  ).join(",");
 
-  const u = URL.createObjectURL(
-    new Blob(
-      [csv],
-      { type: "text/csv;charset=utf-8" }
-    )
+  const csv =
+    "\uFEFF" + encabezados.join(",") + "\r\n" +
+    alertasFiltradas().map(filaCSV).join("\r\n");
+
+  const blob = new Blob(
+    [csv],
+    { type: "text/csv;charset=utf-8" }
   );
 
+  const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
-  a.href = u;
+
+  a.href = url;
   a.download = "VIGIA_Alertas.csv";
   a.click();
 
-  setTimeout(
-    () => URL.revokeObjectURL(u),
-    1000
-  );
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-// Comprobación de entorno.
 $("diagnostico").textContent =
   window.google?.script?.run
-    ? "Apps Script conectado · V4.0"
-    : "Se requiere publicar la versión nueva de GS";
-
+    ? "Interfaz Apps Script disponible · HTML 4.1"
+    : "Abre la versión de Apps Script publicada";
 </script>
+
 </body>
 </html>
