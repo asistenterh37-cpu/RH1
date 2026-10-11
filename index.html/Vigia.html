@@ -1,22 +1,21 @@
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>VIGÍA IA | Centro de vigilancia</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>VIGÍA IA · Versión 4.2</title>
 
 <script>
-const VIGIA_CONFIG = {
-  version: "4.1",
-  gasUrl: "https://script.google.com/macros/s/AKfycbwtAuNXvv8Vnos-I8y5buO5L_Kj9AXYmjg7wcT6gfvr3GZEVJ9qfClmDeglP3YLT7Pk/exec"
-};
+"use strict";
 
-// GitHub funciona como dirección pública.
-// El panel se ejecuta en el entorno de Apps Script.
-if (location.hostname.endsWith(".github.io")) {
-  location.replace(VIGIA_CONFIG.gasUrl);
-}
+// En GitHub o en una copia local se muestra el portal.
+// En Apps Script se muestra el acceso con PIN.
+const VIGIA_ES_PORTAL =
+  location.hostname.endsWith(".github.io") ||
+  location.protocol === "file:";
+
+document.documentElement.dataset.modo =
+  VIGIA_ES_PORTAL ? "portal" : "aplicacion";
 </script>
 
 <style>
@@ -33,59 +32,54 @@ body{
   margin:0;
   background:var(--bg);
   color:var(--text);
-  font:15px/1.5 system-ui,Segoe UI,Arial,sans-serif;
+  font:15px/1.5 system-ui,Segoe UI,Arial,sans-serif
 }
 header{
   display:flex;
   align-items:center;
   gap:15px;
   padding:17px 22px;
-  border-bottom:1px solid var(--border);
+  border-bottom:1px solid var(--border)
 }
-h1{margin:0;font-size:22px}
-h2{margin:0 0 12px;font-size:19px}
+h1{font-size:23px;margin:0}
+h2{font-size:19px;margin:0 0 12px}
 small,.note{color:var(--muted)}
 main{max-width:1250px;margin:auto;padding:18px}
 .card{
   background:var(--panel);
   border:1px solid var(--border);
   border-radius:13px;
-  padding:18px;
-  margin-bottom:16px;
+  padding:19px;
+  margin-bottom:16px
 }
-.grid{
+.grid,.fields{
   display:grid;
   grid-template-columns:1fr 1fr;
-  gap:16px;
-}
-.fields{
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:12px;
+  gap:15px
 }
 .stats{
   display:grid;
   grid-template-columns:repeat(3,1fr);
-  gap:12px;
+  gap:12px
 }
 .stats strong{
   display:block;
-  font-size:28px;
+  font-size:28px
 }
 label{
   display:block;
   color:var(--muted);
   font-size:13px;
-  margin:9px 0 4px;
+  margin:9px 0 4px
 }
 input,select,textarea{
-  width:100%;
   background:#0b1729;
   color:white;
   border:1px solid #415875;
   border-radius:8px;
   padding:10px;
-  font:inherit;
+  width:100%;
+  font:inherit
 }
 input[type=color]{height:43px;padding:3px}
 textarea{min-height:85px}
@@ -96,35 +90,46 @@ button{
   border-radius:8px;
   padding:10px 15px;
   cursor:pointer;
-  font:inherit;
+  font:inherit
 }
 button.sec,nav button{background:#30445f}
 nav button.active{background:var(--accent)}
 button:disabled{opacity:.5;cursor:wait}
-button:hover:not(:disabled){filter:brightness(1.13)}
+button:hover:not(:disabled){filter:brightness(1.12)}
 .actions,nav{
   display:flex;
   gap:8px;
   flex-wrap:wrap;
-  margin:14px 0;
+  margin:14px 0
 }
 .table{overflow:auto}
 table{
   width:100%;
   min-width:550px;
-  border-collapse:collapse;
+  border-collapse:collapse
 }
 td,th{
   padding:10px;
   border-bottom:1px solid var(--border);
   font-size:13px;
-  text-align:left;
+  text-align:left
 }
 th{color:var(--muted)}
 .ok{color:#68e0a9}
 .error{color:#ff8a9d}
-#mensaje,#mensajeLogin{margin-top:12px}
+#mensaje,#mensajeLogin,#mensajePortal{
+  margin-top:12px;
+  min-height:22px
+}
 [hidden]{display:none!important}
+
+html[data-modo="portal"] #login,
+html[data-modo="portal"] #app{
+  display:none!important
+}
+html[data-modo="aplicacion"] #portal{
+  display:none!important
+}
 @media(max-width:730px){
   .grid,.fields{grid-template-columns:1fr}
   .stats{grid-template-columns:repeat(2,1fr)}
@@ -140,31 +145,77 @@ th{color:var(--muted)}
   <span style="font-size:32px">🛡️</span>
   <div>
     <h1>VIGÍA IA</h1>
-    <small>Centro inteligente de vigilancia · Piloto v4.1</small>
+    <small>Centro inteligente de vigilancia · v4.2</small>
   </div>
   <small id="conexion" style="margin-left:auto">
-    Desconectado
+    Configurar conexión
   </small>
 </header>
 
 <main>
 
-<!-- INGRESO -->
+<!-- ======================================= -->
+<!-- PORTAL PARA GITHUB Y ARCHIVO LOCAL -->
+<!-- ======================================= -->
+
+<div id="portal" class="card">
+  <h2>Conectar VIGÍA IA</h2>
+
+  <p class="note">
+    Introduce la URL de tu implementación de Google Apps
+    Script. Puedes cambiarla cuando realices una nueva
+    implementación.
+  </p>
+
+  <label for="urlGs">
+    URL de Google Apps Script
+  </label>
+
+  <input
+    id="urlGs"
+    type="url"
+    autocomplete="url"
+    spellcheck="false"
+    placeholder="https://script.google.com/macros/s/AKfy.../exec">
+
+  <div class="actions">
+    <button onclick="abrirAplicacion()">
+      Abrir aplicación
+    </button>
+
+    <button class="sec" onclick="borrarUrl()">
+      Cambiar URL guardada
+    </button>
+  </div>
+
+  <div id="mensajePortal" role="status"></div>
+
+  <p class="note">
+    Esta pantalla recuerda únicamente la URL.
+    El PIN se escribe dentro de la aplicación y
+    no se guarda en el navegador.
+  </p>
+</div>
+
+<!-- ======================================= -->
+<!-- ACCESO CON PIN EN APPS SCRIPT -->
+<!-- ======================================= -->
 
 <div id="login" class="card">
-  <h2>Acceso a VIGÍA IA</h2>
+  <h2>Acceso al sistema</h2>
 
   <p class="note">
     Administración de empresas, cámaras y alertas.
     No se almacenan grabaciones en Google Sheets.
   </p>
 
-  <label>PIN de acceso</label>
+  <label for="pin">PIN de acceso</label>
+
   <input
     id="pin"
     type="password"
     autocomplete="off"
-    placeholder="Escribe el PIN configurado en Apps Script">
+    placeholder="Escribe tu PIN de Apps Script">
 
   <div class="actions">
     <button id="btnIngresar" onclick="entrar()">
@@ -176,7 +227,9 @@ th{color:var(--muted)}
   <p class="note" id="diagnostico"></p>
 </div>
 
-<!-- APLICACIÓN -->
+<!-- ======================================= -->
+<!-- PANEL ADMINISTRATIVO -->
+<!-- ======================================= -->
 
 <div id="app" hidden>
 
@@ -190,7 +243,7 @@ th{color:var(--muted)}
 
       <div class="actions" style="align-items:end">
         <button class="sec" onclick="recargar()">
-          Actualizar datos
+          Actualizar
         </button>
         <button class="sec" onclick="salir()">
           Salir
@@ -204,10 +257,12 @@ th{color:var(--muted)}
       Cámaras
       <strong id="nCamaras">0</strong>
     </div>
+
     <div class="card">
       Alertas
       <strong id="nAlertas">0</strong>
     </div>
+
     <div class="card">
       Pendientes
       <strong id="nPendientes">0</strong>
@@ -217,10 +272,13 @@ th{color:var(--muted)}
   <nav>
     <button class="active" data-page="empresas"
       onclick="mostrar('empresas')">Empresas</button>
+
     <button data-page="camaras"
       onclick="mostrar('camaras')">Cámaras</button>
+
     <button data-page="alertas"
       onclick="mostrar('alertas')">Alertas</button>
+
     <button data-page="reportes"
       onclick="mostrar('reportes')">Reportes</button>
   </nav>
@@ -235,19 +293,19 @@ th{color:var(--muted)}
 
         <input id="eID" type="hidden">
 
-        <label>Nombre de la empresa</label>
+        <label>Nombre de empresa</label>
         <input id="eEmpresa"
           placeholder="Residencial piloto">
 
-        <label>URL de logotipo (opcional)</label>
+        <label>URL del logotipo (opcional)</label>
         <input id="eLogo" placeholder="https://...">
 
         <div class="fields">
           <div>
             <label>Color corporativo</label>
-            <input id="eColor" type="color"
-              value="#2563eb">
+            <input id="eColor" type="color" value="#2563eb">
           </div>
+
           <div>
             <label>Estado</label>
             <select id="eEstado">
@@ -258,8 +316,12 @@ th{color:var(--muted)}
         </div>
 
         <div class="actions">
-          <button onclick="guardarEmpresa()">Guardar</button>
-          <button class="sec" onclick="nuevaEmpresa()">Nueva</button>
+          <button onclick="guardarEmpresa()">
+            Guardar empresa
+          </button>
+          <button class="sec" onclick="nuevaEmpresa()">
+            Nueva
+          </button>
         </div>
       </div>
 
@@ -272,7 +334,7 @@ th{color:var(--muted)}
                 <th>ID</th>
                 <th>Empresa</th>
                 <th>Estado</th>
-                <th></th>
+                <th>Acción</th>
               </tr>
             </thead>
             <tbody id="tEmpresas"></tbody>
@@ -292,8 +354,9 @@ th{color:var(--muted)}
         <h2>Gestión de cámaras</h2>
 
         <p class="note">
-          Parametrización de cámaras y grabadores.
-          No escribas contraseñas ni URL con credenciales.
+          Aquí registramos las cámaras del cliente.
+          No escribas contraseñas ni URL que
+          contengan credenciales.
         </p>
 
         <input id="cID" type="hidden">
@@ -324,7 +387,8 @@ th{color:var(--muted)}
 
           <div>
             <label>IP local</label>
-            <input id="cIP" placeholder="192.168.1.100">
+            <input id="cIP"
+              placeholder="192.168.1.100">
           </div>
 
           <div>
@@ -335,8 +399,7 @@ th{color:var(--muted)}
 
           <div>
             <label>Horario</label>
-            <input id="cHorario"
-              placeholder="24 horas" value="24 horas">
+            <input id="cHorario" value="24 horas">
           </div>
         </div>
 
@@ -353,18 +416,23 @@ th{color:var(--muted)}
         </select>
 
         <div class="actions">
-          <button onclick="guardarCamara()">Guardar</button>
-          <button class="sec" onclick="nuevaCamara()">Nueva</button>
+          <button onclick="guardarCamara()">
+            Guardar cámara
+          </button>
+          <button class="sec" onclick="nuevaCamara()">
+            Nueva
+          </button>
         </div>
 
         <p class="note">
-          Registrar una cámara no activa el análisis de video.
-          Esa función requerirá el conector Python.
+          El análisis real de video mediante RTSP
+          requerirá el conector Python.
         </p>
       </div>
 
       <div class="card">
-        <h2>Cámaras registradas</h2>
+        <h2>Cámaras configuradas</h2>
+
         <div class="table">
           <table>
             <thead>
@@ -373,7 +441,7 @@ th{color:var(--muted)}
                 <th>Cámara</th>
                 <th>Ubicación</th>
                 <th>Estado</th>
-                <th></th>
+                <th>Acción</th>
               </tr>
             </thead>
             <tbody id="tCamaras"></tbody>
@@ -390,11 +458,11 @@ th{color:var(--muted)}
     <div class="grid">
 
       <div class="card">
-        <h2>Crear alerta de prueba</h2>
+        <h2>Simular alerta</h2>
 
         <p class="note">
-          Esta pantalla simula incidentes; no realiza
-          detecciones automáticas.
+          Las alertas de esta pantalla son simulaciones,
+          no incidentes detectados por las cámaras.
         </p>
 
         <label>Cámara</label>
@@ -427,7 +495,8 @@ th{color:var(--muted)}
 
         <label>Descripción</label>
         <textarea id="aDescripcion"
-          placeholder="Describe el evento simulado"></textarea>
+          placeholder="Describe el incidente simulado">
+        </textarea>
 
         <label>Destinatarios de prueba</label>
         <input id="aDestinatarios"
@@ -435,13 +504,14 @@ th{color:var(--muted)}
 
         <div class="actions">
           <button onclick="guardarAlerta()">
-            Generar simulación
+            Crear simulación
           </button>
         </div>
       </div>
 
       <div class="card">
         <h2>Alertas registradas</h2>
+
         <div class="table">
           <table>
             <thead>
@@ -483,7 +553,9 @@ th{color:var(--muted)}
       </div>
 
       <div class="actions">
-        <button onclick="exportarCSV()">Exportar CSV</button>
+        <button onclick="exportarCSV()">
+          Exportar CSV
+        </button>
       </div>
 
       <div class="table">
@@ -524,20 +596,59 @@ let db = {
   alertas: []
 };
 
+// ---------------------------------------
+// PORTAL: URL GS EDITABLE
+// ---------------------------------------
+
 function mensaje(texto, error = false, destino = "mensaje") {
   const el = $(destino);
   el.textContent = texto;
   el.className = error ? "error" : "ok";
 }
 
-// No hay solicitudes cruzadas entre dominios.
-// google.script.run trabaja dentro de Apps Script.
+function urlValida(url) {
+  return /^https:\/\/script\.google\.com\/macros\/s\/[^/?#]+\/exec\/?$/
+    .test(url);
+}
+
+function abrirAplicacion() {
+  const url = get("urlGs");
+
+  if (!urlValida(url)) {
+    mensaje(
+      "Escribe una URL válida de Apps Script terminada en /exec",
+      true,
+      "mensajePortal"
+    );
+    return;
+  }
+
+  localStorage.setItem("VIGIA_GS_URL", url);
+  location.assign(url);
+}
+
+function borrarUrl() {
+  localStorage.removeItem("VIGIA_GS_URL");
+  $("urlGs").value = "";
+  $("urlGs").focus();
+
+  mensaje(
+    "Introduce la nueva URL de Apps Script",
+    false,
+    "mensajePortal"
+  );
+}
+
+// ---------------------------------------
+// API INTERNA DE APPS SCRIPT
+// ---------------------------------------
+
 function llamar(accion, parametros = {}) {
   return new Promise((resolve, reject) => {
     if (!window.google?.script?.run) {
       reject(Error(
-        "Esta versión debe abrirse desde Apps Script. " +
-        "Comprueba la implementación publicada."
+        "Esta pantalla debe ejecutarse desde Apps Script. " +
+        "Comprueba la URL y la implementación publicada."
       ));
       return;
     }
@@ -550,30 +661,35 @@ function llamar(accion, parametros = {}) {
           reject(Error(r?.error || "Error del servidor"));
         }
       })
-      .withFailureHandler(e => {
-        reject(Error(e?.message || String(e)));
+      .withFailureHandler(error => {
+        reject(Error(error?.message || String(error)));
       })
       .apiDesdeHtml({
-        accion: accion,
+        accion,
         pin: pinActual,
         ...parametros
       });
   });
 }
 
+// ---------------------------------------
+// INICIAR Y CERRAR SESIÓN
+// ---------------------------------------
+
 async function entrar() {
-  const boton = $("btnIngresar");
-  boton.disabled = true;
+  const btn = $("btnIngresar");
+  btn.disabled = true;
 
   try {
     pinActual = get("pin");
 
     if (!pinActual) {
-      throw Error("Escribe el PIN");
+      throw Error("Escribe el PIN de acceso");
     }
 
-    const r = await llamar("cargar");
-    db = r.datos;
+    const respuesta = await llamar("cargar");
+
+    db = respuesta.datos;
 
     $("login").hidden = true;
     $("app").hidden = false;
@@ -581,11 +697,11 @@ async function entrar() {
 
     renderizar();
 
-  } catch (e) {
+  } catch (error) {
     pinActual = "";
-    mensaje(e.message, true, "mensajeLogin");
+    mensaje(error.message, true, "mensajeLogin");
   } finally {
-    boton.disabled = false;
+    btn.disabled = false;
   }
 }
 
@@ -597,13 +713,18 @@ function salir() {
   $("conexion").textContent = "Desconectado";
 }
 
+// ---------------------------------------
+// DATOS Y GUARDADO
+// ---------------------------------------
+
 async function recargar(silencioso = false, empresaPreferida) {
-  const actual = empresaPreferida ?? get("empresaActual");
+  const seleccion =
+    empresaPreferida ?? get("empresaActual");
 
-  const r = await llamar("cargar");
-  db = r.datos;
+  const respuesta = await llamar("cargar");
+  db = respuesta.datos;
 
-  renderizar(actual);
+  renderizar(seleccion);
 
   if (!silencioso) {
     mensaje("Datos actualizados");
@@ -612,47 +733,61 @@ async function recargar(silencioso = false, empresaPreferida) {
 
 async function guardar(accion, registro) {
   try {
-    const r = await llamar(accion, { registro });
+    const respuesta = await llamar(accion, {registro});
 
     try {
       await recargar(
         true,
         accion === "guardarEmpresa"
-          ? r.id
+          ? respuesta.id
           : undefined
       );
-      mensaje(r.mensaje + " · ID " + r.id);
-    } catch (e) {
+
       mensaje(
-        "El registro se guardó, pero falló la recarga: " +
-        e.message,
+        respuesta.mensaje + " · ID " + respuesta.id
+      );
+
+    } catch (errorRecarga) {
+      mensaje(
+        "El registro se guardó, pero no pudo actualizarse " +
+        "la pantalla: " + errorRecarga.message,
         true
       );
     }
 
     return true;
 
-  } catch (e) {
-    mensaje(e.message, true);
+  } catch (error) {
+    mensaje(error.message, true);
     return false;
   }
 }
 
-function llenarOpciones(id, opciones, preferido) {
-  const s = $(id);
-  const anterior = preferido ?? s.value;
+// ---------------------------------------
+// SELECTORES
+// ---------------------------------------
 
-  s.replaceChildren();
+function llenarOpciones(id, opciones, preferido) {
+  const el = $(id);
+  const anterior = preferido ?? el.value;
+
+  el.replaceChildren();
 
   opciones.forEach(x => {
-    const o = document.createElement("option");
-    o.value = String(x.value);
-    o.textContent = x.texto;
-    s.appendChild(o);
+    const opt = document.createElement("option");
+
+    opt.value = String(x.value);
+    opt.textContent = x.texto;
+
+    el.appendChild(opt);
   });
 
-  if (opciones.some(x => String(x.value) === String(anterior))) {
-    s.value = String(anterior);
+  if (
+    opciones.some(
+      x => String(x.value) === String(anterior)
+    )
+  ) {
+    el.value = String(anterior);
   }
 }
 
@@ -672,22 +807,30 @@ function renderizar(empresaPreferida) {
 function actualizarPantalla() {
   const id = get("empresaActual");
 
-  const empresa = db.empresas.find(e => e.ID === id);
-  const camaras = db.camaras.filter(x => x.EmpresaID === id);
-  const alertas = db.alertas.filter(x => x.EmpresaID === id);
+  const empresa = db.empresas.find(
+    e => e.ID === id
+  );
+
+  const camaras = db.camaras.filter(
+    c => c.EmpresaID === id
+  );
+
+  const alertas = db.alertas.filter(
+    a => a.EmpresaID === id
+  );
 
   $("nCamaras").textContent = camaras.length;
   $("nAlertas").textContent = alertas.length;
-  $("nPendientes").textContent = alertas.filter(
-    x => x.Estado === "Pendiente"
-  ).length;
 
-  const color = empresa?.Color;
+  $("nPendientes").textContent =
+    alertas.filter(
+      a => a.Estado === "Pendiente"
+    ).length;
 
   document.documentElement.style.setProperty(
     "--accent",
-    /^#[a-f0-9]{6}$/i.test(color || "")
-      ? color
+    /^#[a-f0-9]{6}$/i.test(empresa?.Color || "")
+      ? empresa.Color
       : "#2563eb"
   );
 
@@ -695,7 +838,7 @@ function actualizarPantalla() {
     "aCamara",
     camaras.map(c => ({
       value: c["Cámara"],
-      texto: c["Cámara"] + " - " + c["Ubicación"]
+      texto: c["Cámara"] + " · " + c["Ubicación"]
     }))
   );
 
@@ -705,19 +848,27 @@ function actualizarPantalla() {
   tablaReportes();
 }
 
-function celda(fila, texto) {
-  const td = document.createElement("td");
-  td.textContent = String(texto ?? "");
-  fila.appendChild(td);
-  return td;
+// ---------------------------------------
+// TABLAS
+// ---------------------------------------
+
+function celda(fila, contenido) {
+  const el = document.createElement("td");
+
+  el.textContent = String(contenido ?? "");
+  fila.appendChild(el);
+
+  return el;
 }
 
 function boton(texto, accion) {
-  const b = document.createElement("button");
-  b.className = "sec";
-  b.textContent = texto;
-  b.onclick = accion;
-  return b;
+  const el = document.createElement("button");
+
+  el.className = "sec";
+  el.textContent = texto;
+  el.onclick = accion;
+
+  return el;
 }
 
 function pintarEmpresas() {
@@ -730,6 +881,7 @@ function pintarEmpresas() {
     celda(tr, e.ID);
     celda(tr, e.Empresa);
     celda(tr, e.Estado);
+
     celda(tr, "").appendChild(
       boton("Editar", () => editarEmpresa(e.ID))
     );
@@ -749,6 +901,7 @@ function pintarCamaras(camaras) {
     celda(tr, c["Cámara"]);
     celda(tr, c["Ubicación"]);
     celda(tr, c.Estado);
+
     celda(tr, "").appendChild(
       boton("Editar", () => editarCamara(c.ID))
     );
@@ -772,7 +925,7 @@ function pintarAlertas(alertas) {
       "Estado"
     ].forEach(k => celda(tr, a[k]));
 
-    const select = document.createElement("select");
+    const selector = document.createElement("select");
 
     [
       "Pendiente",
@@ -781,19 +934,26 @@ function pintarAlertas(alertas) {
       "Descartada",
       "Cerrada"
     ].forEach(estado => {
-      const o = document.createElement("option");
-      o.value = estado;
-      o.textContent = estado;
-      select.appendChild(o);
+      const opt = document.createElement("option");
+
+      opt.value = estado;
+      opt.textContent = estado;
+      selector.appendChild(opt);
     });
 
-    select.value = a.Estado;
-    select.onchange = () => cambiarEstado(a.ID, select.value);
+    selector.value = a.Estado;
 
-    celda(tr, "").appendChild(select);
+    selector.onchange = () =>
+      cambiarEstado(a.ID, selector.value);
+
+    celda(tr, "").appendChild(selector);
     tbody.appendChild(tr);
   });
 }
+
+// ---------------------------------------
+// PANTALLAS
+// ---------------------------------------
 
 function mostrar(nombre) {
   document.querySelectorAll("main section").forEach(s => {
@@ -808,10 +968,15 @@ function mostrar(nombre) {
   });
 }
 
+// ---------------------------------------
+// EMPRESAS
+// ---------------------------------------
+
 function nuevaEmpresa() {
   ["eID", "eEmpresa", "eLogo"].forEach(
     id => $(id).value = ""
   );
+
   $("eColor").value = "#2563eb";
   $("eEstado").value = "Activa";
 }
@@ -823,15 +988,17 @@ function editarEmpresa(id) {
   $("eID").value = e.ID;
   $("eEmpresa").value = e.Empresa;
   $("eLogo").value = e.Logo || "";
+
   $("eColor").value =
     /^#[a-f0-9]{6}$/i.test(e.Color)
       ? e.Color
       : "#2563eb";
+
   $("eEstado").value = e.Estado;
 }
 
 async function guardarEmpresa() {
-  const r = {
+  const registro = {
     ID: get("eID"),
     Empresa: get("eEmpresa"),
     Logo: get("eLogo"),
@@ -839,14 +1006,21 @@ async function guardarEmpresa() {
     Estado: get("eEstado")
   };
 
-  if (!r.Empresa) {
-    return mensaje("Escribe el nombre de empresa", true);
+  if (!registro.Empresa) {
+    return mensaje(
+      "Escribe el nombre de la empresa",
+      true
+    );
   }
 
-  if (await guardar("guardarEmpresa", r)) {
+  if (await guardar("guardarEmpresa", registro)) {
     nuevaEmpresa();
   }
 }
+
+// ---------------------------------------
+// CÁMARAS
+// ---------------------------------------
 
 function nuevaCamara() {
   [
@@ -864,12 +1038,12 @@ function nuevaCamara() {
 }
 
 function editarCamara(id) {
-  const c = db.camaras.find(x =>
-    x.ID === id &&
-    x.EmpresaID === get("empresaActual")
+  const camara = db.camaras.find(c =>
+    c.ID === id &&
+    c.EmpresaID === get("empresaActual")
   );
 
-  if (!c) return;
+  if (!camara) return;
 
   const campos = {
     cID: "ID",
@@ -884,12 +1058,12 @@ function editarCamara(id) {
   };
 
   Object.entries(campos).forEach(([campo, columna]) => {
-    $(campo).value = c[columna] || "";
+    $(campo).value = camara[columna] || "";
   });
 }
 
 async function guardarCamara() {
-  const r = {
+  const registro = {
     ID: get("cID"),
     EmpresaID: get("empresaActual"),
     "Cámara": get("cCamara"),
@@ -902,20 +1076,24 @@ async function guardarCamara() {
     Estado: get("cEstado")
   };
 
-  if (await guardar("guardarCamara", r)) {
+  if (await guardar("guardarCamara", registro)) {
     nuevaCamara();
   }
 }
 
+// ---------------------------------------
+// ALERTAS
+// ---------------------------------------
+
 async function guardarAlerta() {
   if (!get("empresaActual") || !get("aCamara")) {
     return mensaje(
-      "Selecciona una empresa con una cámara",
+      "Selecciona una empresa y una cámara",
       true
     );
   }
 
-  const r = {
+  const registro = {
     EmpresaID: get("empresaActual"),
     "Cámara": get("aCamara"),
     Evento: get("aEvento"),
@@ -924,7 +1102,7 @@ async function guardarAlerta() {
     Destinatarios: get("aDestinatarios")
   };
 
-  if (await guardar("guardarAlerta", r)) {
+  if (await guardar("guardarAlerta", registro)) {
     $("aDescripcion").value = "";
   }
 }
@@ -938,15 +1116,20 @@ async function cambiarEstado(id, estado) {
     });
 
     await recargar(true);
-    mensaje("Estado de alerta actualizado");
+    mensaje("Estado actualizado");
 
-  } catch (e) {
-    mensaje(e.message, true);
+  } catch (error) {
+    mensaje(error.message, true);
+
     try {
       await recargar(true);
     } catch (_) {}
   }
 }
+
+// ---------------------------------------
+// REPORTES
+// ---------------------------------------
 
 function alertasFiltradas() {
   const desde = get("desde");
@@ -994,17 +1177,22 @@ function exportarCSV() {
     "Estado"
   ];
 
-  const filaCSV = a => encabezados.map(k =>
-    '"' + String(a[k] ?? "").replace(/"/g, '""') + '"'
-  ).join(",");
+  const linea = r =>
+    encabezados.map(k =>
+      '"' +
+      String(r[k] ?? "").replace(/"/g, '""') +
+      '"'
+    ).join(",");
 
   const csv =
-    "\uFEFF" + encabezados.join(",") + "\r\n" +
-    alertasFiltradas().map(filaCSV).join("\r\n");
+    "\uFEFF" +
+    encabezados.join(",") +
+    "\r\n" +
+    alertasFiltradas().map(linea).join("\r\n");
 
   const blob = new Blob(
     [csv],
-    { type: "text/csv;charset=utf-8" }
+    {type:"text/csv;charset=utf-8"}
   );
 
   const url = URL.createObjectURL(blob);
@@ -1017,10 +1205,28 @@ function exportarCSV() {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-$("diagnostico").textContent =
-  window.google?.script?.run
-    ? "Interfaz Apps Script disponible · HTML 4.1"
-    : "Abre la versión de Apps Script publicada";
+// ---------------------------------------
+// INICIALIZACIÓN
+// ---------------------------------------
+
+if (VIGIA_ES_PORTAL) {
+  $("urlGs").value =
+    localStorage.getItem("VIGIA_GS_URL") || "";
+
+  $("urlGs").addEventListener("keydown", e => {
+    if (e.key === "Enter") {
+      abrirAplicacion();
+    }
+  });
+
+  $("conexion").textContent = "Configurar conexión";
+
+} else {
+  $("diagnostico").textContent =
+    window.google?.script?.run
+      ? "Apps Script disponible · HTML v4.2"
+      : "No se detecta google.script.run. Revisa la implementación.";
+}
 </script>
 
 </body>
