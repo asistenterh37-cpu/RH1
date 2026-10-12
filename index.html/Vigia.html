@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>VIGÍA IA v4.6</title>
+<title>VIGÍA IA v4.7</title>
 
 <style>
 :root{
@@ -113,7 +113,7 @@ canvas{
  <span style="font-size:30px">🛡️</span>
  <div>
   <h1>VIGÍA IA</h1>
-  <small>Centro inteligente de vigilancia · v4.6</small>
+  <small>Centro inteligente de vigilancia · v4.7</small>
  </div>
  <small id="conexion" style="margin-left:auto">
   Desconectado
@@ -129,31 +129,6 @@ canvas{
   Administración de cámaras, alertas y análisis de video
   desde una sola plataforma.
  </p>
-
- <div class="aviso">
-  <h2>Configuración de conexión</h2>
-  <p class="note">
-   Puedes cambiar aquí la URL de Google Apps Script,
-   sin volver a GitHub ni modificar el código HTML.
-  </p>
-
-  <label>Nueva URL de Google Apps Script</label>
-  <input id="urlGs" type="url"
-   placeholder="https://script.google.com/macros/s/.../exec"
-   autocomplete="url">
-
-  <div class="actions">
-   <button class="sec" onclick="abrirNuevaURL('urlGs')">
-    Abrir nueva URL
-   </button>
-   <button class="sec" onclick="limpiarURL('urlGs')">
-    Borrar campo
-   </button>
-  </div>
-
-  <p class="note" id="urlActual"></p>
-  <p id="mensajeURL" class="err"></p>
- </div>
 
  <label>PIN de acceso</label>
  <input id="pin" type="password"
@@ -179,29 +154,8 @@ canvas{
    </div>
    <div class="actions" style="align-items:center">
     <button class="sec" onclick="recargar()">Actualizar</button>
-    <button class="sec" onclick="mostrarConfiguracionURL()">
-     Cambiar URL del GS
-    </button>
     <button class="sec" onclick="salir()">Salir</button>
    </div>
-  </div>
-
-  <!-- CONFIGURACIÓN DESDE EL PANEL -->
-  <div id="configuracionURL" class="aviso" hidden>
-   <h2>Cambiar Google Apps Script</h2>
-   <label>Nueva URL /exec</label>
-   <input id="urlPanel" type="url"
-    placeholder="https://script.google.com/macros/s/.../exec">
-
-   <div class="actions">
-    <button onclick="abrirNuevaURL('urlPanel')">
-     Abrir nueva implementación
-    </button>
-    <button class="sec" onclick="mostrarConfiguracionURL()">
-     Cerrar
-    </button>
-   </div>
-   <p id="mensajeURLPanel" class="err"></p>
   </div>
  </div>
 
@@ -602,96 +556,18 @@ const canvas=$("overlay");
 const ctx=canvas.getContext("2d");
 
 // =====================================
-// CONFIGURACIÓN DE URL - NUEVO v4.6
+// URL FIJA DE GOOGLE APPS SCRIPT - v4.7
+// EDITAR SOLO SI CREAS UNA IMPLEMENTACIÓN NUEVA
 // =====================================
 
-const URL_KEY="VIGIA_GS_URL";
+const GAS_URL="https://script.google.com/macros/s/AKfycbwqgZXDbHkaZXp0ZPA1LSLOGl0JYnkQtjEMP0EazNI8f-sGfCwyO_k0TTQvTBmKVJJs/exec";
 
-function urlValida(u){
- return /^https:\/\/script\.google\.com\/macros\/s\/[^/?#]+\/exec\/?$/
-  .test(String(u||"").trim());
-}
-
-function guardarURL(url){
- try{
-  localStorage.setItem(URL_KEY,url);
- }catch(e){
-  // El navegador puede bloquear el almacenamiento.
- }
-}
-
-function leerURL(){
- try{
-  return localStorage.getItem(URL_KEY)||"";
- }catch(e){
-  return "";
- }
-}
-
-function limpiarURL(id){
- $(id).value="";
- $(id).focus();
-}
-
-function abrirNuevaURL(inputId){
- const url=valor(inputId);
- const destino=inputId==="urlPanel"
-  ?"mensajeURLPanel":"mensajeURL";
-
- if(!urlValida(url)){
-  mensaje(
-   "Pega una URL válida de Google Apps Script terminada en /exec.",
-   true,destino
-  );
-  return;
- }
-
- guardarURL(url);
-
- // Si estamos dentro de Apps Script,
- // la página se ejecuta en un iframe.
- // Abrimos la nueva implementación en otra pestaña
- // para no quedar bloqueados por el navegador.
- if(window.google?.script?.run){
-  const nueva=window.open(url,"_blank","noopener,noreferrer");
-  if(!nueva){
-   mensaje(
-    "El navegador bloqueó la nueva pestaña. "+
-    "Permite ventanas emergentes y vuelve a pulsar.",
-    true,destino
-   );
-  }else{
-   mensaje("Abriendo nueva implementación... ",false,destino);
-  }
- }else{
-  window.location.assign(url);
- }
-}
-
-function mostrarConfiguracionURL(){
- const panel=$("configuracionURL");
- panel.hidden=!panel.hidden;
-
- if(!panel.hidden){
-  $("urlPanel").value=leerURL();
-  $("urlPanel").focus();
- }
-}
-
-function inicializarURL(){
- const guardada=leerURL();
-
- $("urlGs").value=guardada;
-
- $("urlActual").textContent=
-  "Puedes pegar aquí cualquier nueva URL /exec "+
-  "cuando cambies la implementación del GS.";
-
- $("urlGs").addEventListener("keydown",e=>{
-  if(e.key==="Enter")abrirNuevaURL("urlGs");
- });
-
- $("urlPanel").value=guardada;
+// Desde GitHub, abrir la aplicación real.
+if(
+ location.hostname.endsWith(".github.io") ||
+ location.protocol==="file:"
+){
+ location.replace(GAS_URL);
 }
 
 // =====================================
@@ -707,10 +583,7 @@ function mensaje(t,error=false,destino="mensaje"){
 function api(accion,parametros={}){
  return new Promise((resolve,reject)=>{
   if(!window.google?.script?.run){
-   reject(Error(
-    "Introduce la URL del GS y abre la implementación "+
-    "para utilizar las funciones de Google Sheets."
-   ));
+   reject(Error("Abre VIGÍA IA desde la URL de Google Apps Script."));
    return;
   }
 
@@ -1573,12 +1446,6 @@ function limpiarEventosVideo(){
 window.addEventListener("beforeunload",()=>{
  if(videoURL)URL.revokeObjectURL(videoURL);
 });
-
-// =====================================
-// INICIALIZACIÓN
-// =====================================
-
-inicializarURL();
 
 </script>
 </body>
