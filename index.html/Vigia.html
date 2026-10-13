@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>VIGÍA IA v4.15</title>
+<title>VIGÍA IA v5.0</title>
 <style>
 :root{
  --fondo:#0b1220;--panel:#152238;--sub:#20334f;
@@ -46,7 +46,43 @@ video{width:100%;max-height:550px;background:#000;border-radius:8px;display:bloc
 .result.negative{border-left-color:var(--verde)}
 .progress{height:12px;border-radius:10px;overflow:hidden;background:#0b1729}
 .progress div{height:100%;width:0%;background:var(--azul)}
-[hidden]{display:none!important}
+/* VIGÍA IA v5.0 - Escenarios */
+.escenaFoto{
+  position:relative;
+  display:inline-block;
+  max-width:100%;
+  touch-action:none;
+  cursor:crosshair;
+}
+.escenaFoto img{
+  display:block;
+  max-width:100%;
+  max-height:440px;
+}
+.escenaFoto canvas{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+}
+.checklist{
+  max-height:240px;
+  overflow:auto;
+  border:1px solid var(--linea);
+  padding:10px;
+  border-radius:8px;
+}
+.checklist label{
+  display:flex;
+  align-items:center;
+  gap:7px;
+  margin:5px 0;
+  color:var(--texto);
+}
+.checklist input{
+  width:auto;
+}
+ [hidden]{display:none!important}
 @media(max-width:850px){
  .grid,.fields{grid-template-columns:1fr}
  .stats{grid-template-columns:repeat(2,1fr)}
@@ -55,7 +91,7 @@ video{width:100%;max-height:550px;background:#000;border-radius:8px;display:bloc
 }
 </style>
 </head>
-<body data-vigia-version="4.15">
+<body data-vigia-version="5.0" >
 
 <header>
 <div>
@@ -101,6 +137,7 @@ video{width:100%;max-height:550px;background:#000;border-radius:8px;display:bloc
 <nav>
  <button class="active" data-page="empresas" onclick="mostrar('empresas')">Empresas</button>
  <button data-page="camaras" onclick="mostrar('camaras')">Cámaras</button>
+ <button data-page="escenarios" onclick="mostrar('escenarios')">Escenarios</button>
  <button data-page="alertas" onclick="mostrar('alertas')">Alertas</button>
  <button data-page="reportes" onclick="mostrar('reportes')">Reportes</button>
  <button data-page="video" onclick="mostrar('video')">Análisis de Video con IA</button>
@@ -216,6 +253,71 @@ video{width:100%;max-height:550px;background:#000;border-radius:8px;display:bloc
 </div>
 </section>
 
+ <!-- ESCENARIOS V5.0 -->
+<section id="escenarios" hidden>
+  <div class="grid">
+
+    <div class="card">
+      <h2>Escenario de cámara</h2>
+
+      <p class="note">
+        Selecciona una cámara para visualizar su fotografía base
+        y delimitar las zonas de vigilancia.
+      </p>
+
+      <label>Cámara</label>
+      <select id="escCamara" onchange="mostrarEscenario()"></select>
+
+      <p id="escEstado" class="note"></p>
+
+      <div class="escenaFoto" id="escMarco">
+        <img id="escFoto" alt="Fotografía base del escenario">
+        <canvas id="escCanvas"></canvas>
+      </div>
+
+      <p class="note">
+        Arrastra sobre la imagen para dibujar una zona.
+        Verde: vigilancia. Rojo: área excluida.
+      </p>
+
+      <label>Tipo de zona</label>
+      <select id="escTipo">
+        <option value="vigilancia">Zona de vigilancia</option>
+        <option value="excluida">Zona excluida</option>
+      </select>
+
+      <div class="actions">
+        <button onclick="guardarZonas()">
+          Guardar escenario
+        </button>
+
+        <button class="sec" onclick="borrarZona()">
+          Deshacer última zona
+        </button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Eventos configurados</h2>
+
+      <p class="note">
+        Eventos registrados en Google Sheets para
+        esta cámara y su contexto.
+      </p>
+
+      <div id="escReglas"></div>
+
+      <h3>Referencia operacional</h3>
+      <p class="note">
+        La fotografía debe corresponder al mismo ángulo
+        y encuadre del video para permitir una comparación
+        visual significativa.
+      </p>
+    </div>
+
+  </div>
+</section>
+<!-- FIN ESCENARIOS V5.0 -->
 <section id="alertas" hidden>
 <div class="grid">
  <div class="card">
@@ -284,8 +386,31 @@ video{width:100%;max-height:550px;background:#000;border-radius:8px;display:bloc
   se obtienen automáticamente de Google Sheets.
  </p>
  <label>Cámara a analizar</label>
- <select id="videoCamara" onchange="actualizarInfoVideo()"></select>
- <p id="reglasInfo" class="note"></p>
+<select id="videoCamara" onchange="actualizarInfoVideo()"></select>
+
+<p id="reglasInfo" class="note"></p>
+
+<label>Eventos a verificar con OpenAI</label>
+
+<div id="videoReglas" class="checklist"></div>
+
+<p class="note">
+  Selecciona hasta dos eventos específicos.
+  No se consultarán automáticamente todas las reglas.
+</p>
+
+<div class="actions">
+  <button class="sec" onclick="capturarBaseVideo()">
+    Capturar fotografía base del video
+  </button>
+
+  <button class="sec" onclick="verificarCambioLocal()">
+    Comparar localmente (sin OpenAI)
+  </button>
+</div>
+
+<p id="videoReferencia" class="note"></p>
+
 </div>
 <div class="grid">
  <div>
@@ -296,7 +421,7 @@ video{width:100%;max-height:550px;background:#000;border-radius:8px;display:bloc
    <p id="infoVideo" class="note">Sin video seleccionado.</p>
    <div class="actions">
     <button id="btnAnalizar" onclick="analizarCamaraIA()">
-     Analizar todos los eventos
+     Verificar eventos seleccionados con IA
     </button>
     <button class="sec" onclick="limpiarResultados()">Limpiar resultados</button>
    </div>
@@ -343,9 +468,9 @@ video{width:100%;max-height:550px;background:#000;border-radius:8px;display:bloc
 */
 
 const GAS_URL =
-'https://script.google.com/macros/s/AKfycbxS5OV828EUgB3mzeFavZ_qxDRexlP-k8WnvTQZfB32tBBAmqgk8HTr9tEbMOZLp7ht/exec';
+'https://script.google.com/macros/s/AKfycbyJ0lV5UUOiYHCS0Kf2DVNLK8ex6FbJjcphv4jotQ_BxbotYHzB6Rs53_nxTWAxk5pQ/exec';
 
-const VERSION='4.15';
+const VERSION='5.0';
 const $=id=>document.getElementById(id);
 const v=id=>$(id).value.trim();
 const norm=x=>String(x||'').trim().toLowerCase()
@@ -371,6 +496,8 @@ let datos={empresas:[],camaras:[],alertas:[],catalogos:{}};
 let videoURL=null;
 let ocupado=false;
 let resultadosIA=[];
+ let zonasActuales=[];
+let baseVideo=null;
 
 function aviso(t,error=false,id='mensaje'){
  $(id).textContent=t;
@@ -522,6 +649,7 @@ function actualizarPantalla(){
  );
 
  actualizarInfoVideo();
+ actualizarEscenarios();
  pintarEmpresas();
  pintarCamaras(reglas);
  pintarAlertas(alertas);
@@ -529,6 +657,9 @@ function actualizarPantalla(){
 }
 
 function mostrar(id){
+  if(id==='escenarios'){
+  setTimeout(dibujarZonas,60);
+ }
  document.querySelectorAll('main section')
   .forEach(s=>s.hidden=s.id!==id);
  document.querySelectorAll('nav button')
@@ -799,6 +930,381 @@ function exportarCSV(){
 }
 
 // ==========================================
+// VIGÍA IA V5.0
+// ESCENARIOS Y COMPARACIÓN LOCAL
+// ==========================================
+
+function escenarioDe(camara){
+  const empresa=v('empresaActual');
+
+  const reglas=reglasEmpresa().filter(r=>
+    norm(r.CamaraID)===norm(camara)
+  );
+
+  const ubicaciones=new Set(
+    reglas.map(r=>norm(r['Ubicación']))
+  );
+
+  const numero=s=>{
+    const m=String(s||'').match(/\d+$/);
+    return m?String(Number(m[0])):'';
+  };
+
+  const candidatos=(datos.escenarios||[]).filter(e=>{
+    const coincide=e.CamaraID
+      ?norm(e.CamaraID)===norm(camara)
+      :numero(e['Cámara Id'])===numero(camara);
+
+    return coincide &&
+      (!e.EmpresaID||e.EmpresaID===empresa) &&
+      ubicaciones.has(norm(e['Ubicación']));
+  });
+
+  return candidatos.length===1?candidatos[0]:null;
+}
+
+function actualizarEscenarios(){
+  const camaras=[
+    ...new Set(reglasEmpresa().map(r=>r.CamaraID))
+  ];
+
+  llenarSelect(
+    'escCamara',
+    camaras.map(c=>({id:c,texto:c})),
+    v('escCamara')||camaras[0]||''
+  );
+
+  mostrarEscenario();
+}
+
+function mostrarEscenario(){
+  const camara=v('escCamara');
+  const esc=escenarioDe(camara);
+
+  $('escEstado').textContent=esc
+    ?esc['Ubicación']+' · '+esc['URL foto base']
+    :'No se encontró un escenario único.';
+
+  $('escFoto').src=esc?.['URL foto base']||'';
+
+  try{
+    zonasActuales=JSON.parse(esc?.ZonasJSON||'[]');
+  }catch(e){
+    zonasActuales=[];
+  }
+
+  if(!Array.isArray(zonasActuales)){
+    zonasActuales=[];
+  }
+
+  const contenedor=$('escReglas');
+  contenedor.replaceChildren();
+
+  reglasEmpresa()
+    .filter(r=>norm(r.CamaraID)===norm(camara))
+    .forEach(r=>{
+      const p=document.createElement('p');
+      p.textContent=r.Evento+' · '+r.Estado;
+      contenedor.appendChild(p);
+    });
+
+  dibujarZonas();
+}
+
+function dibujarZonas(){
+  const canvas=$('escCanvas');
+  const imagen=$('escFoto');
+
+  canvas.width=imagen.clientWidth||600;
+  canvas.height=imagen.clientHeight||350;
+
+  const ctx=canvas.getContext('2d');
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  zonasActuales.forEach(z=>{
+    ctx.strokeStyle=z.tipo==='vigilancia'
+      ?'#22c55e':'#ef4444';
+
+    ctx.lineWidth=3;
+
+    ctx.strokeRect(
+      z.x*canvas.width,
+      z.y*canvas.height,
+      z.w*canvas.width,
+      z.h*canvas.height
+    );
+  });
+}
+
+$('escFoto').addEventListener('load',dibujarZonas);
+
+let inicioZona=null;
+
+$('escCanvas').addEventListener('pointerdown',e=>{
+  const r=e.target.getBoundingClientRect();
+
+  inicioZona={
+    x:(e.clientX-r.left)/r.width,
+    y:(e.clientY-r.top)/r.height
+  };
+});
+
+$('escCanvas').addEventListener('pointerup',e=>{
+  if(!inicioZona)return;
+
+  const r=e.target.getBoundingClientRect();
+
+  const ex=(e.clientX-r.left)/r.width;
+  const ey=(e.clientY-r.top)/r.height;
+
+  const z={
+    tipo:v('escTipo'),
+    x:Math.max(0,Math.min(inicioZona.x,ex)),
+    y:Math.max(0,Math.min(inicioZona.y,ey)),
+    w:Math.abs(ex-inicioZona.x),
+    h:Math.abs(ey-inicioZona.y)
+  };
+
+  inicioZona=null;
+
+  if(z.w<0.02||z.h<0.02)return;
+
+  zonasActuales.push(z);
+  dibujarZonas();
+});
+
+function borrarZona(){
+  zonasActuales.pop();
+  dibujarZonas();
+}
+
+async function guardarZonas(){
+  const camara=v('escCamara');
+
+  if(!escenarioDe(camara)){
+    return aviso(
+      'Primero registra el escenario en Google Sheets.',
+      true
+    );
+  }
+
+  try{
+    const r=await api('guardarEscenario',{
+      EmpresaID:v('empresaActual'),
+      CamaraID:camara,
+      ZonasJSON:JSON.stringify(zonasActuales)
+    });
+
+    aviso(r.mensaje);
+    await recargar(true);
+
+  }catch(e){
+    aviso(e.message,true);
+  }
+}
+
+function dibujarReglasVideo(){
+  const camara=v('videoCamara');
+  const contenedor=$('videoReglas');
+
+  contenedor.replaceChildren();
+
+  reglasEmpresa()
+    .filter(r=>
+      norm(r.CamaraID)===norm(camara)&&
+      ['activo','en prueba'].includes(norm(r.Estado))
+    )
+    .forEach(r=>{
+      const label=document.createElement('label');
+      const input=document.createElement('input');
+
+      input.type='checkbox';
+      input.value=r.ID;
+      input.className='reglaVideo';
+
+      label.append(
+        input,
+        document.createTextNode(
+          ' '+r.Evento+' ('+r['Ubicación']+')'
+        )
+      );
+
+      contenedor.appendChild(label);
+    });
+
+  const esc=escenarioDe(camara);
+
+  $('videoReferencia').textContent=esc
+    ?'Foto base registrada: '+esc['URL foto base']
+    :'No existe una fotografía base asociada.';
+
+  baseVideo=null;
+}
+
+function cargarImagen(src){
+  return new Promise((resolve,reject)=>{
+    const img=new Image();
+
+    img.crossOrigin='anonymous';
+    img.onload=()=>resolve(img);
+    img.onerror=()=>reject(
+      Error('No se pudo cargar la imagen de referencia.')
+    );
+
+    img.src=src;
+  });
+}
+
+function obtenerPixeles(img){
+  const canvas=document.createElement('canvas');
+
+  canvas.width=120;
+  canvas.height=90;
+
+  const ctx=canvas.getContext('2d',{
+    willReadFrequently:true
+  });
+
+  ctx.drawImage(img,0,0,120,90);
+
+  return ctx.getImageData(
+    0,0,120,90
+  ).data;
+}
+
+function fotoVideoActual(){
+  if(!reproductor.videoWidth){
+    throw Error('Primero carga un video.');
+  }
+
+  const canvas=document.createElement('canvas');
+
+  canvas.width=320;
+  canvas.height=Math.round(
+    320*reproductor.videoHeight/
+    reproductor.videoWidth
+  );
+
+  canvas.getContext('2d').drawImage(
+    reproductor,
+    0,0,
+    canvas.width,
+    canvas.height
+  );
+
+  return canvas.toDataURL('image/jpeg',0.7);
+}
+
+function capturarBaseVideo(){
+  try{
+    baseVideo=fotoVideoActual();
+
+    aviso(
+      'Fotografía base temporal capturada.',
+      false,
+      'estadoAnalisis'
+    );
+
+  }catch(e){
+    aviso(e.message,true,'estadoAnalisis');
+  }
+}
+
+async function verificarCambioLocal(){
+  try{
+    const esc=escenarioDe(v('videoCamara'));
+
+    const origen=baseVideo||
+      esc?.['URL foto base'];
+
+    if(!origen){
+      throw Error('Primero configura una imagen base.');
+    }
+
+    const [base,actual]=await Promise.all([
+      cargarImagen(origen),
+      cargarImagen(fotoVideoActual())
+    ]);
+
+    const a=obtenerPixeles(base);
+    const b=obtenerPixeles(actual);
+
+    let zonas=[];
+
+    try{
+      zonas=JSON.parse(esc?.ZonasJSON||'[]');
+    }catch(e){
+      zonas=[];
+    }
+
+    let total=0;
+    let cambiados=0;
+
+    for(let i=0;i<a.length;i+=4){
+      const indice=i/4;
+
+      const px=((indice%120)+0.5)/120;
+      const py=(Math.floor(indice/120)+0.5)/90;
+
+      const contiene=z=>
+        px>=z.x &&
+        px<=z.x+z.w &&
+        py>=z.y &&
+        py<=z.y+z.h;
+
+      if(zonas.some(z=>
+        z.tipo==='excluida'&&contiene(z)
+      )){
+        continue;
+      }
+
+      const vigilar=zonas.filter(
+        z=>z.tipo==='vigilancia'
+      );
+
+      if(vigilar.length &&
+        !vigilar.some(contiene)
+      ){
+        continue;
+      }
+
+      const diferencia=(
+        Math.abs(a[i]-b[i])+
+        Math.abs(a[i+1]-b[i+1])+
+        Math.abs(a[i+2]-b[i+2])
+      )/3;
+
+      if(diferencia>35)cambiados++;
+
+      total++;
+    }
+
+    if(!total){
+      throw Error('Todas las zonas están excluidas.');
+    }
+
+    const porcentaje=100*cambiados/total;
+
+    $('videoReferencia').textContent=
+      'Cambio visual local: '+
+      porcentaje.toFixed(1)+
+      '% de píxeles. No confirma un evento.';
+
+    return porcentaje;
+
+  }catch(e){
+    aviso(
+      e.message+
+      ' Si la imagen externa bloquea el acceso, '+
+      'captura una base del propio video.',
+      true,
+      'estadoAnalisis'
+    );
+
+    return null;
+  }
+} 
+// ==========================================
 // VIDEO Y ANÁLISIS CON IA
 // ==========================================
 
@@ -810,6 +1316,7 @@ function actualizarInfoVideo(){
   norm(r.CamaraID)===norm(camara)&&
   ['activo','en prueba'].includes(norm(r.Estado))
  );
+  dibujarReglasVideo();
  $('reglasInfo').textContent=camara?
   camara+' · '+reglas.length+' reglas habilitadas.':
   'Selecciona una cámara.';
@@ -1037,8 +1544,29 @@ async function analizarCamaraIA(){
    CamaraID:camaraId
   });
 
-  const ids=plan.reglaIds;
-  if(!ids.length)throw Error('No hay reglas habilitadas.');
+  const ids=[
+    ...document.querySelectorAll('.reglaVideo:checked')
+  ]
+  .map(x=>x.value)
+  .filter(id=>plan.reglaIds.includes(id));
+
+  if(!plan.escenario){
+    throw Error(
+      'Escenario no encontrado. Configúralo primero.'
+    );
+  }
+
+  if(!ids.length){
+    throw Error(
+      'Selecciona uno o dos eventos antes de usar OpenAI.'
+    );
+  }
+
+  if(ids.length>2){
+    throw Error(
+      'Selecciona máximo dos eventos para ahorrar tokens.'
+    );
+  }
 
   aviso('Extrayendo fotogramas...',false,'estadoAnalisis');
 
