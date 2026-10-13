@@ -388,18 +388,30 @@ video{width:100%;max-height:550px;background:#000;border-radius:8px;display:bloc
  <label>Cámara a analizar</label>
 <select id="videoCamara" onchange="actualizarInfoVideo()"></select>
 
-<p id="reglasInfo" class="note"></p>
+<div class="card" style="background:#20334f">
 
-<label>Eventos a verificar con OpenAI</label>
+  <h3>Reconocimiento automático de eventos</h3>
 
-<div id="videoReglas" class="checklist"></div>
+  <p class="note">
+    VIGÍA IA consultará automáticamente los eventos,
+    descripciones operacionales y contextos registrados
+    para la cámara seleccionada.
+  </p>
 
-<p class="note">
-  Selecciona hasta dos eventos específicos.
-  No se consultarán automáticamente todas las reglas.
-</p>
+  <div id="videoReglas" class="note"></div>
 
-<div class="actions">
+  <p class="note">
+    La IA identificará los eventos candidatos y
+    verificará únicamente aquellos que tengan
+    indicios visuales relevantes.
+  </p>
+
+  <p class="note">
+    No es necesario seleccionar eventos manualmente.
+  </p>
+
+</div>
+ <div class="actions">
   <button class="sec" onclick="capturarBaseVideo()">
     Capturar fotografía base del video
   </button>
@@ -421,7 +433,7 @@ video{width:100%;max-height:550px;background:#000;border-radius:8px;display:bloc
    <p id="infoVideo" class="note">Sin video seleccionado.</p>
    <div class="actions">
     <button id="btnAnalizar" onclick="analizarCamaraIA()">
-     Verificar eventos seleccionados con IA
+     Analizar video y reconocer eventos automáticamente
     </button>
     <button class="sec" onclick="limpiarResultados()">Limpiar resultados</button>
    </div>
@@ -468,7 +480,7 @@ video{width:100%;max-height:550px;background:#000;border-radius:8px;display:bloc
 */
 
 const GAS_URL =
-'https://script.google.com/macros/s/AKfycbyJ0lV5UUOiYHCS0Kf2DVNLK8ex6FbJjcphv4jotQ_BxbotYHzB6Rs53_nxTWAxk5pQ/exec';
+'https://script.google.com/macros/s/AKfycbxvljF2ufvZk8ecn980MrMatkjhw0hUKaIOEuH1XVUW0R6UYCNi6OlzBnxs-PSUcVWc/exec';
 
 const VERSION='5.0';
 const $=id=>document.getElementById(id);
@@ -1104,43 +1116,50 @@ async function guardarZonas(){
 }
 
 function dibujarReglasVideo(){
+
   const camara=v('videoCamara');
+
+  const reglas=reglasEmpresa().filter(r=>
+    norm(r.CamaraID)===norm(camara) &&
+    ['activo','en prueba'].includes(norm(r.Estado))
+  );
+
   const contenedor=$('videoReglas');
 
   contenedor.replaceChildren();
 
-  reglasEmpresa()
-    .filter(r=>
-      norm(r.CamaraID)===norm(camara)&&
-      ['activo','en prueba'].includes(norm(r.Estado))
-    )
-    .forEach(r=>{
-      const label=document.createElement('label');
-      const input=document.createElement('input');
+  const resumen=document.createElement('p');
 
-      input.type='checkbox';
-      input.value=r.ID;
-      input.className='reglaVideo';
+  resumen.textContent=
+    'Eventos habilitados: '+reglas.length+
+    '. Se evaluarán automáticamente.';
 
-      label.append(
-        input,
-        document.createTextNode(
-          ' '+r.Evento+' ('+r['Ubicación']+')'
-        )
-      );
+  contenedor.appendChild(resumen);
 
-      contenedor.appendChild(label);
-    });
+  const lista=document.createElement('div');
+
+  reglas.forEach(r=>{
+
+    const p=document.createElement('p');
+
+    p.textContent=
+      '• '+r.Evento+
+      ' — '+r['Ubicación'];
+
+    lista.appendChild(p);
+
+  });
+
+  contenedor.appendChild(lista);
 
   const esc=escenarioDe(camara);
 
   $('videoReferencia').textContent=esc
     ?'Foto base registrada: '+esc['URL foto base']
-    :'No existe una fotografía base asociada.';
+    :'No existe fotografía base asociada.';
 
   baseVideo=null;
 }
-
 function cargarImagen(src){
   return new Promise((resolve,reject)=>{
     const img=new Image();
@@ -1519,143 +1538,196 @@ async function refrescarAlertas(){
  tablaReportes();
 }
 
+ 
 async function analizarCamaraIA(){
- if(ocupado)return;
+  if(ocupado)return;
 
- const empresaId=v('empresaActual');
- const camaraId=v('videoCamara');
+  const empresaId=v('empresaActual');
+  const camaraId=v('videoCamara');
 
- if(!empresaId)
-  return aviso('Selecciona empresa.',true,'estadoAnalisis');
- if(!camaraId)
-  return aviso('Selecciona cámara.',true,'estadoAnalisis');
- if(!$('archivoVideo').files[0])
-  return aviso('Selecciona video.',true,'estadoAnalisis');
+  if(!empresaId)
+    return aviso('Selecciona empresa.',true,'estadoAnalisis');
 
- ocupado=true;
- $('btnAnalizar').disabled=true;
- limpiarResultados();
+  if(!camaraId)
+    return aviso('Selecciona cámara.',true,'estadoAnalisis');
 
- try{
-  aviso('Verificando reglas de Google Sheets...',false,'estadoAnalisis');
+  if(!$('archivoVideo').files[0])
+    return aviso('Selecciona un video.',true,'estadoAnalisis');
 
-  const plan=await api('prepararAnalisis',{
-   EmpresaID:empresaId,
-   CamaraID:camaraId
-  });
-
-  const ids=[
-    ...document.querySelectorAll('.reglaVideo:checked')
-  ]
-  .map(x=>x.value)
-  .filter(id=>plan.reglaIds.includes(id));
-
-  if(!plan.escenario){
-    throw Error(
-      'Escenario no encontrado. Configúralo primero.'
-    );
-  }
-
-  if(!ids.length){
-    throw Error(
-      'Selecciona uno o dos eventos antes de usar OpenAI.'
-    );
-  }
-
-  if(ids.length>2){
-    throw Error(
-      'Selecciona máximo dos eventos para ahorrar tokens.'
-    );
-  }
-
-  aviso('Extrayendo fotogramas...',false,'estadoAnalisis');
-
-  const frames=await extraerFotogramas();
-  pintarFrames(frames);
-
-  const tamano=2;
-  const lotes=Math.ceil(ids.length/tamano);
-  let errores=0;
-
-  for(let i=0;i<ids.length;i+=tamano){
-   const lote=ids.slice(i,i+tamano);
-   const n=Math.floor(i/tamano)+1;
-
-   aviso(
-    'Analizando lote '+n+' de '+lotes+'...',
-    false,'estadoAnalisis'
-   );
-
-   try{
-    const r=await api('analizarLote',{
-     EmpresaID:empresaId,
-     CamaraID:camaraId,
-     ReglaIDs:lote,
-     DuracionVideo:reproductor.duration,
-     Fotogramas:frames
-    });
-
-    (r.resultados||[]).forEach(x=>{
-     resultadosIA.push(x);
-     if(x.resultado!=='No detectado'){
-      pintarResultado(x);
-     }
-    });
-
-   }catch(e){
-    errores++;
-
-    const div=document.createElement('div');
-    div.className='result';
-
-    const h=document.createElement('h3');
-    h.textContent='Error en lote '+n;
-    div.appendChild(h);
-
-    linea(div,'Detalle',e.message);
-    linea(div,'Reglas',lote.join(', '));
-
-    $('resultadoIA').appendChild(div);
-   }
-
-   const procesados=Math.min(i+tamano,ids.length);
-
-   $('barraProgreso').style.width=
-    Math.round(procesados/ids.length*100)+'%';
-
-   $('contadorProgreso').textContent=
-    procesados+' de '+ids.length+
-    ' reglas · '+errores+' lotes con error';
-
-   resumen();
-  }
+  ocupado=true;
+  $('btnAnalizar').disabled=true;
+  limpiarResultados();
 
   try{
-   await refrescarAlertas();
+    aviso(
+      'Consultando configuración de la cámara...',
+      false,'estadoAnalisis'
+    );
+
+    const plan=await api('prepararAnalisis',{
+      EmpresaID:empresaId,
+      CamaraID:camaraId
+    });
+
+    if(!plan.escenario){
+      throw Error(
+        'No existe escenario asociado a esta cámara.'
+      );
+    }
+
+    if(!plan.reglaIds || !plan.reglaIds.length){
+      throw Error(
+        'Esta cámara no tiene eventos habilitados.'
+      );
+    }
+
+    aviso(
+      'Extrayendo fotogramas del video...',
+      false,'estadoAnalisis'
+    );
+
+    const frames=await extraerFotogramas();
+    pintarFrames(frames);
+
+    aviso(
+      'IA identificando eventos candidatos...',
+      false,'estadoAnalisis'
+    );
+
+    // Preevaluación de todas las reglas de la cámara.
+    // No registra alertas en esta primera etapa.
+    const previa=await api('preseleccionarEventos',{
+      EmpresaID:empresaId,
+      CamaraID:camaraId,
+      DuracionVideo:reproductor.duration,
+      Fotogramas:[
+        frames[0],
+        frames[frames.length-1]
+      ]
+    });
+
+    const ids=[
+      ...new Set(
+        (previa.reglaIds||[]).map(String)
+      )
+    ].filter(id=>plan.reglaIds.includes(id));
+
+    if(!ids.length){
+      $('resumenIA').textContent=
+        'No se identificaron eventos candidatos '+
+        'en los fotogramas examinados.';
+
+      $('barraProgreso').style.width='100%';
+
+      $('contadorProgreso').textContent=
+        plan.total+
+        ' reglas consideradas · 0 candidatas';
+
+      aviso(
+        'Preevaluación terminada. Sin candidatos.',
+        false,'estadoAnalisis'
+      );
+
+      return;
+    }
+
+    $('contadorProgreso').textContent=
+      plan.total+' reglas consideradas · '+
+      ids.length+' candidatas';
+
+    // Verificación detallada con las reglas candidatas.
+    // El GS admite máximo dos reglas por lote.
+    const tamano=2;
+    const lotes=Math.ceil(ids.length/tamano);
+    let errores=0;
+
+    for(let i=0;i<ids.length;i+=tamano){
+
+      const lote=ids.slice(i,i+tamano);
+      const n=Math.floor(i/tamano)+1;
+
+      aviso(
+        'Verificando eventos candidatos: lote '+
+        n+' de '+lotes+'...',
+        false,'estadoAnalisis'
+      );
+
+      try{
+        const r=await api('analizarLote',{
+          EmpresaID:empresaId,
+          CamaraID:camaraId,
+          ReglaIDs:lote,
+          DuracionVideo:reproductor.duration,
+          Fotogramas:frames
+        });
+
+        (r.resultados||[]).forEach(x=>{
+          resultadosIA.push(x);
+
+          if(x.resultado!=='No detectado'){
+            pintarResultado(x);
+          }
+        });
+
+      }catch(e){
+        errores++;
+
+        const div=document.createElement('div');
+        div.className='result';
+
+        const h=document.createElement('h3');
+        h.textContent='Error en lote '+n;
+
+        div.appendChild(h);
+
+        linea(div,'Detalle',e.message);
+        linea(div,'Reglas',lote.join(', '));
+
+        $('resultadoIA').appendChild(div);
+      }
+
+      const procesados=Math.min(i+tamano,ids.length);
+
+      $('barraProgreso').style.width=
+        Math.round(procesados/ids.length*100)+'%';
+
+      $('contadorProgreso').textContent=
+        procesados+' de '+ids.length+
+        ' reglas candidatas verificadas · '+
+        errores+' lotes con error';
+
+      resumen();
+    }
+
+    try{
+      await refrescarAlertas();
+    }catch(e){
+      aviso(
+        'Terminó el análisis, pero no se pudieron '+
+        'actualizar las alertas: '+e.message,
+        true,'estadoAnalisis'
+      );
+    }
+
+    aviso(
+      errores
+        ?'Análisis parcial: '+errores+' lotes fallaron.'
+        :'Análisis automático terminado.',
+      errores>0,
+      'estadoAnalisis'
+    );
+
   }catch(e){
-   aviso(
-    'Terminó el análisis; falló actualización de alertas: '+
-    e.message,true,'estadoAnalisis'
-   );
+    aviso(e.message,true,'estadoAnalisis');
+
+  }finally{
+    ocupado=false;
+    $('btnAnalizar').disabled=false;
   }
-
-  aviso(
-   errores?
-    'Análisis parcial: '+errores+' lotes fallaron.':
-    'Análisis terminado.',
-   errores>0,
-   'estadoAnalisis'
-  );
-
- }catch(e){
-  aviso(e.message,true,'estadoAnalisis');
- }finally{
-  ocupado=false;
-  $('btnAnalizar').disabled=false;
- }
 }
 
-window.addEventListener('beforeunload',()=>{
+
+ window.addEventListener('beforeunload',()=>{
  if(videoURL)URL.revokeObjectURL(videoURL);
 });
 </script>
