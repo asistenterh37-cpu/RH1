@@ -270,6 +270,19 @@ video{width:100%;max-height:550px;background:#000;border-radius:8px;display:bloc
 
       <p id="escEstado" class="note"></p>
 
+     <label>Fotografía base local para simulación</label>
+
+<input
+  type="file"
+  id="escFotoLocal"
+  accept="image/jpeg,image/png,image/webp"
+  onchange="cargarFotoLocalEscenario()"
+>
+
+<p class="note">
+  Esta imagen sustituye temporalmente la URL externa
+  en la pantalla. No modifica Google Sheets.
+</p>
       <div class="escenaFoto" id="escMarco">
         <img id="escFoto" alt="Fotografía base del escenario">
         <canvas id="escCanvas"></canvas>
@@ -480,7 +493,7 @@ video{width:100%;max-height:550px;background:#000;border-radius:8px;display:bloc
 */
 
 const GAS_URL =
-'https://script.google.com/macros/s/AKfycbxvljF2ufvZk8ecn980MrMatkjhw0hUKaIOEuH1XVUW0R6UYCNi6OlzBnxs-PSUcVWc/exec';
+'https://script.google.com/macros/s/AKfycby9FmS2aQwQ5SCjVGIeKP6d-AP2LlL512aWqqhrfjYH80BGwAIimF3KURWiyG2CeaQy/exec';
 
 const VERSION='5.0';
 const $=id=>document.getElementById(id);
@@ -516,33 +529,85 @@ function aviso(t,error=false,id='mensaje'){
  $(id).className=error?'err':'ok';
 }
 
+
 function api(accion,parametros={}){
- return new Promise((resolve,reject)=>{
-  if(!window.google?.script?.run){
-   return reject(Error(
-    'Abre la aplicación desde Google Apps Script /exec.'
-   ));
-  }
-  google.script.run
-   .withSuccessHandler(r=>{
-    if(!r)return reject(Error('Sin respuesta del servidor.'));
-    if(r.version!==VERSION){
-     return reject(Error(
-      'HTML '+VERSION+' / GS '+(r.version||'desconocido')+
-      '. Actualiza la implementación de Apps Script.'
-     ));
+
+  return new Promise((resolve,reject)=>{
+
+    if(!window.google?.script?.run){
+      return reject(Error(
+        'Abre la aplicación desde Google Apps Script /exec.'
+      ));
     }
-    if(!r.ok)return reject(Error(r.error||'Error del servidor.'));
-    resolve(r);
-   })
-   .withFailureHandler(e=>{
-    reject(Error(e.message||String(e)));
-   })
-   .apiDesdeHtml({accion,pin:PIN,...parametros});
- });
+
+    if(!PIN){
+      return reject(Error(
+        'La sesión no está autenticada. Ingresa con tu PIN.'
+      ));
+    }
+
+    google.script.run
+
+      .withSuccessHandler(r=>{
+
+        if(!r){
+          return reject(
+            Error('Sin respuesta del servidor.')
+          );
+        }
+
+        if(r.version!==VERSION){
+          return reject(Error(
+            'HTML '+VERSION+
+            ' / GS '+(r.version||'desconocido')+
+            '. Actualiza la implementación.'
+          ));
+        }
+
+        if(!r.ok){
+
+          const mensaje=r.error||'Error del servidor.';
+
+          if(/PIN incorrecto|Falta VIGIA_PIN/i.test(mensaje)){
+
+            PIN='';
+
+            $('app').hidden=true;
+            $('login').hidden=false;
+
+            $('conexion').textContent='Desconectado';
+
+            aviso(
+              'La autenticación fue rechazada. '+
+              'Ingresa nuevamente con el PIN vigente.',
+              true,
+              'mensajeLogin'
+            );
+
+            window.scrollTo(0,0);
+          }
+
+          return reject(Error(mensaje));
+        }
+
+        resolve(r);
+
+      })
+
+      .withFailureHandler(e=>{
+        reject(Error(e.message||String(e)));
+      })
+
+      .apiDesdeHtml({
+        ...parametros,
+        accion:accion,
+        pin:PIN
+      });
+
+  });
 }
 
-async function entrar(){
+ async function entrar(){
  $('btnEntrar').disabled=true;
  try{
   PIN=v('pin');
@@ -975,54 +1040,126 @@ function escenarioDe(camara){
   return candidatos.length===1?candidatos[0]:null;
 }
 
+
 function actualizarEscenarios(){
+
+  const anterior=v('escCamara');
+
   const camaras=[
-    ...new Set(reglasEmpresa().map(r=>r.CamaraID))
+    ...new Set(
+      reglasEmpresa()
+        .map(r=>String(r.CamaraID||'').trim())
+        .filter(Boolean)
+    )
   ];
 
   llenarSelect(
     'escCamara',
     camaras.map(c=>({id:c,texto:c})),
-    v('escCamara')||camaras[0]||''
+    camaras.includes(anterior)
+      ?anterior
+      :camaras[0]||''
   );
+
+  // Evitar que el selector quede vacío.
+  if(camaras.length && !v('escCamara')){
+    $('escCamara').value=camaras[0];
+  }
 
   mostrarEscenario();
 }
 
+
 function mostrarEscenario(){
+
   const camara=v('escCamara');
   const esc=escenarioDe(camara);
 
-  $('escEstado').textContent=esc
-    ?esc['Ubicación']+' · '+esc['URL foto base']
-    :'No se encontró un escenario único.';
+  const estado=$('escEstado');
+  const foto=$('escFoto');
+  const reglasContenedor=$('escReglas');
 
-  $('escFoto').src=esc?.['URL foto base']||'';
+  reglasContenedor.replaceChildren();
+
+  const reglas=reglasEmpresa().filter(r=>
+    norm(r.CamaraID)===norm(camara)
+  );
+
+  reglas.forEach(r=>{
+    const p=document.createElement('p');
+
+    p.textContent=
+      r.Evento+' · '+r['Ubicación']+
+      ' · '+r.Estado;
+
+    reglasContenedor.appendChild(p);
+  });
+
+  if(!esc){
+    estado.textContent=
+      'No se encontró el escenario para '+camara+
+      '. Revisa EmpresaID, CamaraID y Ubicación '+
+      'en Google Sheets.';
+
+    estado.className='err';
+    foto.removeAttribute('src');
+    zonasActuales=[];
+    dibujarZonas();
+    return;
+  }
+
+  estado.textContent=
+    'Cámara: '+camara+
+    ' · Ubicación: '+esc['Ubicación'];
+
+  estado.className='ok';
 
   try{
-    zonasActuales=JSON.parse(esc?.ZonasJSON||'[]');
+    zonasActuales=JSON.parse(esc.ZonasJSON||'[]');
+
+    if(!Array.isArray(zonasActuales)){
+      zonasActuales=[];
+    }
   }catch(e){
     zonasActuales=[];
   }
 
-  if(!Array.isArray(zonasActuales)){
-    zonasActuales=[];
+  const url=String(esc['URL foto base']||'').trim();
+
+  foto.onload=()=>{
+    estado.textContent=
+      'Fotografía cargada correctamente · '+
+      camara+' · '+esc['Ubicación'];
+
+    estado.className='ok';
+    dibujarZonas();
+  };
+
+  foto.onerror=()=>{
+    estado.textContent=
+      'No se pudo abrir la URL de la fotografía. '+
+      'Puedes seleccionar una foto local de prueba '+
+      'o sustituir la URL en la hoja Escenarios.';
+
+    estado.className='err';
+    dibujarZonas();
+  };
+
+  if(url){
+    foto.src=url;
+  }else{
+    foto.removeAttribute('src');
+
+    estado.textContent=
+      'Este escenario no tiene URL de foto base.';
+
+    estado.className='err';
   }
-
-  const contenedor=$('escReglas');
-  contenedor.replaceChildren();
-
-  reglasEmpresa()
-    .filter(r=>norm(r.CamaraID)===norm(camara))
-    .forEach(r=>{
-      const p=document.createElement('p');
-      p.textContent=r.Evento+' · '+r.Estado;
-      contenedor.appendChild(p);
-    });
 
   dibujarZonas();
 }
 
+ 
 function dibujarZonas(){
   const canvas=$('escCanvas');
   const imagen=$('escFoto');
@@ -1085,6 +1222,50 @@ $('escCanvas').addEventListener('pointerup',e=>{
   dibujarZonas();
 });
 
+
+let urlFotoLocal=null;
+
+function cargarFotoLocalEscenario(){
+
+  const archivo=$('escFotoLocal').files[0];
+
+  if(!archivo)return;
+
+  if(!archivo.type.startsWith('image/')){
+    return aviso(
+      'Selecciona una imagen válida.',
+      true
+    );
+  }
+
+  if(urlFotoLocal){
+    URL.revokeObjectURL(urlFotoLocal);
+  }
+
+  urlFotoLocal=URL.createObjectURL(archivo);
+
+  const foto=$('escFoto');
+
+  foto.onload=()=>{
+    $('escEstado').textContent=
+      'Fotografía local cargada correctamente.';
+
+    $('escEstado').className='ok';
+
+    dibujarZonas();
+  };
+
+  foto.onerror=()=>{
+    $('escEstado').textContent=
+      'No se pudo cargar la fotografía local.';
+
+    $('escEstado').className='err';
+  };
+
+  foto.src=urlFotoLocal;
+}
+
+ 
 function borrarZona(){
   zonasActuales.pop();
   dibujarZonas();
