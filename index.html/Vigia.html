@@ -1722,31 +1722,47 @@ async function refrescarAlertas(){
 }
 
  
+
 async function analizarCamaraIA(){
+
   if(ocupado)return;
 
   const empresaId=v('empresaActual');
   const camaraId=v('videoCamara');
 
-  if(!empresaId)
-    return aviso('Selecciona empresa.',true,'estadoAnalisis');
+  if(!empresaId){
+    return aviso(
+      'Selecciona una empresa.',
+      true,'estadoAnalisis'
+    );
+  }
 
-  if(!camaraId)
-    return aviso('Selecciona cámara.',true,'estadoAnalisis');
+  if(!camaraId){
+    return aviso(
+      'Selecciona una cámara.',
+      true,'estadoAnalisis'
+    );
+  }
 
-  if(!$('archivoVideo').files[0])
-    return aviso('Selecciona un video.',true,'estadoAnalisis');
+  if(!$('archivoVideo').files[0]){
+    return aviso(
+      'Selecciona un video.',
+      true,'estadoAnalisis'
+    );
+  }
 
   ocupado=true;
   $('btnAnalizar').disabled=true;
   limpiarResultados();
 
   try{
+
     aviso(
-      'Consultando configuración de la cámara...',
+      'Consultando las reglas de la cámara...',
       false,'estadoAnalisis'
     );
 
+    // Obtener automáticamente las reglas desde GS.
     const plan=await api('prepararAnalisis',{
       EmpresaID:empresaId,
       CamaraID:camaraId
@@ -1758,11 +1774,22 @@ async function analizarCamaraIA(){
       );
     }
 
-    if(!plan.reglaIds || !plan.reglaIds.length){
+    // Se utilizan TODAS las reglas habilitadas,
+    // sin casillas ni preselección.
+    const ids=[
+      ...new Set(
+        (plan.reglaIds||[]).map(String)
+      )
+    ];
+
+    if(!ids.length){
       throw Error(
-        'Esta cámara no tiene eventos habilitados.'
+        'La cámara no tiene eventos habilitados.'
       );
     }
+
+    $('contadorProgreso').textContent=
+      ids.length+' eventos habilitados para '+camaraId;
 
     aviso(
       'Extrayendo fotogramas del video...',
@@ -1770,73 +1797,30 @@ async function analizarCamaraIA(){
     );
 
     const frames=await extraerFotogramas();
+
     pintarFrames(frames);
 
-    aviso(
-      'IA identificando eventos candidatos...',
-      false,'estadoAnalisis'
-    );
-
-    // Preevaluación de todas las reglas de la cámara.
-    // No registra alertas en esta primera etapa.
-    const previa=await api('preseleccionarEventos',{
-      EmpresaID:empresaId,
-      CamaraID:camaraId,
-      DuracionVideo:reproductor.duration,
-      Fotogramas:[
-        frames[0],
-        frames[frames.length-1]
-      ]
-    });
-
-    const ids=[
-      ...new Set(
-        (previa.reglaIds||[]).map(String)
-      )
-    ].filter(id=>plan.reglaIds.includes(id));
-
-    if(!ids.length){
-      $('resumenIA').textContent=
-        'No se identificaron eventos candidatos '+
-        'en los fotogramas examinados.';
-
-      $('barraProgreso').style.width='100%';
-
-      $('contadorProgreso').textContent=
-        plan.total+
-        ' reglas consideradas · 0 candidatas';
-
-      aviso(
-        'Preevaluación terminada. Sin candidatos.',
-        false,'estadoAnalisis'
-      );
-
-      return;
-    }
-
-    $('contadorProgreso').textContent=
-      plan.total+' reglas consideradas · '+
-      ids.length+' candidatas';
-
-    // Verificación detallada con las reglas candidatas.
-    // El GS admite máximo dos reglas por lote.
+    // El GS existente admite dos reglas por lote.
     const tamano=2;
     const lotes=Math.ceil(ids.length/tamano);
+
     let errores=0;
+    let evaluados=0;
 
     for(let i=0;i<ids.length;i+=tamano){
 
       const lote=ids.slice(i,i+tamano);
-      const n=Math.floor(i/tamano)+1;
+      const numero=Math.floor(i/tamano)+1;
 
       aviso(
-        'Verificando eventos candidatos: lote '+
-        n+' de '+lotes+'...',
+        'Analizando eventos de '+camaraId+
+        ' · Lote '+numero+' de '+lotes,
         false,'estadoAnalisis'
       );
 
       try{
-        const r=await api('analizarLote',{
+
+        const respuesta=await api('analizarLote',{
           EmpresaID:empresaId,
           CamaraID:camaraId,
           ReglaIDs:lote,
@@ -1844,71 +1828,97 @@ async function analizarCamaraIA(){
           Fotogramas:frames
         });
 
-        (r.resultados||[]).forEach(x=>{
-          resultadosIA.push(x);
+        (respuesta.resultados||[]).forEach(r=>{
 
-          if(x.resultado!=='No detectado'){
-            pintarResultado(x);
+          resultadosIA.push(r);
+
+          // Mostrar solamente resultados
+          // relevantes o indeterminados.
+          if(r.resultado!=='No detectado'){
+            pintarResultado(r);
           }
+
         });
 
-      }catch(e){
+      }catch(error){
+
         errores++;
 
         const div=document.createElement('div');
         div.className='result';
 
-        const h=document.createElement('h3');
-        h.textContent='Error en lote '+n;
+        const titulo=document.createElement('h3');
+        titulo.textContent=
+          'Error en lote '+numero;
 
-        div.appendChild(h);
+        div.appendChild(titulo);
 
-        linea(div,'Detalle',e.message);
+        linea(div,'Detalle',error.message);
         linea(div,'Reglas',lote.join(', '));
 
         $('resultadoIA').appendChild(div);
+
       }
 
-      const procesados=Math.min(i+tamano,ids.length);
+      evaluados=Math.min(i+tamano,ids.length);
 
       $('barraProgreso').style.width=
-        Math.round(procesados/ids.length*100)+'%';
+        Math.round(evaluados/ids.length*100)+'%';
 
       $('contadorProgreso').textContent=
-        procesados+' de '+ids.length+
-        ' reglas candidatas verificadas · '+
+        evaluados+' de '+ids.length+
+        ' eventos procesados · '+
         errores+' lotes con error';
 
       resumen();
+
     }
 
+    // Actualizar las alertas registradas.
     try{
       await refrescarAlertas();
-    }catch(e){
-      aviso(
-        'Terminó el análisis, pero no se pudieron '+
-        'actualizar las alertas: '+e.message,
-        true,'estadoAnalisis'
+    }catch(error){
+      errores++;
+      console.warn(
+        'No se pudieron actualizar las alertas:',
+        error
       );
     }
 
+    if(errores){
+
+      aviso(
+        'Análisis finalizado con '+errores+
+        ' errores. Revisa los resultados.',
+        true,'estadoAnalisis'
+      );
+
+    }else{
+
+      aviso(
+        'Análisis terminado. Se evaluaron '+
+        ids.length+
+        ' eventos configurados en '+camaraId+'.',
+        false,'estadoAnalisis'
+      );
+
+    }
+
+  }catch(error){
+
     aviso(
-      errores
-        ?'Análisis parcial: '+errores+' lotes fallaron.'
-        :'Análisis automático terminado.',
-      errores>0,
-      'estadoAnalisis'
+      error.message,
+      true,'estadoAnalisis'
     );
 
-  }catch(e){
-    aviso(e.message,true,'estadoAnalisis');
-
   }finally{
+
     ocupado=false;
     $('btnAnalizar').disabled=false;
-  }
-}
 
+  }
+
+}
 
  window.addEventListener('beforeunload',()=>{
  if(videoURL)URL.revokeObjectURL(videoURL);
