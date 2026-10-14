@@ -136,6 +136,7 @@ video{width:100%;max-height:550px;background:#000;border-radius:8px;display:bloc
 
 
 <nav>
+
   <button class="active" data-page="empresas"
           onclick="mostrar('empresas')">
     Empresas
@@ -161,6 +162,11 @@ video{width:100%;max-height:550px;background:#000;border-radius:8px;display:bloc
     Escenarios
   </button>
 
+  <button data-page="video"
+          onclick="mostrar('video')">
+    Análisis de Video con IA
+  </button>
+
   <button data-page="alertas"
           onclick="mostrar('alertas')">
     Alertas
@@ -171,10 +177,6 @@ video{width:100%;max-height:550px;background:#000;border-radius:8px;display:bloc
     Reportes
   </button>
 
-  <button data-page="video"
-          onclick="mostrar('video')">
-    Análisis de Video con IA
-  </button>
 </nav>
 
 <section id="empresas">
@@ -721,7 +723,7 @@ video{width:100%;max-height:550px;background:#000;border-radius:8px;display:bloc
 */
 
 const GAS_URL =
-'https://script.google.com/macros/s/AKfycbyQCwSSmD-Qe72OOejGwvLMzSQITIMz8ebRwviGGvT8Sa0-A1q8IKX5ptrhaM-cfR2S/exec';
+'https://script.google.com/macros/s/AKfycbxOggqAHbMoxOJwBe3kHxQJD8ifxf3Qdjxc-QYGI8J0gs1SPr9I-L80DqEJdRE9D9er/exec';
 
 const VERSION='5.0';
 const $=id=>document.getElementById(id);
@@ -1874,68 +1876,87 @@ function exportarCSV(){
 // ESCENARIOS Y COMPARACIÓN LOCAL
 // ==========================================
 
-function escenarioDe(camara){
-  const empresa=v('empresaActual');
 
-  const reglas=reglasEmpresa().filter(r=>
-    norm(r.CamaraID)===norm(camara)
-  );
+// ==========================================
+// VIGÍA IA - ESCENARIOS DESDE UBICACIONES
+// ==========================================
 
-  const ubicaciones=new Set(
-    reglas.map(r=>norm(r['Ubicación']))
-  );
+let solicitudEscenarioActual=0;
 
-  const numero=s=>{
-    const m=String(s||'').match(/\d+$/);
-    return m?String(Number(m[0])):'';
-  };
 
-  const candidatos=(datos.escenarios||[]).filter(e=>{
-    const coincide=e.CamaraID
-      ?norm(e.CamaraID)===norm(camara)
-      :numero(e['Cámara Id'])===numero(camara);
+// IDENTIFICAR LA UBICACIÓN REGISTRADA
+function ubicacionDeEscenario(camara){
 
-    return coincide &&
-      (!e.EmpresaID||e.EmpresaID===empresa) &&
-      ubicaciones.has(norm(e['Ubicación']));
-  });
+  return (datos.ubicaciones||[]).find(u=>
+    norm(u['Cámara'])===norm(camara)
+  )||null;
 
-  return candidatos.length===1?candidatos[0]:null;
 }
 
 
+// BUSCAR ESCENARIO DE LA CÁMARA
+function escenarioDe(camara){
+
+  const empresa=v('empresaActual');
+  const ubicacion=ubicacionDeEscenario(camara);
+
+  if(!ubicacion)return null;
+
+  const candidatos=(datos.escenarios||[]).filter(e=>
+
+    norm(e.CamaraID)===norm(camara) &&
+
+    (!e.EmpresaID||e.EmpresaID===empresa) &&
+
+    norm(e['Ubicación'])===
+      norm(ubicacion['Ubicación'])
+
+  );
+
+  return candidatos.length===1
+    ?candidatos[0]
+    :null;
+
+}
+
+
+// LLENAR SELECTOR CON TODAS LAS CÁMARAS
+// DE LA HOJA UBICACIONES
 function actualizarEscenarios(){
 
   const anterior=v('escCamara');
 
-  const camaras=[
-    ...new Set(
-      reglasEmpresa()
-        .map(r=>String(r.CamaraID||'').trim())
-        .filter(Boolean)
-    )
-  ];
+  const ubicaciones=datos.ubicaciones||[];
+
+  const opciones=ubicaciones.map(u=>({
+    id:u['Cámara'],
+    texto:u['Cámara']+' · '+u['Ubicación']
+  }));
+
+  const existe=opciones.some(
+    x=>x.id===anterior
+  );
 
   llenarSelect(
     'escCamara',
-    camaras.map(c=>({id:c,texto:c})),
-    camaras.includes(anterior)
+    opciones,
+    existe
       ?anterior
-      :camaras[0]||''
+      :opciones[0]?.id||''
   );
 
-  // Evitar que el selector quede vacío.
-  if(camaras.length && !v('escCamara')){
-    $('escCamara').value=camaras[0];
-  }
-
   mostrarEscenario();
+
 }
 
 
-function mostrarEscenario(){
+// MOSTRAR FOTOGRAFÍA, ZONAS Y EVENTOS
+async function mostrarEscenario(){
+
+  const solicitud=++solicitudEscenarioActual;
 
   const camara=v('escCamara');
+  const ubicacion=ubicacionDeEscenario(camara);
   const esc=escenarioDe(camara);
 
   const estado=$('escEstado');
@@ -1944,83 +1965,181 @@ function mostrarEscenario(){
 
   reglasContenedor.replaceChildren();
 
+  foto.onload=null;
+  foto.onerror=null;
+  foto.removeAttribute('src');
+
+  zonasActuales=[];
+
+  // Al cambiar de cámara se elimina
+  // la selección local anterior.
+  if($('escFotoLocal')){
+    $('escFotoLocal').value='';
+  }
+
+  if(urlFotoLocal){
+    URL.revokeObjectURL(urlFotoLocal);
+    urlFotoLocal=null;
+  }
+
+  if(!ubicacion){
+
+    estado.textContent=
+      'Selecciona una cámara registrada en Ubicaciones.';
+
+    estado.className='note';
+
+    dibujarZonas();
+    return;
+
+  }
+
+  // Mostrar los eventos configurados
+  // para esta cámara, si existen.
   const reglas=reglasEmpresa().filter(r=>
     norm(r.CamaraID)===norm(camara)
   );
 
-  reglas.forEach(r=>{
+  if(!reglas.length){
+
     const p=document.createElement('p');
 
+    p.className='note';
+
     p.textContent=
-      r.Evento+' · '+r['Ubicación']+
-      ' · '+r.Estado;
+      'Esta cámara aún no tiene eventos asignados. '+
+      'Puedes registrar su fotografía base.';
 
     reglasContenedor.appendChild(p);
-  });
 
-  if(!esc){
-    estado.textContent=
-      'No se encontró el escenario para '+camara+
-      '. Revisa EmpresaID, CamaraID y Ubicación '+
-      'en Google Sheets.';
+  }else{
 
-    estado.className='err';
-    foto.removeAttribute('src');
-    zonasActuales=[];
-    dibujarZonas();
-    return;
+    reglas.forEach(r=>{
+
+      const p=document.createElement('p');
+
+      p.textContent=
+        r.Evento+' · '+r['Ubicación']+
+        ' · '+r.Estado;
+
+      reglasContenedor.appendChild(p);
+
+    });
+
+  }
+
+  // Recuperar zonas previamente guardadas.
+  if(esc){
+
+    try{
+
+      const zonas=JSON.parse(
+        esc.ZonasJSON||'[]'
+      );
+
+      zonasActuales=Array.isArray(zonas)
+        ?zonas
+        :[];
+
+    }catch(e){
+
+      zonasActuales=[];
+
+    }
+
   }
 
   estado.textContent=
     'Cámara: '+camara+
-    ' · Ubicación: '+esc['Ubicación'];
+    ' · Ubicación: '+ubicacion['Ubicación'];
 
   estado.className='ok';
 
-  try{
-    zonasActuales=JSON.parse(esc.ZonasJSON||'[]');
+  const url=String(
+    esc?.['URL foto base']||''
+  ).trim();
 
-    if(!Array.isArray(zonasActuales)){
-      zonasActuales=[];
-    }
-  }catch(e){
-    zonasActuales=[];
+  // Si no hay foto todavía,
+  // la cámara sigue habilitada.
+  if(!url){
+
+    estado.textContent=
+      'Cámara '+camara+
+      ' disponible. Selecciona una fotografía base '+
+      'y presiona Guardar escenario.';
+
+    dibujarZonas();
+    return;
+
   }
 
-  const url=String(esc['URL foto base']||'').trim();
-
   foto.onload=()=>{
+
+    if(solicitud!==solicitudEscenarioActual)return;
+
     estado.textContent=
-      'Fotografía cargada correctamente · '+
-      camara+' · '+esc['Ubicación'];
+      'Fotografía base cargada · '+
+      camara+' · '+ubicacion['Ubicación'];
 
     estado.className='ok';
+
     dibujarZonas();
+
   };
 
   foto.onerror=()=>{
+
+    if(solicitud!==solicitudEscenarioActual)return;
+
     estado.textContent=
-      'No se pudo abrir la URL de la fotografía. '+
-      'Puedes seleccionar una foto local de prueba '+
-      'o sustituir la URL en la hoja Escenarios.';
+      'No se pudo cargar la fotografía guardada.';
 
     estado.className='err';
-    dibujarZonas();
+
   };
 
-  if(url){
-    foto.src=url;
+  // Fotografías administradas por VIGÍA IA
+  // y almacenadas en Drive.
+  if(url.startsWith('drive:')){
+
+    try{
+
+      estado.textContent=
+        'Recuperando fotografía base...';
+
+      const r=await api('obtenerFotoEscenario',{
+        EmpresaID:v('empresaActual'),
+        CamaraID:camara
+      });
+
+      if(solicitud!==solicitudEscenarioActual)return;
+
+      foto.src=r.imagen;
+
+    }catch(e){
+
+      if(solicitud!==solicitudEscenarioActual)return;
+
+      estado.textContent=e.message;
+      estado.className='err';
+
+    }
+
   }else{
-    foto.removeAttribute('src');
 
-    estado.textContent=
-      'Este escenario no tiene URL de foto base.';
+    // Compatibilidad con las URL externas
+    // que ya estaban registradas.
+    foto.src=url;
 
-    estado.className='err';
   }
 
   dibujarZonas();
+
 }
+
+// ==========================================
+// FIN SELECTOR DE ESCENARIOS
+// =========================================
 
  
 function dibujarZonas(){
@@ -2086,19 +2205,32 @@ $('escCanvas').addEventListener('pointerup',e=>{
 });
 
 
+
+// ==========================================
+// FOTOGRAFÍA BASE Y ZONAS
+// ==========================================
+
 let urlFotoLocal=null;
 
+
+// MOSTRAR FOTOGRAFÍA SELECCIONADA
 function cargarFotoLocalEscenario(){
 
   const archivo=$('escFotoLocal').files[0];
 
   if(!archivo)return;
 
-  if(!archivo.type.startsWith('image/')){
+  if(![
+    'image/jpeg',
+    'image/png',
+    'image/webp'
+  ].includes(archivo.type)){
+
     return aviso(
-      'Selecciona una imagen válida.',
+      'Selecciona una fotografía JPG, PNG o WebP.',
       true
     );
+
   }
 
   if(urlFotoLocal){
@@ -2110,55 +2242,221 @@ function cargarFotoLocalEscenario(){
   const foto=$('escFoto');
 
   foto.onload=()=>{
+
+    zonasActuales=[];
+    dibujarZonas();
+
     $('escEstado').textContent=
-      'Fotografía local cargada correctamente.';
+      'Fotografía seleccionada. '+
+      'Dibuja las zonas y presiona Guardar escenario.';
 
     $('escEstado').className='ok';
 
-    dibujarZonas();
   };
 
   foto.onerror=()=>{
+
     $('escEstado').textContent=
-      'No se pudo cargar la fotografía local.';
+      'No se pudo abrir la fotografía.';
 
     $('escEstado').className='err';
+
   };
 
   foto.src=urlFotoLocal;
+
 }
 
- 
-function borrarZona(){
-  zonasActuales.pop();
-  dibujarZonas();
-}
 
-async function guardarZonas(){
-  const camara=v('escCamara');
+// CONVERTIR FOTOGRAFÍA PARA ALMACENARLA
+// EN GOOGLE DRIVE CON UN TAMAÑO RAZONABLE
+async function prepararFotografiaEscenario(archivo){
 
-  if(!escenarioDe(camara)){
-    return aviso(
-      'Primero registra el escenario en Google Sheets.',
-      true
-    );
+  if(!archivo)return '';
+
+  if(![
+    'image/jpeg',
+    'image/png',
+    'image/webp'
+  ].includes(archivo.type)){
+
+    throw Error('Formato de fotografía no permitido.');
+
   }
+
+  const url=URL.createObjectURL(archivo);
 
   try{
-    const r=await api('guardarEscenario',{
-      EmpresaID:v('empresaActual'),
-      CamaraID:camara,
-      ZonasJSON:JSON.stringify(zonasActuales)
+
+    const imagen=new Image();
+
+    await new Promise((resolve,reject)=>{
+
+      imagen.onload=resolve;
+      imagen.onerror=()=>reject(
+        Error('No se pudo leer la fotografía.')
+      );
+
+      imagen.src=url;
+
     });
 
-    aviso(r.mensaje);
-    await recargar(true);
+    const maximo=1200;
 
-  }catch(e){
-    aviso(e.message,true);
+    const escala=Math.min(
+      1,
+      maximo/Math.max(
+        imagen.naturalWidth,
+        imagen.naturalHeight
+      )
+    );
+
+    const ancho=Math.max(
+      1,
+      Math.round(imagen.naturalWidth*escala)
+    );
+
+    const alto=Math.max(
+      1,
+      Math.round(imagen.naturalHeight*escala)
+    );
+
+    const canvas=document.createElement('canvas');
+
+    canvas.width=ancho;
+    canvas.height=alto;
+
+    const ctx=canvas.getContext('2d');
+
+    ctx.fillStyle='#ffffff';
+    ctx.fillRect(0,0,ancho,alto);
+
+    ctx.drawImage(
+      imagen,0,0,ancho,alto
+    );
+
+    const base64=canvas.toDataURL(
+      'image/jpeg',0.72
+    );
+
+    if(base64.length>2200000){
+
+      throw Error(
+        'Fotografía demasiado grande. '+
+        'Utiliza otra imagen de menor resolución.'
+      );
+
+    }
+
+    return base64;
+
+  }finally{
+
+    URL.revokeObjectURL(url);
+
   }
+
 }
 
+
+// QUITAR ÚLTIMA ZONA DIBUJADA
+function borrarZona(){
+
+  zonasActuales.pop();
+  dibujarZonas();
+
+}
+
+
+// GUARDAR FOTO Y ZONAS
+async function guardarZonas(){
+
+  const camara=v('escCamara');
+
+  const ubicacion=ubicacionDeEscenario(camara);
+
+  if(!ubicacion){
+
+    return aviso(
+      'Selecciona una cámara de Ubicaciones.',
+      true
+    );
+
+  }
+
+  const archivo=$('escFotoLocal').files[0];
+
+  const actual=escenarioDe(camara);
+
+  if(!archivo && !actual?.['URL foto base']){
+
+    return aviso(
+      'Selecciona primero una fotografía base.',
+      true
+    );
+
+  }
+
+  const botones=[
+    ...document.querySelectorAll(
+      '#escenarios button'
+    )
+  ];
+
+  botones.forEach(b=>b.disabled=true);
+
+  try{
+
+    aviso(
+      'Guardando fotografía y escenario...'
+    );
+
+    const fotoBase64=archivo
+      ?await prepararFotografiaEscenario(archivo)
+      :'';
+
+    const r=await api('guardarEscenario',{
+
+      EmpresaID:v('empresaActual'),
+
+      CamaraID:camara,
+
+      FotoBase64:fotoBase64,
+
+      ZonasJSON:JSON.stringify(zonasActuales)
+
+    });
+
+    // Recargar la lista de escenarios.
+    const datosActualizados=await api('cargar');
+
+    datos=datosActualizados.datos;
+
+    actualizarPantalla();
+
+    aviso(
+      r.mensaje+
+      ' · '+camara+
+      ' · '+ubicacion['Ubicación']
+    );
+
+  }catch(e){
+
+    aviso(e.message,true);
+
+  }finally{
+
+    botones.forEach(b=>b.disabled=false);
+
+  }
+
+}
+
+// ==========================================
+// FIN FOTOGRAFÍA Y ZONAS
+// =========================================
+
+ 
 function dibujarReglasVideo(){
 
   const camara=v('videoCamara');
