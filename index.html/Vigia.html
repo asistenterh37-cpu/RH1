@@ -134,9 +134,9 @@ video{width:100%;max-height:550px;background:#000;border-radius:8px;display:bloc
  <div class="card">Alertas<strong id="nAlertas">0</strong></div>
 </div>
 
+
 <nav>
-  <button class="active"
-          data-page="empresas"
+  <button class="active" data-page="empresas"
           onclick="mostrar('empresas')">
     Empresas
   </button>
@@ -144,6 +144,11 @@ video{width:100%;max-height:550px;background:#000;border-radius:8px;display:bloc
   <button data-page="eventos"
           onclick="mostrar('eventos')">
     Eventos
+  </button>
+
+  <button data-page="ubicaciones"
+          onclick="mostrar('ubicaciones')">
+    Ubicaciones
   </button>
 
   <button data-page="camaras"
@@ -310,74 +315,182 @@ video{width:100%;max-height:550px;background:#000;border-radius:8px;display:bloc
 <!-- FIN ADMINISTRACIÓN DE EVENTOS -->
 
  
-<section id="camaras" hidden>
-<div class="grid">
- <div class="card">
-  <h2>Parametrización de cámaras</h2>
-  <input type="hidden" id="cID">
-  <div class="fields">
-   <div>
-    <label>Tipo de negocio</label>
-    <select id="cNegocio"></select>
-   </div>
-   <div>
-    <label>CamaraID</label>
-    <input id="cCamara" placeholder="Cam 01">
-   </div>
+
+<!-- =========================================
+     UBICACIONES
+========================================= -->
+
+<section id="ubicaciones" hidden>
+  <div class="grid">
+
+    <div class="card">
+      <h2>Registrar o editar ubicación</h2>
+
+      <input id="uID" type="hidden">
+
+      <label>ID</label>
+      <input id="uNumero" readonly
+             placeholder="Automático">
+
+      <label>Cámara</label>
+      <input id="uCamara"
+             placeholder="Ejemplo: Cam 02"
+             maxlength="100">
+
+      <label>Ubicación</label>
+      <input id="uUbicacion"
+             placeholder="Ejemplo: Pasillo 2"
+             maxlength="250">
+
+      <div class="actions">
+        <button id="btnGuardarUbicacion"
+                onclick="guardarUbicacionUI()">
+          Guardar
+        </button>
+
+        <button class="sec"
+                onclick="nuevaUbicacionUI()">
+          Nueva
+        </button>
+      </div>
+
+      <p id="mensajeUbicacion"
+         role="status"></p>
+    </div>
+
+    <div class="card">
+      <h2>Cámaras registradas</h2>
+
+      <p class="note">
+        Registros de la hoja Ubicaciones.
+      </p>
+
+      <div class="table">
+        <table>
+          <thead>
+            <tr>
+              <th>Cámara</th>
+              <th>Ubicación</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+
+          <tbody id="tUbicaciones"></tbody>
+        </table>
+      </div>
+    </div>
+
   </div>
-  <label>Ubicación</label>
-  <input id="cUbicacion">
-  <label>Evento</label>
-  <select id="cEvento" onchange="seleccionarEvento()"></select>
-  <label>Descripción operacional</label>
-  <textarea id="cDescripcion" readonly></textarea>
-  <label>Contexto operacional</label>
-  <textarea id="cContexto"></textarea>
-  <label>Foto o video de referencia (máximo 8 MB)</label>
-  <input type="file" id="cArchivo"
-   accept="image/jpeg,image/png,image/webp,video/mp4,video/webm">
-  <div class="actions">
-   <button class="sec" id="btnSubir" onclick="subirMedio()">
-    Adjuntar al contexto
-   </button>
-  </div>
-  <div class="fields">
-   <div>
-    <label>Gravedad</label>
-    <select id="cGravedad"></select>
-   </div>
-   <div>
-    <label>Tratamiento</label>
-    <select id="cTratamiento"></select>
-   </div>
-   <div>
-    <label>Horario</label>
-    <input id="cHorario" placeholder="24 horas">
-   </div>
-   <div>
-    <label>Estado</label>
-    <select id="cEstado"></select>
-   </div>
-  </div>
-  <div class="actions">
-   <button onclick="guardarCamara()">Guardar regla</button>
-   <button class="sec" onclick="nuevaCamara()">Nueva regla</button>
-  </div>
- </div>
- <div class="card">
-  <h2>Reglas asignadas</h2>
-  <div class="table">
-   <table>
-    <thead><tr>
-     <th>ID</th><th>Cámara</th><th>Ubicación</th>
-     <th>Evento</th><th>Estado</th><th>Acción</th>
-    </tr></thead>
-    <tbody id="tCamaras"></tbody>
-   </table>
-  </div>
- </div>
-</div>
 </section>
+
+<!-- =========================================
+     CÁMARAS - REGLAS OPERACIONALES
+========================================= -->
+
+<section id="camaras" hidden>
+  <div class="grid">
+
+    <div class="card">
+      <h2>Parametrización de cámaras</h2>
+
+      <input type="hidden" id="cID">
+
+      <label>Cámara</label>
+      <select id="cCamara"
+              onchange="seleccionarUbicacionCamara()">
+      </select>
+
+      <label>Ubicación</label>
+      <input id="cUbicacion"
+             readonly
+             placeholder="Automática según la cámara">
+
+      <label>Evento</label>
+      <select id="cEvento"
+              onchange="seleccionarEvento()">
+      </select>
+
+      <label>Descripción operacional</label>
+      <textarea id="cDescripcion"
+                readonly></textarea>
+
+      <label>Contexto operacional</label>
+      <textarea id="cContexto"></textarea>
+
+      <label>Foto o video de referencia (máximo 8 MB)</label>
+      <input type="file"
+             id="cArchivo"
+             accept="image/jpeg,image/png,image/webp,video/mp4,video/webm">
+
+      <div class="actions">
+        <button class="sec"
+                id="btnSubir"
+                onclick="subirMedio()">
+          Adjuntar al contexto
+        </button>
+      </div>
+
+      <div class="fields">
+        <div>
+          <label>Gravedad</label>
+          <select id="cGravedad"></select>
+        </div>
+
+        <div>
+          <label>Tratamiento</label>
+          <select id="cTratamiento"></select>
+        </div>
+
+        <div>
+          <label>Horario</label>
+          <input id="cHorario"
+                 placeholder="24 horas">
+        </div>
+
+        <div>
+          <label>Estado</label>
+          <select id="cEstado"></select>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button onclick="guardarCamara()">
+          Guardar regla
+        </button>
+
+        <button class="sec"
+                onclick="nuevaCamara()">
+          Nueva regla
+        </button>
+      </div>
+
+    </div>
+
+    <div class="card">
+      <h2>Reglas asignadas</h2>
+
+      <div class="table">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Cámara</th>
+              <th>Ubicación</th>
+              <th>Evento</th>
+              <th>Estado</th>
+              <th>Acción</th>
+            </tr>
+          </thead>
+
+          <tbody id="tCamaras"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- FIN UBICACIONES Y CÁMARAS -->
 
  <!-- ESCENARIOS V5.0 -->
 <section id="escenarios" hidden>
@@ -621,7 +734,7 @@ video{width:100%;max-height:550px;background:#000;border-radius:8px;display:bloc
 */
 
 const GAS_URL =
-'https://script.google.com/macros/s/AKfycbwAzMNbMimuvKEgF_mm_FQ1xbjyP6P-t44CKQHqiiML4qLs6J0PrxzCwSE9S7rv2EdH/exec';
+'https://script.google.com/macros/s/AKfycbyPFIuZiXl32QTpxesyPFEWNXME4EN_QBKb2d2eJ6VVkuByUDEIuDlbgASxXUlrwKbT/exec';
 
 const VERSION='5.0';
 const $=id=>document.getElementById(id);
@@ -793,23 +906,291 @@ function llenarSelect(id,items,actual=''){
  if(el.selectedIndex<0)el.value='';
 }
 
+
 function opcionesCatalogos(){
- const c=datos.catalogos||{};
- llenarSelect('cNegocio',(c.negocios||[])
-  .map(x=>({id:x,texto:x})));
- llenarSelect('cEvento',(c.eventos||[])
-  .map(x=>({id:x.nombre,texto:x.nombre})));
- llenarSelect('cGravedad',(c.gravedades||[])
-  .map(x=>({id:x,texto:x})));
- llenarSelect('cTratamiento',(c.tratamientos||[])
-  .map(x=>({id:x,texto:x})));
- llenarSelect('cEstado',(c.estados||[])
-  .map(x=>({id:x,texto:x})));
+
+  const c=datos.catalogos||{};
+
+  const eventos=(datos.eventos||[])
+    .map(e=>({
+      id:e.Evento,
+      texto:e.Evento
+    }));
+
+  llenarSelect('cEvento',eventos);
+
+  llenarSelect(
+    'cGravedad',
+    (c.gravedades||[]).map(x=>({
+      id:x,texto:x
+    }))
+  );
+
+  llenarSelect(
+    'cTratamiento',
+    (c.tratamientos||[]).map(x=>({
+      id:x,texto:x
+    }))
+  );
+
+  llenarSelect(
+    'cEstado',
+    (c.estados||[]).map(x=>({
+      id:x,texto:x
+    }))
+  );
+
+  actualizarSelectorUbicaciones();
+
 }
 
+
+// LA DESCRIPCIÓN VIENE DE EVENTOS
 function seleccionarEvento(){
- $('cDescripcion').value=(datos.catalogos.eventos||[])
-  .find(x=>x.nombre===v('cEvento'))?.descripcion||'';
+
+  const evento=(datos.eventos||[])
+    .find(e=>
+      norm(e.Evento)===norm(v('cEvento'))
+    );
+
+  $('cDescripcion').value=evento
+    ?evento['Descripción Operacional']
+    :'';
+
+}
+
+
+// UBICACIONES REGISTRADAS
+function listaUbicacionesUI(){
+
+  return Array.isArray(datos.ubicaciones)
+    ?datos.ubicaciones
+    :[];
+
+}
+
+
+// ACTUALIZAR DESPLEGABLE DE CÁMARAS
+function actualizarSelectorUbicaciones(actual=''){
+
+  const lista=listaUbicacionesUI();
+
+  const anterior=actual||v('cCamara');
+
+  llenarSelect(
+    'cCamara',
+    lista.map(u=>({
+      id:u.ID,
+      texto:u['Cámara']+' · '+u['Ubicación']
+    })),
+    anterior
+  );
+
+  seleccionarUbicacionCamara();
+
+}
+
+
+// CARGAR UBICACIÓN SEGÚN CÁMARA
+function seleccionarUbicacionCamara(){
+
+  const registro=listaUbicacionesUI()
+    .find(u=>String(u.ID)===v('cCamara'));
+
+  $('cUbicacion').value=registro
+    ?registro['Ubicación']
+    :'';
+
+}
+
+
+// LIMPIAR FORMULARIO DE UBICACIÓN
+function nuevaUbicacionUI(){
+
+  $('uID').value='';
+  $('uCamara').value='';
+  $('uUbicacion').value='';
+
+  const maximo=listaUbicacionesUI()
+    .reduce((m,u)=>
+      Math.max(m,Number(u.ID)||0),0
+    );
+
+  $('uNumero').value=String(maximo+1);
+  $('btnGuardarUbicacion').textContent='Guardar';
+  $('mensajeUbicacion').textContent='';
+
+}
+
+
+// TABLA DE CÁMARAS REGISTRADAS
+function pintarUbicaciones(){
+
+  const cuerpo=$('tUbicaciones');
+
+  cuerpo.replaceChildren();
+
+  [...listaUbicacionesUI()]
+    .sort((a,b)=>Number(a.ID)-Number(b.ID))
+    .forEach(u=>{
+
+      const tr=document.createElement('tr');
+
+      celda(tr,u['Cámara']);
+      celda(tr,u['Ubicación']);
+
+      const td=celda(tr,'');
+
+      const acciones=document.createElement('div');
+      acciones.className='actions';
+
+      const editar=document.createElement('button');
+      editar.className='sec';
+      editar.textContent='✏️';
+      editar.title='Editar ubicación';
+      editar.onclick=()=>editarUbicacionUI(u.ID);
+
+      const eliminar=document.createElement('button');
+      eliminar.className='sec';
+      eliminar.textContent='🗑️';
+      eliminar.title='Eliminar ubicación';
+      eliminar.style.color='#ff8491';
+      eliminar.onclick=()=>eliminarUbicacionUI(u.ID);
+
+      acciones.appendChild(editar);
+      acciones.appendChild(eliminar);
+
+      td.appendChild(acciones);
+      cuerpo.appendChild(tr);
+
+    });
+
+  if(!$('uID').value){
+    nuevaUbicacionUI();
+  }
+
+}
+
+
+// EDITAR UBICACIÓN
+function editarUbicacionUI(id){
+
+  const u=listaUbicacionesUI()
+    .find(x=>String(x.ID)===String(id));
+
+  if(!u)return;
+
+  $('uID').value=u.ID;
+  $('uNumero').value=u.ID;
+  $('uCamara').value=u['Cámara'];
+  $('uUbicacion').value=u['Ubicación'];
+
+  $('btnGuardarUbicacion').textContent=
+    'Actualizar ubicación';
+
+  $('mensajeUbicacion').textContent=
+    'Editando ubicación ID '+u.ID;
+
+  $('uCamara').focus();
+
+}
+
+
+// RECARGAR LOS DATOS DEL SERVIDOR
+async function refrescarUbicacionesUI(){
+
+  const empresa=v('empresaActual');
+
+  const respuesta=await api('cargar');
+
+  datos=respuesta.datos;
+
+  renderizar(empresa);
+
+}
+
+
+// GUARDAR UBICACIÓN
+async function guardarUbicacionUI(){
+
+  const registro={
+    ID:v('uID'),
+    'Cámara':v('uCamara'),
+    'Ubicación':v('uUbicacion')
+  };
+
+  if(!registro['Cámara']||!registro['Ubicación']){
+
+    return aviso(
+      'Introduce cámara y ubicación.',
+      true,'mensajeUbicacion'
+    );
+
+  }
+
+  const boton=$('btnGuardarUbicacion');
+  boton.disabled=true;
+
+  try{
+
+    const resultado=await api('guardarUbicacion',{
+      registro
+    });
+
+    await refrescarUbicacionesUI();
+
+    nuevaUbicacionUI();
+
+    aviso(
+      resultado.mensaje+' · ID '+resultado.id,
+      false,'mensajeUbicacion'
+    );
+
+  }catch(e){
+
+    aviso(e.message,true,'mensajeUbicacion');
+
+  }finally{
+
+    boton.disabled=false;
+
+  }
+
+}
+
+
+// ELIMINAR UBICACIÓN
+async function eliminarUbicacionUI(id){
+
+  const u=listaUbicacionesUI()
+    .find(x=>String(x.ID)===String(id));
+
+  if(!u)return;
+
+  if(!confirm(
+    '¿Eliminar '+u['Cámara']+
+    ' · '+u['Ubicación']+'?'
+  ))return;
+
+  try{
+
+    const resultado=await api('eliminarUbicacion',{
+      ID:id
+    });
+
+    await refrescarUbicacionesUI();
+
+    aviso(
+      resultado.mensaje,
+      false,'mensajeUbicacion'
+    );
+
+  }catch(e){
+
+    aviso(e.message,true,'mensajeUbicacion');
+
+  }
+
 }
 
 // =========================================
@@ -1140,8 +1521,10 @@ function actualizarPantalla(){
 
  actualizarInfoVideo();
  actualizarEscenarios();
-  pintarEmpresas();
+   pintarEmpresas();
  pintarEventos();
+ pintarUbicaciones();
+ actualizarSelectorUbicaciones();
  pintarCamaras(reglas);
  pintarAlertas(alertas);
  tablaReportes();
@@ -1233,68 +1616,147 @@ async function guardarEmpresa(){
  if(ok)nuevaEmpresa();
 }
 
+
 function pintarCamaras(reglas){
- const body=$('tCamaras');
- body.replaceChildren();
- reglas.forEach(r=>{
-  const tr=document.createElement('tr');
-  [r.ID,r.CamaraID,r['Ubicación'],r.Evento,r.Estado]
-   .forEach(x=>celda(tr,x));
-  celda(tr,'').appendChild(
-   boton('Editar',()=>editarCamara(r.ID))
-  );
-  body.appendChild(tr);
- });
+
+  const body=$('tCamaras');
+  body.replaceChildren();
+
+  reglas.forEach(r=>{
+
+    const tr=document.createElement('tr');
+
+    [
+      r.ID,
+      r.CamaraID,
+      r['Ubicación'],
+      r.Evento,
+      r.Estado
+    ].forEach(x=>celda(tr,x));
+
+    celda(tr,'').appendChild(
+      boton('Editar',()=>editarCamara(r.ID))
+    );
+
+    body.appendChild(tr);
+
+  });
+
 }
 
+
+// NUEVA REGLA
 function nuevaCamara(){
- ['cID','cCamara','cUbicacion','cDescripcion',
-  'cContexto','cHorario'].forEach(x=>$(x).value='');
- ['cNegocio','cEvento','cGravedad',
-  'cTratamiento','cEstado'].forEach(x=>$(x).value='');
- $('cArchivo').value='';
+
+  [
+    'cID','cUbicacion','cDescripcion',
+    'cContexto','cHorario'
+  ].forEach(x=>$(x).value='');
+
+  [
+    'cCamara','cEvento','cGravedad',
+    'cTratamiento','cEstado'
+  ].forEach(x=>$(x).value='');
+
+  $('cArchivo').value='';
+
 }
 
+
+// EDITAR REGLA EXISTENTE
 function editarCamara(id){
- const r=reglasEmpresa().find(x=>x.ID===id);
- if(!r)return;
- const campos={
-  cID:'ID',
-  cNegocio:'Tipo de negocio',
-  cCamara:'CamaraID',
-  cUbicacion:'Ubicación',
-  cEvento:'Evento',
-  cDescripcion:'DescripcionOperacional',
-  cContexto:'Contexto',
-  cGravedad:'Gravedad',
-  cTratamiento:'Tratamiento',
-  cHorario:'Horario',
-  cEstado:'Estado'
- };
- Object.entries(campos).forEach(([campo,col])=>{
-  $(campo).value=r[col]||'';
- });
- mostrar('camaras');
+
+  const r=reglasEmpresa()
+    .find(x=>x.ID===String(id));
+
+  if(!r)return;
+
+  $('cID').value=r.ID;
+
+  const ubicacion=listaUbicacionesUI()
+    .find(u=>
+      norm(u['Cámara'])===norm(r.CamaraID)&&
+      norm(u['Ubicación'])===norm(r['Ubicación'])
+    );
+
+  $('cCamara').value=ubicacion
+    ?ubicacion.ID
+    :'';
+
+  $('cUbicacion').value=r['Ubicación']||'';
+
+  $('cEvento').value=r.Evento||'';
+  $('cDescripcion').value=
+    r.DescripcionOperacional||'';
+
+  $('cContexto').value=r.Contexto||'';
+  $('cGravedad').value=r.Gravedad||'';
+  $('cTratamiento').value=r.Tratamiento||'';
+  $('cHorario').value=r.Horario||'';
+  $('cEstado').value=r.Estado||'';
+
+  mostrar('camaras');
+
 }
 
+
+// GUARDAR REGLA
 async function guardarCamara(){
- const ok=await guardar('guardarCamara',{
-  ID:v('cID'),
-  EmpresaID:v('empresaActual'),
-  'Tipo de negocio':v('cNegocio'),
-  CamaraID:v('cCamara'),
-  'Ubicación':v('cUbicacion'),
-  Evento:v('cEvento'),
-  Contexto:v('cContexto'),
-  Gravedad:v('cGravedad'),
-  Tratamiento:v('cTratamiento'),
-  Horario:v('cHorario'),
-  Estado:v('cEstado')
- });
- if(ok)nuevaCamara();
+
+  const ubicacion=listaUbicacionesUI()
+    .find(u=>String(u.ID)===v('cCamara'));
+
+  if(!ubicacion){
+
+    return aviso(
+      'Selecciona una cámara registrada en Ubicaciones.',
+      true
+    );
+
+  }
+
+  if(!v('cEvento')){
+
+    return aviso(
+      'Selecciona un evento registrado.',
+      true
+    );
+
+  }
+
+  const registro={
+
+    ID:v('cID'),
+
+    EmpresaID:v('empresaActual'),
+
+    UbicacionID:ubicacion.ID,
+
+    CamaraID:ubicacion['Cámara'],
+
+    'Ubicación':ubicacion['Ubicación'],
+
+    Evento:v('cEvento'),
+
+    Contexto:v('cContexto'),
+
+    Gravedad:v('cGravedad'),
+
+    Tratamiento:v('cTratamiento'),
+
+    Horario:v('cHorario'),
+
+    Estado:v('cEstado')
+
+  };
+
+  const ok=await guardar('guardarCamara',registro);
+
+  if(ok)nuevaCamara();
+
 }
 
-async function subirMedio(){
+ async function subirMedio(){
  const f=$('cArchivo').files[0];
  if(!f)return aviso('Selecciona un archivo.',true);
  if(f.size>8*1024*1024)return aviso('Máximo 8 MB.',true);
