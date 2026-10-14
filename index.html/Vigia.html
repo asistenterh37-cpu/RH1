@@ -135,12 +135,41 @@ video{width:100%;max-height:550px;background:#000;border-radius:8px;display:bloc
 </div>
 
 <nav>
- <button class="active" data-page="empresas" onclick="mostrar('empresas')">Empresas</button>
- <button data-page="camaras" onclick="mostrar('camaras')">Cámaras</button>
- <button data-page="escenarios" onclick="mostrar('escenarios')">Escenarios</button>
- <button data-page="alertas" onclick="mostrar('alertas')">Alertas</button>
- <button data-page="reportes" onclick="mostrar('reportes')">Reportes</button>
- <button data-page="video" onclick="mostrar('video')">Análisis de Video con IA</button>
+  <button class="active"
+          data-page="empresas"
+          onclick="mostrar('empresas')">
+    Empresas
+  </button>
+
+  <button data-page="eventos"
+          onclick="mostrar('eventos')">
+    Eventos
+  </button>
+
+  <button data-page="camaras"
+          onclick="mostrar('camaras')">
+    Cámaras
+  </button>
+
+  <button data-page="escenarios"
+          onclick="mostrar('escenarios')">
+    Escenarios
+  </button>
+
+  <button data-page="alertas"
+          onclick="mostrar('alertas')">
+    Alertas
+  </button>
+
+  <button data-page="reportes"
+          onclick="mostrar('reportes')">
+    Reportes
+  </button>
+
+  <button data-page="video"
+          onclick="mostrar('video')">
+    Análisis de Video con IA
+  </button>
 </nav>
 
 <section id="empresas">
@@ -184,6 +213,103 @@ video{width:100%;max-height:550px;background:#000;border-radius:8px;display:bloc
 </div>
 </section>
 
+<!-- =========================================
+     VIGÍA IA - ADMINISTRACIÓN DE EVENTOS
+========================================= -->
+
+<section id="eventos" hidden>
+
+  <div class="grid">
+
+    <!-- COLUMNA IZQUIERDA -->
+    <div class="card">
+
+      <h2>Registrar o editar evento</h2>
+
+      <input type="hidden" id="evId">
+
+      <label>Número</label>
+      <input
+        id="evNumero"
+        type="text"
+        placeholder="Automático"
+        readonly
+      >
+
+      <label>Evento</label>
+      <input
+        id="evNombre"
+        type="text"
+        maxlength="200"
+        placeholder="Nombre del evento"
+      >
+
+      <label>Descripción operacional</label>
+      <textarea
+        id="evDescripcion"
+        maxlength="3000"
+        rows="6"
+        placeholder="Describe el evento que debe detectar VIGÍA IA"
+      ></textarea>
+
+      <div class="actions">
+
+        <button id="btnGuardarEvento"
+                onclick="guardarEventoUI()">
+          Guardar
+        </button>
+
+        <button class="sec"
+                onclick="nuevoEventoUI()">
+          Nuevo
+        </button>
+
+      </div>
+
+      <p id="mensajeEvento"
+         class="note"
+         role="status"></p>
+
+    </div>
+
+    <!-- COLUMNA DERECHA -->
+    <div class="card">
+
+      <h2>Eventos registrados</h2>
+
+      <p class="note">
+        Eventos y descripciones operacionales
+        almacenados en Google Sheets.
+      </p>
+
+      <div class="table">
+
+        <table>
+
+          <thead>
+            <tr>
+              <th>No</th>
+              <th>Evento</th>
+              <th>Descripción operacional</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+
+          <tbody id="tEventos"></tbody>
+
+        </table>
+
+      </div>
+
+    </div>
+
+  </div>
+
+</section>
+
+<!-- FIN ADMINISTRACIÓN DE EVENTOS -->
+
+ 
 <section id="camaras" hidden>
 <div class="grid">
  <div class="card">
@@ -495,7 +621,7 @@ video{width:100%;max-height:550px;background:#000;border-radius:8px;display:bloc
 */
 
 const GAS_URL =
-'https://script.google.com/macros/s/AKfycbxaSaNYytSUWELJn8oYbSCUKR9sRh5Ll_l2J081uBKg6J0nZwAYXyvnirJKcr-XI7oM/exec';
+'https://script.google.com/macros/s/AKfycbxyKa7w2HNcZ2EacEFX_BjL81CTUFwYLJZ_Z_tq4OrzYJuRSidQWYV4xUGo4v91Xozt/exec';
 
 const VERSION='5.0';
 const $=id=>document.getElementById(id);
@@ -686,6 +812,291 @@ function seleccionarEvento(){
   .find(x=>x.nombre===v('cEvento'))?.descripcion||'';
 }
 
+// =========================================
+// VIGÍA IA - ADMINISTRACIÓN DE EVENTOS
+// =========================================
+
+function listaEventosUI(){
+
+  return Array.isArray(datos.eventos)
+    ? datos.eventos
+    : [];
+
+}
+
+
+// LIMPIAR FORMULARIO
+function nuevoEventoUI(){
+
+  $('evId').value='';
+  $('evNombre').value='';
+  $('evDescripcion').value='';
+
+  const numeros=listaEventosUI()
+    .map(e=>Number(e.No)||0);
+
+  const siguiente=Math.max(0,...numeros)+1;
+
+  $('evNumero').value=String(siguiente);
+
+  $('btnGuardarEvento').textContent='Guardar';
+
+  $('mensajeEvento').textContent='';
+
+}
+
+
+// MOSTRAR EVENTOS REGISTRADOS
+function pintarEventos(){
+
+  const body=$('tEventos');
+
+  body.replaceChildren();
+
+  const eventos=[...listaEventosUI()]
+    .sort((a,b)=>
+      Number(a.No)-Number(b.No)
+    );
+
+  eventos.forEach(e=>{
+
+    const tr=document.createElement('tr');
+
+    celda(tr,e.No);
+    celda(tr,e.Evento);
+    celda(tr,e['Descripción Operacional']);
+
+    const td=celda(tr,'');
+
+    const acciones=document.createElement('div');
+    acciones.className='actions';
+
+    // EDITAR
+    const editar=document.createElement('button');
+
+    editar.className='sec';
+    editar.textContent='✏️';
+    editar.title='Editar evento';
+    editar.setAttribute(
+      'aria-label','Editar '+e.Evento
+    );
+
+    editar.onclick=()=>editarEventoUI(e.No);
+
+    acciones.appendChild(editar);
+
+    // ELIMINAR
+    const eliminar=document.createElement('button');
+
+    eliminar.className='sec';
+    eliminar.textContent='🗑️';
+    eliminar.title='Eliminar evento';
+    eliminar.style.color='#ff8491';
+
+    eliminar.setAttribute(
+      'aria-label','Eliminar '+e.Evento
+    );
+
+    eliminar.onclick=()=>eliminarEventoUI(e.No);
+
+    acciones.appendChild(eliminar);
+
+    td.appendChild(acciones);
+    body.appendChild(tr);
+
+  });
+
+  if(!eventos.length){
+
+    const tr=document.createElement('tr');
+
+    const td=document.createElement('td');
+    td.colSpan=4;
+
+    td.textContent='No hay eventos registrados.';
+
+    tr.appendChild(td);
+    body.appendChild(tr);
+
+  }
+
+  // Mantener el formulario al editar.
+  if(!$('evId').value){
+    nuevoEventoUI();
+  }
+
+}
+
+
+// EDITAR REGISTRO EXISTENTE
+function editarEventoUI(no){
+
+  const evento=listaEventosUI()
+    .find(e=>String(e.No)===String(no));
+
+  if(!evento){
+    return aviso(
+      'Evento no encontrado.',
+      true,'mensajeEvento'
+    );
+  }
+
+  $('evId').value=evento.No;
+  $('evNumero').value=evento.No;
+
+  $('evNombre').value=evento.Evento;
+
+  $('evDescripcion').value=
+    evento['Descripción Operacional'];
+
+  $('btnGuardarEvento').textContent=
+    'Actualizar evento';
+
+  $('mensajeEvento').textContent=
+    'Editando evento No '+evento.No;
+
+  $('evNombre').focus();
+
+}
+
+
+// GUARDAR O ACTUALIZAR
+async function guardarEventoUI(){
+
+  const numero=v('evId');
+
+  const nombre=v('evNombre');
+  const descripcion=v('evDescripcion');
+
+  if(!nombre){
+
+    return aviso(
+      'Introduce el nombre del evento.',
+      true,'mensajeEvento'
+    );
+
+  }
+
+  if(!descripcion){
+
+    return aviso(
+      'Introduce la descripción operacional.',
+      true,'mensajeEvento'
+    );
+
+  }
+
+  const boton=$('btnGuardarEvento');
+  boton.disabled=true;
+
+  try{
+
+    aviso(
+      'Guardando evento...',
+      false,'mensajeEvento'
+    );
+
+    const resultado=await api('guardarEvento',{
+
+      registro:{
+        No:numero,
+        Evento:nombre,
+        'Descripción Operacional':descripcion
+      }
+
+    });
+
+    // Recargar datos desde Google Sheets.
+    const r=await api('cargar');
+
+    datos=r.datos;
+
+    opcionesCatalogos();
+
+    actualizarPantalla();
+
+    nuevoEventoUI();
+
+    aviso(
+      resultado.mensaje+
+      ' · No '+resultado.id,
+      false,'mensajeEvento'
+    );
+
+  }catch(error){
+
+    aviso(
+      error.message,
+      true,'mensajeEvento'
+    );
+
+  }finally{
+
+    boton.disabled=false;
+
+  }
+
+}
+
+
+// ELIMINAR EVENTO
+async function eliminarEventoUI(no){
+
+  const evento=listaEventosUI()
+    .find(e=>String(e.No)===String(no));
+
+  if(!evento)return;
+
+  const confirmar=window.confirm(
+    '¿Eliminar el evento No '+evento.No+
+    ': '+evento.Evento+'?\n\n'+
+    'Esta acción no se puede deshacer.'
+  );
+
+  if(!confirmar)return;
+
+  try{
+
+    aviso(
+      'Eliminando evento...',
+      false,'mensajeEvento'
+    );
+
+    const resultado=await api('eliminarEvento',{
+      No:evento.No
+    });
+
+    const r=await api('cargar');
+
+    datos=r.datos;
+
+    opcionesCatalogos();
+
+    actualizarPantalla();
+
+    nuevoEventoUI();
+
+    aviso(
+      resultado.mensaje,
+      false,'mensajeEvento'
+    );
+
+  }catch(error){
+
+    aviso(
+      error.message,
+      true,'mensajeEvento'
+    );
+
+  }
+
+}
+
+// =========================================
+// FIN ADMINISTRACIÓN DE EVENTOS
+// =========================================
+
+ 
 function reglasEmpresa(){
  return datos.camaras.filter(
   x=>x.EmpresaID===v('empresaActual')
@@ -729,7 +1140,8 @@ function actualizarPantalla(){
 
  actualizarInfoVideo();
  actualizarEscenarios();
- pintarEmpresas();
+  pintarEmpresas();
+ pintarEventos();
  pintarCamaras(reglas);
  pintarAlertas(alertas);
  tablaReportes();
