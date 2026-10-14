@@ -152,6 +152,11 @@ video{width:100%;max-height:550px;background:#000;border-radius:8px;display:bloc
     Ubicaciones
   </button>
 
+  <button data-page="conexiones"
+          onclick="mostrar('conexiones')">
+    Conexiones IP/DVR
+  </button>
+
   <button data-page="camaras"
           onclick="mostrar('camaras')">
     Cámaras
@@ -481,6 +486,101 @@ video{width:100%;max-height:550px;background:#000;border-radius:8px;display:bloc
 
 <!-- FIN UBICACIONES Y CÁMARAS -->
 
+
+<!-- ======================================
+ VIGÍA IA - CONEXIONES Y MOTOR LOCAL
+======================================= -->
+
+<section id="conexiones" hidden>
+
+ <div class="grid">
+
+  <div class="card">
+
+   <h2>Conexiones IP / DVR / NVR</h2>
+
+   <p class="note">
+    Las cámaras registradas en Ubicaciones
+    pueden conectarse directamente por IP
+    o mediante un canal DVR/NVR.
+   </p>
+
+   <label>Equipo donde funciona el motor VIGÍA IA</label>
+
+   <input
+    id="motorDireccion"
+    value="http://127.0.0.1:8765"
+    placeholder="http://192.168.1.100:8765"
+   >
+
+   <p class="note">
+    Usa 127.0.0.1 desde la computadora
+    donde está instalado el motor.
+    Desde otro equipo o celular utiliza
+    la dirección IP local del servidor.
+   </p>
+
+   <div class="actions">
+
+    <button onclick="abrirMotorLocal()">
+     Abrir motor local
+    </button>
+
+    <button class="sec"
+            onclick="exportarConfiguracionVigia()">
+     Exportar cámaras y reglas
+    </button>
+
+   </div>
+
+   <p id="motorMensaje" class="note"></p>
+
+  </div>
+
+  <div class="card">
+
+   <h2>Funcionamiento de la vigilancia</h2>
+
+   <p class="note">
+    VIGÍA IA administra la configuración.
+    El motor local mantiene la vigilancia
+    aunque se cierre esta pantalla.
+   </p>
+
+   <div class="table">
+
+    <table>
+
+     <thead>
+      <tr>
+       <th>Cámara</th>
+       <th>Ubicación</th>
+       <th>Reglas</th>
+      </tr>
+     </thead>
+
+     <tbody id="motorTablaCamaras"></tbody>
+
+    </table>
+
+   </div>
+
+   <p class="note">
+    Primero exporta la configuración.
+    Después, en el motor local, registra
+    la fuente RTSP de cada cámara IP
+    o canal del DVR/NVR.
+   </p>
+
+  </div>
+
+ </div>
+
+</section>
+
+<!-- FIN CONEXIONES IP/DVR -->
+
+ 
  <!-- ESCENARIOS V5.0 -->
 <section id="escenarios" hidden>
   <div class="grid">
@@ -723,7 +823,7 @@ video{width:100%;max-height:550px;background:#000;border-radius:8px;display:bloc
 */
 
 const GAS_URL =
-'https://script.google.com/macros/s/AKfycbxOggqAHbMoxOJwBe3kHxQJD8ifxf3Qdjxc-QYGI8J0gs1SPr9I-L80DqEJdRE9D9er/exec';
+'https://script.google.com/macros/s/AKfycbyHMLn0yT31bLeyCqErF6y_LaLcqrImE_ynXZngGWo2hUfaA1DrcUFXPcSJJ-pkI3mO/exec';
 
 const VERSION='5.0';
 const $=id=>document.getElementById(id);
@@ -3079,6 +3179,240 @@ async function analizarCamaraIA(){
 
 }
 
+// ==========================================
+// VIGÍA IA - INTEGRACIÓN MOTOR LOCAL
+// ==========================================
+
+// Abrir administración del motor.
+// El navegador solicitará usuario y clave.
+function abrirMotorLocal(){
+
+  const direccion=v('motorDireccion');
+
+  if(!/^https?:\/\/[^/]+(?::\d+)?\/?$/.test(
+    direccion
+  )){
+
+    $('motorMensaje').textContent=
+      'Introduce una dirección válida del motor.';
+
+    return;
+
+  }
+
+  window.open(direccion,'_blank','noopener');
+
+}
+
+
+// Exportar información de Ubicaciones,
+// Cámaras y Escenarios.
+// No se exportan PIN ni contraseñas.
+function exportarConfiguracionVigia(){
+
+  try{
+
+    const ubicaciones=datos.ubicaciones||[];
+    const reglas=reglasEmpresa();
+    const escenarios=datos.escenarios||[];
+
+    if(!ubicaciones.length){
+
+      throw Error(
+        'Primero registra cámaras en Ubicaciones.'
+      );
+
+    }
+
+    const camaras=ubicaciones.map(u=>{
+
+      const camara=u['Cámara'];
+
+      const reglasCamara=reglas.filter(r=>
+        norm(r.CamaraID)===norm(camara) &&
+        norm(r['Ubicación'])===
+        norm(u['Ubicación'])
+      );
+
+      const escenario=escenarios.find(e=>
+
+        norm(e.CamaraID)===norm(camara) &&
+
+        norm(e['Ubicación'])===
+        norm(u['Ubicación']) &&
+
+        (!e.EmpresaID ||
+          e.EmpresaID===v('empresaActual'))
+
+      );
+
+      let zonas=[];
+
+      try{
+
+        const z=JSON.parse(
+          escenario?.ZonasJSON||'[]'
+        );
+
+        if(Array.isArray(z)){
+          zonas=z;
+        }
+
+      }catch(e){
+
+        zonas=[];
+
+      }
+
+      return {
+
+        id:camara,
+
+        ubicacion:u['Ubicación'],
+
+        tipo:'IP',
+
+        fuente:'',
+
+        activo:false,
+
+        fps_analisis:1,
+
+        detectar_personas:true,
+
+        umbral_movimiento:0.025,
+
+        espera_alerta:60,
+
+        horario:'24 horas',
+
+        zonas:zonas,
+
+        reglas:reglasCamara.map(r=>({
+
+          id:r.ID,
+
+          evento:r.Evento,
+
+          descripcion:r.DescripcionOperacional||
+            r['Descripcion Operacional']||'',
+
+          contexto:r.Contexto,
+
+          gravedad:r.Gravedad,
+
+          tratamiento:r.Tratamiento,
+
+          horario:r.Horario,
+
+          estado:r.Estado
+
+        }))
+
+      };
+
+    });
+
+    const salida={
+
+      formato:'VIGIA-LOCAL-1',
+
+      empresa:v('empresaActual'),
+
+      generado:new Date().toISOString(),
+
+      camaras:camaras
+
+    };
+
+    const blob=new Blob(
+      [JSON.stringify(salida,null,2)],
+      {type:'application/json'}
+    );
+
+    const url=URL.createObjectURL(blob);
+
+    const enlace=document.createElement('a');
+
+    enlace.href=url;
+    enlace.download='vigia_config.json';
+
+    document.body.appendChild(enlace);
+
+    enlace.click();
+    enlace.remove();
+
+    setTimeout(()=>{
+      URL.revokeObjectURL(url);
+    },1000);
+
+    $('motorMensaje').textContent=
+      'Configuración exportada: '+
+      camaras.length+' cámaras. '+
+      'Completa las conexiones en el motor local.';
+
+  }catch(e){
+
+    $('motorMensaje').textContent=e.message;
+
+  }
+
+}
+
+
+// Mostrar resumen de cámaras configuradas.
+function pintarConexionesMotor(){
+
+  const tabla=$('motorTablaCamaras');
+
+  if(!tabla)return;
+
+  tabla.replaceChildren();
+
+  const ubicaciones=datos.ubicaciones||[];
+  const reglas=reglasEmpresa();
+
+  ubicaciones.forEach(u=>{
+
+    const tr=document.createElement('tr');
+
+    celda(tr,u['Cámara']);
+    celda(tr,u['Ubicación']);
+
+    const total=reglas.filter(r=>
+      norm(r.CamaraID)===
+      norm(u['Cámara']) &&
+      norm(r['Ubicación'])===
+      norm(u['Ubicación'])
+    ).length;
+
+    celda(tr,total);
+
+    tabla.appendChild(tr);
+
+  });
+
+}
+
+
+// Actualizar tabla al cambiar de pantalla.
+const mostrarVigiaOriginal=mostrar;
+
+mostrar=function(id){
+
+  mostrarVigiaOriginal(id);
+
+  if(id==='conexiones'){
+    pintarConexionesMotor();
+  }
+
+};
+
+// ==========================================
+// FIN INTEGRACIÓN MOTOR LOCAL
+// =========================================
+
+ 
  window.addEventListener('beforeunload',()=>{
  if(videoURL)URL.revokeObjectURL(videoURL);
 });
