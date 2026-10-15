@@ -901,7 +901,7 @@ video{width:100%;max-height:550px;background:#000;border-radius:8px;display:bloc
    <video id="reproductor" controls playsinline preload="metadata"></video>
    <p id="infoVideo" class="note">Sin video seleccionado.</p>
    <div class="actions">
-    <button id="btnAnalizar" onclick="analizarCamaraIA()">
+    <button id="btnAnalizar" onclick="vigAnalizarMovimiento()">
      Analizar video y reconocer eventos automáticamente
     </button>
     <button class="sec" onclick="limpiarResultados()">Limpiar resultados</button>
@@ -949,7 +949,7 @@ video{width:100%;max-height:550px;background:#000;border-radius:8px;display:bloc
 */
 
 const GAS_URL =
-'https://script.google.com/macros/s/AKfycbwFO9FV_Sdk7Qohstfyij619DzKKmrVjqb5oTJnCEPpgUy-qSzSocYRfhGsrkmLuHTV/exec';
+'https://script.google.com/macros/s/AKfycbxkbfYGk0lYnM-ENerbA_2JIAk-AfeC6cll-6jf9to05Dv0T0Ll2VTLBDgkvYGfdhDt/exec';
 
 const VERSION='5.0';
 const $=id=>document.getElementById(id);
@@ -3865,78 +3865,132 @@ async function vigAsignarUbicacion(
 // DIBUJAR CÁMARAS Y REGLAS
 // ------------------------------------------
 
-function pintarConexionesMotor() {
 
-  const tabla = $('motorTablaCamaras');
+// ==========================================
+// PANEL DE CÁMARAS Y CANALES
+// ==========================================
 
+async function vigCargarCanales() {
+  const empresaID = v("empresaActual");
+
+  if (!empresaID) return [];
+
+  const r = await api("vigListarCanales",{
+    empresaID
+  });
+
+  return r.canales || [];
+}
+
+async function pintarConexionesMotor() {
+  const tabla = $("motorTablaCamaras");
   if (!tabla) return;
 
   tabla.replaceChildren();
 
-  const ubicaciones = datos.ubicaciones || [];
-  const reglas = reglasEmpresa();
+  try {
+    const canales = await vigCargarCanales();
+    const reglas = reglasEmpresa();
+    const equipos = vigEquipos || [];
 
-  ubicaciones.forEach(u => {
+    // Incorporar encabezados de equipo y canal
+    // sin modificar manualmente el HTML de la tabla.
+    const encabezados = tabla.closest("table")
+      .querySelector("thead tr");
 
-    const camara = u['Cámara'];
-    const ubicacion = u['Ubicación'];
+    encabezados.replaceChildren();
 
-    const tr = document.createElement('tr');
+    [
+      "Cámara","Equipo","Canal",
+      "Ubicación","Reglas","Acción"
+    ].forEach(t => {
+      const th = document.createElement("th");
+      th.textContent = t;
+      encabezados.appendChild(th);
+    });
 
-    celda(tr, camara);
-    celda(tr, ubicacion);
+    for (const c of canales) {
+      const tr = document.createElement("tr");
 
-    const total = reglas.filter(r =>
-      norm(r.CamaraID) === norm(camara) &&
-      norm(r['Ubicación']) === norm(ubicacion)
-    ).length;
-
-    celda(tr, total);
-
-    const td = document.createElement('td');
-
-    const botonUbicacion =
-      document.createElement('button');
-
-    botonUbicacion.textContent =
-      'Asignar ubicación';
-
-    botonUbicacion.className = 'sec';
-
-    botonUbicacion.onclick = () => {
-      vigAsignarUbicacion(
-        camara,
-        ubicacion
+      const equipo = equipos.find(e =>
+        String(e.ID) === String(c.EquipoID)
       );
-    };
 
-    td.appendChild(botonUbicacion);
-    tr.appendChild(td);
+      const registro = (datos.ubicaciones || [])
+        .find(u => u["Cámara"] === c.Camara);
 
-    tabla.appendChild(tr);
+      const ubicacion = registro
+        ? registro["Ubicación"]
+        : c.Ubicacion;
 
-  });
+      const total = reglas.filter(r =>
+        norm(r.CamaraID) === norm(c.Camara)
+      ).length;
 
-  if (!ubicaciones.length) {
+      celda(tr,c.Camara);
+      celda(tr,equipo ? equipo.Nombre : c.EquipoID);
+      celda(tr,c.Canal);
+      celda(tr,ubicacion);
+      celda(tr,total);
 
-    const tr = document.createElement('tr');
-    const td = document.createElement('td');
+      const td = document.createElement("td");
+      const btn = document.createElement("button");
+      btn.textContent = "Asignar ubicación";
+      btn.className = "sec";
 
-    td.colSpan = 4;
+      btn.onclick = async () => {
+        const nueva = prompt(
+          "Ubicación de "+c.Camara,
+          ubicacion === "Sin asignar" ? "" : ubicacion
+        );
 
-    td.textContent =
-      'Todavía no hay cámaras registradas.';
+        if (nueva === null) return;
+        if (!nueva.trim()) {
+          vigMensaje("Escribe una ubicación.",true);
+          return;
+        }
 
-    td.className = 'note';
+        try {
+          await api("vigActualizarUbicacion",{
+            empresaID:v("empresaActual"),
+            camara:c.Camara,
+            ubicacion:nueva.trim()
+          });
 
-    tr.appendChild(td);
-    tabla.appendChild(tr);
+          await recargar(true,v("empresaActual"));
+          vigMensaje("Ubicación guardada.");
+          await vigActualizarPanel();
 
+        } catch(e) {
+          vigMensaje(e.message,true);
+        }
+      };
+
+      td.appendChild(btn);
+      tr.appendChild(td);
+      tabla.appendChild(tr);
+    }
+
+    if (!canales.length) {
+      const tr=document.createElement("tr");
+      const td=document.createElement("td");
+      td.colSpan=6;
+      td.textContent=
+        "Registra un equipo y pulsa Crear canales.";
+      tr.appendChild(td);
+      tabla.appendChild(tr);
+    }
+
+  } catch(e) {
+    vigMensaje(e.message,true);
   }
-
 }
 
+// ==========================================
+// FIN PANEL CÁMARAS Y CANALES
+// =========================================
 
+ 
 // ------------------------------------------
 // ACTUALIZAR AL ABRIR CONEXIONES
 // ------------------------------------------
@@ -3971,6 +4025,240 @@ mostrar = function(id) {
 
  });
 
+// ==========================================
+// VIGÍA IA - ANÁLISIS LOCAL DE VIDEO
+// SIN OPENAI
+// ==========================================
+
+let vigAnalisisActivo = false;
+
+async function vigAnalizarMovimiento() {
+  if (vigAnalisisActivo) return;
+
+  const archivo = $("archivoVideo").files[0];
+  const video = $("reproductor");
+  const camara = v("videoCamara");
+
+  if (!camara) {
+    aviso("Selecciona una cámara.",true,
+          "estadoAnalisis");
+    return;
+  }
+
+  if (!archivo) {
+    aviso("Selecciona un video MP4.",true,
+          "estadoAnalisis");
+    return;
+  }
+
+  if (!video.videoWidth) {
+    aviso("Espera a que el video cargue.",
+          true,"estadoAnalisis");
+    return;
+  }
+
+  vigAnalisisActivo = true;
+  $("btnAnalizar").disabled = true;
+
+  const ancho = 160;
+  const alto = 90;
+
+  const canvas = document.createElement("canvas");
+  canvas.width = ancho;
+  canvas.height = alto;
+
+  const ctx = canvas.getContext("2d",{
+    willReadFrequently:true
+  });
+
+  let anterior = null;
+  let muestras = 0;
+  let movimientos = 0;
+  let consecutivos = 0;
+  let segundosUltimo = -1;
+  const resultados = [];
+
+  $("resultadoIA").replaceChildren();
+  $("fotogramas").replaceChildren();
+  $("barraProgreso").style.width = "0%";
+
+  $("resumenIA").textContent =
+    "Examinando movimiento del video...";
+
+  try {
+    // Comenzar desde el inicio del MP4.
+    video.pause();
+    video.currentTime = 0;
+
+    await new Promise((resolve,reject) => {
+      if (video.readyState >= 2) {
+        resolve();
+        return;
+      }
+      video.addEventListener("seeked",resolve,{once:true});
+      video.addEventListener("error",
+        () => reject(Error("Error al leer video.")),
+        {once:true});
+    });
+
+    await video.play();
+
+    await new Promise((resolve,reject) => {
+
+      const temporizador = setInterval(() => {
+        try {
+          if (video.ended) {
+            finalizar();
+            return;
+          }
+
+          if (video.paused) {
+            // Si el usuario pausa, esperar.
+            return;
+          }
+
+          // No evaluar varias veces el mismo instante.
+          const segundo = Math.floor(video.currentTime*4);
+          if (segundo===segundosUltimo) return;
+          segundosUltimo=segundo;
+
+          ctx.drawImage(video,0,0,ancho,alto);
+
+          const actual=ctx.getImageData(
+            0,0,ancho,alto
+          ).data;
+
+          if (anterior) {
+            let cambiados=0;
+            const total=ancho*alto;
+
+            for(let i=0;i<actual.length;i+=4) {
+              const diferencia=(
+                Math.abs(actual[i]-anterior[i])+
+                Math.abs(actual[i+1]-anterior[i+1])+
+                Math.abs(actual[i+2]-anterior[i+2])
+              )/3;
+
+              if(diferencia>35)cambiados++;
+            }
+
+            const porcentaje=100*cambiados/total;
+
+            // Detección de cambio entre fotogramas.
+            const movimiento=porcentaje>=3.5;
+
+            consecutivos=movimiento
+              ? consecutivos+1 : 0;
+
+            if (consecutivos>=2) {
+              movimientos++;
+
+              // Guardar una evidencia visual
+              // como máximo cada 5 segundos.
+              const tiempo=video.currentTime;
+
+              const ultimo=resultados.length
+                ? resultados[resultados.length-1].tiempo
+                : -100;
+
+              if (tiempo-ultimo>=5) {
+                const evidencia=document.createElement(
+                  "canvas"
+                );
+                evidencia.width=ancho;
+                evidencia.height=alto;
+
+                evidencia.getContext("2d")
+                  .drawImage(video,0,0,ancho,alto);
+
+                resultados.push({
+                  tiempo,
+                  porcentaje
+                });
+
+                const imagen=document.createElement("img");
+                imagen.src=evidencia.toDataURL(
+                  "image/jpeg",0.75
+                );
+                imagen.alt="Movimiento detectado";
+
+                $("fotogramas").appendChild(imagen);
+
+                const bloque=document.createElement("div");
+                bloque.className="result positive";
+
+                bloque.textContent=
+                  "Movimiento visual: segundo "+
+                  tiempo.toFixed(1)+
+                  " · Cambio "+
+                  porcentaje.toFixed(1)+"%";
+
+                $("resultadoIA").appendChild(bloque);
+              }
+            }
+          }
+
+          anterior=new Uint8ClampedArray(actual);
+          muestras++;
+
+          $("contadorProgreso").textContent=
+            muestras+" muestras examinadas";
+
+          const duracion=video.duration;
+          if(Number.isFinite(duracion) && duracion>0){
+            $("barraProgreso").style.width=
+              Math.min(100,100*video.currentTime/duracion)
+                .toFixed(1)+"%";
+          }
+
+        }catch(e){
+          finalizar(e);
+        }
+      },250);
+
+      const alTerminar=()=>finalizar();
+
+      video.addEventListener(
+        "ended",alTerminar,{once:true}
+      );
+
+      function finalizar(error) {
+        clearInterval(temporizador);
+        video.removeEventListener("ended",alTerminar);
+
+        if(error)reject(error);
+        else resolve();
+      }
+    });
+
+    $("resumenIA").textContent=
+      "Análisis finalizado. "+
+      muestras+" muestras examinadas. "+
+      resultados.length+
+      " evidencias de movimiento.";
+
+    aviso(
+      "Análisis local completado. "+
+      "Los cambios visuales no confirman "+
+      "por sí solos una infracción o un objeto.",
+      false,"estadoAnalisis"
+    );
+
+  }catch(e){
+    aviso(e.message,true,"estadoAnalisis");
+
+  }finally{
+    vigAnalisisActivo=false;
+    $("btnAnalizar").disabled=false;
+    video.pause();
+  }
+}
+
+// ==========================================
+// FIN ANÁLISIS LOCAL DE VIDEO
+// ==========================================
+
+ 
  // ==========================================
  // FIN DE LAS FUNCIONES HTML
  // ==========================================
