@@ -712,9 +712,96 @@ video{width:100%;max-height:550px;background:#000;border-radius:8px;display:bloc
 
   </div>
 
+
+  <!-- VIGÍA VIDEO: captura en navegador, independiente del motor local -->
+  <div class="card" id="vigCapturaPanel">
+    <h2>4. Captar y comprobar video en VIGÍA IA</h2>
+    <p class="note">
+      MP4 y cámara USB: reproducción directa.
+      Cámara IP: enlace HTTP(S) compatible con navegador.
+      RTSP requiere conversión.
+    </p>
+
+    <div class="fields">
+      <div>
+        <label>Fuente de video</label>
+        <select id="vfTipo" onchange="vfCambiarTipo()">
+          <option value="mp4">Archivo MP4 local</option>
+          <option value="usb">Cámara USB / webcam</option>
+          <option value="http">Enlace HTTP(S) MP4/WebM</option>
+          <option value="imagen">Imagen JPEG/MJPEG HTTP(S)</option>
+          <option value="rtsp">Cámara IP/NVR RTSP (requiere conversor)</option>
+        </select>
+      </div>
+      <div>
+        <label>Identificación visible</label>
+        <input id="vfNombre" placeholder="Cam 01 - Entrada">
+      </div>
+    </div>
+
+    <div id="vfArchivoCaja">
+      <label>Seleccionar video del equipo</label>
+      <input id="vfArchivo" type="file"
+             accept="video/mp4,video/webm,video/*"
+             onchange="vfCargarArchivo()">
+    </div>
+
+    <div id="vfUrlCaja" hidden>
+      <label>Enlace de reproducción sin contraseñas ni tokens</label>
+      <input id="vfUrl" type="url"
+             placeholder="https://servidor/video.mp4 o /imagen.jpg">
+    </div>
+
+    <div class="actions">
+      <button onclick="vfProbar()">Probar / Ver video</button>
+      <button class="sec" onclick="vfGuardar()">
+        Guardar fuente para esta empresa
+      </button>
+      <button class="sec" onclick="vfDetener()">
+        Detener vista previa
+      </button>
+      <button class="sec" onclick="vfListar()">
+        Actualizar fuentes
+      </button>
+    </div>
+
+    <p id="vfMensaje" class="note" role="status">
+      Selecciona un archivo MP4 para iniciar.
+    </p>
+
+    <video id="vfVideo" controls playsinline
+           preload="metadata" hidden
+           style="max-height:380px"></video>
+
+    <img id="vfImagen" alt="Vista previa de cámara"
+         hidden referrerpolicy="no-referrer"
+         style="max-width:100%;max-height:380px;border-radius:8px">
+
+    <div class="table">
+      <table>
+        <thead>
+          <tr>
+            <th>Fuente</th>
+            <th>Tipo</th>
+            <th>Dirección</th>
+            <th>Acción</th>
+          </tr>
+        </thead>
+        <tbody id="vfTabla"></tbody>
+      </table>
+    </div>
+
+    <p class="note">
+      Los archivos MP4 locales y las webcams no se guardan en
+      Sheets. Los enlaces HTTP(S) se registran sin credenciales.
+      Las cámaras HTTP pueden quedar bloqueadas desde una
+      aplicación HTTPS. La webcam necesita autorización.
+    </p>
+  </div>
 </section>
 
 <!-- FIN CONEXIONES IP/DVR -->
+
 
  
  <!-- ESCENARIOS V5.0 -->
@@ -959,7 +1046,7 @@ video{width:100%;max-height:550px;background:#000;border-radius:8px;display:bloc
  Mantiene la entrada desde GitHub.
 */
 
-const GAS_URL = "https://script.google.com/macros/s/AKfycbyV_a534ncA3ZflqeaJaQW5747gS6vjDZb6BzrqXIyWCMOlvEI0jbrKIc_e8_FCVDRU/exec";
+const GAS_URL = "https://script.google.com/macros/s/AKfycbzo_4KqfNJr3zAwZb2nYLT85oLW6_2T8gc8PumMLxKMeSP-DPVP0Xh4XB-WH4h-CGvA/exec";
 
 const VERSION = "5.0";
 const $ = id => document.getElementById(id);
@@ -3940,6 +4027,273 @@ async function vigAsignarUbicacion(camara) {
 // CARGAR AL ABRIR LA PESTAÑA
 // ==========================================
 
+
+/* VIGÍA VIDEO — Captura desde HTML */
+
+let vfURLLocal = null;
+let vfStream = null;
+
+const vfEl = id => document.getElementById(id);
+
+function vfAviso(m, error = false) {
+  vfEl('vfMensaje').textContent = m;
+  vfEl('vfMensaje').className = error ? 'err' : 'ok';
+}
+
+function vfCambiarTipo() {
+  const tipo = vfEl('vfTipo').value;
+
+  vfEl('vfArchivoCaja').hidden = tipo !== 'mp4';
+  vfEl('vfUrlCaja').hidden =
+    !['http', 'imagen', 'rtsp'].includes(tipo);
+
+  if (tipo === 'rtsp') {
+    vfAviso(
+      'RTSP no se reproduce directamente en Chrome. ' +
+      'Se necesita convertir la señal a un formato compatible.',
+      true
+    );
+  }
+}
+
+function vfDetener() {
+  const vid = vfEl('vfVideo');
+
+  vid.pause();
+  vid.removeAttribute('src');
+  vid.srcObject = null;
+  vid.load();
+  vid.hidden = true;
+
+  const img = vfEl('vfImagen');
+  img.removeAttribute('src');
+  img.hidden = true;
+
+  if (vfStream) {
+    vfStream.getTracks().forEach(t => t.stop());
+    vfStream = null;
+  }
+
+  if (vfURLLocal) {
+    URL.revokeObjectURL(vfURLLocal);
+    vfURLLocal = null;
+  }
+}
+
+function vfCargarArchivo() {
+  vfDetener();
+
+  const f = vfEl('vfArchivo').files[0];
+  if (!f) return;
+
+  if (!f.type.startsWith('video/')) {
+    return vfAviso(
+      'Selecciona un archivo de video válido.', true
+    );
+  }
+
+  vfURLLocal = URL.createObjectURL(f);
+
+  const vid = vfEl('vfVideo');
+  vid.src = vfURLLocal;
+  vid.hidden = false;
+  vid.play().catch(() => {});
+
+  vfAviso('Video cargado: ' + f.name);
+}
+
+function vfDireccion(s) {
+  let u;
+
+  try {
+    u = new URL(s);
+  } catch (_) {
+    throw Error('Dirección inválida.');
+  }
+
+  if (
+    !['https:', 'http:'].includes(u.protocol) ||
+    u.username ||
+    u.password ||
+    u.search ||
+    u.hash
+  ) {
+    throw Error(
+      'Utiliza una URL HTTP(S) sin credenciales, ' +
+      'parámetros ni fragmentos.'
+    );
+  }
+
+  return u.href;
+}
+
+async function vfProbar() {
+  try {
+    const tipo = vfEl('vfTipo').value;
+
+    if (tipo === 'mp4') {
+      vfCargarArchivo();
+      return;
+    }
+
+    vfDetener();
+
+    if (tipo === 'usb') {
+      if (!navigator.mediaDevices?.getUserMedia) {
+        throw Error(
+          'La webcam requiere HTTPS o localhost, ' +
+          'y permiso del navegador.'
+        );
+      }
+
+      vfStream = await navigator.mediaDevices
+        .getUserMedia({ video: true, audio: false });
+
+      const vid = vfEl('vfVideo');
+      vid.srcObject = vfStream;
+      vid.hidden = false;
+
+      await vid.play();
+      vfAviso('Webcam abierta correctamente.');
+      return;
+    }
+
+    if (tipo === 'rtsp') {
+      throw Error(
+        'RTSP requiere un puente a HLS, WebRTC o MP4. ' +
+        'Google Apps Script no convierte RTSP.'
+      );
+    }
+
+    const url = vfDireccion(
+      vfEl('vfUrl').value.trim()
+    );
+
+    if (
+      location.protocol === 'https:' &&
+      url.startsWith('http:')
+    ) {
+      throw Error(
+        'La página HTTPS puede bloquear cámaras HTTP. ' +
+        'Usa un origen HTTPS autorizado.'
+      );
+    }
+
+    if (tipo === 'imagen') {
+      const img = vfEl('vfImagen');
+      img.src = url;
+      img.hidden = false;
+    } else {
+      const vid = vfEl('vfVideo');
+      vid.src = url;
+      vid.hidden = false;
+      await vid.play().catch(() => {});
+    }
+
+    vfAviso(
+      'Se intentó abrir la fuente. Comprueba ' +
+      'visualmente si aparece la imagen.'
+    );
+
+  } catch (e) {
+    vfAviso(e.message, true);
+  }
+}
+
+async function vfGuardar() {
+  try {
+    const empresaID = v('empresaActual');
+    const tipo = vfEl('vfTipo').value;
+
+    if (!empresaID) {
+      throw Error('Selecciona una empresa.');
+    }
+
+    if (['mp4', 'usb'].includes(tipo)) {
+      throw Error(
+        'El MP4 local y la webcam se usan únicamente ' +
+        'en este navegador; no se guardan como URL.'
+      );
+    }
+
+    if (tipo === 'rtsp') {
+      throw Error(
+        'Primero convierte RTSP a un formato ' +
+        'reproducible en el navegador.'
+      );
+    }
+
+    const nombre = vfEl('vfNombre').value.trim();
+
+    if (!nombre) {
+      throw Error('Escribe el nombre de la fuente.');
+    }
+
+    const url = vfDireccion(
+      vfEl('vfUrl').value.trim()
+    );
+
+    await api('vfGuardarFuente', {
+      empresaID,
+      nombre,
+      tipo,
+      url
+    });
+
+    vfAviso('Fuente registrada. Señal pendiente de verificar.');
+    await vfListar();
+
+  } catch (e) {
+    vfAviso(e.message, true);
+  }
+}
+
+async function vfListar() {
+  const tbody = vfEl('vfTabla');
+  tbody.replaceChildren();
+
+  try {
+    const empresaID = v('empresaActual');
+    if (!empresaID) return;
+
+    const res = await api('vfListarFuentes', {
+      empresaID
+    });
+
+    for (const f of res.fuentes || []) {
+      const tr = document.createElement('tr');
+
+      [f.Nombre, f.Tipo, f.URL].forEach(valor => {
+        const td = document.createElement('td');
+        td.textContent = valor;
+        tr.appendChild(td);
+      });
+
+      const td = document.createElement('td');
+      const b = document.createElement('button');
+
+      b.textContent = 'Ver';
+      b.className = 'sec';
+
+      b.onclick = () => {
+        vfEl('vfTipo').value = f.Tipo;
+        vfCambiarTipo();
+        vfEl('vfNombre').value = f.Nombre;
+        vfEl('vfUrl').value = f.URL;
+        vfProbar();
+      };
+
+      td.appendChild(b);
+      tr.appendChild(td);
+      tbody.appendChild(tr);
+    }
+
+  } catch (e) {
+    vfAviso(e.message, true);
+  }
+}
+ 
+ 
 const vigMostrarOriginal = mostrar;
 
 mostrar = function(id) {
@@ -3948,10 +4302,10 @@ mostrar = function(id) {
 
   if (id === "conexiones") {
     vigActualizarPanel();
+    vfListar();
   }
 
 };
-
 
 // ==========================================
 // FIN CONEXIONES UNIVERSALES
