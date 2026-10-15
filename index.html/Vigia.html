@@ -491,90 +491,216 @@ video{width:100%;max-height:550px;background:#000;border-radius:8px;display:bloc
  VIGÍA IA - CONEXIONES Y MOTOR LOCAL
 ======================================= -->
 
+
+<!-- ==========================================
+ VIGÍA IA - CONEXIONES IP / DVR / NVR
+ CONFIGURACIÓN SIMPLIFICADA
+========================================== -->
+
 <section id="conexiones" hidden>
 
- <div class="grid">
-
   <div class="card">
 
-   <h2>Conexiones IP / DVR / NVR</h2>
+    <h2>1. Conectar equipos IP / DVR / NVR</h2>
 
-   <p class="note">
-    Las cámaras registradas en Ubicaciones
-    pueden conectarse directamente por IP
-    o mediante un canal DVR/NVR.
-   </p>
+    <p class="note">
+      Registra tu equipo y crea los canales de cámara.
+      No necesitas modificar archivos JSON.
+    </p>
 
-   <label>Equipo donde funciona el motor VIGÍA IA</label>
+    <div class="grid">
 
-   <input
-    id="motorDireccion"
-    value="http://127.0.0.1:8765"
-    placeholder="http://192.168.1.100:8765"
-   >
+      <div>
 
-   <p class="note">
-    Usa 127.0.0.1 desde la computadora
-    donde está instalado el motor.
-    Desde otro equipo o celular utiliza
-    la dirección IP local del servidor.
-   </p>
+        <h3>Datos de conexión</h3>
 
-   <div class="actions">
+        <label>Nombre del equipo</label>
+        <input id="vigEquipo"
+               placeholder="DVR Tienda Principal">
 
-    <button onclick="abrirMotorLocal()">
-     Abrir motor local
-    </button>
+        <label>Tipo de conexión</label>
+        <select id="vigTipo"
+                onchange="vigCambiarTipo()">
+          <option value="DVR/NVR">DVR / NVR</option>
+          <option value="IP">Cámara IP</option>
+        </select>
 
-    <button class="sec"
-            onclick="exportarConfiguracionVigia()">
-     Exportar cámaras y reglas
-    </button>
+        <label>Dirección IP</label>
+        <input id="vigIP"
+               placeholder="192.168.1.100">
 
-   </div>
+        <div class="fields">
 
-   <p id="motorMensaje" class="note"></p>
+          <div>
+            <label>Puerto RTSP</label>
+            <input id="vigPuerto"
+                   type="number"
+                   min="1"
+                   max="65535"
+                   value="554">
+          </div>
+
+          <div>
+            <label>Número de canales</label>
+            <input id="vigCanales"
+                   type="number"
+                   min="1"
+                   max="64"
+                   value="4">
+          </div>
+
+        </div>
+
+        <div class="actions">
+
+          <button onclick="vigGuardarEquipo()">
+            Guardar equipo
+          </button>
+
+          <button class="sec"
+                  onclick="vigLimpiarEquipo()">
+            Nuevo
+          </button>
+
+        </div>
+
+      </div>
+
+      <div>
+
+        <h3>Equipos registrados</h3>
+
+        <div class="table">
+
+          <table>
+
+            <thead>
+              <tr>
+                <th>Equipo</th>
+                <th>Tipo</th>
+                <th>IP</th>
+                <th>Canales</th>
+                <th>Acción</th>
+              </tr>
+            </thead>
+
+            <tbody id="vigTablaEquipos"></tbody>
+
+          </table>
+
+        </div>
+
+        <p class="note">
+          Al pulsar Crear canales, VIGÍA IA registra
+          las cámaras correspondientes al equipo.
+          Esto no comprueba todavía la señal física.
+        </p>
+
+      </div>
+
+    </div>
 
   </div>
 
+
   <div class="card">
 
-   <h2>Funcionamiento de la vigilancia</h2>
+    <h2>2. Asignar número y ubicación</h2>
 
-   <p class="note">
-    VIGÍA IA administra la configuración.
-    El motor local mantiene la vigilancia
-    aunque se cierre esta pantalla.
-   </p>
+    <p class="note">
+      Las cámaras creadas aparecen con numeración
+      automática. Asigna la ubicación de cada una.
+    </p>
 
-   <div class="table">
+    <div class="table">
 
-    <table>
+      <table>
 
-     <thead>
-      <tr>
-       <th>Cámara</th>
-       <th>Ubicación</th>
-       <th>Reglas</th>
-      </tr>
-     </thead>
+        <thead>
+          <tr>
+            <th>Cámara</th>
+            <th>Ubicación</th>
+            <th>Reglas</th>
+            <th>Acción</th>
+          </tr>
+        </thead>
 
-     <tbody id="motorTablaCamaras"></tbody>
+        <tbody id="motorTablaCamaras"></tbody>
 
-    </table>
+      </table>
 
-   </div>
-
-   <p class="note">
-    Primero exporta la configuración.
-    Después, en el motor local, registra
-    la fuente RTSP de cada cámara IP
-    o canal del DVR/NVR.
-   </p>
+    </div>
 
   </div>
 
- </div>
+
+  <div class="card">
+
+    <h2>3. Configurar vigilancia</h2>
+
+    <p class="note">
+      Una vez asignadas las ubicaciones,
+      utiliza las pestañas Cámaras y Escenarios
+      para configurar las reglas de vigilancia.
+    </p>
+
+    <div class="actions">
+
+      <button onclick="mostrar('camaras')">
+        Configurar reglas
+      </button>
+
+      <button class="sec"
+              onclick="mostrar('escenarios')">
+        Configurar escenarios
+      </button>
+
+      <button class="sec"
+              onclick="mostrar('video')">
+        Análisis de Video con IA
+      </button>
+
+    </div>
+
+    <hr>
+
+    <h3>Motor de vigilancia local</h3>
+
+    <label>Dirección del motor</label>
+
+    <input id="motorDireccion"
+           value="http://127.0.0.1:8765"
+           placeholder="http://127.0.0.1:8765">
+
+    <div class="actions">
+
+      <button onclick="abrirMotorLocal()">
+        Abrir motor local
+      </button>
+
+      <button class="sec"
+              onclick="exportarConfiguracionVigia()">
+        Exportar configuración
+      </button>
+
+      <button class="sec"
+              onclick="vigActualizarPanel()">
+        Actualizar equipos
+      </button>
+
+    </div>
+
+    <p class="note">
+      El motor local existente requiere estar
+      instalado y encendido para analizar
+      transmisiones de video.
+    </p>
+
+    <p id="motorMensaje"
+       class="note"
+       role="status"></p>
+
+  </div>
 
 </section>
 
@@ -823,7 +949,7 @@ video{width:100%;max-height:550px;background:#000;border-radius:8px;display:bloc
 */
 
 const GAS_URL =
-'https://script.google.com/macros/s/AKfycbyHMLn0yT31bLeyCqErF6y_LaLcqrImE_ynXZngGWo2hUfaA1DrcUFXPcSJJ-pkI3mO/exec';
+'https://script.google.com/macros/s/AKfycbwFO9FV_Sdk7Qohstfyij619DzKKmrVjqb5oTJnCEPpgUy-qSzSocYRfhGsrkmLuHTV/exec';
 
 const VERSION='5.0';
 const $=id=>document.getElementById(id);
@@ -3361,59 +3487,480 @@ function exportarConfiguracionVigia(){
 
 
 // Mostrar resumen de cámaras configuradas.
-function pintarConexionesMotor(){
 
-  const tabla=$('motorTablaCamaras');
+// ==========================================
+// VIGÍA IA - GESTIÓN VISUAL IP / DVR / NVR
+// ==========================================
 
-  if(!tabla)return;
+let vigEquipos = [];
+
+// ------------------------------------------
+// MENSAJES
+// ------------------------------------------
+
+function vigMensaje(texto, error=false) {
+
+  const el = $('motorMensaje');
+
+  if (!el) return;
+
+  el.textContent = texto;
+  el.className = error ? 'err' : 'note';
+
+}
+
+
+// ------------------------------------------
+// CAMBIAR TIPO DE EQUIPO
+// ------------------------------------------
+
+function vigCambiarTipo() {
+
+  const tipo = v('vigTipo');
+
+  if (tipo === 'IP') {
+    $('vigCanales').value = '1';
+  } else {
+    $('vigCanales').value = '4';
+  }
+
+}
+
+
+// ------------------------------------------
+// LIMPIAR FORMULARIO
+// ------------------------------------------
+
+function vigLimpiarEquipo() {
+
+  $('vigEquipo').value = '';
+  $('vigTipo').value = 'DVR/NVR';
+  $('vigIP').value = '';
+  $('vigPuerto').value = '554';
+  $('vigCanales').value = '4';
+
+}
+
+
+// ------------------------------------------
+// GUARDAR EQUIPO
+// ------------------------------------------
+
+async function vigGuardarEquipo() {
+
+  const registro = {
+
+    empresaID: v('empresaActual'),
+    nombre: v('vigEquipo'),
+    tipo: v('vigTipo'),
+    ip: v('vigIP'),
+    puerto: Number(v('vigPuerto')),
+    canales: Number(v('vigCanales'))
+
+  };
+
+  if (!registro.empresaID) {
+
+    vigMensaje(
+      'Selecciona una empresa.',
+      true
+    );
+
+    return;
+  }
+
+  if (!registro.nombre || !registro.ip) {
+
+    vigMensaje(
+      'Introduce el nombre y la IP del equipo.',
+      true
+    );
+
+    return;
+  }
+
+  if (
+    !Number.isInteger(registro.puerto) ||
+    registro.puerto < 1 ||
+    registro.puerto > 65535
+  ) {
+
+    vigMensaje(
+      'El puerto debe estar entre 1 y 65535.',
+      true
+    );
+
+    return;
+  }
+
+  if (
+    !Number.isInteger(registro.canales) ||
+    registro.canales < 1 ||
+    registro.canales > 64
+  ) {
+
+    vigMensaje(
+      'Introduce entre 1 y 64 canales.',
+      true
+    );
+
+    return;
+  }
+
+  try {
+
+    const respuesta = await api(
+      'vigGuardarEquipo',
+      {registro}
+    );
+
+    vigMensaje(
+      'Equipo guardado correctamente. ID: ' +
+      respuesta.id
+    );
+
+    vigLimpiarEquipo();
+
+    await vigActualizarPanel();
+
+  } catch (error) {
+
+    vigMensaje(error.message, true);
+
+  }
+
+}
+
+
+// ------------------------------------------
+// CONSULTAR EQUIPOS REGISTRADOS
+// ------------------------------------------
+
+async function vigActualizarPanel() {
+
+  const empresaID = v('empresaActual');
+
+  if (!empresaID) {
+
+    vigEquipos = [];
+
+    vigPintarEquipos();
+    pintarConexionesMotor();
+
+    return;
+  }
+
+  try {
+
+    const respuesta = await api(
+      'vigListarEquipos',
+      {empresaID}
+    );
+
+    vigEquipos = respuesta.equipos || [];
+
+    vigPintarEquipos();
+    pintarConexionesMotor();
+
+  } catch (error) {
+
+    vigMensaje(error.message, true);
+
+  }
+
+}
+
+
+// ------------------------------------------
+// MOSTRAR EQUIPOS EN TABLA
+// ------------------------------------------
+
+function vigPintarEquipos() {
+
+  const tabla = $('vigTablaEquipos');
+
+  if (!tabla) return;
 
   tabla.replaceChildren();
 
-  const ubicaciones=datos.ubicaciones||[];
-  const reglas=reglasEmpresa();
+  vigEquipos.forEach(equipo => {
 
-  ubicaciones.forEach(u=>{
+    const tr = document.createElement('tr');
 
-    const tr=document.createElement('tr');
+    celda(tr, equipo.Nombre);
+    celda(tr, equipo.Tipo);
+    celda(tr, equipo.IP);
+    celda(tr, equipo.Canales);
 
-    celda(tr,u['Cámara']);
-    celda(tr,u['Ubicación']);
+    const td = document.createElement('td');
 
-    const total=reglas.filter(r=>
-      norm(r.CamaraID)===
-      norm(u['Cámara']) &&
-      norm(r['Ubicación'])===
-      norm(u['Ubicación'])
-    ).length;
+    const botonCrear =
+      document.createElement('button');
 
-    celda(tr,total);
+    botonCrear.textContent = 'Crear canales';
+    botonCrear.className = 'sec';
+
+    botonCrear.onclick = () => {
+      vigCrearCanales(equipo.ID);
+    };
+
+    td.appendChild(botonCrear);
+    tr.appendChild(td);
 
     tabla.appendChild(tr);
 
   });
 
+  if (!vigEquipos.length) {
+
+    const tr = document.createElement('tr');
+    const td = document.createElement('td');
+
+    td.colSpan = 5;
+    td.textContent = 'No hay equipos registrados.';
+    td.className = 'note';
+
+    tr.appendChild(td);
+    tabla.appendChild(tr);
+
+  }
+
 }
 
 
-// Actualizar tabla al cambiar de pantalla.
-const mostrarVigiaOriginal=mostrar;
+// ------------------------------------------
+// CREAR CÁMARAS POR CANAL
+// ------------------------------------------
 
-mostrar=function(id){
+async function vigCrearCanales(equipoID) {
 
-  mostrarVigiaOriginal(id);
+  const equipo = vigEquipos.find(
+    x => String(x.ID) === String(equipoID)
+  );
 
-  if(id==='conexiones'){
+  if (!equipo) return;
+
+  const confirmado = confirm(
+    '¿Crear los canales de ' +
+    equipo.Nombre +
+    '?\n\nSe registrarán las cámaras ' +
+    'para asignarles ubicación.'
+  );
+
+  if (!confirmado) return;
+
+  try {
+
+    const respuesta = await api(
+      'vigCrearCanales',
+      {
+        empresaID: v('empresaActual'),
+        equipoID
+      }
+    );
+
+    await recargar(
+      true,
+      v('empresaActual')
+    );
+
     pintarConexionesMotor();
+
+    vigMensaje(
+      'Cámaras creadas: ' +
+      respuesta.creadas +
+      '. Ahora puedes asignar sus ubicaciones.'
+    );
+
+  } catch (error) {
+
+    vigMensaje(error.message, true);
+
+  }
+
+}
+
+
+// ------------------------------------------
+// ASIGNAR UBICACIÓN
+// ------------------------------------------
+
+async function vigAsignarUbicacion(
+  camara,
+  ubicacionActual
+) {
+
+  const nuevaUbicacion = prompt(
+    'Ubicación de ' + camara,
+    ubicacionActual
+  );
+
+  if (nuevaUbicacion === null) return;
+
+  const ubicacion = nuevaUbicacion.trim();
+
+  if (!ubicacion) {
+
+    vigMensaje(
+      'Debes indicar una ubicación.',
+      true
+    );
+
+    return;
+
+  }
+
+  const registro = (datos.ubicaciones || [])
+    .find(x =>
+      norm(x['Cámara']) === norm(camara)
+    );
+
+  if (!registro) {
+
+    vigMensaje(
+      'Cámara no encontrada.',
+      true
+    );
+
+    return;
+
+  }
+
+  try {
+
+    await api(
+      'guardarUbicacion',
+      {
+        registro: {
+          ID: registro.ID,
+          'Cámara': camara,
+          'Ubicación': ubicacion
+        }
+      }
+    );
+
+    await recargar(
+      true,
+      v('empresaActual')
+    );
+
+    pintarConexionesMotor();
+
+    vigMensaje(
+      camara +
+      ' asignada a ' +
+      ubicacion
+    );
+
+  } catch (error) {
+
+    vigMensaje(error.message, true);
+
+  }
+
+}
+
+
+// ------------------------------------------
+// DIBUJAR CÁMARAS Y REGLAS
+// ------------------------------------------
+
+function pintarConexionesMotor() {
+
+  const tabla = $('motorTablaCamaras');
+
+  if (!tabla) return;
+
+  tabla.replaceChildren();
+
+  const ubicaciones = datos.ubicaciones || [];
+  const reglas = reglasEmpresa();
+
+  ubicaciones.forEach(u => {
+
+    const camara = u['Cámara'];
+    const ubicacion = u['Ubicación'];
+
+    const tr = document.createElement('tr');
+
+    celda(tr, camara);
+    celda(tr, ubicacion);
+
+    const total = reglas.filter(r =>
+      norm(r.CamaraID) === norm(camara) &&
+      norm(r['Ubicación']) === norm(ubicacion)
+    ).length;
+
+    celda(tr, total);
+
+    const td = document.createElement('td');
+
+    const botonUbicacion =
+      document.createElement('button');
+
+    botonUbicacion.textContent =
+      'Asignar ubicación';
+
+    botonUbicacion.className = 'sec';
+
+    botonUbicacion.onclick = () => {
+      vigAsignarUbicacion(
+        camara,
+        ubicacion
+      );
+    };
+
+    td.appendChild(botonUbicacion);
+    tr.appendChild(td);
+
+    tabla.appendChild(tr);
+
+  });
+
+  if (!ubicaciones.length) {
+
+    const tr = document.createElement('tr');
+    const td = document.createElement('td');
+
+    td.colSpan = 4;
+
+    td.textContent =
+      'Todavía no hay cámaras registradas.';
+
+    td.className = 'note';
+
+    tr.appendChild(td);
+    tabla.appendChild(tr);
+
+  }
+
+}
+
+
+// ------------------------------------------
+// ACTUALIZAR AL ABRIR CONEXIONES
+// ------------------------------------------
+
+const vigMostrarOriginal = mostrar;
+
+mostrar = function(id) {
+
+  vigMostrarOriginal(id);
+
+  if (id === 'conexiones') {
+
+    vigActualizarPanel();
+
   }
 
 };
 
-// ==========================================
-// FIN INTEGRACIÓN MOTOR LOCAL
-// =========================================
 
- 
- window.addEventListener('beforeunload',()=>{
+// ==========================================
+// FIN GESTIÓN VISUAL IP / DVR / NVR
+// ==========================================
+
+
  if(videoURL)URL.revokeObjectURL(videoURL);
 });
 </script>
