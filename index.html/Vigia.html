@@ -502,303 +502,196 @@ video{width:100%;max-height:550px;background:#000;border-radius:8px;display:bloc
  VIGÍA IA - CONEXIONES COMERCIALES
 ========================================== -->
 
+
 <section id="conexiones" hidden>
 
   <div class="card">
-
-    <h2>1. Conectar fuente de video</h2>
-
+    <h2>Conexión universal de dispositivos</h2>
     <p class="note">
-      Registra el DVR, NVR o cámara IP del cliente.
-      Las cámaras se organizan por equipo y canal.
+      Registra y comprueba DVR, NVR, cámaras IP o
+      servidores de video de diferentes fabricantes.
+      La empresa se toma de la selección principal.
     </p>
 
-    <div class="grid">
+    <input type="hidden" id="vuEquipoID">
 
+    <div class="grid">
       <div>
+        <h3>1. Identificación del equipo</h3>
 
         <label>Nombre del equipo</label>
-        <input id="vigEquipo"
-               placeholder="Ejemplo: NVR Sucursal Centro">
+        <input id="vuNombre"
+               maxlength="150"
+               placeholder="Ej. NVR principal">
 
-        <label>Tipo de fuente</label>
-        <select id="vigTipo"
-                onchange="vigCambiarTipo()">
+        <label>Tipo de dispositivo</label>
+        <select id="vuTipo">
           <option value="DVR/NVR">DVR / NVR</option>
           <option value="IP">Cámara IP</option>
         </select>
 
-        <label>Marca</label>
-        <select id="vigMarca">
-          <option>Hikvision</option>
-          <option>Dahua</option>
-          <option>ONVIF / genérico</option>
-          <option>Otra</option>
+        <label>Marca o fabricante</label>
+        <select id="vuMarca">
+          <option value="Automática / ONVIF">Automática / ONVIF</option>
+          <option value="Hikvision">Hikvision</option>
+          <option value="Dahua">Dahua</option>
+          <option value="Uniview">Uniview</option>
+          <option value="Axis">Axis</option>
+          <option value="Hanwha">Hanwha</option>
+          <option value="Vivotek">Vivotek</option>
+          <option value="Reolink">Reolink</option>
+          <option value="TP-Link VIGI">TP-Link VIGI</option>
+          <option value="Otra">Otra marca</option>
         </select>
 
-        <label>Modelo</label>
-        <input id="vigModelo"
-               placeholder="Modelo del equipo">
+        <label>Modelo (opcional)</label>
+        <input id="vuModelo"
+               maxlength="120"
+               placeholder="Modelo del dispositivo">
 
-        <label>Dirección IP o nombre del servidor</label>
-        <input id="vigIP"
-               placeholder="192.168.1.100">
+        <label>Número estimado de canales</label>
+        <input id="vuCanales"
+               type="number" min="1" max="64"
+               value="1">
+        <p class="note">
+          Este valor es provisional. No significa
+          que los canales estén detectados.
+        </p>
+      </div>
 
-        <div class="fields">
+      <div>
+        <h3>2. Datos de acceso</h3>
 
+        <label>Método de conexión</label>
+        <select id="vuMetodo"
+                onchange="vuCambiarMetodo()">
+          <option value="ONVIF/RTSP">
+            ONVIF / RTSP (red local o VPN)
+          </option>
+          <option value="SERVIDOR">
+            Servidor de video del cliente
+          </option>
+          <option value="HLS">
+            Video HLS por HTTPS
+          </option>
+          <option value="WEBRTC">
+            Servidor WebRTC
+          </option>
+        </select>
+
+        <label>Dirección IP o dominio del equipo</label>
+        <input id="vuIP"
+               placeholder="IP o nombre del servidor">
+
+        <div id="vuPuertosCaja" class="fields">
+          <div>
+            <label>Puerto ONVIF / HTTP</label>
+            <input id="vuPuertoONVIF"
+                   type="number" min="1"
+                   max="65535" value="80">
+          </div>
           <div>
             <label>Puerto RTSP</label>
-            <input id="vigPuerto"
-                   type="number"
-                   min="1"
-                   max="65535"
-                   value="554">
+            <input id="vuPuertoRTSP"
+                   type="number" min="1"
+                   max="65535" value="554">
           </div>
-
-          <div>
-            <label>Número de canales</label>
-            <input id="vigCanales"
-                   type="number"
-                   min="1"
-                   max="64"
-                   value="4">
-          </div>
-
         </div>
 
-        <div class="actions">
-
-          <button onclick="vigGuardarEquipo()">
-            Guardar equipo y crear canales
-          </button>
-
-          <button class="sec"
-                  onclick="vigLimpiarEquipo()">
-            Nuevo
-          </button>
-
-          <button class="sec"
-                  onclick="vigAbrirMotor()">
-            Probar señal / Buscar cámaras
-          </button>
-
+        <div id="vuServidorCaja" hidden>
+          <label>URL HTTPS de visualización</label>
+          <input id="vuURL"
+                 type="url"
+                 placeholder="https://servidor/video/index.m3u8">
+          <p class="note">
+            La URL debe proceder de un servicio
+            de video autorizado, sin claves
+            ni tokens incorporados.
+          </p>
         </div>
+
+        <h3>3. Credenciales del dispositivo</h3>
+
+        <label>Usuario</label>
+        <input id="vuUsuario"
+               autocomplete="off"
+               placeholder="Usuario autorizado">
+
+        <label>Contraseña</label>
+        <input id="vuClave"
+               type="password"
+               autocomplete="new-password"
+               placeholder="Contraseña del dispositivo">
 
         <p class="note">
-          Las credenciales de acceso se introducen
-          en el motor local, no en Google Sheets.
+          Por seguridad, estas credenciales
+          no se enviarán al GS ni se guardarán
+          en Google Sheets. La autenticación
+          automática requiere un conector seguro.
         </p>
-
       </div>
-
-      <div>
-
-        <h3>Equipos registrados</h3>
-
-        <div class="table">
-          <table>
-            <thead>
-              <tr>
-                <th>Equipo</th>
-                <th>Tipo</th>
-                <th>IP</th>
-                <th>Canales</th>
-                <th>Acción</th>
-              </tr>
-            </thead>
-
-            <tbody id="vigTablaEquipos"></tbody>
-
-          </table>
-        </div>
-
-        <p class="note">
-          Los canales se registran automáticamente.
-          El motor comprueba después cuáles tienen señal.
-        </p>
-
-      </div>
-
     </div>
 
-    <p id="motorMensaje"
-       class="note"
-       role="status"></p>
+    <div class="actions">
+      <button onclick="vuGuardarEquipo()">
+        Guardar configuración
+      </button>
+      <button class="sec" onclick="vuNuevo()">
+        Nuevo equipo
+      </button>
+      <button class="sec" onclick="vuProbarConexion()">
+        Probar conexión / Ver video
+      </button>
+      <button class="sec" onclick="vuActualizar()">
+        Actualizar equipos
+      </button>
+    </div>
 
+    <p id="vuMensaje" class="note" role="status"></p>
   </div>
 
-
   <div class="card">
-
-    <h2>2. Cámaras, canales y ubicaciones</h2>
-
+    <h3>Equipos registrados de esta empresa</h3>
     <div class="table">
-
       <table>
-
         <thead>
           <tr>
-            <th>Cámara</th>
             <th>Equipo</th>
-            <th>Canal</th>
-            <th>Ubicación</th>
-            <th>Reglas</th>
+            <th>Tipo</th>
+            <th>Marca</th>
+            <th>Dirección</th>
+            <th>Método</th>
+            <th>Estado</th>
             <th>Acción</th>
           </tr>
         </thead>
-
-        <tbody id="motorTablaCamaras"></tbody>
-
+        <tbody id="vuTabla"></tbody>
       </table>
-
     </div>
-
-    <p class="note">
-      Identifica visualmente cada cámara desde
-      el motor y asigna su ubicación.
-    </p>
-
   </div>
-
 
   <div class="card">
-
-    <h2>3. Control de vigilancia</h2>
-
+    <h3>Comprobación de video</h3>
     <p class="note">
-      El motor analiza archivos de video o
-      transmisiones RTSP accesibles desde la
-      computadora donde está instalado.
+      Se mostrará video cuando la fuente entregue
+      un formato compatible con Chrome.
+      RTSP requiere conversión a HLS o WebRTC.
     </p>
 
-    <div class="actions">
+    <video id="vuVideo"
+           controls playsinline muted hidden
+           style="max-height:420px"></video>
 
-      <button onclick="vigAbrirMotor()">
-        Probar / Iniciar / Detener vigilancia
-      </button>
-
-      <button class="sec"
-              onclick="mostrar('camaras')">
-        Configurar reglas
-      </button>
-
-      <button class="sec"
-              onclick="mostrar('escenarios')">
-        Definir zonas
-      </button>
-
-      <button class="sec"
-              onclick="mostrar('alertas')">
-        Alertas
-      </button>
-
-      <button class="sec"
-              onclick="mostrar('reportes')">
-        Reportes
-      </button>
-
-      <button class="sec"
-              onclick="vigActualizarPanel()">
-        Actualizar
-      </button>
-
-    </div>
-
-    <p class="note">
-      El panel local muestra el estado real
-      de la señal, los eventos detectados
-      y las evidencias disponibles.
+    <p id="vuEstadoVideo"
+       class="note" role="status">
+      Ninguna señal comprobada.
     </p>
 
+    <button class="sec" onclick="vuDetener()">
+      Detener video
+    </button>
   </div>
 
-
-  <!-- VIGÍA VIDEO: captura en navegador, independiente del motor local -->
-  <div class="card" id="vigCapturaPanel">
-    <h2>4. Captar y comprobar video en VIGÍA IA</h2>
-    <p class="note">
-      MP4 y cámara USB: reproducción directa.
-      Cámara IP: enlace HTTP(S) compatible con navegador.
-      RTSP requiere conversión.
-    </p>
-
-    <div class="fields">
-      <div>
-        <label>Fuente de video</label>
-       <select id="vfTipo" onchange="vfCambiarTipo()">
-  <option value="mp4">Archivo MP4 local</option>
-  <option value="usb">Cámara USB / webcam</option>
-  <option value="http">Video MP4 / WebM por HTTPS</option>
-  <option value="imagen">Imagen JPEG / MJPEG HTTP(S)</option>
-  <option value="hls">NVR / Cámara IP - HLS HTTPS</option>
-  <option value="rtsp">RTSP - requiere conector de video</option>
-        </select>
-      </div>
-      <div>
-        <label>Identificación visible</label>
-        <input id="vfNombre" placeholder="Cam 01 - Entrada">
-      </div>
-    </div>
-
-    <div id="vfArchivoCaja">
-      <label>Seleccionar video del equipo</label>
-      <input id="vfArchivo" type="file"
-             accept="video/mp4,video/webm,video/*"
-             onchange="vfCargarArchivo()">
-    </div>
-
-    <div id="vfUrlCaja" hidden>
-      <label>Enlace de reproducción sin contraseñas ni tokens</label>
-      <input id="vfUrl" type="url"
-             placeholder="https://servidor/video.mp4 o /imagen.jpg">
-    </div>
-
-    <div class="actions">
-      <button onclick="vfProbar()">Probar / Ver video</button>
-      <button class="sec" onclick="vfGuardar()">
-        Guardar fuente para esta empresa
-      </button>
-      <button class="sec" onclick="vfDetener()">
-        Detener vista previa
-      </button>
-      <button class="sec" onclick="vfListar()">
-        Actualizar fuentes
-      </button>
-    </div>
-
-    <p id="vfMensaje" class="note" role="status">
-      Selecciona un archivo MP4 para iniciar.
-    </p>
-
-    <video id="vfVideo" controls playsinline
-           preload="metadata" hidden
-           style="max-height:380px"></video>
-
-    <img id="vfImagen" alt="Vista previa de cámara"
-         hidden referrerpolicy="no-referrer"
-         style="max-width:100%;max-height:380px;border-radius:8px">
-
-    <div class="table">
-      <table>
-        <thead>
-          <tr>
-            <th>Fuente</th>
-            <th>Tipo</th>
-            <th>Dirección</th>
-            <th>Acción</th>
-          </tr>
-        </thead>
-        <tbody id="vfTabla"></tbody>
-      </table>
-    </div>
-
-    <p class="note">
-      Los archivos MP4 locales y las webcams no se guardan en
-      Sheets. Los enlaces HTTP(S) se registran sin credenciales.
-      Las cámaras HTTP pueden quedar bloqueadas desde una
-      aplicación HTTPS. La webcam necesita autorización.
-    </p>
-  </div>
 </section>
 
 <!-- FIN CONEXIONES IP/DVR -->
@@ -1047,7 +940,7 @@ video{width:100%;max-height:550px;background:#000;border-radius:8px;display:bloc
  Mantiene la entrada desde GitHub.
 */
 
-const GAS_URL = "https://script.google.com/macros/s/AKfycbyBONNI4aqtt4SHORXuo1EvKHsdX17mpn9-kEeGhL_R6aSuNPpOxkhHfkngLDQDpVPb/exec";
+const GAS_URL = "https://script.google.com/macros/s/AKfycbyAZRVgFnv1Zv6VElDOFGyR8uQeEFAd7Y6etceuSlZ60jEd7VU0xiWHdWM8ZjXoa-Ye/exec";
 
 const VERSION = "5.0";
 const $ = id => document.getElementById(id);
@@ -3615,493 +3508,423 @@ function exportarConfiguracionVigia(){
 // VIGÍA IA - CONEXIONES UNIVERSALES
 // ==========================================
 
-let vigEquipos = [];
 
-function vigMensaje(texto, error = false) {
+/* ============================================
+   VIGÍA IA - CONEXIÓN UNIVERSAL
+   Administración central sin duplicar módulos
+============================================ */
 
-  const el = $("motorMensaje");
+let vuEquipos = [];
+let vuHls = null;
+let vuHlsLoader = null;
 
+const vuEl = id => document.getElementById(id);
+
+function vuAviso(mensaje, error = false) {
+  const el = vuEl("vuMensaje");
   if (!el) return;
 
-  el.textContent = texto;
+  el.textContent = mensaje;
   el.className = error ? "err" : "note";
-
 }
 
-
 // ==========================================
-// ABRIR MOTOR DE VIGILANCIA
+// CAMBIAR MÉTODO DE CONEXIÓN
 // ==========================================
 
-function vigAbrirMotor() {
+function vuCambiarMetodo() {
 
-  window.open(
-    "http://127.0.0.1:8765/",
-    "_blank",
-    "noopener"
-  );
+  const metodo = vuEl("vuMetodo").value;
+  const redLocal = metodo === "ONVIF/RTSP";
 
-  vigMensaje(
-    "Se abrirá el motor si está instalado y encendido."
-  );
+  vuEl("vuPuertosCaja").hidden = !redLocal;
+  vuEl("vuServidorCaja").hidden = redLocal;
 
+  vuEl("vuURL").placeholder =
+    metodo === "HLS"
+      ? "https://servidor/canal/index.m3u8"
+      : "https://servidor-de-video";
 }
 
-
 // ==========================================
-// TIPO DE CONEXIÓN
-// ==========================================
-
-function vigCambiarTipo() {
-
-  if (v("vigTipo") === "IP") {
-
-    $("vigCanales").value = "1";
-
-  }
-
-}
-
-
-// ==========================================
-// LIMPIAR FORMULARIO
+// NUEVO EQUIPO
 // ==========================================
 
-function vigLimpiarEquipo() {
+function vuNuevo() {
 
-  ["vigEquipo", "vigModelo", "vigIP"].forEach(id => {
-    $(id).value = "";
+  [
+    "vuEquipoID",
+    "vuNombre",
+    "vuModelo",
+    "vuIP",
+    "vuURL",
+    "vuUsuario",
+    "vuClave"
+  ].forEach(id => {
+    vuEl(id).value = "";
   });
 
-  $("vigTipo").value = "DVR/NVR";
-  $("vigMarca").value = "Hikvision";
-  $("vigPuerto").value = "554";
-  $("vigCanales").value = "4";
+  vuEl("vuTipo").value = "DVR/NVR";
+  vuEl("vuMarca").value = "Automática / ONVIF";
+  vuEl("vuMetodo").value = "ONVIF/RTSP";
+  vuEl("vuPuertoONVIF").value = "80";
+  vuEl("vuPuertoRTSP").value = "554";
+  vuEl("vuCanales").value = "1";
 
+  vuCambiarMetodo();
+  vuAviso("Formulario preparado.");
 }
 
+// ==========================================
+// VALIDAR URL DE VIDEO
+// ==========================================
+
+function vuValidarUrl(texto) {
+
+  let url;
+
+  try {
+    url = new URL(texto);
+  } catch (_) {
+    throw Error("Introduce una URL válida.");
+  }
+
+  if (
+    url.protocol !== "https:" ||
+    url.username ||
+    url.password ||
+    url.search ||
+    url.hash
+  ) {
+    throw Error(
+      "Utiliza HTTPS sin usuarios, contraseñas, " +
+      "tokens ni parámetros en la URL."
+    );
+  }
+
+  return url.href;
+}
 
 // ==========================================
-// GUARDAR EQUIPO Y CREAR CANALES
+// RECOGER Y VALIDAR CAMPOS
 // ==========================================
 
-async function vigGuardarEquipo() {
+function vuRegistro() {
 
   const empresaID = v("empresaActual");
 
   if (!empresaID) {
-    vigMensaje("Selecciona una empresa.", true);
-    return;
+    throw Error("Selecciona una empresa.");
   }
 
-  const registro = {
+  const nombre = vuEl("vuNombre").value.trim();
+  const ip = vuEl("vuIP").value.trim();
+  const metodo = vuEl("vuMetodo").value;
 
-    empresaID: empresaID,
-    nombre: v("vigEquipo"),
-    tipo: v("vigTipo"),
-    marca: v("vigMarca"),
-    modelo: v("vigModelo"),
-    ip: v("vigIP"),
-    puerto: Number(v("vigPuerto")),
-    canales: Number(v("vigCanales"))
+  if (!nombre || !ip) {
+    throw Error(
+      "Completa nombre y dirección del equipo."
+    );
+  }
 
+  if (
+    !/^[a-zA-Z0-9][a-zA-Z0-9.-]{0,252}$/.test(ip)
+  ) {
+    throw Error(
+      "Introduce una IP o dominio, sin http:// " +
+      "ni credenciales."
+    );
+  }
+
+  const rtsp = Number(
+    vuEl("vuPuertoRTSP").value
+  );
+
+  const onvif = Number(
+    vuEl("vuPuertoONVIF").value
+  );
+
+  const canales = Number(
+    vuEl("vuCanales").value
+  );
+
+  if (
+    !Number.isInteger(canales) ||
+    canales < 1 ||
+    canales > 64
+  ) {
+    throw Error(
+      "El número estimado de canales debe estar " +
+      "entre 1 y 64."
+    );
+  }
+
+  if (
+    [rtsp, onvif].some(n =>
+      !Number.isInteger(n) ||
+      n < 1 ||
+      n > 65535
+    )
+  ) {
+    throw Error("Uno de los puertos es inválido.");
+  }
+
+  let url = "";
+
+  if (metodo !== "ONVIF/RTSP") {
+
+    const entrada = vuEl("vuURL").value.trim();
+
+    if (!entrada) {
+      throw Error(
+        "Introduce la URL HTTPS del servidor de video."
+      );
+    }
+
+    url = vuValidarUrl(entrada);
+
+    if (
+      metodo === "HLS" &&
+      !/\.m3u8$/i.test(new URL(url).pathname)
+    ) {
+      throw Error(
+        "La dirección HLS debe terminar en .m3u8."
+      );
+    }
+  }
+
+  return {
+    empresaID,
+
+    registro: {
+      empresaID,
+      nombre,
+      tipo: vuEl("vuTipo").value,
+      marca: vuEl("vuMarca").value,
+      modelo: vuEl("vuModelo").value.trim(),
+      ip,
+      puerto: rtsp,
+      canales
+    },
+
+    config: {
+      metodo,
+      puertoONVIF: onvif,
+      puertoRTSP: rtsp,
+      url
+    }
   };
+}
 
-  if (!registro.nombre || !registro.ip) {
+// ==========================================
+// GUARDAR EQUIPO Y CONFIGURACIÓN
+// ==========================================
 
-    vigMensaje(
-      "Introduce nombre y dirección del equipo.",
-      true
-    );
-
-    return;
-  }
-
-  if (
-    !Number.isInteger(registro.puerto) ||
-    registro.puerto < 1 ||
-    registro.puerto > 65535
-  ) {
-
-    vigMensaje("Puerto inválido.", true);
-    return;
-  }
-
-  if (
-    !Number.isInteger(registro.canales) ||
-    registro.canales < 1 ||
-    registro.canales > 64
-  ) {
-
-    vigMensaje(
-      "La cantidad debe estar entre 1 y 64 canales.",
-      true
-    );
-
-    return;
-  }
+async function vuGuardarEquipo() {
 
   try {
 
-    vigMensaje("Guardando equipo y creando canales...");
+    const p = vuRegistro();
 
-    const respuesta = await api(
+    vuAviso("Guardando configuración...");
+
+    const equipo = await api(
       "vigGuardarEquipo",
-      { registro }
+      { registro: p.registro }
     );
 
-    const canales = await api(
-      "vigCrearCanales",
-      {
-        empresaID,
-        equipoID: respuesta.id
-      }
+    await api("vuGuardarConfig", {
+      empresaID: p.empresaID,
+      equipoID: equipo.id,
+      ...p.config
+    });
+
+    // Nunca enviar ni conservar contraseñas
+    // en Google Sheets.
+    vuEl("vuUsuario").value = "";
+    vuEl("vuClave").value = "";
+    vuEl("vuEquipoID").value = equipo.id;
+
+    await vuActualizar();
+
+    vuAviso(
+      "Equipo registrado. La señal y autenticación " +
+      "todavía no están verificadas. " +
+      "Las credenciales no fueron guardadas."
     );
-
-    await recargar(true, empresaID);
-    await vigActualizarPanel();
-
-    vigMensaje(
-      "Equipo guardado. Canales nuevos: " +
-      canales.creadas +
-      ". Señal pendiente de verificar."
-    );
-
-    vigLimpiarEquipo();
 
   } catch (error) {
-
-    vigMensaje(error.message, true);
-
+    vuAviso(error.message, true);
   }
-
 }
 
-
 // ==========================================
-// CONSULTAR EQUIPOS
+// CONSULTAR EQUIPOS DE LA EMPRESA
 // ==========================================
 
-async function vigActualizarPanel() {
+async function vuActualizar() {
 
   const empresaID = v("empresaActual");
+  const tabla = vuEl("vuTabla");
+
+  if (!tabla) return;
+
+  tabla.replaceChildren();
 
   if (!empresaID) {
-    vigEquipos = [];
-    vigPintarEquipos();
+    vuEquipos = [];
     return;
   }
 
   try {
 
     const respuesta = await api(
-      "vigListarEquipos",
+      "vuListarConfig",
       { empresaID }
     );
 
-    vigEquipos = respuesta.equipos || [];
+    vuEquipos = respuesta.equipos || [];
 
-    vigPintarEquipos();
+    for (const equipo of vuEquipos) {
 
-    await pintarConexionesMotor();
+      const fila = document.createElement("tr");
 
-  } catch (error) {
+      [
+        equipo.Nombre,
+        equipo.Tipo,
+        equipo.Marca || "",
+        equipo.IP,
+        equipo.Metodo || "Sin configurar",
+        "No verificado"
+      ].forEach(valor => {
 
-    vigMensaje(error.message, true);
+        const td = document.createElement("td");
+        td.textContent = valor;
+        fila.appendChild(td);
 
-  }
+      });
 
-}
+      const acciones = document.createElement("td");
+      const boton = document.createElement("button");
 
+      boton.textContent = "Editar";
+      boton.className = "sec";
+      boton.onclick = () => vuEditar(equipo);
 
-// ==========================================
-// TABLA DE EQUIPOS
-// ==========================================
+      acciones.appendChild(boton);
+      fila.appendChild(acciones);
+      tabla.appendChild(fila);
+    }
 
-function vigPintarEquipos() {
+    if (!vuEquipos.length) {
 
-  const tabla = $("vigTablaEquipos");
+      const fila = document.createElement("tr");
+      const td = document.createElement("td");
 
-  if (!tabla) return;
+      td.colSpan = 7;
+      td.textContent =
+        "No hay equipos registrados para esta empresa.";
 
-  tabla.replaceChildren();
-
-  vigEquipos.forEach(equipo => {
-
-    const tr = document.createElement("tr");
-
-    celda(tr, equipo.Nombre);
-    celda(tr, equipo.Tipo);
-    celda(tr, equipo.IP);
-    celda(tr, equipo.Canales);
-
-    const td = document.createElement("td");
-
-    const botonCrear = document.createElement("button");
-
-    botonCrear.textContent = "Crear canales";
-    botonCrear.className = "sec";
-
-    botonCrear.onclick = () => {
-      vigCrearCanales(equipo.ID);
-    };
-
-    td.appendChild(botonCrear);
-    tr.appendChild(td);
-    tabla.appendChild(tr);
-
-  });
-
-  if (!vigEquipos.length) {
-
-    const tr = document.createElement("tr");
-    const td = document.createElement("td");
-
-    td.colSpan = 5;
-    td.textContent = "No hay equipos registrados.";
-
-    tr.appendChild(td);
-    tabla.appendChild(tr);
-
-  }
-
-}
-
-
-// ==========================================
-// CREAR CANALES EXISTENTES O FALTANTES
-// ==========================================
-
-async function vigCrearCanales(equipoID) {
-
-  try {
-
-    const empresaID = v("empresaActual");
-
-    const respuesta = await api(
-      "vigCrearCanales",
-      {
-        empresaID,
-        equipoID
-      }
-    );
-
-    await recargar(true, empresaID);
-    await vigActualizarPanel();
-
-    vigMensaje(
-      "Canales nuevos: " + respuesta.creadas
-    );
+      fila.appendChild(td);
+      tabla.appendChild(fila);
+    }
 
   } catch (error) {
-
-    vigMensaje(error.message, true);
-
+    vuAviso(error.message, true);
   }
-
 }
 
-
 // ==========================================
-// MOSTRAR CÁMARAS
+// EDITAR EQUIPO
 // ==========================================
 
-async function pintarConexionesMotor() {
+function vuEditar(equipo) {
 
-  const tabla = $("motorTablaCamaras");
+  vuEl("vuEquipoID").value = equipo.ID;
+  vuEl("vuNombre").value = equipo.Nombre || "";
+  vuEl("vuTipo").value = equipo.Tipo || "DVR/NVR";
 
-  if (!tabla) return;
+  const marcaExiste = [
+    ...vuEl("vuMarca").options
+  ].some(op => op.value === equipo.Marca);
 
-  tabla.replaceChildren();
+  vuEl("vuMarca").value = marcaExiste
+    ? equipo.Marca
+    : "Otra";
 
-  const empresaID = v("empresaActual");
+  vuEl("vuModelo").value = equipo.Modelo || "";
+  vuEl("vuIP").value = equipo.IP || "";
 
-  if (!empresaID) return;
+  vuEl("vuCanales").value = equipo.Canales || 1;
 
-  const respuesta = await api(
-    "vigListarCanales",
-    { empresaID }
+  vuEl("vuMetodo").value =
+    equipo.Metodo || "ONVIF/RTSP";
+
+  vuEl("vuPuertoONVIF").value =
+    equipo.PuertoONVIF || 80;
+
+  vuEl("vuPuertoRTSP").value =
+    equipo.PuertoRTSP || 554;
+
+  vuEl("vuURL").value = equipo.URLVideo || "";
+
+  vuEl("vuUsuario").value = "";
+  vuEl("vuClave").value = "";
+
+  vuCambiarMetodo();
+
+  vuAviso(
+    "Editando configuración. " +
+    "Las contraseñas no están almacenadas."
   );
-
-  const canales = respuesta.canales || [];
-
-  for (const camara of canales) {
-
-    const tr = document.createElement("tr");
-
-    const equipo = vigEquipos.find(e =>
-      String(e.ID) === String(camara.EquipoID)
-    );
-
-    const reglas = reglasEmpresa().filter(r =>
-      norm(r.CamaraID) === norm(camara.Camara)
-    );
-
-    celda(tr, camara.Camara);
-    celda(tr, equipo ? equipo.Nombre : camara.EquipoID);
-    celda(tr, camara.Canal);
-    celda(tr, camara.Ubicacion);
-    celda(tr, reglas.length);
-
-    const td = document.createElement("td");
-    const btn = document.createElement("button");
-
-    btn.textContent = "Asignar ubicación";
-    btn.className = "sec";
-
-    btn.onclick = () => {
-      vigAsignarUbicacion(camara);
-    };
-
-    td.appendChild(btn);
-    tr.appendChild(td);
-    tabla.appendChild(tr);
-
-  }
-
-  if (!canales.length) {
-
-    const tr = document.createElement("tr");
-    const td = document.createElement("td");
-
-    td.colSpan = 6;
-    td.textContent =
-      "Registra un equipo para crear las cámaras.";
-
-    tr.appendChild(td);
-    tabla.appendChild(tr);
-
-  }
-
 }
 
-
 // ==========================================
-// ACTUALIZAR UBICACIÓN
+// DETENER VIDEO
 // ==========================================
 
-async function vigAsignarUbicacion(camara) {
+function vuDetener() {
 
-  const nueva = prompt(
-    "Ubicación de " + camara.Camara,
-    camara.Ubicacion === "Sin asignar"
-      ? ""
-      : camara.Ubicacion
-  );
-
-  if (nueva === null) return;
-
-  if (!nueva.trim()) {
-
-    vigMensaje("Escribe una ubicación.", true);
-    return;
+  if (vuHls) {
+    vuHls.destroy();
+    vuHls = null;
   }
 
-  try {
+  const video = vuEl("vuVideo");
 
-    const empresaID = v("empresaActual");
+  if (!video) return;
 
-    await api(
-      "vigActualizarUbicacion",
-      {
-        empresaID,
-        camara: camara.Camara,
-        ubicacion: nueva.trim()
-      }
-    );
-
-    await recargar(true, empresaID);
-    await vigActualizarPanel();
-
-    vigMensaje("Ubicación guardada.");
-
-  } catch (error) {
-
-    vigMensaje(error.message, true);
-
-  }
-
+  video.pause();
+  video.removeAttribute("src");
+  video.load();
+  video.hidden = true;
 }
-
 
 // ==========================================
-// CARGAR AL ABRIR LA PESTAÑA
+// CARGAR REPRODUCTOR HLS
 // ==========================================
 
+function vuLibreriaHls() {
 
-/* VIGÍA VIDEO — Captura desde HTML */
-
-// ==============================================
-// VIGÍA IA - REPRODUCTOR MULTIMARCA
-// MP4 / WEBCAM / JPEG / MJPEG / HLS
-// ==============================================
-
-let vfURLLocal = null;
-let vfStream = null;
-let vfHls = null;
-let vfHlsPromise = null;
-
-const vfEl = id => document.getElementById(id);
-
-function vfAviso(m, error = false) {
-  const el = vfEl("vfMensaje");
-  el.textContent = m;
-  el.className = error ? "err" : "ok";
-}
-
-// ==============================================
-// SELECCIÓN DE FUENTE
-// ==============================================
-
-function vfCambiarTipo() {
-  const tipo = vfEl("vfTipo").value;
-
-  vfEl("vfArchivoCaja").hidden = tipo !== "mp4";
-
-  vfEl("vfUrlCaja").hidden =
-    !["http", "imagen", "hls", "rtsp"].includes(tipo);
-
-  if (tipo === "hls") {
-    vfAviso(
-      "Introduce la URL HTTPS .m3u8 proporcionada " +
-      "por el conector de cámaras."
-    );
-  } else if (tipo === "rtsp") {
-    vfAviso(
-      "RTSP necesita un conector que convierta la " +
-      "señal a HLS o WebRTC.",
-      true
-    );
-  } else {
-    vfAviso("Selecciona una fuente para probar.");
-  }
-}
-
-// ==============================================
-// CARGAR REPRODUCTOR HLS.JS
-// ==============================================
-
-function vfCargarHls() {
   if (window.Hls) {
     return Promise.resolve(window.Hls);
   }
 
-  if (vfHlsPromise) {
-    return vfHlsPromise;
+  if (vuHlsLoader) {
+    return vuHlsLoader;
   }
 
-  vfHlsPromise = new Promise((resolve, reject) => {
+  vuHlsLoader = new Promise((resolve, reject) => {
+
     const script = document.createElement("script");
 
     script.src =
       "https://cdn.jsdelivr.net/npm/hls.js@1.6.15/dist/hls.min.js";
 
     script.onload = () => {
-      if (window.Hls) {
-        resolve(window.Hls);
-      } else {
-        reject(Error("No se encontró HLS.js."));
-      }
+      window.Hls
+        ? resolve(window.Hls)
+        : reject(Error("HLS.js no disponible."));
     };
 
     script.onerror = () => {
@@ -4109,462 +3932,132 @@ function vfCargarHls() {
     };
 
     document.head.appendChild(script);
+
   }).catch(error => {
-    vfHlsPromise = null;
+    vuHlsLoader = null;
     throw error;
   });
 
-  return vfHlsPromise;
+  return vuHlsLoader;
 }
 
-// ==============================================
-// DETENER VIDEO Y LIBERAR RECURSOS
-// ==============================================
+// ==========================================
+// PROBAR CONEXIÓN / VER VIDEO REAL
+// ==========================================
 
-function vfDetener() {
-  if (vfHls) {
-    vfHls.destroy();
-    vfHls = null;
-  }
+async function vuProbarConexion() {
 
-  const video = vfEl("vfVideo");
-
-  video.pause();
-  video.removeAttribute("src");
-  video.srcObject = null;
-  video.load();
-  video.hidden = true;
-
-  const img = vfEl("vfImagen");
-
-  img.removeAttribute("src");
-  img.hidden = true;
-
-  if (vfStream) {
-    vfStream.getTracks().forEach(track => {
-      track.stop();
-    });
-    vfStream = null;
-  }
-
-  if (vfURLLocal) {
-    URL.revokeObjectURL(vfURLLocal);
-    vfURLLocal = null;
-  }
-}
-
-// ==============================================
-// REPRODUCIR MP4 LOCAL
-// ==============================================
-
-function vfCargarArchivo() {
-  vfDetener();
-
-  const archivo = vfEl("vfArchivo").files[0];
-
-  if (!archivo) {
-    vfAviso("Selecciona un archivo MP4 o WebM.", true);
-    return;
-  }
-
-  if (!archivo.type.startsWith("video/")) {
-    vfAviso("El archivo no es un video válido.", true);
-    return;
-  }
-
-  vfURLLocal = URL.createObjectURL(archivo);
-
-  const video = vfEl("vfVideo");
-
-  video.src = vfURLLocal;
-  video.hidden = false;
-
-  video.play().catch(() => {});
-
-  vfAviso("Video cargado: " + archivo.name);
-}
-
-// ==============================================
-// VALIDAR DIRECCIONES
-// ==============================================
-
-function vfDireccion(texto) {
-  let url;
+  vuDetener();
 
   try {
-    url = new URL(String(texto || "").trim());
-  } catch (_) {
-    throw Error("Introduce una dirección válida.");
-  }
 
-  if (
-    !["https:", "http:"].includes(url.protocol) ||
-    url.username ||
-    url.password ||
-    url.search ||
-    url.hash
-  ) {
-    throw Error(
-      "Usa una dirección HTTP(S) sin contraseñas, " +
-      "tokens, parámetros ni fragmentos."
-    );
-  }
+    const p = vuRegistro();
+    const metodo = p.config.metodo;
+    const estado = vuEl("vuEstadoVideo");
 
-  return url.href;
-}
+    if (metodo !== "HLS") {
 
-// ==============================================
-// VISTA PREVIA UNIVERSAL
-// ==============================================
+      estado.textContent =
+        "Pendiente de conector autenticado " +
+        "con acceso a la red del dispositivo.";
 
-async function vfProbar() {
-  try {
-    const tipo = vfEl("vfTipo").value;
-
-    if (tipo === "mp4") {
-      vfCargarArchivo();
-      return;
-    }
-
-    vfDetener();
-
-    // CÁMARA USB
-    if (tipo === "usb") {
-      if (!navigator.mediaDevices?.getUserMedia) {
-        throw Error(
-          "No se puede acceder a la webcam. " +
-          "Comprueba HTTPS y permisos."
-        );
-      }
-
-      vfStream = await navigator.mediaDevices
-        .getUserMedia({
-          video: true,
-          audio: false
-        });
-
-      const video = vfEl("vfVideo");
-
-      video.srcObject = vfStream;
-      video.hidden = false;
-
-      await video.play();
-
-      vfAviso("Webcam conectada correctamente.");
-      return;
-    }
-
-    // RTSP NO ES NATIVO DE CHROME
-    if (tipo === "rtsp") {
-      throw Error(
-        "Chrome no admite RTSP directo. " +
-        "El conector debe entregar una URL HLS HTTPS."
+      vuAviso(
+        "HTML y GS no pueden probar directamente " +
+        "ONVIF, RTSP, WebRTC ni el servidor " +
+        "propietario del cliente. " +
+        "Se necesita integrar el conector seguro.",
+        true
       );
-    }
-
-    const url = vfDireccion(
-      vfEl("vfUrl").value
-    );
-
-    if (
-      location.protocol === "https:" &&
-      url.startsWith("http:")
-    ) {
-      throw Error(
-        "La aplicación HTTPS no debe cargar " +
-        "video desde una dirección HTTP insegura."
-      );
-    }
-
-    // ==========================================
-    // HLS - CAMARAS IP Y NVR
-    // ==========================================
-
-    if (tipo === "hls") {
-      const direccion = new URL(url);
-
-      if (
-        direccion.protocol !== "https:" ||
-        !/\.m3u8$/i.test(direccion.pathname)
-      ) {
-        throw Error(
-          "La URL HLS debe comenzar con https:// " +
-          "y terminar en .m3u8."
-        );
-      }
-
-      const video = vfEl("vfVideo");
-
-      video.hidden = false;
-      video.muted = true;
-      video.playsInline = true;
-
-      vfAviso("Conectando con la señal HLS...");
-
-      // Navegadores con HLS nativo
-      if (
-        video.canPlayType(
-          "application/vnd.apple.mpegurl"
-        )
-      ) {
-        video.src = url;
-
-        video.onplaying = () => {
-          vfAviso("Transmisión HLS activa.");
-        };
-
-        video.onerror = () => {
-          vfAviso(
-            "No se pudo abrir la transmisión HLS.",
-            true
-          );
-        };
-
-        await video.play().catch(() => {});
-        return;
-      }
-
-      // Chrome mediante HLS.js
-      const Hls = await vfCargarHls();
-
-      if (!Hls.isSupported()) {
-        throw Error(
-          "Este navegador no soporta HLS."
-        );
-      }
-
-      vfHls = new Hls({
-        enableWorker: true,
-        lowLatencyMode: true
-      });
-
-      vfHls.on(
-        Hls.Events.ERROR,
-        (evento, datos) => {
-          if (datos.fatal) {
-            vfAviso(
-              "Error HLS: " + datos.details +
-              ". Revisa señal, autorización y CORS.",
-              true
-            );
-          }
-        }
-      );
-
-      vfHls.on(
-        Hls.Events.MANIFEST_PARSED,
-        () => {
-          video.play().catch(() => {
-            vfAviso(
-              "Se recibió el video. " +
-              "Presiona ▶ para reproducir."
-            );
-          });
-        }
-      );
-
-      video.onplaying = () => {
-        vfAviso("Transmisión HLS activa.");
-      };
-
-      vfHls.loadSource(url);
-      vfHls.attachMedia(video);
 
       return;
     }
 
-    // ==========================================
-    // JPEG / MJPEG
-    // ==========================================
+    const url = p.config.url;
+    const video = vuEl("vuVideo");
 
-    if (tipo === "imagen") {
-      const img = vfEl("vfImagen");
+    estado.textContent =
+      "Solicitando transmisión HLS...";
 
-      img.onload = () => {
-        vfAviso("Imagen recibida correctamente.");
-      };
-
-      img.onerror = () => {
-        vfAviso(
-          "No se pudo recibir la imagen. " +
-          "Comprueba dirección y permisos.",
-          true
-        );
-      };
-
-      img.src = url;
-      img.hidden = false;
-      return;
-    }
-
-    // ==========================================
-    // MP4 / WEBM POR URL
-    // ==========================================
-
-    const video = vfEl("vfVideo");
-
-    video.src = url;
     video.hidden = false;
 
     video.onplaying = () => {
-      vfAviso("Video reproduciéndose.");
+      estado.textContent =
+        "Video HLS reproduciéndose.";
+
+      vuAviso("Se recibe video correctamente.");
     };
 
     video.onerror = () => {
-      vfAviso(
-        "No se pudo reproducir el video.",
-        true
-      );
+      estado.textContent =
+        "Error de reproducción. " +
+        "Comprueba acceso, formato y permisos.";
     };
 
-    await video.play().catch(() => {});
+    // HLS nativo
+    if (
+      video.canPlayType(
+        "application/vnd.apple.mpegurl"
+      )
+    ) {
 
-  } catch (error) {
-    vfAviso(error.message, true);
-  }
-}
+      video.src = url;
 
-// ==============================================
-// GUARDAR FUENTE POR EMPRESA
-// ==============================================
-
-async function vfGuardar() {
-  try {
-    const empresaID = v("empresaActual");
-    const tipo = vfEl("vfTipo").value;
-
-    if (!empresaID) {
-      throw Error("Selecciona una empresa.");
-    }
-
-    if (["mp4", "usb"].includes(tipo)) {
-      throw Error(
-        "Los archivos locales y webcams " +
-        "no se guardan como fuentes permanentes."
-      );
-    }
-
-    if (tipo === "rtsp") {
-      throw Error(
-        "Convierte RTSP a HLS antes de guardar."
-      );
-    }
-
-    const nombre = vfEl("vfNombre").value.trim();
-
-    if (!nombre) {
-      throw Error("Introduce el nombre de la fuente.");
-    }
-
-    const url = vfDireccion(
-      vfEl("vfUrl").value
-    );
-
-    if (tipo === "hls") {
-      const direccion = new URL(url);
-
-      if (
-        direccion.protocol !== "https:" ||
-        !/\.m3u8$/i.test(direccion.pathname)
-      ) {
-        throw Error(
-          "La URL HLS requiere HTTPS y .m3u8."
-        );
-      }
-    }
-
-    await api("vfGuardarFuente", {
-      empresaID,
-      nombre,
-      tipo,
-      url
-    });
-
-    vfAviso(
-      "Fuente guardada. La señal aún debe verificarse."
-    );
-
-    await vfListar();
-
-  } catch (error) {
-    vfAviso(error.message, true);
-  }
-}
-
-// ==============================================
-// MOSTRAR FUENTES GUARDADAS
-// ==============================================
-
-async function vfListar() {
-  const tbody = vfEl("vfTabla");
-  tbody.replaceChildren();
-
-  try {
-    const empresaID = v("empresaActual");
-
-    if (!empresaID) return;
-
-    const res = await api("vfListarFuentes", {
-      empresaID
-    });
-
-    for (const fuente of res.fuentes || []) {
-      const fila = document.createElement("tr");
-
-      [
-        fuente.Nombre,
-        fuente.Tipo,
-        fuente.URL
-      ].forEach(valor => {
-        const celda = document.createElement("td");
-
-        celda.textContent = valor;
-        fila.appendChild(celda);
+      await video.play().catch(() => {
+        estado.textContent =
+          "Presiona ▶ para iniciar.";
       });
 
-      const acciones = document.createElement("td");
-      const boton = document.createElement("button");
-
-      boton.textContent = "Ver";
-      boton.className = "sec";
-
-      boton.onclick = () => {
-        const selector = vfEl("vfTipo");
-
-        if (
-          !Array.from(selector.options)
-            .some(op => op.value === fuente.Tipo)
-        ) {
-          vfAviso(
-            "Tipo de fuente no reconocido.",
-            true
-          );
-          return;
-        }
-
-        selector.value = fuente.Tipo;
-
-        vfCambiarTipo();
-
-        vfEl("vfNombre").value = fuente.Nombre;
-        vfEl("vfUrl").value = fuente.URL;
-
-        vfProbar();
-      };
-
-      acciones.appendChild(boton);
-      fila.appendChild(acciones);
-      tbody.appendChild(fila);
+      return;
     }
 
+    // HLS.js
+    const Hls = await vuLibreriaHls();
+
+    if (!Hls.isSupported()) {
+      throw Error(
+        "El navegador no es compatible con HLS."
+      );
+    }
+
+    vuHls = new Hls();
+
+    vuHls.on(
+      Hls.Events.ERROR,
+      (_, datos) => {
+        if (datos.fatal) {
+          estado.textContent =
+            "Error de transmisión: " +
+            datos.details;
+        }
+      }
+    );
+
+    vuHls.on(
+      Hls.Events.MANIFEST_PARSED,
+      () => {
+        video.play().catch(() => {
+          estado.textContent =
+            "Se recibió el manifiesto. Presiona ▶.";
+        });
+      }
+    );
+
+    vuHls.loadSource(url);
+    vuHls.attachMedia(video);
+
   } catch (error) {
-    vfAviso(error.message, true);
+
+    vuEl("vuEstadoVideo").textContent =
+      error.message;
+
+    vuAviso(error.message, true);
   }
 }
 
-// ==============================================
-// FIN REPRODUCTOR MULTIMARCA
-// ============================================== 
+// ==========================================
+// ACTUALIZACIÓN DE LA PESTAÑA
+// ==========================================
+
 const vigMostrarOriginal = mostrar;
 
 mostrar = function(id) {
@@ -4572,10 +4065,8 @@ mostrar = function(id) {
   vigMostrarOriginal(id);
 
   if (id === "conexiones") {
-    vigActualizarPanel();
-    vfListar();
+    vuActualizar();
   }
-
 };
 
 // ==========================================
