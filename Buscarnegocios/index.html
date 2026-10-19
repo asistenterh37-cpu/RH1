@@ -188,7 +188,7 @@ Los datos editados se guardan en este navegador.
 // implementación ACTUALIZADA del nuevo Código.gs.
 // Se conserva la URL de tu último archivo adjunto.
 const API_URL =
-"https://script.google.com/macros/s/AKfycbx-auZ2yt3gmBZ6BVUANVVFxgL7yczwM2MQvlOG0wvCqA6-P-M5sq5XVuGloTaaazodTw/exec";
+"https://script.google.com/macros/s/AKfycbyMhNgX5WHz0wJHm7JKpfSqqGu0ID3JudCUXc-n7x8NURsQt84iT6dbhJvi-Gw5PuZqxA/exec";
 
 const STORAGE="OportunIA_Empleos_v4";
 let registros=[];
@@ -428,12 +428,23 @@ async function buscar(){
   guardar();
   mostrar();
 
-  mensaje("✅ Búsqueda finalizada. "+
-   nuevas+" oportunidades nuevas. "+
-   "Resultados válidos recibidos: "+(data.total||0)+
-   (data.avisos?.length?
-    "\nAvisos: "+data.avisos.join(" | "):""),
-   "ok");
+  
+const diag = data.diagnostico || {};
+
+mensaje(
+  "✅ Búsqueda terminada. " +
+  nuevas + " oportunidades nuevas.\n" +
+  "Ofertas aceptadas: " + (data.total || 0) + "\n" +
+  "Candidatos iniciales: " + (diag.candidatos ?? 0) + "\n" +
+  "Páginas revisadas: " + (diag.verificaciones ?? 0) + "\n" +
+  "Páginas no verificadas: " +
+    (diag.noVerificadas ?? 0) +
+  ((data.avisos || []).length
+    ? "\nAvisos: " + data.avisos.join(" | ")
+    : ""),
+  "ok"
+);
+
 
  }catch(e){
   mensaje("❌ "+e.message,"error");
