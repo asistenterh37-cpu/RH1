@@ -3059,7 +3059,7 @@ tr{
 <script>
 
 const SCRIPT_URL =
-'https://script.google.com/macros/s/AKfycbya2n8UBpIyvU9TPg6BLCNfWU67-4J_tlEAROvhBqHS6IzQvYzW5ae3bs1rcmdLGPZa/exec';
+'https://script.google.com/macros/s/AKfycbz88yeaGGlxy0vnsxFlBGwif0mX7DYFKGXL0Mn7mw8MgByPpWIrqsbyXx0GSg6azENm/exec';
 
 </script>
 
@@ -3870,8 +3870,114 @@ const SCRIPT_URL =
     Cambiar turno
   </button>
 
+  <button
+    class="btn btn-primary"
+    type="button"
+    onclick="abrirGestionCatalogo('empleados')"
+  >
+    Empleados
+  </button>
+
+  <button
+    class="btn btn-primary"
+    type="button"
+    onclick="abrirGestionCatalogo('clientes')"
+  >
+    Clientes
+  </button>
+
+  <button
+    class="btn btn-primary"
+    type="button"
+    onclick="abrirGestionCatalogo('proveedores')"
+  >
+    Proveedores
+  </button>
+
 </div>
 </div>
+
+ <!-- ======================================================
+ ADMINISTRACION DE CATALOGOS
+====================================================== -->
+
+<div id="gestionCatalogosModal"
+     style="
+       display:none;
+       position:fixed;
+       inset:0;
+       background:rgba(0,0,0,.55);
+       z-index:9999;
+       align-items:center;
+       justify-content:center;
+       padding:15px;
+     ">
+
+  <div style="
+       background:white;
+       border-radius:16px;
+       padding:22px;
+       width:100%;
+       max-width:530px;
+       max-height:90vh;
+       overflow:auto;
+       box-shadow:0 15px 45px rgba(0,0,0,.2);
+     ">
+
+    <h2 id="gestionCatalogosTitulo">
+      Administración
+    </h2>
+
+    <p>Agregar nuevo registro</p>
+
+    <div style="display:flex;gap:8px;">
+      <input
+        id="gestionCatalogosNombre"
+        type="text"
+        maxlength="150"
+        placeholder="Escribe el nombre"
+        class="cell-input"
+        style="flex:1;"
+      >
+
+      <button
+        id="gestionCatalogosAgregar"
+        class="btn btn-primary"
+        type="button"
+        onclick="agregarRegistroCatalogo()"
+      >
+        Agregar
+      </button>
+    </div>
+
+    <h3>Registros existentes</h3>
+
+    <div id="gestionCatalogosLista"
+         style="
+           max-height:350px;
+           overflow-y:auto;
+           margin-top:10px;
+         ">
+    </div>
+
+    <div style="
+       display:flex;
+       justify-content:flex-end;
+       margin-top:18px;
+     ">
+
+      <button
+        class="btn btn-print"
+        type="button"
+        onclick="cerrarGestionCatalogo()"
+      >
+        Cerrar
+      </button>
+
+    </div>
+
+  </div>
+</div> 
 <!-- ======================================================
  TURNOS / CAJAS
 ====================================================== -->
@@ -8197,9 +8303,255 @@ function llenarSelectCatalogo(
 }
 
 /* ======================================================
+  GESTION DE EMPLEADOS, CLIENTES Y PROVEEDORES
+====================================================== */
+
+let tipoCatalogoGestion = '';
+let gestionCatalogoOcupada = false;
+
+const configuracionGestionCatalogos = {
+  empleados: {
+    titulo: 'Empleados',
+    columna: 'E'
+  },
+  clientes: {
+    titulo: 'Clientes',
+    columna: 'F'
+  },
+  proveedores: {
+    titulo: 'Proveedores',
+    columna: 'O'
+  }
+};
+
+function escaparTextoCatalogo(valor) {
+  return String(valor ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function abrirGestionCatalogo(tipo) {
+
+  const config = configuracionGestionCatalogos[tipo];
+
+  if (!config) return;
+
+  tipoCatalogoGestion = tipo;
+
+  $('gestionCatalogosTitulo').textContent =
+    'Administrar ' + config.titulo;
+
+  $('gestionCatalogosNombre').value = '';
+
+  $('gestionCatalogosModal').style.display = 'flex';
+
+  pintarRegistrosCatalogo();
+
+}
+
+function cerrarGestionCatalogo() {
+
+  if (gestionCatalogoOcupada) return;
+
+  $('gestionCatalogosModal').style.display = 'none';
+
+  tipoCatalogoGestion = '';
+
+}
+
+function pintarRegistrosCatalogo() {
+
+  const contenedor = $('gestionCatalogosLista');
+
+  if (!contenedor) return;
+
+  const registros = Array.isArray(
+    catalogosData[tipoCatalogoGestion]
+  )
+    ? [...catalogosData[tipoCatalogoGestion]]
+    : [];
+
+  registros.sort((a, b) =>
+    String(a).localeCompare(String(b), 'es')
+  );
+
+  contenedor.innerHTML = '';
+
+  if (!registros.length) {
+
+    contenedor.textContent =
+      'No existen registros en este catálogo.';
+
+    return;
+  }
+
+  registros.forEach(nombre => {
+
+    const fila = document.createElement('div');
+
+    fila.style.cssText = `
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:10px;
+      padding:9px;
+      border-bottom:1px solid #e5e7eb;
+    `;
+
+    const texto = document.createElement('span');
+    texto.textContent = nombre;
+    texto.style.flex = '1';
+
+    const boton = document.createElement('button');
+
+    boton.type = 'button';
+    boton.className = 'btn';
+    boton.textContent = 'Eliminar';
+
+    boton.style.cssText = `
+      background:#d92d20;
+      color:white;
+      padding:7px 12px;
+    `;
+
+    boton.onclick = () =>
+      eliminarRegistroCatalogo(nombre);
+
+    fila.appendChild(texto);
+    fila.appendChild(boton);
+
+    contenedor.appendChild(fila);
+
+  });
+
+}
+
+function bloquearGestionCatalogo(bloquear) {
+
+  gestionCatalogoOcupada = bloquear;
+
+  const modal = $('gestionCatalogosModal');
+
+  if (!modal) return;
+
+  modal.querySelectorAll('button,input')
+    .forEach(elemento => {
+      elemento.disabled = bloquear;
+    });
+
+}
+
+async function agregarRegistroCatalogo() {
+
+  if (gestionCatalogoOcupada) return;
+
+  const nombre =
+    $('gestionCatalogosNombre').value.trim();
+
+  if (!nombre) {
+
+    alert('Escribe un nombre.');
+
+    return;
+  }
+
+  const tipo = tipoCatalogoGestion;
+
+  bloquearGestionCatalogo(true);
+
+  try {
+
+    const respuesta = await jsonpRequest(
+      'catalogo_agregar',
+      {
+        tipo: tipo,
+        nombre: nombre
+      }
+    );
+
+    if (!respuesta || !respuesta.ok) {
+      throw new Error(
+        respuesta?.message || 'No se pudo agregar.'
+      );
+    }
+
+    await loadCatalogos();
+
+    $('gestionCatalogosNombre').value = '';
+
+    pintarRegistrosCatalogo();
+
+    toast(respuesta.message || 'Registro agregado.', true);
+
+  } catch (error) {
+
+    alert(error.message);
+
+  } finally {
+
+    bloquearGestionCatalogo(false);
+
+  }
+
+}
+
+async function eliminarRegistroCatalogo(nombre) {
+
+  if (gestionCatalogoOcupada) return;
+
+  const tipo = tipoCatalogoGestion;
+
+  if (!confirm(
+    '¿Eliminar "' + nombre + '" del catálogo?'
+  )) {
+    return;
+  }
+
+  bloquearGestionCatalogo(true);
+
+  try {
+
+    const respuesta = await jsonpRequest(
+      'catalogo_eliminar',
+      {
+        tipo: tipo,
+        nombre: nombre
+      }
+    );
+
+    if (!respuesta || !respuesta.ok) {
+      throw new Error(
+        respuesta?.message || 'No se pudo eliminar.'
+      );
+    }
+
+    await loadCatalogos();
+
+    pintarRegistrosCatalogo();
+
+    toast(respuesta.message || 'Registro eliminado.', true);
+
+  } catch (error) {
+
+    alert(error.message);
+
+  } finally {
+
+    bloquearGestionCatalogo(false);
+
+  }
+
+}
+  
+/* ======================================================
  CATALOGOS
 ====================================================== */
 
+
+  
 async function loadCatalogos(){
 
  try{
