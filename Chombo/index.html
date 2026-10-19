@@ -13537,6 +13537,73 @@ else if(
 
 }
 
+/* ======================================================
+   REGLA ESPECIAL DE SALDOS
+
+   MODULOS:
+   Atlantida
+   Bac
+   Banpais
+   Claro recargas
+   Loteria
+   Tigo recargas
+   Tigo Money
+
+   CREDITO TOTAL = ENTRADAS
+   CARGO TOTAL   = SALIDAS
+====================================================== */
+
+const moduloNormalizado =
+  normalizarModuloOperacion(modulo);
+
+const movimientoNormalizado =
+  normalizarModuloOperacion(movimiento);
+
+const modulosEspeciales = [
+  'atlantida',
+  'agente atlantida',
+  'bac',
+  'rapibac',
+  'banpais',
+  'claro recargas',
+  'recargas claro',
+  'loteria',
+  'tigo recargas',
+  'recargas tigo',
+  'tigo money'
+];
+
+const esModuloEspecial =
+  modulosEspeciales.includes(
+    moduloNormalizado
+  );
+
+if (
+  esModuloEspecial &&
+  movimientoNormalizado === 'credito total'
+) {
+
+  resumen[clave].entradas += valor;
+
+  return;
+
+}
+
+if (
+  esModuloEspecial &&
+  movimientoNormalizado === 'cargo total'
+) {
+
+  resumen[clave].salidas += valor;
+
+  return;
+
+}
+
+/* ======================================================
+   FIN DE REGLA ESPECIAL
+====================================================== */
+        
         /* ===========================================
            PARCIAL
 
@@ -18779,7 +18846,7 @@ function marcarHoraFilaOperacion(
     !campoHora.value
   ){
 
-    campoHora.value =
+      campoHora.value =
       new Date()
         .toLocaleTimeString(
           'es-HN',
@@ -18797,6 +18864,14 @@ function marcarHoraFilaOperacion(
         );
 
   }
+
+  /*
+   Actualizar automáticamente
+   totales y saldos al modificar
+   una operación.
+  */
+
+  recalcularTotalesOperaciones();
 
 }
 
