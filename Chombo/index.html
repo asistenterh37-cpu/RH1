@@ -24866,12 +24866,107 @@ async function consultarNotasChombo(){
   }
 
 }
-  
+ /* ======================================================
+   CALCULADORA PARA CONTROL DE VENTAS
+
+   Permite:
+   100+200+300
+   1000-200
+   50*3
+   1000/2
+
+   ENTER o salir de la celda = calcular
+====================================================== */
+
+function activarCalculadoraControlVentas() {
+
+  const campos = document.querySelectorAll(
+    '.control-ventas-input:not([readonly])'
+  );
+
+  campos.forEach(campo => {
+
+    // Permitir operadores matemáticos
+    campo.type = 'text';
+
+    campo.inputMode = 'decimal';
+
+    campo.autocomplete = 'off';
+
+    campo.title =
+      'Puedes escribir sumas, por ejemplo: 100+200+300';
+
+    function calcularCelda() {
+
+      const texto = campo.value.trim();
+
+      if (!texto) {
+        recalcularControlVentas();
+        recalcularTotalesOperaciones();
+        return;
+      }
+
+      try {
+
+        // Reutiliza la calculadora existente
+        const resultado = evaluarOperacionMonto(texto);
+
+        if (
+          resultado === null ||
+          !Number.isFinite(resultado) ||
+          resultado < 0
+        ) {
+          throw new Error('Importe no válido');
+        }
+
+        campo.value = resultado.toFixed(2);
+
+        // Actualizar todos los cálculos
+        recalcularControlVentas();
+
+        recalcularTotalesOperaciones();
+
+      } catch(error) {
+
+        alert(
+          'Operación matemática inválida: ' + texto
+        );
+
+        campo.focus();
+
+      }
+
+    }
+
+    // Calcular al presionar ENTER
+    campo.addEventListener('keydown', event => {
+
+      if (event.key === 'Enter') {
+
+        event.preventDefault();
+
+        calcularCelda();
+
+      }
+
+    });
+
+    // Calcular al salir de la celda
+    campo.addEventListener('blur', calcularCelda);
+
+  });
+
+}
+
+
 /* ======================================================
-   INICIAR
+   INICIAR APLICACIÓN
 ====================================================== */
 
 init();
+
+// Activar calculadora después de cargar el HTML
+activarCalculadoraControlVentas();
 
 </script>
 
