@@ -3957,26 +3957,35 @@ ver.style.marginLeft = "6px";
 
 ver.onclick = async () => {
 
-  // Cargar los datos del equipo guardado.
   vuEditar(equipo);
 
-  // Iniciar desde la primera cámara.
   vuEl("vuCanalVer").value = "1";
-
-  // Mostrar la cuadrícula de nueve cámaras.
   vuEl("vuMosaicoTam").value = "9";
 
-  // Desplazarse hasta el monitor.
-  vuEl("vuMosaico").scrollIntoView({
-    behavior: "smooth",
-    block: "center"
-  });
+  if (
+    equipo.Metodo === "HLS" &&
+    equipo.URLVideo
+  ) {
 
-  // Intentar iniciar la transmisión.
-  await vuIniciarMosaico();
+    vuEl("vuMosaico").scrollIntoView({
+      behavior: "smooth",
+      block: "center"
+    });
+
+    await vuIniciarMosaico();
+    return;
+  }
+
+  vuEl("vuMosaicoEstado").textContent =
+    "Este equipo utiliza ONVIF/RTSP. " +
+    "Se abrirá su consola remota de video.";
+
+  vuEl("vuMosaico").replaceChildren();
+
+  vuAbrirConsola();
 
 };
-acciones.appendChild(ver);
+   acciones.appendChild(ver);
 
 fila.appendChild(acciones);
       tabla.appendChild(fila);
