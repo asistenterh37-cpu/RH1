@@ -640,13 +640,16 @@ video{width:100%;max-height:550px;background:#000;border-radius:8px;display:bloc
         Nuevo equipo
       </button>
       <button class="sec" onclick="vuProbarConexion()">
-        Probar conexión / Ver video
-      </button>
-      <button class="sec" onclick="vuActualizar()">
-        Actualizar equipos
-      </button>
-    </div>
+  ▶ Ver video integrado
+</button>
 
+<button class="sec" onclick="vuAbrirConsola()">
+  📹 Abrir consola del DVR/NVR
+</button>
+
+<button class="sec" onclick="vuActualizar()">
+  Actualizar equipos
+</button>
     <p id="vuMensaje" class="note" role="status"></p>
   </div>
 
@@ -4054,7 +4057,62 @@ function vuCambiarCanal(delta) {
 
   vuProbarConexion();
 }
- 
+
+ // ==========================================
+// ABRIR CONSOLA WEB DEL DVR / NVR
+// ==========================================
+
+function vuAbrirConsola() {
+
+  try {
+
+    const ip = vuEl("vuIP").value.trim();
+
+    const puerto = Number(
+      vuEl("vuPuertoONVIF").value
+    );
+
+    if (
+      !/^[a-zA-Z0-9][a-zA-Z0-9.-]{0,252}$/.test(ip)
+    ) {
+      throw Error(
+        "Introduce una IP o dominio válido."
+      );
+    }
+
+    if (
+      !Number.isInteger(puerto) ||
+      puerto < 1 ||
+      puerto > 65535
+    ) {
+      throw Error(
+        "El puerto web no es válido."
+      );
+    }
+
+    const url =
+      "http://" + ip + ":" + puerto + "/";
+
+    const enlace = document.createElement("a");
+
+    enlace.href = url;
+    enlace.target = "_blank";
+    enlace.rel = "noopener noreferrer";
+
+    enlace.click();
+
+    vuAviso(
+      "Se solicitó abrir la consola web. " +
+      "Si el grabador requiere ActiveX, " +
+      "utiliza Edge en modo Internet Explorer."
+    );
+
+  } catch (error) {
+
+    vuAviso(error.message, true);
+
+  }
+}
 // ==========================================
 // PROBAR CONEXIÓN / VER VIDEO REAL
 // ==========================================
@@ -4071,21 +4129,23 @@ async function vuProbarConexion() {
 
     if (metodo !== "HLS") {
 
-      estado.textContent =
-        "Pendiente de conector autenticado " +
-        "con acceso a la red del dispositivo.";
+  estado.textContent =
+    "Equipo registrado mediante " + metodo +
+    ". Para visualizarlo dentro de VIGÍA IA " +
+    "se necesita una transmisión HLS HTTPS.";
 
-      vuAviso(
-        "HTML y GS no pueden probar directamente " +
-        "ONVIF, RTSP, WebRTC ni el servidor " +
-        "propietario del cliente. " +
-        "Se necesita integrar el conector seguro.",
-        true
-      );
+  vuAviso(
+    "El registro del DVR/NVR es correcto, " +
+    "pero no existe una fuente HLS configurada. " +
+    "ONVIF/RTSP no puede reproducirse " +
+    "directamente en este navegador. " +
+    "Configura un servidor puente de video " +
+    "o utiliza Abrir consola del DVR/NVR.",
+    true
+  );
 
-      return;
-    }
-
+  return;
+}
     const canal = Number(
   vuEl("vuCanalVer").value
 );
