@@ -4076,6 +4076,278 @@ function vuLibreriaHls() {
 // CAMARAS PARAMETRIZABLES
 // ==========================================
 
+// ==========================================
+// VIGIA IA - MONITOR MULTICAMARA
+// CUADRICULA 1 / 4 / 9 / 16
+// ==========================================
+
+let vuMosaicoSesiones = [];
+let vuMosaicoGeneracion = 0;
+
+// DETENER TODAS LAS CAMARAS
+function vuDetenerMosaico() {
+
+  vuMosaicoGeneracion++;
+
+  for (const sesion of vuMosaicoSesiones) {
+
+    try {
+      if (sesion.hls) {
+        sesion.hls.destroy();
+      }
+    } catch (e) {}
+
+    try {
+      sesion.video.pause();
+      sesion.video.removeAttribute("src");
+      sesion.video.load();
+    } catch (e) {}
+
+  }
+
+  vuMosaicoSesiones = [];
+
+  vuEl("vuMosaico").replaceChildren();
+
+  vuEl("vuMosaicoEstado").textContent =
+    "Cuadrícula detenida.";
+
+}
+
+// INICIAR CUADRICULA
+async function vuIniciarMosaico() {
+
+  vuDetenerMosaico();
+
+  const generacion = vuMosaicoGeneracion;
+
+  try {
+
+    const p = vuRegistro();
+
+    if (p.config.metodo !== "HLS") {
+      throw Error(
+        "Para mostrar cámaras dentro de VIGÍA IA " +
+        "debes configurar un servidor HLS HTTPS. " +
+        "ONVIF/RTSP no se reproduce directamente."
+      );
+    }
+
+    const base = p.config.url;
+
+    const total = Number(
+      vuEl("vuMosaicoTam").value
+    );
+
+    const canales = Number(
+      p.registro.canales
+    );
+
+    const primerCanal = Number(
+      vuEl("vuCanalVer").value
+    );
+
+    if (
+      ![1, 4, 9, 16].includes(total)
+    ) {
+      throw Error(
+        "Selecciona una cuadrícula válida."
+      );
+    }
+
+    if (
+      !Number.isInteger(primerCanal) ||
+      primerCanal < 1 ||
+      primerCanal > canales
+    ) {
+      throw Error(
+        "Selecciona un canal inicial válido."
+      );
+    }
+
+    if (
+      !base.includes("{canal}") &&
+      total > 1
+    ) {
+      throw Error(
+        "Para varias cámaras la URL HLS " +
+        "debe contener {canal}."
+      );
+    }
+
+    const mostrar = Math.min(
+      total,
+      canales - primerCanal + 1
+    );
+
+    const columnas =
+      total === 1 ? 1 :
+      total === 4 ? 2 :
+      total === 9 ? 3 : 4;
+
+    const rejilla = vuEl("vuMosaico");
+
+    rejilla.style.gridTemplateColumns =
+      `repeat(${columnas},minmax(0,1fr))`;
+
+    const Hls = await vuLibreriaHls();
+
+    if (generacion !== vuMosaicoGeneracion) {
+      return;
+    }
+
+    for (let i = 0; i < mostrar; i++) {
+
+      const numero = primerCanal + i;
+
+      const url = vuUrlCanal(
+        base,
+        numero
+      );
+
+      const celda =
+        document.createElement("div");
+
+      celda.className = "vu-celda";
+
+      const nombre =
+        document.createElement("div");
+
+      nombre.className = "vu-etiqueta";
+
+      nombre.textContent =
+        "Cámara " + numero;
+
+      const video =
+        document.createElement("video");
+
+      video.controls = true;
+      video.muted = true;
+      video.playsInline = true;
+      video.autoplay = true;
+
+      const msg =
+        document.createElement("div");
+
+      msg.className = "vu-mensaje";
+
+      msg.textContent = "Conectando...";
+
+      celda.append(
+        nombre,
+        video,
+        msg
+      );
+
+      rejilla.appendChild(celda);
+
+      const sesion = {
+        video: video,
+        hls: null
+      };
+
+      vuMosaicoSesiones.push(sesion);
+
+      video.addEventListener(
+        "playing",
+        () => {
+          msg.textContent = "En directo";
+        }
+      );
+
+      video.addEventListener(
+        "error",
+        () => {
+          msg.textContent =
+            "Error de video. Verifica URL, " +
+            "CORS y códec.";
+        }
+      );
+
+      // HLS NATIVO
+      if (
+        video.canPlayType(
+          "application/vnd.apple.mpegurl"
+        )
+      ) {
+
+        video.src = url;
+
+        video.play().catch(() => {
+          msg.textContent =
+            "Pulsa ▶ para reproducir";
+        });
+
+      }
+
+      // HLS.JS
+      else if (Hls.isSupported()) {
+
+        const hls = new Hls({
+          enableWorker: true,
+          lowLatencyMode: true
+        });
+
+        sesion.hls = hls;
+
+        hls.on(
+          Hls.Events.ERROR,
+          (_, datos) => {
+
+            if (datos.fatal) {
+              msg.textContent =
+                "Error HLS: " + datos.details;
+            }
+
+          }
+        );
+
+        hls.on(
+          Hls.Events.MANIFEST_PARSED,
+          () => {
+
+            video.play().catch(() => {
+              msg.textContent =
+                "Pulsa ▶ para reproducir";
+            });
+
+          }
+        );
+
+        hls.loadSource(url);
+
+        hls.attachMedia(video);
+
+      } else {
+
+        msg.textContent =
+          "Este navegador no admite HLS.";
+
+      }
+
+    }
+
+    vuEl("vuMosaicoEstado").textContent =
+      "Solicitando " + mostrar +
+      " transmisión(es) HLS.";
+
+  } catch (error) {
+
+    vuEl("vuMosaicoEstado").textContent =
+      error.message;
+
+    vuAviso(error.message, true);
+
+  }
+
+}
+
+// ==========================================
+// FIN DEL MONITOR MULTICAMARA
+// ==========================================
+
+
+ 
 function vuUrlCanal(urlBase, canal) {
 
   if (
