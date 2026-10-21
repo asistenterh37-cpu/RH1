@@ -3698,12 +3698,25 @@ function vuNuevo() {
 
 function vuValidarUrl(texto) {
 
+  const entrada = String(texto || "").trim();
+
+  if (
+    (entrada.match(/\{canal\}/g) || []).length > 1
+  ) {
+    throw Error("Solo se permite un marcador {canal}.");
+  }
+
+  const temporal = entrada.replace(
+    "{canal}",
+    "VIGIACANAL"
+  );
+
   let url;
 
   try {
-    url = new URL(texto);
-  } catch (_) {
-    throw Error("Introduce una URL válida.");
+    url = new URL(temporal);
+  } catch (e) {
+    throw Error("Introduce una URL HTTPS válida.");
   }
 
   if (
@@ -3714,14 +3727,20 @@ function vuValidarUrl(texto) {
     url.hash
   ) {
     throw Error(
-      "Utiliza HTTPS sin usuarios, contraseñas, " +
-      "tokens ni parámetros en la URL."
+      "Utiliza HTTPS sin credenciales ni parámetros."
+    );
+  }
+
+  if (url.href.includes("VIGIACANAL")) {
+    return url.href.replace(
+      "VIGIACANAL",
+      "{canal}"
     );
   }
 
   return url.href;
 }
-
+ 
 // ==========================================
 // RECOGER Y VALIDAR CAMPOS
 // ==========================================
@@ -3936,11 +3955,27 @@ ver.className = "sec";
 ver.textContent = "Ver cámaras";
 ver.style.marginLeft = "6px";
 
-ver.onclick = () => {
-  vuEditar(equipo);
-  vuProbarConexion();
-};
+ver.onclick = async () => {
 
+  // Cargar los datos del equipo guardado.
+  vuEditar(equipo);
+
+  // Iniciar desde la primera cámara.
+  vuEl("vuCanalVer").value = "1";
+
+  // Mostrar la cuadrícula de nueve cámaras.
+  vuEl("vuMosaicoTam").value = "9";
+
+  // Desplazarse hasta el monitor.
+  vuEl("vuMosaico").scrollIntoView({
+    behavior: "smooth",
+    block: "center"
+  });
+
+  // Intentar iniciar la transmisión.
+  await vuIniciarMosaico();
+
+};
 acciones.appendChild(ver);
 
 fila.appendChild(acciones);
