@@ -678,9 +678,45 @@ video{width:100%;max-height:550px;background:#000;border-radius:8px;display:bloc
       RTSP requiere conversión a HLS o WebRTC.
     </p>
 
-    <video id="vuVideo"
-           controls playsinline muted hidden
-           style="max-height:420px"></video>
+  <div class="fields">
+  <div>
+    <label>Canal que deseas visualizar</label>
+    <input id="vuCanalVer"
+           type="number"
+           min="1"
+           max="64"
+           value="1">
+  </div>
+
+  <div>
+    <label>Selección rápida</label>
+    <div class="actions">
+      <button class="sec"
+              onclick="vuCambiarCanal(-1)">
+        ◀ Anterior
+      </button>
+
+      <button class="sec"
+              onclick="vuCambiarCanal(1)">
+        Siguiente ▶
+      </button>
+
+      <button onclick="vuProbarConexion()">
+        ▶ Ver cámara
+      </button>
+    </div>
+  </div>
+</div>
+
+<p class="note">
+  Para varias cámaras HLS, configura
+  una URL HTTPS por canal mediante
+  el marcador {canal}.
+</p>
+
+<video id="vuVideo"
+       controls playsinline muted hidden
+       style="max-height:420px"></video>
 
     <p id="vuEstadoVideo"
        class="note" role="status">
@@ -940,7 +976,7 @@ video{width:100%;max-height:550px;background:#000;border-radius:8px;display:bloc
  Mantiene la entrada desde GitHub.
 */
 
-const GAS_URL = "https://script.google.com/macros/s/AKfycbyAZRVgFnv1Zv6VElDOFGyR8uQeEFAd7Y6etceuSlZ60jEd7VU0xiWHdWM8ZjXoa-Ye/exec";
+"https://script.google.com/macros/s/AKfycbwAkZMe67feD1tnVgB71gG0XVg2pPZFNu8iS9LZEn2GR03HjSZjeLEATS8lJ895xMWL/exec";
 
 const VERSION = "5.0";
 const $ = id => document.getElementById(id);
@@ -3812,7 +3848,21 @@ async function vuActualizar() {
       boton.onclick = () => vuEditar(equipo);
 
       acciones.appendChild(boton);
-      fila.appendChild(acciones);
+
+const ver = document.createElement("button");
+
+ver.className = "sec";
+ver.textContent = "Ver cámaras";
+ver.style.marginLeft = "6px";
+
+ver.onclick = () => {
+  vuEditar(equipo);
+  vuProbarConexion();
+};
+
+acciones.appendChild(ver);
+
+fila.appendChild(acciones);
       tabla.appendChild(fila);
     }
 
@@ -3942,6 +3992,70 @@ function vuLibreriaHls() {
 }
 
 // ==========================================
+// CAMARAS PARAMETRIZABLES
+// ==========================================
+
+function vuUrlCanal(urlBase, canal) {
+
+  const u = new URL(vuValidarUrl(urlBase));
+
+  if (
+    !Number.isInteger(canal) ||
+    canal < 1 ||
+    canal > 64
+  ) {
+    throw Error(
+      "Selecciona un canal entre 1 y 64."
+    );
+  }
+
+  // URL() codifica las llaves como %7B y %7D.
+  if (/%7Bcanal%7D/i.test(u.pathname)) {
+
+    u.pathname = u.pathname.replace(
+      /%7Bcanal%7D/i,
+      String(canal)
+    );
+
+  } else if (canal !== 1) {
+
+    throw Error(
+      "Para ver otros canales, " +
+      "la URL HLS debe incluir " +
+      "{canal} en su ruta."
+    );
+
+  }
+
+  return u.href;
+}
+
+function vuCambiarCanal(delta) {
+
+  const el = vuEl("vuCanalVer");
+
+  const total = Math.max(
+    1,
+    Math.min(
+      64,
+      Number(vuEl("vuCanales").value) || 1
+    )
+  );
+
+  el.value = String(
+    Math.max(
+      1,
+      Math.min(
+        total,
+        (Number(el.value) || 1) + delta
+      )
+    )
+  );
+
+  vuProbarConexion();
+}
+ 
+// ==========================================
 // PROBAR CONEXIÓN / VER VIDEO REAL
 // ==========================================
 
@@ -3972,9 +4086,27 @@ async function vuProbarConexion() {
       return;
     }
 
-    const url = p.config.url;
-    const video = vuEl("vuVideo");
+    const canal = Number(
+  vuEl("vuCanalVer").value
+);
 
+if (
+  canal > Number(
+    vuEl("vuCanales").value
+  )
+) {
+  throw Error(
+    "El canal solicitado supera " +
+    "los canales configurados."
+  );
+}
+
+const url = vuUrlCanal(
+  p.config.url,
+  canal
+);
+
+const video = vuEl("vuVideo");
     estado.textContent =
       "Solicitando transmisión HLS...";
 
