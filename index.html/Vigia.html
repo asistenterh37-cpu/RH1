@@ -89,6 +89,51 @@ video{width:100%;max-height:550px;background:#000;border-radius:8px;display:bloc
  .frames{grid-template-columns:repeat(2,1fr)}
  main{padding:10px}
 }
+
+/* MONITOR MULTICAMARA */
+
+.vu-mosaico {
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:8px;
+  margin:12px 0;
+}
+
+.vu-celda {
+  position:relative;
+  background:#050b15;
+  border:1px solid #30445f;
+  border-radius:9px;
+  overflow:hidden;
+  min-width:0;
+}
+
+.vu-celda video {
+  width:100%;
+  aspect-ratio:16/9;
+  object-fit:contain;
+  max-height:none;
+  background:black;
+}
+
+.vu-etiqueta {
+  position:absolute;
+  top:5px;
+  left:7px;
+  background:#071424d9;
+  color:#fff;
+  padding:2px 7px;
+  border-radius:4px;
+  font-size:12px;
+  z-index:1;
+}
+
+.vu-mensaje {
+  padding:6px 8px;
+  color:#a8bad0;
+  font-size:12px;
+  min-height:30px;
+} 
 </style>
 </head>
 <body data-vigia-version="5.0" >
@@ -717,10 +762,43 @@ video{width:100%;max-height:550px;background:#000;border-radius:8px;display:bloc
   el marcador {canal}.
 </p>
 
+<div class="actions">
+
+  <label for="vuMosaicoTam">Cuadrícula</label>
+
+  <select id="vuMosaicoTam"
+          style="max-width:140px">
+
+    <option value="1">1 cámara</option>
+    <option value="4">4 cámaras</option>
+    <option value="9" selected>9 cámaras</option>
+    <option value="16">16 cámaras</option>
+
+  </select>
+
+  <button onclick="vuIniciarMosaico()">
+    ▶ Ver cuadrícula
+  </button>
+
+  <button class="sec"
+          onclick="vuDetenerMosaico()">
+    ■ Detener cuadrícula
+  </button>
+
+</div>
+
+<p id="vuMosaicoEstado"
+   class="note"
+   role="status">
+  Sin transmisiones iniciadas.
+</p>
+
+<div id="vuMosaico"
+     class="vu-mosaico"></div>
+
 <video id="vuVideo"
        controls playsinline muted hidden
        style="max-height:420px"></video>
-
     <p id="vuEstadoVideo"
        class="note" role="status">
       Ninguna señal comprobada.
@@ -4000,40 +4078,39 @@ function vuLibreriaHls() {
 
 function vuUrlCanal(urlBase, canal) {
 
-  const u = new URL(vuValidarUrl(urlBase));
-
   if (
     !Number.isInteger(canal) ||
     canal < 1 ||
     canal > 64
   ) {
+    throw Error("Canal no válido.");
+  }
+
+  const plantilla = vuValidarUrl(urlBase);
+
+  if (
+    !plantilla.includes("{canal}") &&
+    canal !== 1
+  ) {
     throw Error(
-      "Selecciona un canal entre 1 y 64."
+      "Configura {canal} en la URL HTTPS."
     );
   }
 
-  // URL() codifica las llaves como %7B y %7D.
-  if (/%7Bcanal%7D/i.test(u.pathname)) {
+  const final = plantilla.replace(
+    "{canal}",
+    String(canal)
+  );
 
-    u.pathname = u.pathname.replace(
-      /%7Bcanal%7D/i,
-      String(canal)
-    );
+  const u = new URL(final);
 
-  } else if (canal !== 1) {
-
-    throw Error(
-      "Para ver otros canales, " +
-      "la URL HLS debe incluir " +
-      "{canal} en su ruta."
-    );
-
+  if (u.protocol !== "https:") {
+    throw Error("Se requiere HTTPS.");
   }
 
   return u.href;
 }
-
-function vuCambiarCanal(delta) {
+ function vuCambiarCanal(delta) {
 
   const el = vuEl("vuCanalVer");
 
