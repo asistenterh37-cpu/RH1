@@ -1,210 +1,85 @@
-
-import os
-import hmac
-import time
-import sqlite3
-from datetime import datetime, timezone
-from flask import Flask, request, jsonify, session, redirect, render_template_string
-from werkzeug.security import generate_password_hash, check_password_hash
-
-app = Flask(__name__)
-app.secret_key = os.environ.get("SECRET_KEY", "")
-TOKEN = os.environ.get("SYNC_TOKEN", "")
-DB = os.environ.get("DB_PATH", "/tmp/vigia_alertas.sqlite3")
-intentos = {}
-
-def conexion():
-    db = sqlite3.connect(DB)
-    db.row_factory = sqlite3.Row
-    db.execute("""CREATE TABLE IF NOT EXISTS usuarios
-        (nombre TEXT PRIMARY KEY, pin_hash TEXT, activo INTEGER)""")
-    db.execute("""CREATE TABLE IF NOT EXISTS alertas
-        (id INTEGER PRIMARY KEY AUTOINCREMENT,
-         fecha TEXT, camara TEXT, tipo TEXT, detalle TEXT)""")
-    db.commit()
-    return db
-
-def autorizado():
-    recibido = request.headers.get("X-Vigia-Token", "")
-    return bool(TOKEN) and hmac.compare_digest(recibido, TOKEN)
-
-@app.get("/health")
-def health():
-    return jsonify(estado="activo", servicio="VIGIA ALERTAS")
-
-@app.post("/api/usuarios")
-def guardar_usuario():
-    if not autorizado():
-        return jsonify(error="No autorizado"), 401
-    datos = request.get_json(silent=True) or {}
-    nombre = str(datos.get("nombre", "")).strip()[:100]
-    pin = str(datos.get("pin", ""))
-    activo = bool(datos.get("activo", True))
-    if not nombre or not (pin.isdigit() and len(pin) == 4):
-        return jsonify(error="Nombre y PIN de 4 digitos requeridos"), 400
-    db = conexion()
-    db.execute("INSERT OR REPLACE INTO usuarios VALUES (?, ?, ?)",
-               (nombre, generate_password_hash(pin), int(activo)))
-    db.commit()
-    db.close()
-    return jsonify(ok=True)
-
-@app.post("/api/revocar")
-def revocar():
-    if not autorizado():
-        return jsonify(error="No autorizado"), 401
-    nombre = str((request.get_json(silent=True) or {}).get("nombre", ""))
-    db = conexion()
-    db.execute("UPDATE usuarios SET activo=0 WHERE nombre=?", (nombre,))
-    db.commit()
-    db.close()
-    return jsonify(ok=True)
-
-@app.post("/api/alertas")
-def recibir_alerta():
-    if not autorizado():
-        return jsonify(error="No autorizado"), 401
-    datos = request.get_json(silent=True) or {}
-    camara = str(datos.get("camara", ""))[:100]
-    tipo = str(datos.get("tipo", "Alerta"))[:100]
-    detalle = str(datos.get("detalle", ""))[:500]
-    db = conexion()
-    db.execute("INSERT INTO alertas(fecha,camara,tipo,detalle) VALUES(?,?,?,?)",
-               (datetime.now(timezone.utc).isoformat(), camara, tipo, detalle))
-    db.commit()
-    db.close()
-    return jsonify(ok=True), 201
-
-ESTILO = """
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>VIGIA ALERTAS</title>
-<style>
-body{font-family:Arial;background:#101b2b;color:white;margin:0;padding:24px}
-main{max-width:750px;margin:45px auto;background:#23354c;padding:28px;border-radius:16px}
-h1{margin-top:0}
-input,button{display:block;width:100%;padding:14px;margin:12px 0;
-box-sizing:border-box;border:0;border-radius:8px;font-size:17px}
-button{background:#2fb7aa;cursor:pointer;font-weight:bold}
-.alerta{background:#142438;padding:16px;border-radius:10px;margin:12px 0}
-small{color:#b8c9db}
-</style>
+"""VIGIA ALERTAS. Solo metadatos: autenticacion y alertas; sin imagenes ni camaras.
+Render gratis: SQLite local temporal; sincronizacion desde PC restablece usuarios y alertas.
 """
+import os, hmac, time, secrets, sqlite3, threading
+from pathlib import Path
+from datetime import timedelta
+from flask import Flask, request, session, redirect, jsonify, render_template_string
+from werkzeug.security import check_password_hash
 
-@app.route("/", methods=["GET", "POST"])
-def inicio():
-    if session.get("usuario"):
-        return redirect("/alertas")
-    error = ""
-    if request.method == "POST":
-        nombre = request.form.get("nombre", "").strip()
-        pin = request.form.get("pin", "")
-        ip = request.remote_addr or "desconocida"
-        ahora = time.time()
-        registro = intentos.get(ip, [])
-        registro = [t for t in registro if ahora - t < 900]
-        if len(registro) >= 5:
-            error = "Demasiados intentos. Proba nuevamente en 15 minutos."
-        else:
-            db = conexion()
-            usuario = db.execute(
-                "SELECT * FROM usuarios WHERE nombre=?", (nombre,)
-            ).fetchone()
-            db.close()
-            if usuario and usuario["activo"] and check_password_hash(
-                    usuario["pin_hash"], pin):
-                intentos.pop(ip, None)
-                session.clear()
-                session["usuario"] = nombre
-                return redirect("/alertas")
-            registro.append(ahora)
-            intentos[ip] = registro
-            error = "Nombre o PIN incorrecto."
-    return render_template_string(ESTILO + """
-    <main><h1>🔔 VIGÍA ALERTAS</h1>
-    <p>Acceso autorizado. Solo alertas, sin cámaras.</p>
-    <form method="post">
-      <input name="nombre" placeholder="Nombre" required autocomplete="username">
-      <input name="pin" type="password" inputmode="numeric"
-             maxlength="4" placeholder="PIN de 4 dígitos" required>
-      <button>Ingresar</button>
-    </form><p>{{error}}</p></main>
-    """, error=error)
+app=Flask(__name__)
+app.secret_key=os.getenv('SESSION_SECRET') or secrets.token_hex(32)
+app.config.update(SESSION_COOKIE_SECURE=True, SESSION_COOKIE_HTTPONLY=True, SESSION_COOKIE_SAMESITE='Lax', PERMANENT_SESSION_LIFETIME=timedelta(hours=8),MAX_CONTENT_LENGTH=150000)
+DATA=Path(os.getenv('VIGIA_DB_PATH','/tmp/vigia_alertas_publicas.sqlite3'))
+LOCK=threading.RLock(); FAIL={}
+STYLE='''<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>VIGÍA ALERTAS</title><style>*{box-sizing:border-box}body{background:#101b2b;color:#eff6ff;font:18px system-ui;margin:0;padding:16px}main{background:#23364e;border-radius:16px;padding:25px;max-width:720px;margin:6vh auto}input,button{width:100%;padding:14px;margin:8px 0;font-size:18px;border:0;border-radius:9px}button{background:#35b7a9;font-weight:700;cursor:pointer}article{background:#17283c;margin:12px 0;padding:15px;border-radius:10px}a{color:#8be7db}.muted{color:#c2d3e0}</style>'''
+def db():
+ c=sqlite3.connect(str(DATA),timeout=15);c.row_factory=sqlite3.Row
+ c.execute('CREATE TABLE IF NOT EXISTS users(name TEXT PRIMARY KEY,pin_hash TEXT,active INTEGER,version INTEGER)')
+ c.execute('CREATE TABLE IF NOT EXISTS alerts(instance TEXT,source_id INTEGER,ts TEXT,camera INTEGER,event TEXT,detail TEXT,severity TEXT,PRIMARY KEY(instance,source_id))')
+ c.commit();return c
 
-@app.get("/alertas")
-def mostrar_alertas():
-    if not session.get("usuario"):
-        return redirect("/")
-    db = conexion()
-    usuario = db.execute("SELECT activo FROM usuarios WHERE nombre=?",
-                         (session["usuario"],)).fetchone()
-    db.close()
-    if not usuario or not usuario["activo"]:
-        session.clear()
-        return redirect("/")
-    return render_template_string(ESTILO + """
-    <main><h1>🔔 VIGÍA ALERTAS</h1>
-    <p>Usuario: {{nombre}} · <a href="/salir" style="color:#2fb7aa">Salir</a></p>
-    <button onclick="activar()">Activar sonido</button>
-    <div id="lista">Consultando alertas...</div></main>
-    <script>
-    let audio=null, ultimo=0, iniciado=false;
-    function activar(){
-      audio=new (window.AudioContext||window.webkitAudioContext)();
-      audio.resume();
-    }
-    function sonar(){
-      if(!audio)return;
-      const o=audio.createOscillator(),g=audio.createGain();
-      o.connect(g);g.connect(audio.destination);
-      o.frequency.value=880;g.gain.value=0.12;
-      o.start();o.stop(audio.currentTime+0.2);
-    }
-    function limpiar(n){
-      return String(n??"").replace(/[&<>"']/g,c=>
-        ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-    }
-    async function actualizar(){
-      try{
-        const r=await fetch("/api/mis-alertas",{cache:"no-store"});
-        if(r.status===401){location.href="/";return}
-        if(!r.ok)throw Error("Sin conexión");
-        const a=await r.json();
-        const nuevo=a.length?a[0].id:0;
-        if(iniciado&&nuevo>ultimo)sonar();
-        ultimo=nuevo;iniciado=true;
-        document.getElementById("lista").innerHTML=a.length?
-          a.map(x=>`<div class="alerta"><b>${limpiar(x.tipo)}</b>
-          <p>${limpiar(x.detalle)}</p>
-          <small>${limpiar(x.camara)} · ${limpiar(x.fecha)}</small></div>`).join(""):
-          "<p>No hay alertas registradas todavía.</p>";
-      }catch(e){
-        document.getElementById("lista").textContent=
-          "No se pudo conectar al servidor.";
-      }
-    }
-    actualizar();setInterval(actualizar,5000);
-    </script>""", nombre=session["usuario"])
+def current_user():
+ name=session.get('name')
+ if not name:return None
+ with LOCK:
+  with db() as c:r=c.execute('SELECT * FROM users WHERE name=?',(name,)).fetchone()
+ return r if r and r['active'] and r['version']==session.get('version') else None
 
-@app.get("/api/mis-alertas")
-def mis_alertas():
-    if not session.get("usuario"):
-        return jsonify(error="No autorizado"), 401
-    db = conexion()
-    usuario = db.execute("SELECT activo FROM usuarios WHERE nombre=?",
-                         (session["usuario"],)).fetchone()
-    if not usuario or not usuario["activo"]:
-        db.close()
-        session.clear()
-        return jsonify(error="Acceso revocado"), 401
-    datos = db.execute("SELECT * FROM alertas ORDER BY id DESC LIMIT 100").fetchall()
-    resultado = [dict(x) for x in datos]
-    db.close()
-    return jsonify(resultado)
-
-@app.get("/salir")
-def salir():
-    session.clear()
-    return redirect("/")
-
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 10000)))
+@app.after_request
+def security(r):
+ r.headers['Cache-Control']='no-store';r.headers['X-Frame-Options']='DENY';r.headers['X-Content-Type-Options']='nosniff';r.headers['Content-Security-Policy']="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'"
+ return r
+@app.get('/health')
+def health():return jsonify(status='online',service='VIGIA solo alertas')
+@app.post('/ingest')
+def ingest():
+ token=os.getenv('VIGIA_SYNC_TOKEN','')
+ if len(token)<32 or not hmac.compare_digest(request.headers.get('Authorization',''), 'Bearer '+token):return jsonify(error='token invalido o no configurado en Render'),403
+ data=request.get_json(silent=True) or {};inst=str(data.get('instance',''));users=data.get('users',[]);alerts=data.get('alerts',[])
+ if len(inst)!=32 or not isinstance(users,list) or not isinstance(alerts,list) or len(users)>250 or len(alerts)>100:return jsonify(error='datos invalidos'),400
+ with LOCK:
+  with db() as c:
+   for u in users:
+    if not isinstance(u,dict):continue
+    name=str(u.get('name',''))[:80];ph=str(u.get('pin_hash',''))[:220]
+    if not name or not ph.startswith('pbkdf2:sha256:'):continue
+    c.execute('INSERT INTO users(name,pin_hash,active,version) VALUES(?,?,?,?) ON CONFLICT(name) DO UPDATE SET pin_hash=excluded.pin_hash,active=excluded.active,version=excluded.version',(name,ph,int(bool(u.get('active'))),int(u.get('version',1))))
+   for a in alerts:
+    if not isinstance(a,dict):continue
+    c.execute('INSERT OR IGNORE INTO alerts VALUES(?,?,?,?,?,?,?)',(inst,int(a['id']),str(a['time'])[:50],int(a['camera']),str(a['event'])[:150],str(a.get('detail',''))[:500],str(a.get('severity','info'))[:30]))
+   c.commit()
+ return jsonify(ok=True,users=len(users),alerts=len(alerts))
+@app.route('/',methods=['GET','POST'])
+def login():
+ if current_user():return redirect('/alertas')
+ err=''
+ if request.method=='POST':
+  name=request.form.get('name','').strip()[:80];pin=request.form.get('pin','');ip=request.remote_addr or 'unknown';now=time.monotonic()
+  with LOCK:
+   checks=[t for t in FAIL.get(ip,[]) if now-t<900];FAIL[ip]=checks
+   blocked=len(checks)>=5
+  if blocked:err='Demasiados intentos. Intentá más tarde.'
+  else:
+   with LOCK:
+    with db() as c:u=c.execute('SELECT * FROM users WHERE name=?',(name,)).fetchone()
+   valid=u is not None and bool(u['active']) and len(pin)==4 and pin.isdigit() and check_password_hash(u['pin_hash'],pin)
+   if valid:
+    with LOCK:FAIL.pop(ip,None)
+    session.clear();session.permanent=True;session['name']=u['name'];session['version']=u['version'];return redirect('/alertas')
+   with LOCK:FAIL.setdefault(ip,[]).append(now)
+   err='Nombre o PIN incorrecto. Si el usuario existe solo en la PC, sincronizá VIGÍA con Render.'
+ return render_template_string('<!doctype html><html lang="es">'+STYLE+'''<main><h1>🔔 VIGÍA ALERTAS</h1><p>Acceso autorizado. Solo alertas, sin cámaras.</p><form method="post"><input name="name" autocomplete="username" placeholder="Nombre" required maxlength="80"><input name="pin" type="password" autocomplete="current-password" inputmode="numeric" pattern="[0-9]{4}" minlength="4" maxlength="4" placeholder="PIN de 4 dígitos" required><button>Ingresar</button></form><p>{{err}}</p></main></html>''',err=err)
+@app.get('/alertas')
+def alerts_page():
+ u=current_user()
+ if not u:return redirect('/')
+ return render_template_string('<!doctype html><html lang="es">'+STYLE+'''<main><h1>🔔 VIGÍA ALERTAS</h1><p>Sesión: {{name}} · <a href="/salir">Salir</a></p><button onclick="sonido()">Activar sonido de alertas</button><p class="muted">Mostrando únicamente alertas. Para recibir sonido, mantené abierta esta página.</p><section id="items">Cargando alertas...</section></main><script>let last=null,audio=null;function sonido(){audio=new(window.AudioContext||window.webkitAudioContext)();audio.resume()}function beep(){if(!audio)return;const o=audio.createOscillator(),g=audio.createGain();o.connect(g);g.connect(audio.destination);g.gain.value=.09;o.frequency.value=800;o.start();o.stop(audio.currentTime+.2)}async function refresh(){try{let r=await fetch('/api/alertas',{cache:'no-store'});if(r.status===401){location.href='/';return}if(!r.ok)throw Error();let a=await r.json(),mx=a.length?a[0].key:null;if(last&&mx&&mx!==last)beep();last=mx;let d=document.getElementById('items');d.replaceChildren();if(!a.length){let p=document.createElement('article');p.textContent='No hay alertas registradas todavía.';d.append(p)}for(let x of a){let box=document.createElement('article'),h=document.createElement('h3'),p=document.createElement('p'),sub=document.createElement('small');h.textContent=x.event;sub.textContent=x.ts.replace('T',' ')+' · Cámara '+x.camera;p.textContent=x.detail||'';box.append(h,sub,p);d.append(box)}}catch(e){document.getElementById('items').textContent='Sin conexión con el servidor de alertas.'}}refresh();setInterval(refresh,6000)</script></html>''',name=u['name'])
+@app.get('/api/alertas')
+def api_alerts():
+ if not current_user():return jsonify(error='no autorizado'),401
+ with LOCK:
+  with db() as c:rows=c.execute('SELECT instance,source_id,ts,camera,event,detail FROM alerts ORDER BY ts DESC,source_id DESC LIMIT 100').fetchall()
+ return jsonify([{'key':r['instance']+':'+str(r['source_id']),'ts':r['ts'],'camera':r['camera'],'event':r['event'],'detail':r['detail']} for r in rows])
+@app.get('/salir')
+def salir():session.clear();return redirect('/')
