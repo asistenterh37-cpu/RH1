@@ -3123,7 +3123,7 @@ tr{
 <script>
 
 const SCRIPT_URL =
-'https://script.google.com/macros/s/AKfycbwbiJpOmYlqKoIFKdRXcb5BedIF-hRyP8ni6_eKopNYWxV-VDPdmMMDj6QaSWiLTeN6/exec';
+'https://script.google.com/macros/s/AKfycbz_BoluNYM6SoD4JJr9UUp_4t16YP8LAxfqoxPI2XM6XaetC20e1jVQiKLdlwr4hJ8T/exec';
 
 </script>
 
@@ -3893,15 +3893,7 @@ const SCRIPT_URL =
   Notas
 </button>
   
-  <button
-    class="btn btn-print"
-    type="button"
-    onclick="imprimirOperacionesTurno()"
-  >
-    Imprimir
-  </button>
-
-
+  
   <button
     id="guardarTotalesTurnoBtn"
     class="btn btn-primary"
@@ -3909,6 +3901,14 @@ const SCRIPT_URL =
     onclick="guardarTotalesTurno()"
   >
     Guardar
+  </button>
+
+  <button
+    class="btn btn-print"
+    type="button"
+    onclick="imprimirOperacionesTurno()"
+  >
+    Imprimir
   </button>
 
 
@@ -15562,6 +15562,50 @@ function evaluarOperacionMonto(
    ENTER EN CELDA DE MONTO
 ====================================================== */
 
+
+/* =========================================
+   VALIDACIÓN DE IMPORTES - 2 DECIMALES
+========================================= */
+
+function validarMontoDosDecimales(elemento) {
+
+  let valor = String(elemento.value || '')
+    .replace(/,/g, '')
+    .replace(/[^\d.]/g, '');
+
+  const partes = valor.split('.');
+
+  if (partes.length > 1) {
+    valor = partes[0] + '.' +
+      partes.slice(1).join('').slice(0, 2);
+  }
+
+  elemento.value = valor;
+}
+
+/* Formatear al salir del campo */
+
+function finalizarMontoDosDecimales(elemento) {
+
+  if (!elemento.value.trim()) {
+    return;
+  }
+
+  const valor = Number(elemento.value);
+
+  if (!Number.isFinite(valor)) {
+    elemento.value = '';
+    return;
+  }
+
+  elemento.value = valor.toFixed(2);
+
+  marcarHoraFilaOperacion(elemento);
+  recalcularTotalesOperaciones();
+  actualizarResumenSaldos();
+}
+
+  
 function procesarMontoConEnter(
   event,
   elemento
@@ -18871,13 +18915,20 @@ async function guardarCreditoFilaSiAplica(
           datos.parcial || ''
         )}"
 
+     
         oninput="
-          marcarHoraFilaOperacion(this)
+          validarMontoDosDecimales(this);
+          marcarHoraFilaOperacion(this);
+        "
+
+        onblur="
+          finalizarMontoDosDecimales(this)
         "
 
         onkeydown="
           procesarMontoConEnter(event,this)
         "
+
       >
 
     </td>
@@ -18901,13 +18952,20 @@ async function guardarCreditoFilaSiAplica(
           datos.entrada || ''
         )}"
 
+   
         oninput="
-          marcarHoraFilaOperacion(this)
+          validarMontoDosDecimales(this);
+          marcarHoraFilaOperacion(this);
+        "
+
+        onblur="
+          finalizarMontoDosDecimales(this)
         "
 
         onkeydown="
           procesarMontoConEnter(event,this)
         "
+
       >
 
     </td>
@@ -18931,13 +18989,20 @@ async function guardarCreditoFilaSiAplica(
           datos.salida || ''
         )}"
 
+    
         oninput="
-          marcarHoraFilaOperacion(this)
+          validarMontoDosDecimales(this);
+          marcarHoraFilaOperacion(this);
+        "
+
+        onblur="
+          finalizarMontoDosDecimales(this)
         "
 
         onkeydown="
           procesarMontoConEnter(event,this)
         "
+
       >
 
     </td>
