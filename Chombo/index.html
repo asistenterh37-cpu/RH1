@@ -3123,7 +3123,7 @@ tr{
 <script>
 
 const SCRIPT_URL =
-'https://script.google.com/macros/s/AKfycbzvy36B-0P5nQ6nAzX7cTBrQ5Cl3fm8LgO4jj10ZvkbEt8ZPwGjUkIAjueH0e4O1YFf/exec';
+'https://script.google.com/macros/s/AKfycby4v9wpm2ZlxXS3bPm-pf5l6pZ4VGTc0fxJ65ur1djDSXDzak_A4qZ0xDh_TQKhOc0/exec';
 
 </script>
 
@@ -3878,6 +3878,7 @@ const SCRIPT_URL =
 <!-- CUADERNOS DEL TURNO -->
 
 
+
 <button
   class="btn btn-primary"
   type="button"
@@ -3890,7 +3891,27 @@ const SCRIPT_URL =
   class="btn btn-primary"
   type="button"
   onclick="abrirCuadernoChombo('notas')"
+>
   Notas
+</button>
+
+<button
+  id="guardarTotalesTurnoBtn"
+  class="btn btn-primary"
+  type="button"
+  onclick="guardarTotalesTurno()"
+>
+  Guardar
+</button>
+
+<button
+  class="btn btn-print"
+  type="button"
+  onclick="abrirConsultaImpresionCierre()"
+>
+  Imprimir
+</button>
+
   <button
     class="btn btn-print"
     type="button"
@@ -23136,330 +23157,179 @@ async function mostrarReporteDia(){
 
 }
   
-  
+
 /* ======================================================
    RENDER REPORTE DEL DIA
+   COLUMNAS B:G DE HOJA CIERRES
 ====================================================== */
 
-function renderReporteDia(
- data
-){
+function renderReporteDia(data) {
 
- const cierres =
-  Array.isArray(
-   data.cierres
-  )
-  ?
-  data.cierres
-  :
-  [];
+  const cierres = Array.isArray(data.cierres)
+    ? data.cierres
+    : [];
 
+  const resumen = $('reporteDiaResumen');
 
- const resumen =
-  $('reporteDiaResumen');
+  if (resumen) {
+    resumen.style.display = 'grid';
+  }
 
+  $('reporteDiaCantidad').textContent =
+    data.cantidadTurnos || 0;
 
- if(resumen){
+  $('reporteDiaEntradas').textContent =
+    money.format(Number(data.totalEntradas || 0));
 
-  resumen.style.display =
-   'grid';
+  $('reporteDiaSalidas').textContent =
+    money.format(Number(data.totalSalidas || 0));
 
- }
+  /* MISMAS COLUMNAS DEL REGISTRO GUARDADO */
 
+  const encabezado = `
+    <tr>
+      <th>Módulo</th>
+      <th>Movimiento</th>
+      <th>Descripción</th>
+      <th class="num">Parcial</th>
+      <th class="num">Entradas</th>
+      <th class="num">Salidas</th>
+    </tr>
+  `;
 
- $('reporteDiaCantidad')
- .textContent =
-  data.cantidadTurnos || 0;
+  function construirTabla(items) {
 
+    return `
+      <div class="table-scroll">
+        <table class="report-table">
 
- $('reporteDiaEntradas')
- .textContent =
-  money.format(
-   Number(
-    data.totalEntradas || 0
-   )
-  );
+          <thead>
+            ${encabezado}
+          </thead>
 
+          <tbody>
 
- $('reporteDiaSalidas')
- .textContent =
-  money.format(
-   Number(
-    data.totalSalidas || 0
-   )
-  );
+            ${items.map(item => `
+              <tr>
 
+                <td>
+                  ${escapeHtml(item.modulo || '')}
+                </td>
 
- if(
-  data.modo ===
-  'consolidado'
- ){
+                <td>
+                  ${escapeHtml(item.movimiento || '')}
+                </td>
 
-  const items =
-   Array.isArray(
-    data.consolidado
-   )
-   ?
-   data.consolidado
-   :
-   [];
+                <td>
+                  ${escapeHtml(item.descripcion || '')}
+                </td>
 
+                <td class="num">
+                  ${formatOptionalMoney(item.parcial)}
+                </td>
 
-  if(!items.length){
+                <td class="num">
+                  ${formatOptionalMoney(item.entrada)}
+                </td>
 
-   $('reporteDiaResultados')
-   .innerHTML =
-    `
-     <div class="empty">
-      No hay movimientos para los filtros seleccionados.
-     </div>
+                <td class="num">
+                  ${formatOptionalMoney(item.salida)}
+                </td>
+
+              </tr>
+            `).join('')}
+
+          </tbody>
+
+        </table>
+      </div>
     `;
-
-   return;
 
   }
 
+  /* REPORTE CONSOLIDADO */
 
-  $('reporteDiaResultados')
-  .innerHTML =
-   `
+  if (data.modo === 'consolidado') {
 
-    <div class="report-card">
+    const items = Array.isArray(data.consolidado)
+      ? data.consolidado
+      : [];
 
-     <div class="report-head">
+    if (!items.length) {
 
-      <strong>
-       Consolidado del día
-      </strong>
+      $('reporteDiaResultados').innerHTML = `
+        <div class="empty">
+          No hay movimientos para los filtros seleccionados.
+        </div>
+      `;
 
-     </div>
+      return;
+    }
 
+    $('reporteDiaResultados').innerHTML = `
+      <div class="report-card">
 
-     <div class="table-scroll">
+        <div class="report-head">
+          <strong>Consolidado del día</strong>
+        </div>
 
-      <table class="report-table">
+        ${construirTabla(items)}
 
-       <thead>
+      </div>
+    `;
 
-        <tr>
+    return;
+  }
 
-         <th>
-          Descripción
-         </th>
+  /* REPORTE POR TURNO */
 
-         <th class="num">
-          Parcial
-         </th>
+  if (!cierres.length) {
 
-         <th class="num">
-          Entradas
-         </th>
+    $('reporteDiaResultados').innerHTML = `
+      <div class="empty">
+        No hay cierres para los filtros seleccionados.
+      </div>
+    `;
 
-         <th class="num">
-          Salidas
-         </th>
+    return;
+  }
 
-        </tr>
+  $('reporteDiaResultados').innerHTML =
+    cierres.map(cierre => `
 
-       </thead>
+      <div
+        class="report-card"
+        style="margin-bottom:16px;"
+      >
 
+        <div class="report-head">
 
-       <tbody>
+          <strong>
+            Turno:
+            ${escapeHtml(cierre.turnoId || '')}
 
-        ${
-         items
-         .map(
-          item => `
+            &nbsp; | &nbsp;
 
-           <tr>
+            Ubicación:
+            ${escapeHtml(cierre.ubicacion || '')}
 
-            <td>
-             ${escapeHtml(
-              item.descripcion || ''
-             )}
-            </td>
+            &nbsp; | &nbsp;
 
-            <td class="num">
-             ${formatOptionalMoney(
-              item.parcial
-             )}
-            </td>
+            Responsable:
+            ${escapeHtml(cierre.responsable || '')}
+          </strong>
 
-            <td class="num">
-             ${formatOptionalMoney(
-              item.entrada
-             )}
-            </td>
+        </div>
 
-            <td class="num">
-             ${formatOptionalMoney(
-              item.salida
-             )}
-            </td>
+        ${construirTabla(cierre.items || [])}
 
-           </tr>
+      </div>
 
-          `
-         )
-         .join('')
-        }
-
-       </tbody>
-
-      </table>
-
-     </div>
-
-    </div>
-
-   `;
-
-
-  return;
-
- }
-
-
- if(!cierres.length){
-
-  $('reporteDiaResultados')
-  .innerHTML =
-   `
-    <div class="empty">
-     No hay cierres para los filtros seleccionados.
-    </div>
-   `;
-
-  return;
-
- }
-
-
- $('reporteDiaResultados')
- .innerHTML =
-
-  cierres
-  .map(
-   cierre => `
-
-    <div
-     class="report-card"
-     style="margin-bottom:16px;"
-    >
-
-     <div class="report-head">
-
-      <strong>
-
-       Turno:
-       ${escapeHtml(
-        cierre.turnoId || ''
-       )}
-
-       &nbsp; | &nbsp;
-
-       Ubicación:
-       ${escapeHtml(
-        cierre.ubicacion || ''
-       )}
-
-       &nbsp; | &nbsp;
-
-       Responsable:
-       ${escapeHtml(
-        cierre.responsable || ''
-       )}
-
-      </strong>
-
-     </div>
-
-
-     <div class="table-scroll">
-
-      <table class="report-table">
-
-       <thead>
-
-        <tr>
-
-         <th>
-          Descripción
-         </th>
-
-         <th class="num">
-          Parcial
-         </th>
-
-         <th class="num">
-          Entradas
-         </th>
-
-         <th class="num">
-          Salidas
-         </th>
-
-        </tr>
-
-       </thead>
-
-
-       <tbody>
-
-        ${
-         (
-          cierre.items || []
-         )
-         .map(
-          item => `
-
-           <tr>
-
-            <td>
-             ${escapeHtml(
-              item.descripcion || ''
-             )}
-            </td>
-
-            <td class="num">
-             ${formatOptionalMoney(
-              item.parcial
-             )}
-            </td>
-
-            <td class="num">
-             ${formatOptionalMoney(
-              item.entrada
-             )}
-            </td>
-
-            <td class="num">
-             ${formatOptionalMoney(
-              item.salida
-             )}
-            </td>
-
-           </tr>
-
-          `
-         )
-         .join('')
-        }
-
-       </tbody>
-
-      </table>
-
-     </div>
-
-    </div>
-
-   `
-  )
-  .join('');
+    `).join('');
 
 }
 
+  
 /* ======================================================
    REPORTES
 ====================================================== */
