@@ -3123,7 +3123,7 @@ tr{
 <script>
 
 const SCRIPT_URL =
-'https://script.google.com/macros/s/AKfycbwv2UdxggZM4HLy21aCQWFxF9r3KTWrEGHdO_zKpQwbY3Z27r-vYRjYkPa-zCRHQh6g/exec';
+'https://script.google.com/macros/s/AKfycbzDDLkBpvB_VuPp6ZxaPOtQrltwt2cz6RYuBKRxLd_tlyXyTtBBjkIuLAVfJBiQkA-l/exec';
 
 </script>
 
@@ -3903,13 +3903,15 @@ const SCRIPT_URL =
   Guardar
 </button>
 
+
 <button
   class="btn btn-print"
   type="button"
-  onclick="imprimirOperacionesTurno()"
+  onclick="abrirConsultaImpresionCierre()"
 >
   Imprimir
 </button>
+
 
 
   <button
@@ -25021,6 +25023,469 @@ function activarCalculadoraControlVentas() {
 
   });
 
+}
+
+/* =====================================================
+   IMPRESIÓN DE CIERRES GUARDADOS POR FECHA Y TURNO
+===================================================== */
+
+let cierreImpresionActual = null;
+
+function escaparImpresion(valor) {
+  return String(valor ?? '').replace(/[&<>"']/g, c => ({
+    '&':'&amp;',
+    '<':'&lt;',
+    '>':'&gt;',
+    '"':'&quot;',
+    "'":'&#39;'
+  }[c]));
+}
+
+function dineroImpresion(valor) {
+  return (Number(valor) || 0).toLocaleString('es-HN', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  });
+}
+
+function abrirConsultaImpresionCierre() {
+
+  document.getElementById('modalImpresionCierre')?.remove();
+
+  cierreImpresionActual = null;
+
+  const hoy = new Date();
+  const fechaLocal = [
+    hoy.getFullYear(),
+    String(hoy.getMonth() + 1).padStart(2, '0'),
+    String(hoy.getDate()).padStart(2, '0')
+  ].join('-');
+
+  const modal = document.createElement('div');
+  modal.id = 'modalImpresionCierre';
+
+  modal.style.cssText = `
+    position:fixed;
+    inset:0;
+    z-index:20000;
+    background:rgba(0,0,0,.6);
+    display:flex;
+    justify-content:center;
+    align-items:flex-start;
+    overflow:auto;
+    padding:25px 12px;
+  `;
+
+  modal.innerHTML = `
+    <div style="
+      background:white;
+      width:100%;
+      max-width:1050px;
+      border-radius:14px;
+      padding:20px;
+      color:#172033;
+    ">
+
+      <div style="
+        display:flex;
+        justify-content:space-between;
+        align-items:center;
+        gap:10px;
+      ">
+        <h2 style="margin:0">
+          Impresión de cierres diarios
+        </h2>
+
+        <button class="btn btn-print"
+          onclick="cerrarConsultaImpresionCierre()">
+          Cerrar
+        </button>
+      </div>
+
+      <div style="
+        display:flex;
+        flex-wrap:wrap;
+        gap:12px;
+        align-items:end;
+        margin:20px 0;
+      ">
+
+        <div>
+          <label>Fecha del cierre</label>
+          <input
+            id="impresionFecha"
+            class="cell-input"
+            type="date"
+            value="${fechaLocal}"
+            onchange="cargarTurnosImpresion()"
+          >
+        </div>
+
+        <div style="flex:1;min-width:220px">
+          <label>Seleccionar TurnoID</label>
+          <select
+            id="impresionTurno"
+            class="cell-input">
+            <option value="">
+              Seleccionar turno
+            </option>
+          </select>
+        </div>
+
+        <button
+          class="btn btn-primary"
+          onclick="consultarVistaPreviaCierre()">
+          Ver vista previa
+        </button>
+
+      </div>
+
+      <div id="contenidoVistaImpresion"
+        style="min-height:150px;padding:10px">
+        Selecciona fecha y TurnoID.
+      </div>
+
+      <div style="
+        display:flex;
+        justify-content:flex-end;
+        margin-top:15px;
+      ">
+        <button
+          id="botonImprimirCierre"
+          class="btn btn-primary"
+          disabled
+          onclick="imprimirVistaCierreGuardado()">
+          Imprimir
+        </button>
+      </div>
+
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+  cargarTurnosImpresion();
+}
+
+function cerrarConsultaImpresionCierre() {
+  document.getElementById('modalImpresionCierre')?.remove();
+  cierreImpresionActual = null;
+}
+
+async function cargarTurnosImpresion() {
+
+  const fecha = document.getElementById('impresionFecha').value;
+  const select = document.getElementById('impresionTurno');
+  const vista = document.getElementById('contenidoVistaImpresion');
+
+  cierreImpresionActual = null;
+  document.getElementById('botonImprimirCierre').disabled = true;
+
+  select.innerHTML =
+    '<option value="">Cargando turnos...</option>';
+
+  vista.textContent = 'Selecciona un TurnoID.';
+
+  try {
+
+    const respuesta = await jsonpRequest('reportes_dia', {
+      fecha,
+      modo:'catalogo'
+    });
+
+    if (!respuesta.ok) {
+      throw new Error(respuesta.message || 'Error al consultar turnos.');
+    }
+
+    select.innerHTML =
+      '<option value="">Seleccionar turno</option>';
+
+    (respuesta.turnos || []).forEach(turno => {
+
+      const opcion = document.createElement('option');
+
+      opcion.value = turno.turnoId;
+      opcion.textContent =
+        `${turno.turnoId} | ${turno.ubicacion} | ${turno.responsable}`;
+
+      select.appendChild(opcion);
+    });
+
+    if (select.options.length === 1) {
+      vista.textContent =
+        'No existen turnos registrados en esta fecha.';
+    }
+
+  } catch (error) {
+    select.innerHTML =
+      '<option value="">Sin resultados</option>';
+    vista.textContent = error.message;
+  }
+}
+
+async function consultarVistaPreviaCierre() {
+
+  const fecha = document.getElementById('impresionFecha').value;
+  const turnoId = document.getElementById('impresionTurno').value;
+  const vista = document.getElementById('contenidoVistaImpresion');
+  const boton = document.getElementById('botonImprimirCierre');
+
+  cierreImpresionActual = null;
+  boton.disabled = true;
+
+  if (!fecha || !turnoId) {
+    toast('Selecciona fecha y TurnoID.', false);
+    return;
+  }
+
+  vista.textContent = 'Consultando cierre y arqueo de caja...';
+
+  try {
+
+    const respuesta = await jsonpRequest('impresion_cierre', {
+      fecha,
+      turnoId
+    });
+
+    if (!respuesta.ok) {
+      throw new Error(respuesta.message || 'Error al consultar cierre.');
+    }
+
+    cierreImpresionActual = respuesta;
+
+    const filas = respuesta.detalles.map(item => `
+      <tr>
+        <td>${escaparImpresion(item.modulo)}</td>
+        <td>${escaparImpresion(item.movimiento)}</td>
+        <td>${escaparImpresion(item.descripcion)}</td>
+        <td class="num">${dineroImpresion(item.parcial)}</td>
+        <td class="num">${dineroImpresion(item.entrada)}</td>
+        <td class="num">${dineroImpresion(item.salida)}</td>
+      </tr>
+    `).join('');
+
+    let cajaHTML = `
+      <h3>Arqueo de caja</h3>
+      <p>No hay arqueo guardado para este turno.</p>
+    `;
+
+    if (respuesta.arqueo) {
+
+      const arqueo = respuesta.arqueo;
+
+      const encabezados = arqueo.cantidades.map(
+        d => `<th>${d.denominacion}</th>`
+      ).join('');
+
+      const cantidades = arqueo.cantidades.map(
+        d => `<td class="num">${d.cantidad}</td>`
+      ).join('');
+
+      cajaHTML = `
+        <h3>Arqueo de caja</h3>
+        <table>
+          <thead>
+            <tr>${encabezados}<th>Total piezas</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              ${cantidades}
+              <td class="num">${arqueo.totalPiezas}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <p style="text-align:right">
+          <strong>
+            Total efectivo arqueado:
+            L ${dineroImpresion(arqueo.totalEfectivo)}
+          </strong>
+        </p>
+      `;
+    }
+
+    vista.innerHTML = `
+      <div id="documentoCierreImprimible"
+        style="font-family:Arial,sans-serif">
+
+        <h2 style="text-align:center;margin-bottom:3px">
+          CHOMBO
+        </h2>
+
+        <h3 style="text-align:center;margin-top:0">
+          CIERRE DIARIO DE OPERACIONES
+        </h3>
+
+        <p>
+          <strong>Fecha:</strong>
+          ${escaparImpresion(respuesta.fecha)}
+          &nbsp;&nbsp;
+          <strong>TurnoID:</strong>
+          ${escaparImpresion(respuesta.turnoId)}
+        </p>
+
+        <p>
+          <strong>Responsable:</strong>
+          ${escaparImpresion(respuesta.responsable)}
+          &nbsp;&nbsp;
+          <strong>Ubicación:</strong>
+          ${escaparImpresion(respuesta.ubicacion)}
+        </p>
+
+        <table>
+          <thead>
+            <tr>
+              <th>Módulo</th>
+              <th>Movimiento</th>
+              <th>Descripción</th>
+              <th>Parcial</th>
+              <th>Entradas</th>
+              <th>Salidas</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${filas}
+          </tbody>
+          <tfoot>
+            <tr>
+              <th colspan="4">TOTAL</th>
+              <th class="num">
+                ${dineroImpresion(respuesta.totalEntradas)}
+              </th>
+              <th class="num">
+                ${dineroImpresion(respuesta.totalSalidas)}
+              </th>
+            </tr>
+          </tfoot>
+        </table>
+
+        <p style="text-align:right;font-weight:bold">
+          Diferencia (Entradas - Salidas):
+          L ${dineroImpresion(respuesta.diferencia)}
+        </p>
+
+        ${cajaHTML}
+
+      </div>
+    `;
+
+    const estilo = document.createElement('style');
+    estilo.textContent = `
+      #documentoCierreImprimible table {
+        width:100%;
+        border-collapse:collapse;
+        margin:12px 0;
+      }
+      #documentoCierreImprimible th,
+      #documentoCierreImprimible td {
+        border:1px solid #aaa;
+        padding:5px;
+        font-size:11px;
+      }
+      #documentoCierreImprimible th {
+        background:#e9eef5;
+      }
+      #documentoCierreImprimible .num {
+        text-align:right;
+        white-space:nowrap;
+      }
+    `;
+
+    vista.appendChild(estilo);
+    boton.disabled = false;
+
+  } catch (error) {
+    vista.textContent = error.message;
+    toast(error.message, false);
+  }
+}
+
+function imprimirVistaCierreGuardado() {
+
+  if (!cierreImpresionActual) {
+    toast('Primero genera la vista previa.', false);
+    return;
+  }
+
+  const contenido = document.getElementById(
+    'documentoCierreImprimible'
+  );
+
+  if (!contenido) return;
+
+  const ventana = window.open('', '_blank');
+
+  if (!ventana) {
+    toast('Permite ventanas emergentes para imprimir.', false);
+    return;
+  }
+
+  ventana.document.open();
+
+  ventana.document.write(`
+    <!DOCTYPE html>
+    <html lang="es">
+    <head>
+      <meta charset="UTF-8">
+      <title>Cierre diario</title>
+      <style>
+        @page {
+          size:letter portrait;
+          margin:12mm;
+        }
+
+        body {
+          font-family:Arial,sans-serif;
+          color:#111;
+        }
+
+        h2,h3 { text-align:center; }
+
+        table {
+          width:100%;
+          border-collapse:collapse;
+          margin:12px 0;
+        }
+
+        th,td {
+          border:1px solid #888;
+          padding:5px;
+          font-size:10px;
+        }
+
+        th { background:#eee; }
+
+        .num {
+          text-align:right;
+          white-space:nowrap;
+        }
+
+        tr { break-inside:avoid; }
+
+        .imprimir-accion {
+          padding:10px 18px;
+          margin-bottom:15px;
+          cursor:pointer;
+        }
+
+        @media print {
+          .imprimir-accion { display:none; }
+        }
+      </style>
+    </head>
+    <body>
+
+      <button class="imprimir-accion"
+        onclick="window.print()">
+        Imprimir documento
+      </button>
+
+      ${contenido.outerHTML}
+
+    </body>
+    </html>
+  `);
+
+  ventana.document.close();
 }
 
 
